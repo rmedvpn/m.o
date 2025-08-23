@@ -1,0 +1,201 @@
+﻿
+@{
+    if (!WebSecurity.IsAuthenticated)
+{
+    Response.Redirect("~/");
+}
+
+var db = Database.Open("irgoon");
+var sqlSelect=""; 
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+int u_id = WebSecurity.CurrentUserId;
+    string theAction="";
+    string theValue="";
+    string theHtmlOutput= "";
+    string logMsg= "";
+
+theAction=Request["theAction"];
+theValue=Request["value"];
+
+string username="";
+
+
+switch (theAction)
+{
+    case "":
+        theHtmlOutput= "ERROR";
+        break;
+
+    case "tmpAction":
+            if(theHtmlOutput==""){
+                
+                sqlSelect = "SELECT userid,wanum FROM irgoon.irgusers WHERE order_count=0 AND tmpFlg=0";
+                var Prospects = db.Query(sqlSelect);
+
+                foreach(var item in Prospects){
+                    sqlSelect = "SELECT count(serial) as orderCnt FROM irgoon.MasterWebOrders WHERE wanum=@0";
+                    var tmpRs = db.QuerySingle(sqlSelect,item.wanum);
+                    int orderCnt=0;
+                    try{orderCnt=tmpRs.orderCnt;}catch{}
+                    sqlSelect = "UPDATE irgoon.irgusers SET order_count=@0,tmpFlg=1 WHERE userid=@1";
+                    db.Execute(sqlSelect,orderCnt,item.userid);
+                    
+                    
+                }
+                theHtmlOutput = "הפעולה בוצעה בהצלחה";
+                
+            }
+        break;
+        
+
+        case "LinkRoundText":
+            if(theHtmlOutput==""){
+            int LinkingRound_id=0; try{LinkingRound_id=Convert.ToInt32(Request["LinkingRound"]);}catch{}
+            string LinkingText=Request["LinkingText"];
+            if(LinkingRound_id==0){
+                theHtmlOutput = theHtmlOutput + "חובה לבחור סבב לשיוך<BR>";
+            }
+
+            if(theHtmlOutput==""){
+                sqlSelect="update irgoon.masterweborders set round_id=@0 WHERE delivery_option=@1";
+                db.Execute(sqlSelect,LinkingRound_id,LinkingText);
+                sqlSelect = "INSERT INTO irgoon.RoundsLinkedText(round_id,linkedText) VALUES(@0,@1)";
+                db.Execute(sqlSelect,LinkingRound_id,LinkingText);
+                theHtmlOutput = "הטקסט קושר בהצלחה";
+            }
+            else{
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+
+
+            }
+        break;
+
+        case "AddNewRound":
+            if(theHtmlOutput==""){
+            int round_type=0; try{round_type=Convert.ToInt32(Request["round_type"]);}catch{}
+            string title=Request["title"];
+            string title_e=Request["title_e"];
+
+            if(title.IsEmpty()){
+                theHtmlOutput = theHtmlOutput + "כותרת היא שדה חובה<BR>";
+            }
+            if(title_e.IsEmpty()){
+                theHtmlOutput = theHtmlOutput + "כותרת אנגלית היא שדה חובה<BR>";
+            }
+            if(round_type==0){
+                theHtmlOutput = theHtmlOutput + "חובה לבחור סוג סבב<BR>";
+            }
+            if(theHtmlOutput==""){
+                sqlSelect = "INSERT INTO irgoon.Rounds(title,title_e,round_type) VALUES(@0,@1,@2)";
+                db.Execute(sqlSelect,title,title_e,round_type);
+                theHtmlOutput = "הסבב נוצר בהצלחה";
+            }
+            else{
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+            }
+        break;
+
+            case "ImportUploadedOrders":
+            if(theHtmlOutput==""){
+            int NewOrdersCounter=0; try{NewOrdersCounter=Convert.ToInt32(Request["NewOrdersCounter"]);}catch{}
+            int lineCount=0; try{lineCount=Convert.ToInt32(Request["lineCount"]);}catch{}
+            int succes_cnt=0;
+            int fail_cnt=0;
+            logMsg = logMsg + "סנכרון " + NewOrdersCounter + " הזמנות חדשות מתוך " + lineCount + " שורות נתונים<BR>";
+
+
+            for (int i = 1; i <= NewOrdersCounter; i++) 
+            {
+                DateTime order_date=Convert.ToDateTime("1/1/1970");
+                int round_id=0;
+                int member_id=0;
+                string userName="";
+                string orderBody="";
+                string wanum="";
+                string shipping_address="";
+                string shipping_city="";
+                string orderPw="";
+                string delivery_option="";
+                int lang=0;
+                int lineNumber=0;
+                
+
+                try{order_date=Convert.ToDateTime(Request["order_date_" + i]);}catch{}
+                try{round_id=Convert.ToInt32(Request["round_id_" + i]);}catch{}
+                try{member_id=Convert.ToInt32(Request["user_id_" + i]);}catch{}
+                try{userName=Request["userName_" + i];}catch{}
+                try{orderBody=Request["orderBody_" + i];}catch{}
+                try{wanum=Request["wanum_" + i];}catch{}
+                try{shipping_address=Request["shipping_address_" + i];}catch{}
+                try{shipping_city=Request["shipping_city_" + i];}catch{}
+                try{orderPw=Request["orderpw_" + i];}catch{}
+                try{delivery_option=Request["delivery_option_" + i];}catch{}
+                try{lang=Convert.ToInt32(Request["lang_" + i]);}catch{}
+                try{lineNumber=Convert.ToInt32(Request["lineNumber_" + i]);}catch{}
+                try{lineCount=Convert.ToInt32(Request["lineCount"]);}catch{}
+                
+                if(member_id<=0){
+                    try{member_id=MainFunctions.CreateMemberAndReturnId(userName,wanum);}catch{}
+                    logMsg = "NEW MEMBER " + userName + " CREATED @ LINE #" + lineNumber;
+                    MainFunctions.WriteLog ("ORDERSSYNC", u_id,logMsg);
+                }
+
+                sqlSelect="INSERT INTO irgoon.MasterWebOrders(orderpw,ts,ship_rec,ship_address,ship_city,wanum,orderBody,delivery_option,lang,round_id,user_id,import_ts,imported_by,ts_str) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13)";
+                
+                try{
+                    db.Execute(sqlSelect,orderPw,order_date,userName,shipping_address,shipping_city,wanum,orderBody,delivery_option,lang,round_id,member_id,DateTime.Now,u_id,order_date.ToString());
+                    MainFunctions.UpdateMemberStats(member_id);
+                    succes_cnt++;
+                   }
+                catch{
+                    logMsg = "NEW ORDER INSERT FAILED @ LINE #" + lineNumber ;
+                     MainFunctions.WriteLog ("ORDERSSYNC", u_id,logMsg);
+                    fail_cnt++;
+                }
+
+
+                //theHtmlOutput = theHtmlOutput + order_date + " | " + round_id + " | " + member_id + " | " + userName + " | " +  orderBody + " | " +  wanum + " | " +  shipping_address + " | " +  shipping_city + " | " +  orderPw + " | " + "<BR>";
+
+
+            }
+
+            if(succes_cnt>0){
+                logMsg = "סנכרון " + succes_cnt + " רשומות בוצע בהצלחה";   
+                 MainFunctions.WriteLog ("ORDERSSYNC", u_id,logMsg);
+               MainFunctions.SetAppProperty("LastOrdersFileSync",DateTime.Now.ToString());
+               MainFunctions.SetAppProperty("LastOrdersSyncBy",WebSecurity.CurrentUserName);
+               theHtmlOutput = theHtmlOutput + "הסנכרון בוצע בהצלחה " + succes_cnt + "הזמנות נוצרו במערכת<BR>";
+
+            }
+             if(fail_cnt>0){
+                logMsg = "סנכרון " + fail_cnt + " רשומות נכשל ";   
+                 MainFunctions.WriteLog ("ORDERSSYNC", u_id,logMsg);
+               theHtmlOutput = theHtmlOutput + "סנכרון " + fail_cnt + " רשומות נכשל <BR>";   
+            }
+               MainFunctions.WriteLog ("ORDERSSYNC", u_id,logMsg);
+
+
+            }
+        break;
+
+        
+
+         
+}
+
+/*
+if(logMsg!="" && order_id!=0) {
+    TeamFunctions.RecordOrderLogEntry(order_id,u_id,logMsg);
+}
+*/
+
+//theHtmlOutput=theHtmlOutput.Replace("##","\"");
+db.Close();
+Response.Write (theHtmlOutput);
+
+  
+}
+

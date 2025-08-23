@@ -1,0 +1,32 @@
+﻿@{
+    var UserName = ""; UserName = "ישראל";
+    var password = ""; password = "654321";
+
+
+
+    if (WebSecurity.Login(UserName, password, true))
+    {
+        Response.Redirect("~/Main_new");
+        int u_id = WebSecurity.CurrentUserId;
+        if (u_id > 0)
+        {
+            AppFunctions.DoLogin(u_id);
+            Response.Redirect("Main_new");
+        }
+        else
+        {
+            <div>@u_id</div>
+        }
+
+    }
+    else
+    {
+        Response.Redirect("~/");
+    }
+}
+
+<h1>התחברות</h1>
+<p>
+    <input type="button" value="fastlogin" onclick="window.location.href='fastlogin'" />
+</p>
+

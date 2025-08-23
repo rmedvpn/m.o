@@ -1,0 +1,3828 @@
+﻿@helper LoadWebProspectTemplate(int prospect_id, int template_id = 0)
+{
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    int rep_id = WebSecurity.CurrentUserId;
+    string rep_name = AppFunctions.GetRepName(rep_id);
+    DateTime local_time = AppFunctions.LocalTime();
+    sqlSelect = "SELECT serial,prospect_name,wanum,prospect_id FROM webprospects WHERE serial=@0";
+    var prospect = op_data.QuerySingle(sqlSelect, prospect_id);
+
+    if (template_id == 0)
+    {
+        template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultWebProspectsMsgTemplate"));
+    }
+
+    sqlSelect = "SELECT * FROM msgTemplates WHERE id=@0";
+    var msgTemplate = op_data.QuerySingle(sqlSelect, template_id);
+
+
+
+
+    string msgTxt = "";
+    string JoinPhoneNumber = AppFunctions.GetAppProperty("JoinPhoneNumber");
+    string msgType = "";
+    try { msgType = msgTemplate.msgType; } catch { }
+    sqlSelect = "select * from msgTemplates WHERE msgType=@0";
+    var msgTemplates = op_data.Query(sqlSelect, msgType);
+
+    if (msgTemplate != null)
+    {
+
+
+
+        msgTxt = msgTemplate.msg_body;
+
+
+
+
+        if (prospect != null)
+        {
+            string wanum = prospect.wanum;
+            string wanum_code = "";
+            try { wanum_code = prospect.wanum.Substring(prospect.wanum.Length - 4); } catch { wanum_code = "9999"; }
+            try { msgTxt = msgTxt.Replace("USERNAME", prospect.prospect_name); } catch { }
+            try { msgTxt = msgTxt.Replace("JOINPHONENUMBER", JoinPhoneNumber); } catch { }
+            try { msgTxt = msgTxt.Replace("PROSPECT_ID", prospect.serial.ToString()); } catch { }
+            try { msgTxt = msgTxt.Replace("PROSPECTID", prospect.serial.ToString()); } catch { }
+            try { msgTxt = msgTxt.Replace("LAST4WANUM", wanum_code); } catch { }
+            try { msgTxt = msgTxt.Replace("WANUM", prospect.wanum); } catch { }
+            try { msgTxt = msgTxt.Replace("REPNAME", rep_name); } catch { }
+            try { msgTxt = msgTxt.Replace("DATESTAMP30", local_time.AddDays(30).ToShortDateString()); } catch { }
+            try { msgTxt = msgTxt.Replace("DATESTAMP14", local_time.AddDays(30).ToShortDateString()); } catch { }
+            try { msgTxt = msgTxt.Replace("DATESTAMP7", local_time.AddDays(7).ToShortDateString()); } catch { }
+            try { msgTxt = msgTxt.Replace("DATESTAMP", local_time.ToShortDateString()); } catch { }
+            try { msgTxt = msgTxt.Replace("TIMESTAMP", local_time.ToShortDateString() + " " + local_time.ToString("HH:mm")); } catch { }
+
+
+        }
+
+    }
+
+    <div style="overflow: auto;background-color: #fff">
+        <select style="border: 0;background: transparent;color: #fff;background-color: #808080;font-weight: bold;font-size: 16px;width: 90%" onchange="AjaxUpdate('LoadProspectTemplate','MsgTemplatesDiv','MsgTemplatesLoader',@prospect_id,this.value);">
+            @foreach (var item in msgTemplates)
+            {
+                <option value="@item.id" @if (template_id == item.id) { <text> selected</text>}>@item.msg_title</option>
+            }
+        </select>
+        <div class="spinner" style="text-align: center;display: none;" id="MsgTemplatesLoader">
+            <div class="bounce1"></div>
+            <div class="bounce2"></div>
+            <div class="bounce3"></div>
+        </div>
+        <textarea id="tb_cb" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;height: 300px;" oninput="document.getElementById('txt_@prospect_id').innerHTML = this.value;">@msgTxt</textarea>
+        <div id="txt_@prospect_id" style="padding: 5px;margin: 5px;display: none;">@msgTxt</div>
+
+
+    </div>
+
+    op_data.Close();
+}
+
+@helper LoadProspectTemplate(int prospect_id, int template_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    int rep_id = WebSecurity.CurrentUserId;
+    string rep_name = AppFunctions.GetRepName(rep_id);
+    DateTime local_time = AppFunctions.LocalTime();
+    sqlSelect = "SELECT prospect_name,wanum FROM prospects WHERE serial=@0";
+    var prospect = db.QuerySingle(sqlSelect, prospect_id);
+
+    if (template_id == 0)
+    {
+        template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultProspectsMsgTemplate"));
+    }
+    template_id = 1;
+    sqlSelect = "SELECT * FROM msgTemplates WHERE id=@0";
+    var msgTemplate = db.QuerySingle(sqlSelect, template_id);
+
+
+
+
+    string msgTxt = "";
+    string JoinPhoneNumber = AppFunctions.GetAppProperty("JoinPhoneNumber");
+    string msgType = "";
+    try { msgType = msgTemplate.msgType; } catch { }
+    sqlSelect = "select * from msgTemplates WHERE msgType=@0";
+    var msgTemplates = db.Query(sqlSelect, msgType);
+
+    if (msgTemplate != null)
+    {
+
+
+
+        msgTxt = msgTemplate.msg_body;
+
+
+        if (prospect != null)
+        {
+            msgTxt = msgTxt.Replace("USERNAME", prospect.prospect_name);
+            msgTxt = msgTxt.Replace("JOINPHONENUMBER", JoinPhoneNumber);
+            msgTxt = msgTxt.Replace("PROSPECT_ID", prospect_id.ToString());
+            msgTxt = msgTxt.Replace("PROSPECTID", prospect_id.ToString());
+            msgTxt = msgTxt.Replace("WANUM", prospect.wanum);
+            msgTxt = msgTxt.Replace("REPNAME", rep_name);
+            msgTxt = msgTxt.Replace("DATESTAMP30", local_time.AddDays(30).ToShortDateString());
+            msgTxt = msgTxt.Replace("DATESTAMP14", local_time.AddDays(30).ToShortDateString());
+            msgTxt = msgTxt.Replace("DATESTAMP7", local_time.AddDays(7).ToShortDateString());
+            msgTxt = msgTxt.Replace("DATESTAMP", local_time.ToShortDateString());
+            msgTxt = msgTxt.Replace("TIMESTAMP", local_time.ToShortDateString() + " " + local_time.ToString("HH:mm"));
+
+
+        }
+
+        <div style="overflow: auto;background-color: #ffffcc">
+            <select style="border: 0;background: transparent;color: #fff;background-color: #57d600;font-weight: bold;font-size: 16px;width: 90%" onchange="AjaxUpdate('LoadProspectTemplate','MsgTemplatesDiv','MsgTemplatesLoader',@prospect_id,this.value);">
+                @foreach (var item in msgTemplates)
+                {
+                    <option value="@item.id" @if (template_id == item.id) { <text> selected</text>}>
+                        @item.msg_title
+                    </option>
+                }
+            </select>
+            <div class="spinner" style="text-align: center;display: none;" id="MsgTemplatesLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+            <textarea id="tb_cb" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;height: 300px;" oninput="document.getElementById('txt_@prospect_id').innerHTML = this.value;">@msgTxt</textarea>
+            <div id="txt_@prospect_id" style="padding: 5px;margin: 5px;display: none;">@msgTxt</div>
+
+
+        </div>
+
+        db.Close();
+    }
+}
+
+@helper LoadReachoutTemplate(int member_id, int template_id = 0, string reachout_type = "REP", int list_id = 0)
+{
+    int u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+
+    if (template_id == 0)
+    {
+        template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultReachOutMsgTemplate"));
+    }
+    int ReachOutPostponeIntervalDays = Convert.ToInt32(AppFunctions.GetAppProperty("ReachOutPostponeIntervalDays"));
+    sqlSelect = "SELECT * FROM msgTemplates WHERE id=@0";
+    var msgTemplate = db.QuerySingle(sqlSelect, template_id);
+    string msgType = ""; try { msgType = msgTemplate.msgType; } catch { }
+    sqlSelect = "select * from msgTemplates WHERE msgType=@0 AND (rep_id=@1 OR rep_id=0)";
+    var msgTemplates = db.Query(sqlSelect, msgType, u_id);
+    DateTime local_time = AppFunctions.LocalTime();
+    sqlSelect = "select u_Stats.*,pb.member_name,pb.wanum from u_Stats JOIN pb ON u_Stats.serial=pb.m_id WHERE u_Stats.serial=@0";
+    var memberRs = db.QuerySingle(sqlSelect, member_id);
+
+    bool is_welcome_msg = false;
+    if (msgType == "WELCOME")
+    {
+        is_welcome_msg = true;
+    }
+
+
+    string msgTxt = "";
+    string MokedPhoneNumber = AppFunctions.GetAppProperty("MokedPhoneNumber");
+    string DisconnectPhoneNumber = AppFunctions.GetAppProperty("DisconnectPhoneNumber");
+
+    if (msgTemplate != null)
+    {
+        msgTxt = msgTemplate.msg_body;
+        if (memberRs != null)
+        {
+            msgTxt = msgTxt.Replace("USERNAME", memberRs.member_name);
+            msgTxt = msgTxt.Replace("REPNAME", WebSecurity.CurrentUserName);
+            msgTxt = msgTxt.Replace("MOKEDPHONENUMBER", MokedPhoneNumber);
+            msgTxt = msgTxt.Replace("DISCONNECTPHONENUMBER", DisconnectPhoneNumber);
+            msgTxt = msgTxt.Replace("DATESTAMP30", local_time.AddDays(30).ToShortDateString());
+            msgTxt = msgTxt.Replace("DATESTAMP14", local_time.AddDays(30).ToShortDateString());
+            msgTxt = msgTxt.Replace("DATESTAMP7", local_time.AddDays(7).ToShortDateString());
+            msgTxt = msgTxt.Replace("DATESTAMP", local_time.ToShortDateString());
+            msgTxt = msgTxt.Replace("TIMESTAMP", local_time.ToShortDateString() + " " + local_time.ToString("HH:mm"));
+
+            if (msgTxt.Contains("LODAYS"))
+            {
+                TimeSpan DaysSinceLastOrder = local_time - memberRs.last_order_ts;
+                int lodays = DaysSinceLastOrder.Days;
+                msgTxt = msgTxt.Replace("LODAYS", lodays.ToString());
+            }
+
+            if (msgTxt.Contains("ANNIVERSARYYEARS"))
+            {
+                TimeSpan DaysSinceFirstOrder = local_time - memberRs.first_order_ts;
+                int AnniversaryYears = local_time.Year - memberRs.first_order_ts.Year;
+                string AnniversaryYearsStr = ""; AnniversaryYearsStr = AppFunctions.FormatAnniversaryYears(AnniversaryYears);
+                msgTxt = msgTxt.Replace("ANNIVERSARYYEARS", AnniversaryYearsStr);
+            }
+
+            msgTxt = msgTxt.Replace("USER_ID", memberRs.serial.ToString());
+            msgTxt = msgTxt.Replace("USERID", memberRs.serial.ToString());
+            msgTxt = msgTxt.Replace("WANUM", memberRs.wanum);
+
+        }
+    }
+
+    <div style="overflow: auto;background-color: #ffffcc">
+        <div style="overflow: auto">
+            <textarea id="tb_cb" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;height: 300px;" oninput="document.getElementById('txt_@member_id').innerHTML = this.value;">@msgTxt</textarea>
+            <div id="txt_@member_id" style="padding: 5px;margin: 5px;display: none;">@msgTxt</div>
+        </div>
+        <div style="overflow: auto">
+            <div style="overflow: auto;" id="beforeMsgSentOptions">
+                <span style="display: none" id="testcb1"></span>
+                @if (!is_welcome_msg)
+                {
+                    <button style="font-size: 16px;text-align: center;color: #fff;background-color: #57d600;border:2px solid #57d600;padding: 5px;margin: 5px;font-weight: bold;float: left" onclick="copyTextAreaToClipBoard('tb_cb');window.location.href='https://api.whatsapp.com/send?phone=@memberRs.wanum';hideElement('beforeMsgSentOptions');showElement('afterMsgSentOptions');">שליחת הודעה</button>
+                }
+
+
+                <select style="border: 0;font-weight: bold;font-size: 16px;width: 50%" onchange="if(this.value=='0'){Accordionize('AccMoreOptions');}else{RepAjaxUpdate('LoadReachOutTemplate','MsgTemplatesDiv','MsgTemplatesLoader',@member_id,this.value,'@reachout_type','@list_id');}">
+                    @foreach (var item in msgTemplates)
+                    {
+                        <option value="@item.id" @if (template_id == item.id) { <text> selected</text>}>@item.msg_title</option>
+                    }
+
+
+                    <option value="0">עוד אפשרויות</option>
+
+                </select>
+            </div>
+
+            @switch (msgType)
+            {
+                case "WELCOME":
+                    <div style="overflow: auto;">
+                        <button class="accordion" id="AccMoreOptions" style="display: none;"></button>
+                        <div class="panel">
+                            אין פעולות נוספות
+                        </div>
+                    </div>
+
+                    break;
+                default:
+                    <div style="overflow: auto;display: none;" id="afterMsgSentOptions">
+                        <button style="font-size: 16px;text-align: center;color: #fff;background-color: #b200ff;border:2px solid #57d600;padding: 5px;margin: 5px;font-weight: bold;float: left" onclick="AjaxActions('REACHOUTMSGSENT',@memberRs.serial, 1, '@reachout_type', '@list_id'); EnableControlButton();">👌 ההודעה נשלחה</button>
+                        <button style="border: 0;font-weight: bold;font-size: 16px;width: 50%" onclick="Accordionize('AccMoreOptions');">
+                            פעולות נוספות
+                        </button>
+                    </div>
+
+                    <div style="overflow: auto;">
+                        <button class="accordion" id="AccMoreOptions" style="display: none;"></button>
+                        <div class="panel">
+                            <button style="background-color: #e3e3e3;color: #000;font-size: 16px;font-weight: bold;border: 2px solid #000;padding: 5px;margin: 5px;" onclick="AjaxActions('POSTPONEREACHOUT',@member_id,1,'@reachout_type','@list_id'); EnableControlButton();">דחיית ההודעה לעתיד</button>
+                            <button style="background-color: #e3e3e3;color: #000;font-size: 16px;font-weight: bold;border: 2px solid #000;padding: 5px;margin: 5px;" onclick="AjaxActions('DEACTIVATEWANUM',@member_id,1,'@reachout_type','@list_id'); EnableControlButton();">סימון ווטסאפ לא פעיל</button>
+                            <button style="background-color: #e3e3e3;color: #000;font-size: 16px;font-weight: bold;border: 2px solid #000;padding: 5px;margin: 5px;" onclick="AjaxActions('DELETIONUPONUSERREQUEST',@member_id,1,'@reachout_type','@list_id'); EnableControlButton();">החבר/ה ביקש/ה להתנתק</button>
+                            <button style="background-color: #e3e3e3;color: #000;font-size: 16px;font-weight: bold;border: 2px solid #000;padding: 5px;margin: 5px;float:left;" onclick="EnableControlButton(); ControlButton();"><<חזרה</button>
+                        </div>
+                    </div>
+
+                    break;
+            }
+
+
+
+
+            <div class="spinner" style="text-align: center;display: none;" id="MsgTemplatesLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+
+        </div>
+
+
+    </div>
+
+    db.Close();
+}
+
+@helper LoadPreserveListSettings()
+{
+
+    <div style="overflow: auto;background-color: #ffffcc">
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+            <input type="radio" name="is_filter" value="no" style="float: right;padding: 5px;margin: 5px;" checked onclick="document.getElementById('StartsWith').disabled=true;document.getElementById('StartsWith').value='';RepAjaxUpdate('CalcNewList','CounterResultsDiv','mHLoader','NewListSettings')">
+            כל המשתמשים
+        </div>
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+            <input type="radio" name="is_filter" value="yes" style="float: right;padding: 5px;margin: 5px;" onclick="document.getElementById('StartsWith').disabled=false;RepAjaxUpdate('CalcNewList','CounterResultsDiv','mHLoader','NewListSettings')">
+            משתמשים שמתחילים ב<br>
+<textarea style="font-size: 16px;padding: 5px;margin: 5px;resize: none;width: 90%;height: 40px;" name="StartsWith" id="StartsWith" disabled onchange="RepAjaxUpdate('CalcNewList','CounterResultsDiv','mHLoader','NewListSettings')"></textarea>
+        </div>
+
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+            <div style="overflow: auto">שהזמינו לפחות <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 40px" value="1" name="min_order_count" onchange="RepAjaxUpdate('CalcNewList','CounterResultsDiv','mHLoader','NewListSettings')"> פעמים או יותר</div>
+
+        </div>
+
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+            <span style="float: right">הזמנה אחרונה בין התאריכים </span>
+            <br>
+            <input type="date" style="font-size: 16px;padding: 5px;margin: 5px;float: right;width: 45%" name="min_order_date" onchange="RepAjaxUpdate('CalcNewList','CounterResultsDiv','mHLoader','NewListSettings')">
+            <input type="date" style="font-size: 16px;padding: 5px;margin: 5px;float: right;width: 45%" name="max_order_date" onchange="RepAjaxUpdate('CalcNewList','CounterResultsDiv','mHLoader','NewListSettings')">
+        </div>
+
+    </div>
+
+}
+
+@helper RepMembersList(int list_id, string sortBy = "LO", string sortDir = "", string showWhat = "NEW")
+{
+    int rep_id = 0;
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    string theHtmlOutput = "";
+    string LastContactDisplayState = "none;";
+    string LastOrderDisplayState = "block;";
+    string DelBtnDisplayState = "none;";
+
+    if (sortBy.IsEmpty())
+    {
+        sortBy = "LO";
+    }
+    string nextSortDir = "";
+    if (sortDir.IsEmpty())
+    {
+        nextSortDir = "DESC";
+    }
+
+    DateTime ts = AppFunctions.LocalTime();
+    bool is_blaster = AppFunctions.isPermission(u_id, "is_blaster");
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "select top(300) listsusers.*,(listsusers.order_count-listsusers.creation_order_count) AS the_cnt from listsusers INNER JOIN pb ON listsusers.user_id=pb.m_id WHERE listsusers.is_deleted=0 AND pb.is_deleted=0 AND listsusers.list_id=@0";
+    if (list_id == -1)
+    {
+        sqlSelect = "select  top(300) listsusers.*,(listsusers.order_count-listsusers.creation_order_count) AS the_cnt from listsusers INNER JOIN u_stats ON listsusers.user_id=u_stats.serial WHERE u_stats.is_returning=1";
+    }
+
+    switch (showWhat)
+    {
+        case "NEW":
+            sqlSelect = sqlSelect + " AND is_contact=0 AND mark_deletion=0";
+            repTitle = repTitle + "מציג חברים שלא קיבלו הודעה ";
+            break;
+        case "INPROCESS":
+            sqlSelect = sqlSelect + " AND is_contact=1 AND mark_deletion=0";
+            repTitle = repTitle + "מציג חברים שקיבלו הודעה ";
+            LastContactDisplayState = "block;";
+            LastOrderDisplayState = "none;";
+            break;
+        case "DELETED":
+            sqlSelect = sqlSelect + " AND mark_deletion=1";
+            repTitle = repTitle + "מציג חברים שצריך למחוק ";
+            DelBtnDisplayState = "block;";
+            LastContactDisplayState = "none;";
+            LastOrderDisplayState = "none;";
+
+            break;
+
+    }
+
+    switch (sortBy)
+    {
+        case "OC":
+            sqlSelect = sqlSelect + " ORDER BY order_count";
+            repTitle = repTitle + "לפי כמות הזמנות כללית ";
+            if (sortDir == "DESC")
+            {
+                sqlSelect = sqlSelect + " DESC";
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+        case "AVG":
+            sqlSelect = sqlSelect + " ORDER BY the_cnt ";
+            repTitle = repTitle + "לפי הזמנות שבוצעו מאז יצירת הרשימה ";
+
+            if (sortDir == "DESC")
+            {
+                sqlSelect = sqlSelect + " DESC";
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+
+        case "LO":
+            sqlSelect = sqlSelect + " ORDER BY last_order_ts";
+            repTitle = repTitle + "לפי תאריך הזמנה אחרונה ";
+
+            if (sortDir == "DESC")
+            {
+                sqlSelect = sqlSelect + " DESC";
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+        case "UN":
+            sqlSelect = sqlSelect + " ORDER BY user_name";
+            repTitle = repTitle + "לפי שם משתמש ";
+
+            if (sortDir == "DESC")
+            {
+                sqlSelect = sqlSelect + " DESC";
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+
+        case "CONTACT":
+            sqlSelect = sqlSelect + " ORDER BY last_reachout_ts";
+            repTitle = repTitle + "לפי תאריך יצירת קשר אחרון ";
+
+            if (sortDir == "DESC")
+            {
+                sqlSelect = sqlSelect + " DESC";
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+
+
+    }
+
+
+    var irgusers = db.Query(sqlSelect, list_id);
+
+    sqlSelect = "select * from msgTemplates WHERE msgType='REACHOUT' AND (rep_id=@0 OR rep_id=0)";
+    var msgTemplates = db.Query(sqlSelect, u_id);
+
+
+
+    db.Close();
+    int last_prospect_id = 9999999;
+    int first_prospect_id = 0;
+
+    string recordsList = "";
+
+    <form id="PresereveRepActions">
+        <input type="hidden" name="reachout_type" name="reachout_type" value="LIST">
+        <input type="hidden" name="list_id" name="list_id" value="@list_id">
+
+        <div style="overflow: auto;font-size: 14px;">
+            <div style="overflow: auto;padding: 5px;">
+                <select style="float: left;padding: 2px;margin: 2px;font-size: 16px;background: transparent;" onchange="if(document.getElementById('interfaceVar1').value==''){RepAjaxUpdate('RepMembersList','RepPreseveListDiv','SubMenuLoader',@list_id,'@sortBy','@sortDir',this.value)}">
+                    <option value="NEW" @if (showWhat == "NEW") { <text> selected </text> }>חדשים</option>
+                    <option value="INPROCESS" @if (showWhat == "INPROCESS") { <text> selected </text> }>בטיפול</option>
+                    <option value="DELETED" @if (showWhat == "DELETED") { <text> selected </text> }>להסרה</option>
+                </select>
+
+                <b>@repTitle  <br><span style="color: #b200ff">סהכ @irgusers.Count() תוצאות</span></b>
+            </div>
+            <button class="Accordion" style="display: none" id="AccRepListSettings"></button>
+            <div class="panel">
+                <div style="overflow: auto">
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;float: right" name="RepRequestedAction" id="RepRequestedAction">
+                        <option value="">נא לבחור פעולה</option>
+                        <option value="DELETE">מחיקת רשימה</option>
+                    </select>
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: right" onclick="AjaxActions('PresereveRepActions',@list_id,'','PresereveRepActions',document.getElementById('RepRequestedAction').value);">בצע</button>
+
+                    @if (is_blaster)
+                    {
+                        <button id="blasterListBtn" type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: left" onclick="hideElement('blasterListBtn');showElement('blasterListLoader');AjaxActions('ExportPreserveList',@list_id,'','PreserveListViewSettings');">בלסטר</button>
+                    }
+
+
+                    <div class="spinner" style="text-align: center;display: none;;float: left" id="blasterListLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+
+
+
+                </div>
+                <div style="overflow: auto">
+                    הודעת ברירת מחדל<br>
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;float: right" name="RepDefaultTemplate" id="RepDefaultTemplate">
+                        @foreach (var msg in msgTemplates)
+                        {
+                            <option value="@msg.id">@msg.msg_title</option>
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+            <div style="background-color: #fff;float: right;display: @DelBtnDisplayState" id="repListSelectAll">
+                <span style="margin: 5px;padding: 5px;float: right;">
+                    מחיקה
+                </span>
+            </div>
+            <div style="overflow: auto">
+                <span style="margin: 5px;float: right;display: none"></span>
+                <span style="padding: 5px;margin: 5px;float: right;width: 80px;" onclick="if(document.getElementById('interfaceVar1').value==''){RepAjaxUpdate('RepMembersList','RepPreseveListDiv','SubMenuLoader',@list_id,'UN','@nextSortDir','@showWhat')}">שם </span>
+                <span style="padding: 5px;margin: 5px;float: right;width: 50px;" onclick="if(document.getElementById('interfaceVar1').value==''){RepAjaxUpdate('RepMembersList','RepPreseveListDiv','SubMenuLoader',@list_id,'OC','@nextSortDir','@showWhat')}">הזמנות</span>
+                <span style="padding: 5px;margin: 5px;float: right" onclick="if(document.getElementById('interfaceVar1').value==''){RepAjaxUpdate('RepMembersList','RepPreseveListDiv','SubMenuLoader',@list_id,'AVG','@nextSortDir','@showWhat')}">ה.מ.י</span>
+                <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @LastOrderDisplayState" onclick="if(document.getElementById('interfaceVar1').value==''){RepAjaxUpdate('RepMembersList','RepPreseveListDiv','SubMenuLoader',@list_id,'LO','@nextSortDir','@showWhat')}">הזמנה אחרונה</div>
+                <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @LastContactDisplayState" onclick="if(document.getElementById('interfaceVar1').value==''){RepAjaxUpdate('RepMembersList','RepPreseveListDiv','SubMenuLoader',@list_id,'CONTACT','@nextSortDir','@showWhat')}">קשר אחרון</div>
+                <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @DelBtnDisplayState"></div>
+            </div>
+        </div>
+        <div style="overflow: auto;">
+            @foreach (var userRec in irgusers)
+            {
+                TimeSpan DaysSinceLastOrder = ts - userRec.last_order_ts;
+                TimeSpan DaysSinceLastContact = ts - userRec.last_reachout_ts;
+
+                var DaysSinceLastOrderInt = DaysSinceLastOrder.Days;
+                var DaysSinceLastContactInt = DaysSinceLastContact.Days;
+
+                if (first_prospect_id > userRec.user_id || first_prospect_id == 0)
+                {
+                    first_prospect_id = userRec.user_id;
+                }
+                if (last_prospect_id < userRec.user_id || last_prospect_id == 9999999)
+                {
+                    last_prospect_id = userRec.user_id;
+                }
+                recordsList = recordsList + "##" + userRec.user_id + "##";
+                <div style="overflow: auto;" id="prospect_@userRec.user_id">
+                    <div style="background-color: #fff;float: right;display: @DelBtnDisplayState" id="popElement_@userRec.user_id">
+                        <span style="margin: 5px;padding: 5px;float: right;">
+                            <button type="button" style="margin: 2px;padding: 2px;font-size: 14px;background-color: #f00;color: #fff;" onclick="AjaxActions('DELETEMEMBER',@userRec.user_id,1,@list_id);">מחיקה</button>
+                        </span>
+                    </div>
+                    <div style="background-color: #e3e3e3;color: #000;font-size: 16px;overflow: auto;" onclick="callerSidebar = 'SubMenu'; sbload('SubMenuDialog', 'Caller?p1=UserReachout&p2=@userRec.user_id', '', 'PresereveRepActions'); DisableControlButton();" id="user_@userRec.user_id">
+                        <div style="overflow: auto;">
+                            <span style="padding: 5px;margin: 5px;float: right;width: 80px;">@userRec.user_name </span>
+                            <span style="padding: 5px;margin: 5px;float: right;width: 50px;">@userRec.order_count</span>
+                            <span style="padding: 5px;margin: 5px;float: right;width: 50px;">@userRec.the_cnt</span>
+                            <div style="padding: 5px;margin: 5px;float: left;text-align: left;font-size: 14px;display: @LastOrderDisplayState">@userRec.last_order_ts.ToShortDateString()<span style="font-size: 12px;color: #b200ff"><br>(לפני @DaysSinceLastOrderInt  ימים)</span></div>
+                            <div style="padding: 5px;margin: 5px;float: left;text-align: left;font-size: 14px;display: @LastContactDisplayState">@userRec.last_reachout_ts.ToShortDateString()<span style="font-size: 12px;color: #b200ff"><br>(לפני @DaysSinceLastContactInt  ימים)</span></div>
+
+                        </div>
+                    </div>
+
+                </div>
+            }
+        </div>
+        <input type="hidden" name="min_prospect_id" id="min_prospect_id" value="@first_prospect_id">
+        <input type="hidden" name="max_prospect_id" id="max_prospect_id" value="@last_prospect_id">
+        <input type="hidden" name="first_prospect_id" id="first_prospect_id" value="@first_prospect_id">
+        <input type="hidden" name="last_prospect_id" id="last_prospect_id" value="@last_prospect_id">
+        <input type="hidden" name="showWhat" id="showWhat" value="@showWhat">
+        <input type="hidden" name="recordsList" id="recordsList" value="@recordsList">
+
+
+    </form>
+    <form id="PreserveListViewSettings">
+        <input type="hidden" name="sortBy" id="sortBy" value="@sortBy">
+        <input type="hidden" name="sortDir" id="sortDir" value="@sortDir">
+        <input type="hidden" name="showWhat" value="@showWhat">
+    </form>
+
+
+}
+
+@helper ProspectsList(string sortBy = "JOIN", string sortDir = "DESC", string showWhat = "NEW")
+{
+    int list_id = 0;
+    int rep_id = 0;
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    string theHtmlOutput = "";
+    string LastContactDisplayState = "none;";
+    string ContactReturnDisplayState = "none;";
+    string JoinDisplayState = "block;";
+    var op_data = Database.Open("op_data");
+    var m_join = Database.Open("m_join");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+
+    bool is_blaster = AppFunctions.isPermission(u_id, "is_blaster");
+
+
+    DateTime local_time = AppFunctions.LocalTime();
+    string nextSortDir = "DESC";
+    if (sortDir == "DESC")
+    {
+        nextSortDir = "";
+    }
+
+    DateTime ts = AppFunctions.LocalTime();
+    int prospectsCount = 0;
+    int reJoinCount = 0;
+    int urgentProspectsCount = 0;
+
+
+    string msgTemplateType = "PROSPECT";
+
+    sqlSelect = "SELECT COUNT(serial) as the_cnt FROM prospects WHERE is_finished=0 AND is_deleted=0 ";
+    var countRs = op_data.QuerySingle(sqlSelect);
+    try { prospectsCount = countRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(serial) as the_cnt FROM pb WHERE prospect_notify=1 AND is_deleted=0 ";
+    countRs = op_data.QuerySingle(sqlSelect);
+    try { reJoinCount = countRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(serial) as the_cnt FROM prospects WHERE is_finished=0 AND is_deleted=0 AND is_urgent=1";
+    countRs = op_data.QuerySingle(sqlSelect);
+    try { urgentProspectsCount = countRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT * FROM webprospects";
+    var webProspects = m_join.Query(sqlSelect);
+
+    sqlSelect = "select TOP(500) serial,reachout_attempts,ts,prospect_name,city,last_reachout_ts,is_contact,is_returning,return_ts,is_urgent from prospects WHERE  is_deleted=0 AND is_finished=0 ";
+
+
+
+
+    switch (showWhat)
+    {
+        case "NEW":
+            sqlSelect = sqlSelect + " AND is_contact=0 AND mark_deletion=0";
+            repTitle = repTitle + "מציג חברים שלא קיבלו הודעה ";
+            sortBy = "JOIN";
+            break;
+        case "INPROCESS":
+            sqlSelect = sqlSelect + " AND is_contact=1 AND mark_deletion=0";
+            repTitle = repTitle + "מציג חברים שקיבלו הודעה ";
+            LastContactDisplayState = "block;";
+            JoinDisplayState = "none;";
+            sortBy = "CONTACT";
+            break;
+        case "RETURNING":
+            sqlSelect = sqlSelect + " AND is_returning=1";
+            repTitle = repTitle + "מציג חברים שחזרו למערכת ";
+            ContactReturnDisplayState = "block;";
+            JoinDisplayState = "none;";
+            sortBy = "RETURN";
+            break;
+
+        case "REJOIN":
+
+
+            sqlSelect = "SELECT * FROM pb WHERE prospect_notify=1 AND is_deleted=0";
+            repTitle = repTitle + "מציג חברים שמילאו טופס הצטרפות מחדש ";
+            ContactReturnDisplayState = "block;";
+            JoinDisplayState = "none;";
+            sortBy = "REJOIN";
+
+            msgTemplateType = "REJOIN";
+            prospectsCount = reJoinCount;
+            break;
+
+    }
+
+
+    switch (sortBy)
+    {
+
+        case "JOIN":
+            sqlSelect = sqlSelect + " ORDER BY  is_urgent DESC,reachout_attempts, ts ";
+            repTitle = repTitle + "לפי תאריך רישום ";
+
+            if (sortDir == "DESC")
+            {
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+
+        case "CONTACT":
+            sqlSelect = sqlSelect + " ORDER BY  is_urgent DESC,reachout_attempts, last_reachout_ts ";
+            repTitle = repTitle + "לפי תאריך יצירת קשר אחרון ";
+
+            if (sortDir == "DESC")
+            {
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+        case "RETURN":
+            sqlSelect = sqlSelect + " ORDER BY  reachout_attempts, return_ts ";
+            repTitle = repTitle + "לפי תאריך חזרה למערכת ";
+
+            if (sortDir == "DESC")
+            {
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+
+        case "REJOIN":
+            sqlSelect = sqlSelect + " ORDER BY  prospect_notify_ts ";
+            repTitle = repTitle + "לפי תאריך הבקשה ";
+
+            if (sortDir == "DESC")
+            {
+                repTitle = repTitle + "בסדר יורד ";
+            }
+            break;
+
+
+    }
+
+
+    sqlSelect = sqlSelect + sortDir;
+
+    string sql2 = sqlSelect;
+    var prospects = op_data.Query(sqlSelect);
+    sqlSelect = "select * from msgTemplates WHERE is_active=1 AND  msgType=@0 AND (rep_id=@1 OR rep_id=0)";
+    var msgTemplates = op_data.Query(sqlSelect, msgTemplateType, u_id);
+
+
+    op_data.Close();
+    int last_prospect_id = 9999999;
+    int first_prospect_id = 0;
+
+    string recordsList = "";
+
+    <form id="ProspectsRepActions">
+
+        <input type="hidden" name="list_id" name="list_id" value="@list_id">
+        <div style="overflow: auto;padding: 5px;">
+            <button type="button" id="goSettings" style="float: left;padding: 5px;margin: 0;background-color: #e3e3e3;border: 0;border-radius: 5px" onclick="Accordionize('AccRepListSettings');">⚙️</button>
+            <h2>
+                צירופים
+            </h2>
+        </div>
+
+        <div style="overflow: auto;font-size: 14px;">
+            <div style="overflow: auto;padding: 5px;">
+                <select style="float: left;padding: 2px;margin: 2px;font-size: 16px;background: transparent;" onchange="RepAjaxUpdate('ProspectsList','RepPreseveListDiv','MainSbLoader',@list_id,'@sortBy','@sortDir',this.value)">
+                    <option value="NEW" @if (showWhat == "NEW") { <text> selected </text> }>חדשים</option>
+                    <option value="INPROCESS" @if (showWhat == "INPROCESS") { <text> selected </text> }>בטיפול</option>
+                    <option value="RETURNING" @if (showWhat == "RETURNING") { <text> selected </text> }>חוזרים</option>
+                    <option value="REJOIN" @if (showWhat == "REJOIN") { <text> selected </text> }>רענון</option>
+                </select>
+
+                <b>@repTitle  <br><span style="color: #b200ff">סהכ @prospects.Count() תוצאות</span> <b><span style="color: #000;">מתוך @prospectsCount רשומות</span></b></b>
+            </div>
+
+            @if (reJoinCount > 0)
+            {
+                <div style="overflow: auto; border-bottom:1px dotted #f00; color: red" onclick="RepAjaxUpdate('ProspectsList','RepPreseveListDiv','MainSbLoader',@list_id,'@sortBy','@sortDir','REJOIN')">⚠️ @reJoinCount משתמשים קיימים ממתינים לרענון!</div>
+            }
+
+            @if (urgentProspectsCount > 0)
+            {
+                <div style="overflow: auto; border-bottom:1px dotted #f00; color: red" onclick="RepAjaxUpdate('ProspectsList','RepPreseveListDiv','MainSbLoader',@list_id,'@sortBy','@sortDir','INPROCESS')">⚠️ @urgentProspectsCount מצטרפים לטיפול דחוף!</div>
+            }
+            <button class="Accordion" style="display: none" id="AccRepListSettings"></button>
+            <div class="panel">
+                <div style="overflow: auto">
+                    @if (is_blaster)
+                    {
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;" id="blasterListBtn" onclick="hideElement('blasterListBtn');showElement('blasterListLoader');AjaxActions('ExportProspectsList',@list_id,'','ProspectsListViewSettings')">יצוא רשימה לבלסטר</button>
+                    }
+
+                    <div class="spinner" style="text-align: center;display: none;" id="blasterListLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+
+                </div>
+                <div style="overflow: auto">
+                    הודעת ברירת מחדל<br>
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;float: right" name="RepDefaultTemplate" id="RepDefaultTemplate">
+                        @foreach (var msg in msgTemplates)
+                        {
+                            <option value="@msg.id">@msg.msg_title</option>
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+        </div>
+
+
+        @switch (showWhat)
+        {
+            case "NEW":
+            case "INPROCESS":
+            case "RETURNING":
+                <div style="overflow: auto">
+                    <input type="hidden" name="reachout_type" id="reachout_type" value="PROSPECT">
+                    <span style="padding: 5px;margin: 5px;float: right;">שם</span>
+
+                    <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @JoinDisplayState" onclick="RepAjaxUpdate('ProspectsList','RepPreseveListDiv','MainSbLoader',@list_id,'JOIN','@nextSortDir','@showWhat');">הצטרפות</div>
+                    <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @LastContactDisplayState" onclick="RepAjaxUpdate('ProspectsList','RepPreseveListDiv','MainSbLoader',@list_id,'CONTACT','@nextSortDir','@showWhat')">קשר אחרון</div>
+                    <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @ContactReturnDisplayState" onclick="RepAjaxUpdate('ProspectsList','RepPreseveListDiv','MainSbLoader',@list_id,'RETURN','@nextSortDir','@showWhat')">חזרה למערכת</div>
+                </div>
+                <div style="overflow: auto;background-color: #fff;" id="ProspectsDataDiv">
+                    @foreach (var prospect in prospects)
+                    {
+                        TimeSpan DaysSinceJoin = local_time - prospect.ts;
+                        var DaysSinceJoinInt = DaysSinceJoin.Days;
+                        TimeSpan DaysSinceContact = local_time - prospect.last_reachout_ts;
+                        var DaysSinceContactInt = DaysSinceContact.Days;
+                        TimeSpan DaysSinceReturn = local_time - prospect.return_ts;
+                        var DaysSinceReturnInt = DaysSinceReturn.Days;
+                        string bgColor = "#e3e3e3";
+                        if (prospect.is_contact)
+                        {
+                            bgColor = "#ffffcc";
+                        }
+                        if (prospect.is_urgent)
+                        {
+                            bgColor = "#ffcccc";
+                        }
+                        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: @bgColor;" onclick="sbload('SubMenu','Caller?p1=prospect&p2=@prospect.serial','','ProspectsRepActions');" id="prospect_@prospect.serial">
+
+                            <span style="float: right">
+                                @prospect.prospect_name | @prospect.city<br><span style="color: #b200ff;font-size: 12px;">@prospect.ts.ToShortDateString() </span>
+                            </span>
+                            <span style="float: left;display: @JoinDisplayState">
+                                <span style="color: #b200ff;font-size: 12px">@prospect.reachout_attempts ניסיונות</span><BR>לפני @DaysSinceJoinInt ימים
+                            </span>
+                            <span style="float: left;display: @LastContactDisplayState">
+                                <span style="color: #b200ff;font-size: 12px">@prospect.reachout_attempts ניסיונות</span><BR>לפני @DaysSinceContactInt ימים
+                            </span>
+                            <span style="float: left;display: @ContactReturnDisplayState">
+                                <span style="color: #b200ff;font-size: 12px">@prospect.return_ts.ToShortDateString()</span><BR>לפני @DaysSinceReturnInt ימים
+                            </span>
+                        </div>
+                    }
+                </div>
+                break;
+            case "REJOIN":
+                <input type="hidden" name="reachout_type" id="reachout_type" value="REJOIN">
+                <div style="overflow: auto">
+                    <span style="padding: 5px;margin: 5px;float: right;">שם</span>
+
+                    <div style="padding: 5px;margin: 5px;float: left;text-align: left;">חזרה למערכת</div>
+                </div>
+                <div style="overflow: auto;background-color: #fff;" id="ProspectsDataDiv">
+                    @foreach (var prospect in prospects)
+                    {
+                        TimeSpan DaysSinceJoin = local_time - prospect.prospect_notify_ts;
+                        var DaysSinceJoinInt = DaysSinceJoin.Days;
+                        string bgColor = "#e3e3e3";
+                        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: @bgColor;" onclick="sbload('SubMenu', 'Caller?p1=UserReachout&p2=@prospect.m_id', '', 'ProspectsRepActions'); DisableControlButton();" id="prospect_@prospect.serial">
+
+                            <span style="float: right">
+                                @prospect.member_name
+                            </span>
+
+                            <span style="float: left;display: @ContactReturnDisplayState">
+                                <span style="color: #b200ff;font-size: 12px">@prospect.prospect_notify_ts.ToShortDateString()</span><BR>לפני @DaysSinceJoinInt ימים
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                break;
+        }
+
+
+
+
+
+    </form>
+    <form id="ProspectsListViewSettings">
+        <input type="hidden" name="sortBy" id="sortBy" value="@sortBy">
+        <input type="hidden" name="sortDir" id="sortDir" value="@sortDir">
+        <input type="hidden" name="showWhat" id="showWhat" value="@showWhat">
+
+    </form>
+}
+
+@helper syncPhoneBook(string PastedText)
+{
+
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    var u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    string[] userRec;
+
+    bool is_ok = true;
+
+    string aLine, aParagraph = null;
+
+    string last_sync = "";
+    last_sync = AppFunctions.GetAppProperty("LastContactsSyncDate");
+
+    DateTime lastFileSync = Convert.ToDateTime("1/1/1970");
+    if (!last_sync.IsEmpty())
+    {
+        lastFileSync = Convert.ToDateTime(last_sync);
+    }
+
+
+    bool is_show = false;
+    StringReader strReader = null;
+    if (!PastedText.IsEmpty())
+    {
+        strReader = new StringReader(PastedText);
+        is_show = true;
+    }
+
+    int counter = 0;
+    int totalCount = 0;
+    int dup_count = 0;
+    string userName = "";
+    string wanum = "";
+    string display_wanum = "";
+    string raw_bg_color = "#fff";
+
+
+    <div style="background-color:  #000; overflow: auto; font-size: 24px; color: #fff;">
+        הרשומות הבאות יקלטו במערכת
+        <button onclick="hideElement('CommitOrdersUpdateBtn');showElement('ordersUploadLoader'); AjaxActions('SyncContacts', document.getElementById('Pasted_data').value, '');" style="float: left;font-size: 16px;padding: 5px;margin: 5px;" id="CommitOrdersUpdateBtn"><b>ביצוע עדכון</b></button>
+        <div style="display: none;float: left" id="ordersUploadLoader">
+            <div class="spinner" style="text-align: center;font-size: 30px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+
+        <input type="hidden" name="Pasted_data" id="Pasted_data" value="@PastedText" />
+    </div>
+    <div style="overflow: auto;padding: 0;margin: 0;">
+        <form id="OrdersToAdd">
+            <table style="width: 100%;border: 1px solid #000;border-collapse: collapse">
+                @while (is_show)
+                {
+                    totalCount++;
+                    display_wanum = "";
+                    aLine = strReader.ReadLine();
+
+                    if (aLine != null)
+                    {
+                        userName = "";
+                        wanum = "";
+                        raw_bg_color = "#fff";
+                        string sep = "\t";
+                        userRec = aLine.Split(sep.ToCharArray());
+
+
+
+                        try { userName = Convert.ToString(userRec[1]); userName = userName.Replace("\"", ""); } catch { }
+                        for (int i = 2; i < 20; i++)
+                        {
+                            try { wanum = Convert.ToString(userRec[i]); wanum = wanum.Replace("\"", ""); } catch { }
+                            if (wanum != "")
+                            {
+                                wanum = AppFunctions.wanumize(wanum);
+                                if (AppFunctions.IsDigitsOnly(wanum))
+                                {
+                                    break;
+                                }
+
+                            }
+                        }
+                    }
+                    else
+                    {
+                        aParagraph = aParagraph + "\n";
+                        break;
+                    }
+
+                    wanum = AppFunctions.wanumize(wanum);
+                    sqlSelect = "SELECT serial FROM phonebook WHERE phone=@0";
+                    var checkDup = db.QuerySingle(sqlSelect, wanum);
+                    if (checkDup != null)
+                    {
+                        raw_bg_color = "#ffffcc";
+                        dup_count++;
+                    }
+
+                    if (userName != "" && wanum != "")
+                    {
+                        counter++;
+
+                        <tr style="overflow: auto;color: #000;padding: 5px;margin: 5px;border-bottom: 1px solid #808080;background-color: @raw_bg_color">
+
+                            <td style="overflow: auto;">@userName</td>
+                            <td style="overflow: auto;">@wanum</td>
+                        </tr>
+                    }
+
+                }
+
+
+
+
+            </table>
+        </form>
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+            <div style="float: left;">
+                <div style="display: none;float: left" id="ordersCommitLoader">
+                    <div class="spinner" style="text-align: center;font-size: 30px;">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+
+            </div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">👍 @counter שורות נקראו מהקובץ </div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">👍 @dup_count שורות קיימות במאגר </div>
+
+        </div>
+
+    </div>
+
+
+    db.Close();
+
+}
+
+@helper MembersBirthdayList(string sortBy = "LO", string sortDir = "", string showWhat = "NEW")
+{
+    int rep_id = 0;
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    string theHtmlOutput = "";
+    string LastOrderDisplayState = "block;";
+    string msgTemplateType = "";
+    string reachout_type = "";
+    bool is_blaster = AppFunctions.isPermission(u_id, "is_blaster");
+    string exportAction = "";
+    if (sortBy.IsEmpty())
+    {
+        sortBy = "LO";
+    }
+    string nextSortDir = "";
+    if (sortDir.IsEmpty())
+    {
+        nextSortDir = "DESC";
+    }
+
+    DateTime ts = AppFunctions.LocalTime();
+
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+
+    switch (showWhat)
+    {
+        case "MEMBERSTODAY":
+            sqlSelect = "SELECT * FROM pb WHERE is_deleted=0 AND wanum_valid=1 AND DATEPART(d, birth_date) = DATEPART(d, @0) AND DATEPART(m, birth_date) = DATEPART(m, @0)  ";
+            repTitle = repTitle + "מציג חברים שחוגגים היום ";
+            msgTemplateType = "BIRTHDAYMEMBERS";
+            reachout_type = "BDAY";
+            exportAction = "ExportBirthdaysList";
+            break;
+
+        case "MEMBERANNIVERSARY":
+            sqlSelect = "SELECT pb.* FROM pb JOIN u_stats ON pb.m_id=u_stats.serial WHERE pb.is_deleted=0 AND pb.wanum_valid=1 AND DATEPART(d, u_stats.first_order_ts) = DATEPART(d, @0) AND DATEPART(m, u_stats.first_order_ts) = DATEPART(m, @0)  AND u_stats.first_order_ts<>CAST('1/1/1900' AS DATE)";
+            repTitle = repTitle + "מציג חברים שהיום הוא יום השנה שלהם איתנו  ";
+            msgTemplateType = "ANNIVERSARY";
+            reachout_type = "ANN";
+            exportAction = "ExportBirthdaysList";
+            break;
+
+        case "MEMBERSTHISMONTH":
+            sqlSelect = "SELECT * FROM pb WHERE is_deleted=0 AND wanum_valid=1 AND DATEPART(m, birth_date) = DATEPART(m, @0)  AND CAST(birth_date AS DATE)<>'1/1/1900' ";
+            repTitle = repTitle + "מציג חברים שחוגגים החודש " + "(" + ts.Month + ")";
+            msgTemplateType = "BIRTHDAYMEMBERS";
+            reachout_type = "BDAY";
+            exportAction = "ExportBirthdaysList";
+            break;
+
+        case "PROSPECTSTODAY":
+            sqlSelect = "SELECT * FROM prospects WHERE is_deleted=0 AND DATEPART(d, birth_date) = DATEPART(d, @0) AND DATEPART(m, birth_date) = DATEPART(m, @0)  ";
+            repTitle = repTitle + "מציג מצטרפים שחוגגים היום ";
+            msgTemplateType = "BIRTHDAYPROSPECTS";
+            reachout_type = "BDAY";
+            exportAction = "ExportBirthdaysList";
+            break;
+
+        case "PROSPECTSTHISMONTH":
+            sqlSelect = "SELECT * FROM prospects WHERE is_deleted=0 AND DATEPART(m, birth_date) = DATEPART(m, @0)  AND CAST(birth_date AS DATE)<>'1/1/1900' ";
+            repTitle = repTitle + "מציג מצטרפים שחוגגים החודש " + "(" + ts.Month + ")";
+            msgTemplateType = "BIRTHDAYPROSPECTS";
+            reachout_type = "BDAY";
+            exportAction = "ExportBirthdaysList";
+            break;
+    }
+
+
+
+    sqlSelect = sqlSelect + " ORDER BY last_bday_msg,birth_date " + sortDir;
+
+    var irgusers = op_data.Query(sqlSelect, ts);
+
+    sqlSelect = "select * from msgTemplates WHERE msgType=@0 AND (rep_id=@1 OR rep_id=0)";
+    var msgTemplates = op_data.Query(sqlSelect, msgTemplateType, u_id);
+
+
+
+    op_data.Close();
+
+    <form id="PresereveRepActions">
+        <input type="hidden" name="reachout_type" id="reachout_type" value="@reachout_type">
+        <div style="overflow: auto;font-size: 14px;">
+            <div style="overflow: auto;padding: 5px;">
+                <select style="float: left;padding: 2px;margin: 2px;font-size: 16px;background: transparent;" onchange="RepAjaxUpdate('MembersBirthdayList', 'RepPreseveListDiv', 'MainLoader', 0, '@sortBy', '@sortDir', this.value);">
+                    <option value="MEMBERSTODAY" @if (showWhat == "MEMBERSTODAY") { <text> selected </text> }>חברים - חוגגים היום</option>
+                    <option value="MEMBERANNIVERSARY" @if (showWhat == "MEMBERANNIVERSARY") { <text> selected </text> }>חברים - יום שנה</option>
+                    <option value="MEMBERSTHISMONTH" @if (showWhat == "MEMBERSTHISMONTH") { <text> selected </text> }>חברים - חוגגים החודש</option>
+                    <option value="PROSPECTSTODAY" @if (showWhat == "PROSPECTSTODAY") { <text> selected </text> }>מצטרפים - חוגגים היום</option>
+                    <option value="PROSPECTSTHISMONTH" @if (showWhat == "PROSPECTSTHISMONTH") { <text> selected </text> }>מצטרפים - חוגגים החודש</option>
+
+
+                </select>
+
+                <b>@repTitle  <br><span style="color: #b200ff">סהכ @irgusers.Count() תוצאות</span></b>
+            </div>
+            <button class="Accordion" style="display: none" id="AccRepListSettings"></button>
+            <div class="panel">
+
+                @if (is_blaster)
+                {
+                    <button id="blasterListBtn" type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: left" onclick="hideElement('blasterListBtn');showElement('MainLoader');AjaxActions('@exportAction',0,'','PreserveListViewSettings',document.getElementById('RepDefaultTemplate').value);">בלסטר</button>
+
+                }
+
+                <div style="overflow: auto">
+                    הודעת ברירת מחדל<br>
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;float: right" name="RepDefaultTemplate" id="RepDefaultTemplate">
+                        @foreach (var msg in msgTemplates)
+                        {
+                            <option value="@msg.id">@msg.msg_title</option>
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+            <div style="overflow: auto">
+                <span style="margin: 5px;float: right;display: none"></span>
+                <span style="padding: 5px;margin: 5px;float: right;width: 80px;">שם </span>
+                <span style="padding: 5px;margin: 5px;float: right;width: 50px;">הזמנות</span>
+                <span style="padding: 5px; margin: 5px; float: right; width: 80px; " onclick="RepAjaxUpdate('MembersBirthdayList', 'RepPreseveListDiv', 'MainLoader', 0, 'age', '@nextSortDir', '@showWhat');">ת.לידה</span>
+                <div style="padding: 5px;margin: 5px;float: left;text-align: left;display: @LastOrderDisplayState">הודעה אחרונה</div>
+            </div>
+
+
+            @switch (showWhat)
+            {
+                case "MEMBERSTODAY":
+                case "MEMBERSTHISMONTH":
+                case "MEMBERANNIVERSARY":
+                    <div style="overflow: auto;">
+                        @foreach (var userRec in irgusers)
+                        {
+                            DateTime birth_date = userRec.birth_date;
+                            DateTime last_bday_msg = userRec.last_bday_msg;
+                            DateTime last_anniversary_msg = userRec.last_anniversary_msg;
+                            DateTime display_date = last_bday_msg;
+                            TimeSpan DaysSinceLastMsg = ts - last_bday_msg;
+
+                            if (showWhat == "MEMBERANNIVERSARY")
+                            {
+
+                                try { display_date = last_anniversary_msg; DaysSinceLastMsg = ts - last_anniversary_msg; } catch { }
+
+
+
+                            }
+                            var today = DateTime.Today;
+                            var age = today.Year - birth_date.Year;
+                            var DaysSinceLastMsgInt = DaysSinceLastMsg.Days;
+                            string last_contact = "";
+                            if (ts.Month == display_date.Month && ts.Year == display_date.Year) { last_contact = "החודש"; }
+                            if (DaysSinceLastMsgInt == 0) { last_contact = "היום"; }
+
+                            <div style="overflow: auto;" id="prospect_@userRec.m_id">
+                                <div style="background-color: #e3e3e3;color: #000;font-size: 16px;overflow: auto;" onclick="callerSidebar = 'MainSb'; sbload('SubMenu', 'Caller?p1=UserReachout&p2=@userRec.m_id', '', 'PresereveRepActions'); DisableControlButton();" id="user_@userRec.m_id">
+                                    <div style="overflow: auto;">
+                                        <span style="padding: 5px;margin: 5px;float: right;width: 80px;">@userRec.member_name </span>
+                                        <span style="padding: 5px;margin: 5px;float: right;width: 50px;">@userRec.oc</span>
+                                        <span style="padding: 5px; margin: 5px; float: right; width: 80px;font-size:12px; ">@birth_date.ToShortDateString() (@age)</span>
+                                        <div style="padding: 5px;margin: 5px;float: left;text-align: left;font-size: 14px;">@last_contact</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        }
+                    </div>
+                    break;
+
+
+                case "PROSPECTSTODAY":
+                case "PROSPECTSTHISMONTH":
+
+
+                    <div style="overflow: auto;">
+                        <input type="hidden" name="is_birthday" id="is_birthday" value="yes" />
+                        @foreach (var userRec in irgusers)
+                        {
+
+
+                            DateTime birth_date = userRec.birth_date;
+                            DateTime last_bday_msg = userRec.last_bday_msg;
+                            var today = DateTime.Today;
+                            var age = today.Year - birth_date.Year;
+                            TimeSpan DaysSinceLastMsg = ts - last_bday_msg;
+                            var DaysSinceLastMsgInt = DaysSinceLastMsg.Days;
+                            string last_contact = "";
+                            if (ts.Month == last_bday_msg.Month && ts.Year == last_bday_msg.Year) { last_contact = "החודש"; }
+                            if (DaysSinceLastMsgInt == 0) { last_contact = "היום"; }
+
+                            <div style="overflow: auto;" id="prospect_@userRec.serial">
+                                <div style="background-color: #e3e3e3;color: #000;font-size: 16px;overflow: auto;" onclick="callerSidebar = 'MainSb'; sbload('SubMenu', 'Caller?p1=prospect&p2=@userRec.serial', '', 'PresereveRepActions'); DisableControlButton();" id="user_@userRec.serial">
+                                    <div style="overflow: auto;">
+                                        <span style="padding: 5px;margin: 5px;float: right;width: 80px;">@userRec.prospect_name </span>
+                                        <span style="padding: 5px; margin: 5px; float: right; width: 80px; font-size: 12px;">@userRec.ts.ToShortDateString()</span>
+                                        <span style="padding: 5px; margin: 5px; float: right; width: 80px;font-size:12px; ">@birth_date.ToShortDateString() (@age)</span>
+                                        <div style="padding: 5px;margin: 5px;float: left;text-align: left;font-size: 14px;">@last_contact</div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        }
+
+                    </div>
+
+
+
+
+                    break;
+
+            }
+
+
+        </div>
+
+
+
+
+
+
+    </form>
+    <form id="PreserveListViewSettings">
+        <input type="hidden" name="sortBy" id="sortBy" value="@sortBy">
+        <input type="hidden" name="sortDir" id="sortDir" value="@sortDir">
+        <input type="hidden" name="showWhat" value="@showWhat">
+
+    </form>
+
+
+}
+
+@helper WebOrders_new(string showWhat = "NEW")
+{
+    int list_id = 0;
+    int rep_id = 0;
+    int u_id = WebSecurity.CurrentUserId;
+    var m_join = Database.Open("m_join");
+    var op_data = Database.Open("op_data");
+
+    var sqlSelect = "SELECT * FROM webOrders ";
+    string username = WebSecurity.CurrentUserName;
+    string viewTitle = "";
+    bool allowEdit = true;
+
+
+    /*
+    showWhat = "ALL";
+
+        switch (showWhat)
+        {
+            case "NEW":
+                sqlSelect += " WHERE is_processed=0 ORDER BY serial DESC";
+                viewTitle = "הזמנות חדשות";
+                break;
+            case "PROC":
+                sqlSelect += " WHERE is_processed=1 ORDER BY serial DESC";
+                viewTitle = "הזמנות שטופלו";
+                allowEdit = false;
+                break;
+
+
+            case "ALL":
+                sqlSelect += " ORDER BY is_processed,serial DESC";
+                viewTitle = "כל ההזמנות";
+                allowEdit = false;
+                break;
+        }
+    */
+
+    DateTime local_time = AppFunctions.LocalTime();
+    sqlSelect = " SELECT * FROM webOrders WHERE is_processed=0 ORDER BY serial DESC";
+    viewTitle = "הזמנות חדשות";
+
+    var orders = m_join.Query(sqlSelect);
+
+    string ordArr = "";
+
+    viewTitle = orders.Count() + " " + viewTitle;
+
+    <div style="overflow: auto;padding:10px">
+        <div style="overflow: auto; text-align: right;direction:rtl">
+            <div style="float: left; padding: 5px">
+                <select style="font-size:16px;padding:5px;float:left" onchange="curSelectedOrder = ''; isMultiSelectOrder = false; SelectedMultiOrder = ''; isUpdateDisabled=false; RepAjaxUpdate('LoadOrdersView', 'OrdersContainer', 'MainLoader', this.value);">
+                    <option value="NEW" @if (showWhat == "NEW") { <text> selected</text>}>הזמנות חדשות</option>
+                    <option value="PROC" @if (showWhat == "PROC") { <text> selected</text>}>הזמנות שטופלו</option>
+                </select>
+            </div>
+            <div class="spinner" style="text-align: center;font-size: 20px;float:left;display:none;" id="BarLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+            <div style="float:left;display:none;" id="ClipboardStatDiv"><span id="ItemsCopiedCnt">0</span> הזמנות הועתקו ללוח</div>
+
+
+
+            <h2>@viewTitle</h2>
+
+        </div>
+        <table style="width:100%">
+            <tr style="background-color:#e3e3e3">
+                <td class="header" style="5px;text-align:center;width:50px;">
+                    @if (allowEdit)
+                    {
+                        <input type="checkbox" onclick="EnableMulti(this.checked);" />
+                        <button style="background-color:transparent;border:0; display: none;float:right; " id="MultiOrdBtn" onclick="AjaxActions('MarkMultiWebOrder', document.getElementById('selOrders').value); MultiOrderMarkDone();">❎</button>
+                    }
+
+
+                </td>
+                <td class="header">סבב</td>
+                <td class="header">שעת קבלה</td>
+                <td class="header">כינוי</td>
+                <td class="header">כתובת</td>
+                <td class="header">עיר</td>
+
+                <td class="header">טלפון</td>
+                <td class="header">הזמנה</td>
+                <td class="header">תרומה</td>
+                <td class="header">סיסמא</td>
+            </tr>
+            @foreach (var order in orders)
+            {
+                ordArr = ordArr + order.serial + "##";
+                int member_id = 0;
+                bool isExistingMember = false;
+                string memberIcon = "⚠️";
+                string rowBgCol = "#ffffcc";
+                sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+                var member = op_data.QuerySingle(sqlSelect, order.wanum);
+                if (member != null)
+                {
+                    isExistingMember = true;
+                    member_id = member.m_id;
+                    memberIcon = "✅";
+                    rowBgCol = "#e3e3e3";
+                }
+
+                <tr style="background-color:#e3e3e3" id="ordTable_@order.serial" onclick="SelectAndCopy(@order.serial);">
+                    <td class="dataCell">
+
+                        <span id="ordLbl_@order.serial">@memberIcon <span style="display:none">@order.serial</span></span>
+                        @if (allowEdit)
+                        {
+                            <button style="background-color:transparent;border:0; display: none " id="ordBtn_@order.serial" onclick="AjaxActions('MarkWebOrder',@order.serial);EliminateElement('ordTable_@order.serial')">❌</button>
+                        }
+
+
+
+                    </td>
+                    <td class="dataCell">@order.menu_title</td>
+                    <td class="dataCell">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                    <td class="dataCell">@order.nick_name</td>
+                    <td class="dataCell">@order.address</td>
+                    <td class="dataCell">@order.city</td>
+
+                    <td class="dataCell">@order.wanum</td>
+                    <td class="dataCell">@order.orderbody</td>
+                    <td class="dataCell">@order.donation</td>
+                    <td class="dataCell">@order.orderpw</td>
+                </tr>
+                <tr>
+                    <td colspan="999">
+                        <table style="display:none">
+                            <tr id="ordTbl_@order.serial">
+                                <td>@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                <td>@order.nick_name</td>
+                                <td>@order.address</td>
+                                <td>@order.city</td>
+                                <td>@order.wanum</td>
+                                <td>@order.orderbody</td>
+                                <td>@order.donation</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            }
+        </table>
+        <button class="Accordion" id="pnlTst"></button>
+        <div class="panel">
+            <input type="text" id="OrdArr" value="@ordArr" />
+            <table id="ResTable"></table>
+
+        </div>
+
+        <textarea id="ResTable2" style="padding:5px;margin:5px;width:90%;height:500px;display:none;"></textarea>
+        <input type="hidden" id="selOrders" name="selOrders" value="" />
+
+
+        <input type="hidden" id="OrdersShowWhat" name="OrdersShowWhat" value="@showWhat" />
+    </div>
+
+
+    ///////
+    sqlSelect = " SELECT * FROM webOrders WHERE is_processed=1 ORDER BY serial DESC";
+    viewTitle = "הזמנות שטופלו";
+
+    orders = m_join.Query(sqlSelect);
+
+    //ordArr = "";
+
+    viewTitle = orders.Count() + " " + viewTitle;
+
+
+
+    <div style="overflow: auto;padding:10px">
+        <div style="overflow: auto; text-align: right;direction:rtl">
+            <div style="float: left; padding: 5px">
+                <select style="font-size:16px;padding:5px;float:left" onchange="curSelectedOrder = ''; isMultiSelectOrder = false; SelectedMultiOrder = ''; isUpdateDisabled=false; RepAjaxUpdate('LoadOrdersView', 'OrdersContainer', 'MainLoader', this.value);">
+                    <option value="NEW" @if (showWhat == "NEW") { <text> selected</text>}>הזמנות חדשות</option>
+                    <option value="PROC" @if (showWhat == "PROC") { <text> selected</text>}>הזמנות שטופלו</option>
+                </select>
+            </div>
+            <div class="spinner" style="text-align: center;font-size: 20px;float:left;display:none;" id="BarLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+            <div style="float:left;display:none;" id="ClipboardStatDiv"><span id="ItemsCopiedCnt">0</span> הזמנות הועתקו ללוח</div>
+
+
+
+            <h2>@viewTitle</h2>
+
+        </div>
+        <table style="width:100%">
+            <tr style="background-color:#e3e3e3">
+                <td class="header" style="5px;text-align:center;width:50px;">
+                    @if (allowEdit)
+                    {
+                        <input type="checkbox" onclick="EnableMulti(this.checked);" />
+                        <button style="background-color:transparent;border:0; display: none;float:right; " id="MultiOrdBtn" onclick="AjaxActions('MarkMultiWebOrder', document.getElementById('selOrders').value); MultiOrderMarkDone();">❎</button>
+                    }
+
+
+                </td>
+                <td class="header">סבב</td>
+                <td class="header">שעת קבלה</td>
+                <td class="header">כינוי</td>
+                <td class="header">כתובת</td>
+                <td class="header">עיר</td>
+
+                <td class="header">טלפון</td>
+                <td class="header">הזמנה</td>
+                <td class="header">תרומה</td>
+                <td class="header">סיסמא</td>
+            </tr>
+            @foreach (var order in orders)
+            {
+                ordArr = ordArr + order.serial + "##";
+                int member_id = 0;
+                bool isExistingMember = false;
+                string memberIcon = "⚠️";
+                string rowBgCol = "#ffffcc";
+                sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+                var member = op_data.QuerySingle(sqlSelect, order.wanum);
+                if (member != null)
+                {
+                    isExistingMember = true;
+                    member_id = member.m_id;
+                    memberIcon = "✅";
+                    rowBgCol = "#e3e3e3";
+                }
+
+                <tr style="background-color:#e3e3e3" id="ordTable_@order.serial" onclick="SelectAndCopy(@order.serial);">
+                    <td class="dataCell">
+
+                        <span id="ordLbl_@order.serial">@memberIcon <span style="display:none">@order.serial</span></span>
+                        @if (allowEdit)
+                        {
+                            <button style="background-color:transparent;border:0; display: none " id="ordBtn_@order.serial" onclick="AjaxActions('MarkWebOrder',@order.serial);EliminateElement('ordTable_@order.serial')">❌</button>
+                        }
+
+
+
+                    </td>
+                    <td class="dataCell">@order.menu_title</td>
+                    <td class="dataCell">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                    <td class="dataCell">@order.nick_name</td>
+                    <td class="dataCell">@order.address</td>
+                    <td class="dataCell">@order.city</td>
+
+                    <td class="dataCell">@order.wanum</td>
+                    <td class="dataCell">@order.orderbody</td>
+                    <td class="dataCell">@order.donation</td>
+                    <td class="dataCell">@order.orderpw</td>
+                </tr>
+                <tr>
+                    <td colspan="999">
+                        <table style="display:none">
+                            <tr id="ordTbl_@order.serial">
+                                <td>@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                <td>@order.nick_name</td>
+                                <td>@order.address</td>
+                                <td>@order.city</td>
+                                <td>@order.wanum</td>
+                                <td>@order.orderbody</td>
+                                <td>@order.donation</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            }
+        </table>
+        <button class="Accordion" id="pnlTst"></button>
+        <div class="panel">
+            <input type="text" id="OrdArr" value="@ordArr" />
+            <table id="ResTable"></table>
+
+        </div>
+
+        <textarea id="ResTable2" style="padding:5px;margin:5px;width:90%;height:500px;display:none;"></textarea>
+        <input type="hidden" id="selOrders" name="selOrders" value="" />
+
+
+        <input type="hidden" id="OrdersShowWhat" name="OrdersShowWhat" value="@showWhat" />
+    </div>
+
+
+    m_join.Close();
+    op_data.Close();
+
+
+
+}
+
+@helper WebOrders(string showWhat = "NEW", string sortBy = "", string sortDir = "DESC", string nextSortDir = "", bool switch_dir = false)
+{
+    
+    <div>@MainPages.OrdersAdmin(showWhat)</div>
+
+    /*
+    int list_id = 0;
+    int rep_id = 0;
+    int u_id = WebSecurity.CurrentUserId;
+    var m_join2 = Database.Open("m_join");
+    var op_data = Database.Open("op_data");
+
+    var sqlSelect = "SELECT * FROM webOrders ";
+    string username = WebSecurity.CurrentUserName;
+    string viewTitle = "";
+    bool allowEdit = true;
+    bool is_deleted_view = false;
+
+    switch (showWhat)
+    {
+        case "NEW":
+            sqlSelect += " WHERE is_processed=0 AND is_deleted=0 ";
+            viewTitle = "הזמנות חדשות";
+            if (sortBy == "") { sortBy = "TS"; }
+            break;
+        case "PROC":
+            sqlSelect += " WHERE is_postponed=0 AND is_processed=1 AND is_deleted=0 ";
+            viewTitle = "הזמנות שטופלו";
+            if (sortBy == "") { sortBy = "PROCTS"; }
+            //  allowEdit = false;
+            break;
+
+        case "FUTURE":
+            sqlSelect += " WHERE is_postponed=1 AND is_processed=1 AND is_deleted=0 ";
+            viewTitle = "הזמנות עתידיות";
+            //is_deleted_view = true;
+            allowEdit = false;
+            if (sortBy == "") { sortBy = "SHIPTS"; }
+            break;
+
+        case "ALL":
+            sqlSelect += " WHERE is_deleted=0 ";
+            viewTitle = "כל ההזמנות";
+            // allowEdit = false;
+            if (sortBy == "") { sortBy = "TS"; }
+
+            break;
+
+        case "DELETED":
+            sqlSelect += " WHERE is_deleted=1 ";
+            viewTitle = "הזמנות שלא אושרו";
+            is_deleted_view = true;
+            // allowEdit = false;
+            if (sortBy == "") { sortBy = "TS"; }
+
+            break;
+    }
+
+    switch (sortBy)
+    {
+        case "TS":
+            sqlSelect += " ORDER BY ts ";
+            break;
+        case "SHIPTS":
+            sqlSelect += " ORDER BY shipping_date ";
+            break;
+        case "ROUND":
+            sqlSelect += " ORDER BY menu_id ";
+            break;
+
+        case "CITY":
+            sqlSelect += " ORDER BY city ";
+            break;
+        case "PROCTS":
+            sqlSelect += " ORDER BY process_ts ";
+            break;
+
+    }
+
+
+    if (switch_dir)
+    {
+        if (sortDir == "") { sortDir = "DESC"; nextSortDir = ""; }
+        else { sortDir = ""; nextSortDir = "DESC"; }
+
+    }
+
+
+    if (sortDir == "DESC" && sortBy != "SHIPTS")
+    {
+        //     sqlSelect += " DESC ";
+    }
+    sqlSelect += sortDir;
+
+
+    <div style="display:none">@sqlSelect</div>
+
+    DateTime local_time = AppFunctions.LocalTime();
+    var orders = op_data.Query(sqlSelect);
+
+    sqlSelect = "SELECT COUNT(serial) AS the_cnt FROM WebOrders WHERE is_deleted=0 AND is_postponed=1 AND CAST(shipping_date AS DATE) <= CAST(@0 AS DATE)";
+    var dueOrders = op_data.QuerySingle(sqlSelect, local_time);
+    int dueOrdersCnt = 0; try { dueOrdersCnt = dueOrders.the_cnt; } catch { }
+
+    sqlSelect = "SELECT id,title FROM menus WHERE is_active=1";
+    var rounds = op_data.Query(sqlSelect);
+
+    string ordArr = "";
+
+    viewTitle = orders.Count() + " " + viewTitle;
+
+    <div style="overflow: auto;padding:10px">
+        <form id="OrderViewSettings">
+            <div style="overflow: auto; text-align: right;direction:rtl">
+                <button type="button" style="background:transparent;font-size:24px;float:left;border:0;padding:0" onclick="sbload('MainSb', 'Caller?p1=NewOrder');">➕</button>
+
+                <div style="float: left; padding: 5px">
+                    <select style="font-size:16px;padding:5px;float:left" name="showWhat" id="showWhat" onchange="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings');">
+                        <option value="NEW" @if (showWhat == "NEW") { <text> selected</text>}>הזמנות חדשות</option>
+                        <option value="FLAG" @if (showWhat == "FLAG") { <text> selected</text>}>הזמנות שדוגלו</option>
+                        <option value="PROC" @if (showWhat == "PROC") { <text> selected</text>}>הזמנות שטופלו</option>
+                        <option value="FUTURE" @if (showWhat == "FUTURE") { <text> selected</text>}>הזמנות עתידיות</option>
+                        <option value="ALL" @if (showWhat == "ALL") { <text> selected</text>}>כל ההזמנות</option>
+                        <option value="DELETED" @if (showWhat == "DELETED") { <text> selected</text>}>הזמנות שנמחקו</option>
+
+                    </select>
+                </div>
+                <div class="spinner" style="text-align: center;font-size: 20px;float:left;display:none;" id="BarLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+                <div style="float:left;display:none;" id="ClipboardStatDiv"><span id="ItemsCopiedCnt">0</span> הזמנות הועתקו ללוח</div>
+
+
+                <h2 style="float:right">@viewTitle</h2>
+                @if (dueOrdersCnt > 0)
+                {
+                    <span style="background-color:#b200ff;color:#fff;float:right;padding:5px;font-size:18px;margin-right:30px;" onclick="PageNavigator('FUTUREORDERS');">⚠️ <span>@dueOrdersCnt</span> הזמנות דחויות לביצוע היום!</span>
+                }
+            </div>
+            <table style="width:100%">
+
+                @switch (showWhat)
+                {
+                    case "FUTURE":
+                        <tr style="background-color:#e3e3e3;color:#000">
+                            <td class="header" style="text-align:center;width:50px;">
+                            </td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','TS',1);">שעת קבלה</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings', 'SHIPTS',1);">תאריך משלוח</td>
+                            <td class="header">כינוי</td>
+                            <td class="header">כתובת</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','CITY',1);">עיר</td>
+
+                            <td class="header">טלפון</td>
+                            <td class="header">הזמנה</td>
+
+                            <td class="header" style="min-width:120px;">פעולות</td>
+                        </tr>
+
+                        break;
+
+                    case "PROC":
+                    case "ALL":
+                        <tr style="background-color:#e3e3e3;color:#000">
+                            <td class="header" style="text-align:center;width:50px;">
+                                @if (allowEdit)
+                                {
+                                    <input type="checkbox" onclick="EnableMulti(this.checked);" />
+                                    <button style="background-color:transparent;border:0; display: none;float:right; " id="MultiOrdBtn" onclick="AjaxActions('MarkMultiWebOrder', document.getElementById('selOrders').value); MultiOrderMarkDone();">❎</button>
+                                }
+
+
+                            </td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings', 'ROUND',1);">סבב</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','TS',1);">שעת קבלה</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','PROCTS',1);">טיפול</td>
+
+                            <td class="header">כינוי</td>
+                            <td class="header">כתובת</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','CITY',1);">עיר</td>
+
+                            <td class="header">טלפון</td>
+                            <td class="header">הזמנה</td>
+                            <td class="header">פעולות</td>
+                        </tr>
+                        break;
+
+                    default:
+                        <tr style="background-color:#e3e3e3;color:#000">
+                            <td class="header" style="text-align:center;width:50px;">
+                                @if (allowEdit)
+                                {
+                                    <input type="checkbox" onclick="EnableMulti(this.checked);" />
+                                    <button style="background-color:transparent;border:0; display: none;float:right; " id="MultiOrdBtn" onclick="AjaxActions('MarkMultiWebOrder', document.getElementById('selOrders').value); MultiOrderMarkDone();">❎</button>
+                                }
+
+
+                            </td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings', 'ROUND',1);">סבב</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','TS',1);">שעת קבלה</td>
+                            <td class="header">כינוי</td>
+                            <td class="header">כתובת</td>
+                            <td class="header" onclick="ResetOrderView(); RepAjaxUpdate('LoadOrdersView', 'MainBoardContainer', 'MainLoader', 'OrderViewSettings','CITY',1);">עיר</td>
+
+                            <td class="header">טלפון</td>
+                            <td class="header">הזמנה</td>
+                            <td class="header">תרומה</td>
+                            <td class="header">סיסמא</td>
+                            <td class="header">פעולות</td>
+                        </tr>
+                        break;
+                }
+
+                @foreach (var order in orders)
+                {
+                    ordArr = ordArr + order.serial + "##";
+                    int member_id = order.m_id;
+                    string member_name = order.nick_name;
+                    bool isExistingMember = false;
+                    string memberIcon = "⚠️";
+                    string rowBgCol = "#ffffcc";
+                    string alert_color = "";
+                    int notes_count = order.notes_count;
+                    bool is_notes = false;
+                    string board_color = order.board_color;
+                    bool is_new_member = order.is_new_member;
+                    bool is_verification_needed = false;
+                    bool is_manual_verification = order.is_manual_verification;
+                    bool is_ship_phone = order.is_ship_phone;
+                    string ship_phone = order.ship_phone;
+                    string ship_name = order.ship_name;
+                    string copaste_ship_phone = ship_phone;
+                    bool is_postponed = order.is_postponed;
+                    bool is_processed = order.is_processed;
+                    try { copaste_ship_phone = copaste_ship_phone.Substring(1); } catch { }
+                    if (board_color == "") { board_color = "#e3e3e3"; }
+
+                    string order_mode = "NEW";
+
+
+                    if (notes_count > 0)
+                    {
+                        is_notes = true;
+                    }
+
+
+                    if (member_id == 0)
+                    {
+                        // string tets = ""; try { tets = order.wanum; } catch { }
+                        sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+                        var member = op_data.QuerySingle(sqlSelect, order.wanum);
+                        if (member != null)
+                        {
+                            isExistingMember = true;
+                            member_id = member.m_id;
+                            sqlSelect = "UPDATE weborders SET m_id=@0 WHERE serial=@1";
+                            op_data.Execute(sqlSelect, member_id, order.serial);
+                        }
+                        if (member_id == 0)
+                        {
+                            is_verification_needed = true;
+                        }
+                    }
+                    else
+                    {
+                        isExistingMember = true;
+                    }
+
+                    if (isExistingMember)
+                    {
+                        memberIcon = "✅";
+                        rowBgCol = "#e3e3e3";
+                        is_verification_needed = false;
+                    }
+
+                    if (is_new_member)
+                    {
+                        is_verification_needed = true;
+                    }
+
+                    string display_wanum = order.wanum;
+
+                    string copPaste_wanum = order.wanum;
+
+                    if (copPaste_wanum.StartsWith("972"))
+                    {
+                        copPaste_wanum = copPaste_wanum.Substring(3);
+                    }
+                    display_wanum = display_wanum.Substring(display_wanum.Length - 4) + "****";
+
+                    if (is_manual_verification)
+                    {
+                        is_verification_needed = false;
+                    }
+                    if (is_deleted_view)
+                    {
+                        is_verification_needed = false;
+                        allowEdit = false;
+                        rowBgCol = "#ffcccc";
+                    }
+
+                    if (is_verification_needed) { order_mode = "VERIFY"; }
+                    if (is_postponed && is_processed) { order_mode = "FUTURE"; }
+                    if (!is_postponed && is_processed) { order_mode = "PROC"; }
+                    if (is_deleted_view) { order_mode = "DELETED"; }
+
+                    if (showWhat == "ALL")
+                    {
+                        order_mode = "PROC";
+                    }
+
+                    switch (order_mode)
+                    {
+                        case "NEW":
+                            if (true)
+                            {
+                                <tr style="background-color: #e3e3e3" id="ordTable_@order.serial">
+                                    <td class="dataCell" style="text-align:center;background-color: @board_color" onclick="SelectAndCopy(@order.serial);">
+                                        <center>
+                                            <span id="ordLbl_@order.serial">
+                                                @memberIcon
+                                                @if (is_notes)
+                                                {
+                                                    <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                                        @notes_count
+                                                    </span>
+                                                }
+
+                                            </span>
+                                            @if (allowEdit)
+                                            {
+                                                <button type="button" style="background-color:transparent;border:0; display: none " id="ordBtn_@order.serial" onclick="AjaxActions('MarkWebOrder',@order.serial);EliminateElement('ordTable_@order.serial')">❌</button>
+                                            }
+
+                                        </center>
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);" style="background-color: @board_color">
+                                        @if (!is_postponed)
+                                        {
+                                            <div>@order.menu_title</div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                משלוח עתידי
+                                                <div style="overflow:auto;font-size:14px;color:blue">
+                                                    @order.shipping_date.ToShortDateString() @order.shipping_time
+                                                </div>
+                                            </div>
+                                        }
+
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.nick_name</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.address</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.city</td>
+
+
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">
+                                        @copPaste_wanum
+                                        @if (is_ship_phone)
+                                        {
+                                            <br /><span style="padding:1px;font-size:12px;color:blue"><span>@order.ship_phone</span></span>
+                                        }
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderbody</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.donation</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderpw</td>
+                                    <td class="dataCell" style="background-color: @board_color;white-space:nowrap;">
+                                        <input type="color" id="colorpicker" style="font-size: 16px;width:25px;height:24px;" value="@board_color" onchange="AjaxActions('SetOrderBoardColor', '@order.serial', '', this.value,'0');">
+                                        <button type="button" style="font-size:16px;" onclick="waLaunch('@order.wanum');">📱</button>
+                                        <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@copPaste_wanum');">📞</button>
+                                        <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@order.address' + ' ' + '@order.city' );">🏠</button>
+                                        <button type="button" style="font-size: 16px;" onclick="sbload('MainSb', 'Caller?p1=OrdersNotes&p2=@order.serial');">📄</button>
+                                        <button type="button" style="font-size: 16px;" onclick="sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.serial');AdjustMainView();">📝</button>
+
+
+
+                                    </td>
+                                </tr>
+
+
+                            }
+                            break;
+
+                        case "PROC":
+                            if (true)
+                            {
+                                <tr style="background-color: #e3e3e3" id="ordTable_@order.serial">
+                                    <td class="dataCell" style="text-align:center;background-color: @board_color" onclick="SelectAndCopy(@order.serial);">
+                                        <center>
+                                            <span id="ordLbl_@order.serial">
+                                                @memberIcon
+                                                @if (is_notes)
+                                                {
+                                                    <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                                        @notes_count
+                                                    </span>
+                                                }
+
+                                            </span>
+                                            @if (allowEdit)
+                                            {
+                                                <button type="button" style="background-color:transparent;border:0; display: none " id="ordBtn_@order.serial" onclick="AjaxActions('MarkWebOrder',@order.serial);EliminateElement('ordTable_@order.serial')">❌</button>
+                                            }
+
+                                        </center>
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);" style="background-color: @board_color">
+                                        @if (!is_postponed)
+                                        {
+                                            <div>@order.menu_title</div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                משלוח עתידי
+                                                <div style="overflow:auto;font-size:14px;color:blue">
+                                                    @order.shipping_date.ToShortDateString() @order.shipping_time
+                                                </div>
+                                            </div>
+                                        }
+
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);"><span style="font-size:12px;color:#4800ff">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</span></td>
+
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);" style="font-size:14px;">@order.process_ts.ToShortDateString() @order.process_ts.ToString("HH:mm")<span style="font-size:12px;color:#4800ff"><br />ע"י @AppFunctions.GetRepName(order.processed_by)</span></td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.nick_name</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.address</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.city</td>
+
+
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">
+                                        @copPaste_wanum
+                                        @if (is_ship_phone)
+                                        {
+                                            <br /><span style="padding:1px;font-size:12px;color:blue"><span>@order.ship_phone</span></span>
+                                        }
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderbody</td>
+                                    <td class="dataCell" style="background-color: @board_color;white-space:nowrap;padding-left:10px;padding-right:10px;">
+                                        <input type="color" id="colorpicker" style="font-size: 16px;width:25px;height:24px;" value="@board_color" onchange="AjaxActions('SetOrderBoardColor', '@order.serial', '', this.value,'0');">
+                                        <button type="button" style="font-size:16px;" onclick="waLaunch('@order.wanum');">📱</button>
+                                        <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@copPaste_wanum');">📞</button>
+                                        <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@order.address' + ' ' + '@order.city' );">🏠</button>
+                                        <button type="button" style="font-size: 16px;" onclick="sbload('MainSb', 'Caller?p1=OrdersNotes&p2=@order.serial');">📄</button>
+                                        <button type="button" style="font-size: 16px;" onclick="sbload('GenSb', 'Caller?p1=BoardOrderInfo&p2=@order.serial'); AdjustMainView();">📝</button>
+
+
+
+                                    </td>
+                                </tr>
+
+                            }
+                            break;
+
+
+                        case "VERIFY":
+                            if (true)
+                            {
+                                if (member_name == "")
+                                {
+                                    member_name = order.full_name;
+                                }
+                                memberIcon = "👤";
+                                <tr style="background-color: #90d9fe" id="ordTable123_@order.serial">
+                                    <td class="dataCell" style="text-align:center;background-color:@board_color">
+
+                                        <span id="ordLbl_@order.serial">
+                                            @memberIcon
+                                            @if (is_notes)
+                                            {
+                                                <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                                    @notes_count
+                                                </span>
+                                            }
+
+                                        </span>
+
+
+                                    </td>
+                                    <td class="dataCell" style="background-color:@board_color">
+                                        @if (!is_postponed)
+                                        {
+                                            <div>@order.menu_title</div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                משלוח עתידי
+                                                <div style="overflow:auto;font-size:14px;color:blue">
+                                                    @order.shipping_date.ToShortDateString() @order.shipping_time
+                                                </div>
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <td class="dataCell" style="background-color:@board_color">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                    <td class="dataCell">@member_name</td>
+                                    <td class="dataCell">@order.address</td>
+                                    <td class="dataCell">@order.city</td>
+
+
+                                    <td class="dataCell">@display_wanum</td>
+                                    <td class="dataCell">@order.orderbody</td>
+                                    <td class="dataCell"></td>
+                                    <td class="dataCell"></td>
+                                    <td class="dataCell" style="text-align:center">
+                                        <input type="color" id="colorpicker" style="font-size: 16px;width:25px;height:24px;" value="@board_color" onchange="AjaxActions('SetOrderBoardColor', '@order.serial', '', this.value,'0');">
+                                        <button type="button" style="font-size:16px;padding:5px;margin:1px;" onclick="sbload('MainSb', 'Caller?p1=VerifyOrder&p2=@order.serial');">אימות הזמנה</button>
+
+
+
+                                    </td>
+                                </tr>
+
+                            }
+                            break;
+                        case "FUTURE":
+                            if (true)
+                            {
+                                string row_bg_color = "#e3e3e3";
+                                bool is_due = false;
+                                if (order.shipping_date.Date <= local_time.Date)
+                                {
+                                    is_due = true;
+                                    row_bg_color = "#57d600";
+                                }
+
+
+                                <tr style="background-color: @row_bg_color" id="ordTable_@order.serial">
+                                    <td class="dataCell" style="text-align:center;background-color: @row_bg_color">
+
+                                        <center>
+                                            <span id="ordLbl_@order.serial">
+                                                @memberIcon
+                                                @if (is_notes)
+                                                {
+                                                    <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                                        @notes_count
+                                                    </span>
+                                                }
+
+                                            </span>
+
+                                        </center>
+
+                                    </td>
+                                    <td class="dataCell">
+                                        <div style="overflow:auto">
+                                            @order.ts.ToShortDateString() @order.ts.ToString("HH:mm")
+                                        </div>
+                                    </td>
+                                    <td class="dataCell">@order.shipping_date.ToShortDateString() @order.shipping_time</td>
+                                    <td class="dataCell">@order.nick_name</td>
+                                    <td class="dataCell">@order.address</td>
+                                    <td class="dataCell">@order.city</td>
+
+
+                                    <td class="dataCell">
+                                        @copPaste_wanum
+                                        @if (is_ship_phone)
+                                        {
+                                            <br /><span style="padding:1px;font-size:12px;color:blue"><span>@order.ship_phone</span></span>
+                                        }
+
+                                    </td>
+                                    <td class="dataCell">@order.orderbody</td>
+
+                                    <td class="dataCell" style="background-color: @row_bg_color;direction:rtl;">
+                                        <div id="actions_@order.serial">
+                                            <button type="button" style="font-size: 16px; float: left;padding: 3px; margin: 3px;" onclick="AjaxActions('RepDeleteOrder', '@order.serial','','@showWhat');">❌</button>
+
+                                            <button type="button" style="font-size: 16px; float: left; padding: 3px; margin: 3px; " onclick="waLaunch('@order.wanum');">📱</button>
+                                            <button type="button" style="font-size: 16px;float:left;padding:3px;margin:3px;" onclick="sbload('MainSb', 'Caller?p1=OrdersNotes&p2=@order.serial');">📄</button>
+
+                                            @if (is_due)
+                                            {
+                                                <button type="button" style="font-size: 16px; float: right;; padding: 3px; margin: 3px; " onclick="hideElement('actions_@order.serial'); showElement('rounds_@order.serial'); isUpdateDisabled = true;">✔️ העברה ללוח</button>
+                                            }
+                                        </div>
+                                        <div style="display:none;" id="rounds_@order.serial">
+                                            <select style="font-size: 16px; float: right; padding: 3px; margin: 3px;" onchange="if (this.value != '') { AjaxActions('ActivatePostponedOrder', '@order.serial', '', this.value); };">
+                                                <option value="">נא לבחור..</option>
+                                                @foreach (var round in rounds)
+                                                {
+                                                    <option value="@round.id">@round.title</option>
+                                                }
+                                            </select>
+                                            <button type="button" style="font-size:16px;float:right;padding:3px;margin:3px;" onclick="hideElement('rounds_@order.serial'); showElement('actions_@order.serial'); isUpdateDisabled = false;">ביטול</button>
+                                        </div>
+
+
+
+
+                                    </td>
+                                </tr>
+
+                            }
+                            break;
+                        case "DELETED":
+                            if (true)
+                            {
+                                <tr style="background-color: #e3e3e3" id="ordTable_@order.serial">
+                                    <td class="dataCell" style="text-align:center;background-color: @board_color" onclick="SelectAndCopy(@order.serial);">
+                                        <center>
+                                            <span id="ordLbl_@order.serial">
+                                                @memberIcon
+                                                @if (is_notes)
+                                                {
+                                                    <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                                        @notes_count
+                                                    </span>
+                                                }
+
+                                            </span>
+                                            @if (allowEdit)
+                                            {
+                                                <button type="button" style="background-color:transparent;border:0; display: none " id="ordBtn_@order.serial" onclick="AjaxActions('MarkWebOrder',@order.serial);EliminateElement('ordTable_@order.serial')">❌</button>
+                                            }
+
+                                        </center>
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);" style="background-color: @board_color">
+                                        @if (!is_postponed)
+                                        {
+                                            <div>@order.menu_title</div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                משלוח עתידי
+                                                <div style="overflow:auto;font-size:14px;color:blue">
+                                                    @order.shipping_date.ToShortDateString() @order.shipping_time
+                                                </div>
+                                            </div>
+                                        }
+
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.nick_name</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.address</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.city</td>
+
+
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">
+                                        @copPaste_wanum
+                                        @if (is_ship_phone)
+                                        {
+                                            <br /><span style="padding:1px;font-size:12px;color:blue"><span>@order.ship_phone</span></span>
+                                        }
+
+                                    </td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderbody</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.donation</td>
+                                    <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderpw</td>
+                                    <td class="dataCell" style="background-color: @board_color">
+
+                                        @if (!is_deleted_view)
+                                        {
+                                            <button type="button" style="font-size:16px;" onclick="waLaunch('@order.wanum');">📱</button>
+                                            <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@copPaste_wanum');">📞</button>
+                                            <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@order.address' + ' ' + '@order.city' );">🏠</button>
+                                            <button type="button" style="font-size: 16px;" onclick="sbload('MainSb', 'Caller?p1=OrdersNotes&p2=@order.serial');">📄</button>
+
+                                        }
+                                        else
+                                        {
+                                            <button type="button" style="font-size:16px;" onclick="AjaxActions('UndeleteOrder','@order.serial');">שחזור הזמנה</button>
+                                        }
+
+
+
+                                    </td>
+                                </tr>
+
+                            }
+                            break;
+                    }
+
+                    <tr>
+                        <td colspan="999">
+                            <table style="display:none">
+                                <tr id="ordTbl_@order.serial">
+                                    <td>@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                    <td>@order.nick_name</td>
+                                    <td>@order.address</td>
+                                    <td>@order.city</td>
+                                    <td>@copPaste_wanum</td>
+
+
+                                    <td>@order.orderbody</td>
+                                    <td>
+                                        @if (order.donation > 0)
+                                        {
+                                            <span> תרומה @order.donation </span>
+                                        }
+
+                                        @if (is_ship_phone)
+                                        {
+                                            <span> נשלח ל<span>@ship_name @copaste_ship_phone </span></span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+
+                    /*
+                    if (is_verification_needed)
+                    {
+                        if (member_name == "")
+                        {
+                            member_name = order.full_name;
+                        }
+                        memberIcon = "👤";
+                        <tr style="background-color: #90d9fe" id="ordTable123_@order.serial">
+                            <td class="dataCell" style="text-align:center">
+
+                                <span id="ordLbl_@order.serial">
+                                    @memberIcon
+                                    @if (is_notes)
+                                    {
+                                        <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                            @notes_count
+                                        </span>
+                                    }
+
+                                </span>
+
+
+                            </td>
+                            <td class="dataCell">@order.menu_title</td>
+
+                            <td class="dataCell">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                            <td class="dataCell">@member_name</td>
+                            <td class="dataCell">@order.address</td>
+                            <td class="dataCell">@order.city</td>
+
+
+                            <td class="dataCell">@display_wanum</td>
+                            <td class="dataCell">@order.orderbody</td>
+                            <td class="dataCell"></td>
+                            <td class="dataCell"></td>
+                            <td class="dataCell" style="text-align:center">
+
+                                <button type="button" style="font-size:16px;padding:5px;margin:1px;" onclick="sbload('BottomUp', 'Caller?p1=VerifyOrder&p2=@order.serial');">אימות הזמנה</button>
+
+
+
+                            </td>
+                        </tr>
+
+                    }
+                    else
+                    {
+                        <tr style="background-color: #e3e3e3" id="ordTable_@order.serial">
+                            <td class="dataCell" style="text-align:center;background-color: @board_color" onclick="SelectAndCopy(@order.serial);">
+                                <center>
+                                    <span id="ordLbl_@order.serial">
+                                        @memberIcon
+                                        @if (is_notes)
+                                        {
+                                            <span style="background-color:#4800ff;color:white;border: 1px dashed #49fc2e;font-size:12px;padding:1px;float:right">
+                                                @notes_count
+                                            </span>
+                                        }
+
+                                    </span>
+                                    @if (allowEdit)
+                                    {
+                                        <button type="button" style="background-color:transparent;border:0; display: none " id="ordBtn_@order.serial" onclick="AjaxActions('MarkWebOrder',@order.serial);EliminateElement('ordTable_@order.serial')">❌</button>
+                                    }
+
+                                </center>
+
+                            </td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);" style="background-color: @board_color">@order.menu_title</td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.nick_name</td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.address</td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.city</td>
+
+
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">
+                                @copPaste_wanum
+                                @if (is_ship_phone)
+                                {
+                                    <br /><span style="padding:1px;font-size:12px;color:blue"><span>@order.ship_phone</span></span>
+                                }
+
+                            </td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderbody</td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.donation</td>
+                            <td class="dataCell" onclick="SelectAndCopy(@order.serial);">@order.orderpw</td>
+                            <td class="dataCell" style="background-color: @board_color">
+
+                                @if (!is_deleted_view)
+                                {
+                                    <button type="button" style="font-size:16px;" onclick="waLaunch('@order.wanum');">📱</button>
+                                    <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@copPaste_wanum');">📞</button>
+                                    <button type="button" style="font-size:16px;" onclick="copyTextToClipboard('@order.address' + ' ' + '@order.city' );">🏠</button>
+                                    <button type="button" style="font-size: 16px;" onclick="sbload('MainSb', 'Caller?p1=OrdersNotes&p2=@order.serial');">📄</button>
+
+                                }
+                                else
+                                {
+                                    <button type="button" style="font-size:16px;" onclick="AjaxActions('UndeleteOrder','@order.serial');">שחזור הזמנה</button>
+                                }
+
+
+
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="999">
+                                <table style="display:none">
+                                    <tr id="ordTbl_@order.serial">
+                                        <td>@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</td>
+                                        <td>@order.nick_name</td>
+                                        <td>@order.address</td>
+                                        <td>@order.city</td>
+
+                                        @if (is_ship_phone)
+                                        {
+                                            <td>@copaste_ship_phone</td>
+                                        }
+                                        else
+                                        {
+                                            <td>@copPaste_wanum</td>
+                                        }
+
+
+                                        <td>@order.orderbody</td>
+                                        @if (order.donation > 0)
+                                        {
+                                            <td>@order.donation</td>
+                                        }
+                                        else
+                                        {
+                                            <td></td>
+                                        }
+
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                  //END COMMENT HERE
+
+                }
+            </table>
+            <button class="Accordion" id="pnlTst"></button>
+            <div class="panel">
+                <input type="text" id="OrdArr" value="@ordArr" />
+                <table id="ResTable"></table>
+
+            </div>
+
+            <textarea id="ResTable2" style="padding:5px;margin:5px;width:90%;height:500px;display:none;"></textarea>
+            <input type="hidden" id="selOrders" name="selOrders" value="" />
+            <input type="hidden" id="OrdersShowWhat" name="OrdersShowWhat" value="@showWhat" />
+
+
+            <input type="hidden" name="nextSortDir" id="nextSortDir" value="@nextSortDir" />
+            <input type="hidden" name="sortDir" id="sortDir" value="@sortDir" />
+            <input type="hidden" name="sortBy" id="sortBy" value="@sortBy" />
+        </form>
+
+    </div>
+    <div style="overflow:auto;height:200px;">&nbsp;</div>
+    //m_join.Close();
+    op_data.Close();
+
+
+
+
+    */
+}
+
+@helper LiveStats()
+{
+
+    int u_id = WebSecurity.CurrentUserId;
+    var m_join = Database.Open("m_join");
+    var op_data = Database.Open("op_data");
+
+    int orderCnt = 0;
+    int newOrdersCnt = 0;
+    int postponedOrdersCnt = 0;
+    int contactCnt = 0;
+    int prospectsCnt = 0;
+    int WebProspectsCnt = 0;
+    int approvedContacts = 0;
+    int newMembersCount = 0;
+    int allMembersCount = 0;
+    string prospectsBgColor = "#fff";
+
+    DataFunctions.ImportWebOrders();
+    DataFunctions.ImportWebContactForm();
+    DataFunctions.ImportWebProspects();
+    DataFunctions.ImportOrderFeedBacks();
+
+    var sqlSelect = "SELECT COUNT(*) AS the_cnt FROM webOrders WHERE is_deleted=0";
+    var rs = op_data.QuerySingle(sqlSelect);
+    try { orderCnt = rs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM webOrders WHERE is_processed=0 AND is_deleted=0";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { newOrdersCnt = rs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM webOrders WHERE is_processed=1 AND is_postponed=1 AND is_deleted=0";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { postponedOrdersCnt = rs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM ContactForm";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { contactCnt = rs.the_cnt; } catch { }
+
+
+
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM WebProspects";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { WebProspectsCnt = rs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM WebProspects";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { prospectsCnt = rs.the_cnt; } catch { }
+    prospectsCnt = WebProspectsCnt + prospectsCnt;
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM pb WHERE is_new=1";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { newMembersCount = rs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM pb WHERE is_deleted=0";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { allMembersCount = rs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM prospectsapprovals";
+    rs = m_join.QuerySingle(sqlSelect);
+    try { approvedContacts = rs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) as the_cnt FROM webprospects WHERE status_code=3";
+    var AfterNickWebProspects = op_data.QuerySingle(sqlSelect);
+    int AfterNickWebProspectsCnt = 0; AfterNickWebProspectsCnt = AfterNickWebProspects.the_cnt;
+    sqlSelect = "SELECT count(*) as the_cnt FROM webprospects WHERE status_code=0";
+    var NewWebProspects = op_data.QuerySingle(sqlSelect);
+    int NewWebProspectCnt = 0; NewWebProspectCnt = NewWebProspects.the_cnt;
+
+    int NewFeedbackCnt = 0; NewWebProspectCnt = NewWebProspects.the_cnt;
+
+    sqlSelect = "SELECT COUNT(*) AS the_cnt FROM orderfeedback WHERE is_completed=0";
+    rs = op_data.QuerySingle(sqlSelect);
+    try { NewFeedbackCnt = rs.the_cnt; } catch { }
+
+
+    <div>
+
+        @if (newOrdersCnt > 0)
+        {
+            <div class="BarInfoBoxGoodAlert" onclick="PageNavigator('NEWORDERS')">
+                <span style="float:right;padding-left:5px;">@newOrdersCnt</span> הזמנות חדשות
+            </div>
+        }
+        else
+        {
+            <div class="BarInfoBox" onclick="PageNavigator('ORDERS')">
+                <span style="float:right;padding-left:5px;">@orderCnt</span> הזמנות
+                @if (postponedOrdersCnt > 0)
+                {<span style="color:#57d600;font-size:11px;">@postponedOrdersCnt עתידיות</span>}
+            </div>
+        }
+        <div class="BarInfoBox" onclick="PageNavigator('MEMBERS')">
+            <span style="float:right;padding-left:5px;">@allMembersCount</span> חברים
+        </div>
+        @if (newMembersCount > 0)
+        {
+            <div class="BarInfoBoxGoodAlert" onclick="PageNavigator('NEWMEMBERS')">
+                <span style="float:right;padding-left:5px;">@newMembersCount</span> חדשים
+            </div>
+        }
+
+        <div class="BarInfoBox" onclick="PageNavigator('WEBPROSPECTS')" style="background-color:@prospectsBgColor">
+            מצטרפים
+            @if (NewWebProspectCnt > 0)
+            {
+                <span style="color:#57d600;font-size:11px;">@NewWebProspectCnt חדשים</span>
+            }
+            @if (AfterNickWebProspectsCnt > 0)
+            {
+                <span style="color:#f00;font-size:11px;">@AfterNickWebProspectsCnt לרישום</span>
+            }
+
+        </div>
+
+        @if (contactCnt > 0)
+        {
+            <div class="BarInfoBox" style="background-color:yellow" onclick="PageNavigator('CONTACTFORM')"><span style="float:right;padding-left:5px;">@contactCnt</span>  יצירת קשר</div>
+        }
+        @if (NewFeedbackCnt > 0)
+        {
+            <div class="BarInfoBox" onclick="PageNavigator('FEEDBACKMANAGER')"><span style="float:right;padding-left:5px;">@NewFeedbackCnt</span>  משובים</div>
+        }
+
+
+        <button type="button" onclick="refreshCurrentView();" style="display:none">asd</button>
+    </div>
+
+
+    m_join.Close();
+
+    op_data.Close();
+
+}
+
+@helper EditWebOrder(int order_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    //var m_join = Database.Open("m_join");
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM webOrders WHERE serial=@0";
+    var order = op_data.QuerySingle(sqlSelect, order_id);
+    int member_id = 0; try { member_id = order.m_id; } catch { }
+    sqlSelect = "SELECT id,title FROM menus WHERE is_active=1 ORDER BY sort_order";
+    var menus = op_data.Query(sqlSelect);
+    DateTime LocalTime = AppFunctions.LocalTime();
+
+    DateTime Tommorow = LocalTime.AddDays(1);
+    DateTime AfterTommorow = LocalTime.AddDays(2);
+
+    string other_rec_display_state = "none";
+    bool is_ship_phone = false;
+    try { is_ship_phone = order.is_ship_phone; } catch { }
+    if (is_ship_phone) { other_rec_display_state = "block"; }
+
+    bool is_postponed = false; try { is_postponed = order.is_postponed; } catch { }
+    string roundDivDisplayState = "block;";
+    string FutShipDivDisplayState = "none;";
+    if (is_postponed)
+    {
+        roundDivDisplayState = "none;";
+        FutShipDivDisplayState = "block;";
+    }
+    string shipping_date_str = ""; try { shipping_date_str = order.shipping_date.ToString("yyyy-MM-dd"); } catch { }
+    <div style="overflow:auto;direction:rtl">
+        <form id="repEditOrder">
+            <h2>עריכת פרטי הזמנה</h2>
+
+            <div style="overflow:auto;" id="NewOrderMemberContainer">
+                @AppHelpers.SelectOrderMember(member_id, order.wanum, order.nick_name)
+            </div>
+            <div style="overflow:auto;margin-top:10px;margin-bottom:10px;">
+                <input type="checkbox" name="is_for_today" style="padding:5px;margin-left:5px;" @if (!is_postponed) { <text> checked</text>} onclick="if (this.checked) { hideElement('future_shipment_div'); showElement('round_select_div'); } else { hideElement('round_select_div'); showElement('future_shipment_div'); } FixAccordion('editOrderAcc'); " />
+                הזמנה להיום?
+            </div>
+            <div style="overflow: auto;  font-size: 14px; color: #b200ff;display:@roundDivDisplayState" id="round_select_div">
+                סבב חלוקה:<br />
+                <select style="padding:5px;margin:5px;font-size:16px" name="round_id">
+                    <option>בבקשה לבחור..</option>
+                    @foreach (var round in menus)
+                    {
+                        <option value="@round.id" @if (order.menu_id == round.id) { <text> selected </text> }>@round.title</option>
+                    }
+
+                </select>
+            </div>
+
+            <div style="overflow:auto;display:@FutShipDivDisplayState" id="future_shipment_div">
+                <div style="overflow:auto;">
+                    תאריך לקבלת המשלוח<br />
+
+                    <input type="date" style="padding:5px;margin:5px;font-size:16px;" name="shipping_date" id="shipping_date" value="@shipping_date_str" />
+                </div>
+                <div style="overflow:auto;">
+                    זמן מועדף לקבלת המשלוח
+                    <br />
+                    <input type="time" style="padding:5px;margin:5px;font-size:16px;" name="shipping_time" id="shipping_time" value="@order.shipping_time" />
+                </div>
+            </div>
+
+
+            <div style="overflow:auto;font-size:14px;color:#b200ff">
+                <input type="checkbox" name="is_ship_phone" style="padding:5px;margin:5px;float:right" @if (is_ship_phone) { <text> checked</text>} onclick="if (this.checked) { showElement('other_recipient_div'); } else { hideElement('other_recipient_div'); } FixAccordion('editOrderAcc');" />
+                משלוח לאדם אחר?
+            </div>
+
+            <div style="overflow:auto;display:@other_rec_display_state" id="other_recipient_div">
+                <div style="overflow:auto;font-size:14px;color:#b200ff">
+                    שם מקבל.ת המשלוח:<br />
+                    <input type="text" style="padding:5px;margin:5px;font-size:16px" name="ship_name" value="@order.ship_name" />
+                </div>
+                <div style="overflow:auto;font-size:14px;color:#b200ff">
+                    מספר מקבל.ת המשלוח:<br />
+                    <input type="text" style="padding:5px;margin:5px;font-size:16px" name="ship_phone" value="@order.ship_phone" />
+                </div>
+            </div>
+
+            <div style="overflow:auto;font-size:14px;color:#b200ff">
+                כתובת:<br />
+                <input type="text" style="padding:5px;margin:5px;font-size:16px" name="address" value="@order.address" />
+            </div>
+            <div style="overflow:auto;font-size:14px;color:#b200ff">
+                עיר:<br />
+                <input type="text" style="padding:5px;margin:5px;font-size:16px" name="city" value="@order.city" />
+            </div>
+            <div style="overflow:auto;font-size:14px;color:#b200ff">
+                פירוט הזמנה:<br />
+                <textarea style="padding:5px;margin:5px;font-size:16px;resize:none;width:50%" rows="6" name="order_body">@order.orderbody</textarea>
+
+            </div>
+            <div style="overflow: auto; padding: 5px; margin: 5px;text-align:center">
+
+                <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="Accordionize('editOrderAcc');">ביטול</button>
+                <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="AjaxActions('UpdateOrderInfo','@order.serial','','repEditOrder','@order.serial');">שמירת שינויים</button>
+            </div>
+        </form>
+        <div style="overflow:auto;height:100px">&nbsp;</div>
+    </div>
+
+
+    // m_join.Close();
+
+    op_data.Close();
+
+}
+
+
+@helper RevealWanum(int member_id)
+{
+
+    int u_id = WebSecurity.CurrentUserId;
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT wanum FROM pb WHERE m_id=@0 ";
+    var rs = op_data.QuerySingle(sqlSelect, member_id);
+    if (rs != null)
+    {
+
+        <div style="overflow:auto">@rs.wanum</div>
+        string logmsg = "בוצעה חשיפת מספר ";
+        AppFunctions.WriteLog("WANUMREV", u_id, logmsg, member_id);
+    }
+
+
+    op_data.Close();
+
+}
+
+@helper SelectOrderMember(int member_id, string wanum = "", string member_name = "", bool is_register = false)
+{
+
+    int u_id = WebSecurity.CurrentUserId;
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT m_id,member_name,wanum FROM pb WHERE m_id=@0 ";
+
+    string wanumized = AppFunctions.wanumize(wanum);
+
+    if (member_id == 0)
+    {
+        sqlSelect = "SELECT m_id,member_name,wanum FROM pb WHERE ((m_id=@0) OR (m_id<>@0)) AND wanum=@1 ";
+
+
+    }
+
+    // string wanum = "";
+    var rs = op_data.QuerySingle(sqlSelect, member_id, wanumized);
+    if (rs != null)
+    {
+        member_id = rs.m_id;
+        member_name = rs.member_name;
+        wanum = rs.wanum;
+
+    }
+    else
+    {
+        member_id = 0;
+    }
+    if (member_id == 0)
+    {
+        <div style="overflow: auto;">
+            <div style="overflow:auto;;" id="NonRegOrderDiv">
+
+                <div style="overflow:auto;">
+                    שם משתמש   <br />
+                    <input type="text" name="nick_name" value="@member_name" style="padding: 5px; margin: 5px; font-size: 16px; direction: rtl; text-align: right;float:right" placeholder="חיפוש כינוי / #ווטסאפ.." id="NewOrderSearchBox" oninput="SearchMember(this.value, 'NewOrder', 'NewOrderNameSearch');" onblur="setTimeout(function () { ResetSearch('NewOrder'); }, 1000);" />
+                    <div class="Tinyloader" style="float:right;margin:5px;display:none" id="NewOrderSearchLoader"></div>
+                </div>
+                <div style="overflow:auto;display:none;position:absolute;right:5px;max-height:200px;z-index:99997;width:200px;background-color:white;" id="NewOrderNameSearchContainter">
+                    <div style="overflow:auto;" id="NewOrderNameSearch"></div>
+                </div>
+
+                <div style="overflow:auto;">
+                    מספר ווטסאפ<br />
+                    <input type="text" value="@wanum" style="padding:5px;margin:5px;font-size:16px;float:right" name="wanum" onblur="RepAjaxUpdate('VerifyWanum', 'NewOrderMemberContainer', 'WanumVerifyLoader', this.value, document.getElementById('NewOrderSearchBox').value, document.getElementById('is_register').checked); console.log(document.getElementById('is_register').checked);" />
+                    <input type="hidden" value="0" name="member_id" />
+                    <div class="Tinyloader" style="float:right;margin:5px;display:none" id="WanumVerifyLoader"></div>
+
+                </div>
+
+                <div style="overflow:auto;">
+                    <div style="overflow: auto;  margin-bottom: 10px; color: yellow; font-size: 14px;">
+                        <input type="checkbox" name="is_register" id="is_register" style="padding:5px;margin-left:5px;" @if (is_register) { <text> checked</text>} />
+                        רישום למערכת?
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    }
+    else
+    {
+        string display_wanum = wanum.Substring(wanum.Length - 4) + "****";
+
+        <div style="overflow:auto;">
+            <div style="overflow:auto;">
+
+                שם משתמש <br />
+                <input type="text" value="@member_name" style="padding: 5px; margin: 5px; font-size: 16px; direction: ltr; text-align: right" disabled placeholder="חיפוש כינוי / #ווטסאפ.." id="NewOrderSearchBox" />
+
+            </div>
+            <div style="overflow:auto;display:none;position:absolute;right:5px;max-height:200px;z-index:99997;width:200px;background-color:white;" id="NewOrderNameSearchContainter">
+                <div style="overflow:auto;" id="NewOrderNameSearch"></div>
+            </div>
+            <div style="overflow:auto;">
+                מספר ווטסאפ<br />
+                <input type="text" value="@display_wanum" style="padding:5px;margin:5px;font-size:16px" disabled name="display_wanum" id="display_wanum" />
+
+                <input type="hidden" value="@member_id" name="member_id" />
+            </div>
+            <div style="overflow:auto;">
+                <span style="font-size:12px;color:yellow">משתמש# @member_id</span>
+                <button type="button" style="padding:2px;margin:2px;margin-right:30px;" onclick="RepAjaxUpdate('SelectOrderMember', 'NewOrderMemberContainer');">איפוס</button>
+            </div>
+        </div>
+    }
+
+
+
+    op_data.Close();
+
+}
+
+@helper MemberDiscounts(int member_id)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+int rep_id = WebSecurity.CurrentUserId;
+DateTime local_time = AppFunctions.LocalTime();
+DateTime due_date = local_time.AddDays(14);
+DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+
+var op_data = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM discounts WHERE m_id=0 ORDER BY discount_id";
+var discounts = op_data.Query(sqlSelect);
+sqlSelect = "SELECT * FROM VENDORS WHERE is_active=1";
+var vendors = op_data.Query(sqlSelect);
+sqlSelect = "SELECT * FROM pb WHERE m_id=@0";
+var Member = op_data.QuerySingle(sqlSelect, member_id);
+sqlSelect = "SELECT discounts.*,memberDiscounts.valid_until,memberDiscounts.is_expirable from discounts JOIN memberDiscounts ON discounts.discount_id=memberDiscounts.discount_id WHERE memberDiscounts.member_id=@0";
+var AvailableMemberDiscounts = op_data.Query(sqlSelect, member_id, local_time);
+
+
+<div style="overflow:auto;padding:5px;">
+        <h3>
+            הנחות
+        </h3>
+        <div class="ProspectListRow">
+
+            <div style="overflow:auto">
+                @if (AvailableMemberDiscounts.Count() > 0)
+                {
+                    <div style="overflow:auto;">
+                        <h3>הנחות קבועות</h3>
+                        @foreach (var discount in AvailableMemberDiscounts)
+                        {
+                            bool applies_on_special_items = discount.applies_on_special_items;
+                            bool does_discount_includes_sh = discount.does_discount_includes_sh;
+                            bool does_discount_includes_spItems = discount.does_discount_includes_spItems;
+
+                            <div style="overflow:auto;border-bottom:1px dotted #808080">
+                                <div style="padding:3px;margin:3px;overflow:auto">
+                                    <span style="padding:3px;margin:3px;float:left;color:#f00" onclick="AjaxActions('DeleteMemberDiscount',@member_id, '', @discount.discount_id);">
+                                        ❌
+                                    </span>
+                                    <div style="overflow:auto">
+                                        <b>@discount.title</b>
+                                        @if (discount.vendor_id > 0)
+                                        {
+
+                                            <span style="font-size:12px;color:#b200ff"><b>(@AppFunctions.GetVendorTitleById(discount.vendor_id) בלבד!)</b></span>
+                                        }
+                                    </div>
+                                    <div style="overflow:auto;font-size:12px;">
+                                        @if (discount.discount_percantage > 0)
+                                        {
+                                            <span style="float:right;padding:3px;margin:3px;">
+                                                <b>@String.Format("{0:0.00}", discount.discount_percantage)%</b>
+                                            </span>
+                                        }
+                                        @if (discount.discount_amount > 0)
+                                        {
+                                            <span style="float:right;padding:3px;margin:3px;">
+                                                <b>@String.Format("{0:0.00}", discount.discount_amount)₪</b>
+                                            </span>
+                                        }
+
+                                        @if (discount.is_expirable)
+                                        {
+                                            <span style="float:right;padding:3px;margin:3px;">
+                                                בתוקף עד @discount.valid_until.ToShortDateString()
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span style="float:right;padding:3px;margin:3px;">
+                                                ללא פג תוקף
+                                            </span>
+                                        }
+
+                                        @if (discount.does_discount_includes_sh)
+                                        {
+                                            <span style="float:right;padding:3px;margin:3px;">
+                                                כולל משלוחים
+                                            </span>
+                                        }
+                                        @if (discount.does_discount_includes_spItems)
+                                        {
+                                            <span style="float:right;padding:3px;margin:3px;">
+                                                כולל מבצעים
+                                            </span>
+                                        }
+
+
+                                    </div>
+
+
+
+
+                                </div>
+
+
+
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div style="overflow:auto;background-color:#e3e3e3">
+                    <form id="AddDiscountForm">
+                        <div style="overflow:auto">
+                            <input type="hidden" name="member_id" value="@member_id" />
+                            <div style="overflow:auto">
+                                <span style="padding:5px;padding:5px;font-size:16px;float:left">
+                                    <select style="padding:5px;padding:5px;font-size:16px;" name="discount_id" onchange="if (this.value == '-1') { showElement('custom_discount_div'); } else { hideElement('custom_discount_div'); if(this.value!=''){AjaxActions('AddMemberDiscount',@member_id, '', 'AddDiscountForm'); }} FixAccordion('DiscountsInfoAcc');">
+                                        <option value="">נא לבחור את ההנחה הרצויה</option>
+                                        @foreach (var discount in discounts)
+                                        {
+                                            <option value="@discount.discount_id">@discount.title</option>
+                                        }
+                                        <option value="-1">הנחה מותאמת אישית..</option>
+
+                                    </select>
+
+                                </span>
+                                <h3>הוספת הנחה</h3>
+
+                            </div>
+                        </div>
+                        <div style="background-color: #fff;border-bottom: 1px solid #fff;display:none;overflow:auto" id="custom_discount_div">
+                            <div style="overflow: auto;padding: 5px;background-color: #808080;color: #fff;font-size: 16px;" onclick="Accordionize('DiscountOptions');">
+                                <b>הוספת הנחה מותאמת אישית</b>
+                            </div>
+
+                            <button class="accordion" style="display: none;" id="DiscountOptions"></button>
+                            <div id="UserInfo" style="text-align: right;background-color: #fff; font-size: 16px; color: #808080;overflow:auto">
+                                <div style="overflow: auto;color: #000;">
+
+                                    <div style="font-size: 12px;padding: 2px;margin: 2px;overflow: auto;border:1px dotted #808080">
+
+                                        <div style="overflow:auto">
+                                            כותרת הנחה<br><input type="text" style="font-size: 16px;margin: 5px;padding: 5px;width: 90%;" name="discount_title" id="discount_title" />
+                                        </div>
+
+                                        <div style="font-size: 12px;padding: 5px;overflow: auto;">
+                                            <span style="float: right">
+                                                <input type="text" style="width: 40px;font-size: 16px;padding: 5px;margin: 5px;" id="discount" name="discount" value="@String.Format("{0:0.00}",Member.discount_percantage)">
+                                            </span>
+                                            <span style="float: right;margin-right: 10px;">
+                                                <span style="float: right">
+                                                    <input type="radio" style="padding: 5px;margin: 5px;" id="discount_type_percantage" name="discount_type" value="percent" checked> % הנחה
+                                                </span><br>
+                                                <span style="float: right">
+                                                    <input type="radio" style="padding: 5px;margin: 5px;" id="discount_type_amount" name="discount_type" value="amount"> ₪ הנחה
+                                                </span>
+                                            </span>
+
+                                            <span style="float: right;margin-right: 10px;">
+                                                <span style="float: right">
+                                                    <input type="checkbox" style="padding: 5px;margin: 5px;" id="does_discount_includes_sh" name="does_discount_includes_sh">  כולל דמי משלוח
+                                                </span><br>
+                                                <span style="float: right;">
+                                                    <input type="checkbox" style="padding: 5px;margin: 5px;" id="does_discount_includes_spItems" name="does_discount_includes_spItems"> כולל מבצעים
+                                                </span>
+                                            </span>
+                                            <span style="float: right;margin-right: 10px;">
+                                                <span style="float: right">
+                                                    <input type="checkbox" style="padding: 5px;margin: 5px;" id="is_expirable" name="is_expirable" onclick="if (this.checked) { showElement('ValidUntilDiv'); } else { hideElement('ValidUntilDiv');}">  פג תוקף?
+                                                </span>
+                                            </span>
+
+                                        </div>
+
+                                        <div style="overflow:auto">
+
+                                            <span style="float: right; margin-right: 10px;">
+                                                ספק<br />
+                                                <select style="padding:5px;margin:5px;font-size:16px;" name="vendor_id">
+                                                    <option value="0">כל הספקים</option>
+                                                    @foreach (var vendor in vendors)
+                                                    {
+                                                        <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                                    }
+
+                                                </select>
+                                            </span>
+                                            <span style="float: right; margin-right: 10px;display:none" id="ValidUntilDiv">
+                                                תאריך תפוגה<br>
+                                                <input type="date" style="font-size: 16px;padding: 5px;margin: 5px;" id="valid_until" name="valid_until" value="@local_time.Date.AddYears(1).ToString("yyyy-MM-dd")">
+                                            </span>
+
+                                        </div>
+                                        <div style="overflow:auto">
+                                            הערות להנחה<br><textarea style="font-size: 16px;height: 50px;margin: 5px;padding: 5px;width: 90%;resize: none;" placeholder="נא לפרט.." name="discount_notes" id="discount_notes"> </textarea>
+                                        </div>
+                                        <button type="button" style="float: left;padding: 5px;margin: 5px;" onclick="AjaxActions('AddMemberDiscount',@member_id, '', 'AddDiscountForm');">הוספה</button>
+                                        <button type="button" style="float: left;padding: 5px;margin: 5px;" onclick="Accordionize('DiscountOptions');">ביטול</button>
+                                        <div style="overflow:auto">
+
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+
+    op_data.Close();
+
+}
+
+
+@helper MemberCredit(int member_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int rep_id = WebSecurity.CurrentUserId;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime due_date = local_time.AddDays(14);
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM chargebook WHERE m_id=@0 ORDER BY is_paid, original_due_date";
+    var chargebook = op_data.Query(sqlSelect, member_id);
+    sqlSelect = "SELECT * FROM VENDORS WHERE is_active=1";
+    var vendors = op_data.Query(sqlSelect);
+
+    <div style="overflow:auto;padding:5px;">
+        <button class="A" style="float:left" onclick="Accordionize('UserCreditSettingsDiv');">הגדרות</button>
+        <h3>
+            קרדיט
+        </h3>
+        <div class="ProspectListRow">
+            <div class="B">
+                <button style="display:none" class="accordion" id="UserCreditSettingsDiv"></button>
+                <div class="panel">
+                    <div class="A">
+                        חסום באשראי
+                    </div>
+                    <div class="A">
+                        סכום אשראי מאושר
+                    </div>
+                </div>
+            </div>
+            <div style="overflow:auto">
+                <div style="overflow:auto;">
+                    <div style="overflow:auto">
+                        <div id="new_credit_div">
+                            <form id="CreditAddForm">
+                                <input type="hidden" name="member_id" value="@member_id" />
+
+                                <h3>רישום קרדיט חדש</h3>
+                                <span style="padding:5px;padding:5px;font-size:16px;float:right">
+                                    ספק<br />
+                                    <select style="padding:5px;padding:5px;font-size:16px;" name="vendor_id">
+                                        <option>נא לבחור</option>
+                                        @foreach (var vendor in vendors)
+                                        {
+                                            <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                        }
+                                    </select>
+                                </span>
+                                <span style="padding:5px;;font-size:16px;float:right">
+                                    סכום<br />
+                                    <input type="text" name="amount" style="padding:5px;;font-size:16px;width:50px;" />
+                                </span>
+                                <span style="padding: 5px; ; font-size: 16px; float: right;  ">
+                                    תאריך החזרה מוסכם<br />
+                                    <input type="date" name="due_date" style="padding:5px;;font-size:16px;" value="@due_date.ToString("yyyy-MM-dd")" />
+                                </span>
+                                <span style="padding: 5px; ; font-size: 16px; float: right;  ">
+                                    הערה?<br />
+                                    <input type="text" style="padding:5px;;font-size:16px;" name="creditnote" />
+                                </span>
+                                <span style="padding: 5px; padding: 5px; font-size: 16px; float: right;  ">
+                                    <br />
+                                    <button type="button" style="padding: 5px;  font-size: 16px; float: right " onclick="AjaxActions('CreditAction', '@member_id', '', 'CreditAddForm', '@member_id');">ביצוע</button>
+                                </span>
+                            </form>
+                        </div>
+                        <div id="return_credit_div" style="display:none;">
+                            <form id="CreditReturnForm">
+                                <input type="hidden" name="member_id" value="@member_id" />
+
+                                <h3>רישום החזרת חוב</h3>
+                                <span style="padding:5px;padding:5px;font-size:16px;float:right">
+                                    ספק אוסף<br />
+                                    <select style="padding:5px;padding:5px;font-size:16px;" name="vendor_id">
+                                        <option>נא לבחור</option>
+                                        @foreach (var vendor in vendors)
+                                        {
+                                            <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                        }
+                                    </select>
+                                </span>
+                                <span style="padding:5px;font-size:16px;float:right">
+                                    סכום<br />
+                                    <input type="text" name="amount" style="padding:5px;;font-size:16px;width:50px;" />
+                                </span>
+                                <span style="padding: 5px; ; font-size: 16px; float: right;">
+                                    תאריך קבלת תשלום<br />
+                                    <input type="date" name="return_date" style="padding:5px;font-size:16px;" value="@local_time.ToString("yyyy-MM-dd")" />
+                                </span>
+                                <span style="padding: 5px; font-size: 16px; float: right; ">
+                                    הערה?<br />
+                                    <input type="text" style="padding:5px;font-size:16px;" name="creditnote" />
+                                </span>
+                                <span style="padding: 5px; padding: 5px; font-size: 16px; float: right;">
+                                    <br />
+                                    <button type="button" style="padding: 5px;  font-size: 16px; float: right " onclick="AjaxActions('CreditReturn', '@member_id', '', 'CreditReturnForm', '@member_id');">ביצוע</button>
+                                </span>
+                            </form>
+                        </div>
+
+                        <button type="button" style="padding: 5px;  font-size: 16px; float: left " id="return_credit_btn" onclick="hideElement('new_credit_div');hideElement('return_credit_btn');showElement('return_credit_div');showElement('new_credit_btn');">החזרת חוב</button>
+                        <button type="button" style="padding: 5px;  font-size: 16px; float: left;display:none; " id="new_credit_btn" onclick="hideElement('return_credit_div');hideElement('new_credit_btn');showElement('new_credit_div');showElement('return_credit_btn');">חוב חדש</button>
+
+                    </div>
+                </div>
+
+            </div>
+
+            @if (chargebook.Count() > 0)
+            {
+                <div class="ProspectListRow">
+                    <div style="overflow:auto;padding:5px;border-bottom:1px dotted #e3e3e3;width:90%">
+                        <span style="float: right; color: #000; padding: 3px; margin: 3px; width: 20%">תאריך</span>
+                        <span style="float: right; padding: 3px; margin: 3px; width: 15%;">ספק</span>
+                        <span style="float: right; padding: 3px; margin: 3px; width: 15%;">סכום</span>
+                        <span style="float: right; color: #000; padding: 3px; margin: 3px; width: 15%">תאריך החזרה</span>
+                        <span style="float: right; padding: 3px; margin: 3px;">הערות</span>
+                    </div>
+
+                    @foreach (var charge in chargebook)
+                    {
+                        int transaction_type = charge.transaction_type;
+                        string amt_color = "#f00";
+                        DateTime current_due_date = default_date; try { current_due_date = charge.current_due_date; } catch { }
+                        DateTime actual_return_date = default_date; try { actual_return_date = charge.actual_return_date; } catch { }
+                        int daysTillDue = 0;
+                        daysTillDue = AppFunctions.HowManyDaysAgoWas(current_due_date) * -1;
+                        bool is_paid = false;
+                        decimal amount_due = charge.amount_due;
+                        decimal amount = charge.amount;
+                        if (charge.is_paid)
+                        {
+                            is_paid = true;
+                            amt_color = "#57d600";
+                        }
+                        <div style="overflow:auto;padding:5px;border-bottom:1px dotted #e3e3e3;width:90%">
+                            <span style="color: #000; float: right; padding: 3px; margin: 3px;width:20%"><span>@charge.ts.ToShortDateString()<br /><span style="font-size:11px;color:#808080">@charge.ts.ToString("HH:mm")</span></span></span>
+                            <span style="float: right; padding: 3px; margin: 3px; width: 15%;">@AppFunctions.GetVendorTitleById(charge.vendor_id)</span>
+
+                            @if (amount != amount_due)
+                            {
+                                <span style=" float: right; padding: 3px; margin: 3px;width:15%;color:@amt_color"><span>@amount_due.ToString("c", culture)</span><br /><span style="font-size:11px;color:#808080">חוב מקורי: @amount.ToString("c", culture)</span></span>
+
+                            }
+                            else
+                            {
+                                <span style="float: right; padding: 3px; margin: 3px; width: 15%;color:@amt_color">@amount_due.ToString("c", culture)</span>
+                            }
+
+
+                            <span style="color: #000; float: right; padding: 3px; margin: 3px;width:15%"><span>@current_due_date.ToShortDateString()</span><br /><span style="font-size:11px;color:#808080">עוד @daysTillDue ימים</span></span>
+                            <span style="float: right; padding: 3px; margin: 3px;">@charge.transaction_notes</span>
+                        </div>
+                    }
+
+                </div>
+
+            }
+            else
+            {
+                <div class="ProspcetListCell">אין הערות</div>
+            }
+        </div>
+
+    </div>
+
+
+
+
+    op_data.Close();
+
+}
+
+@helper SelectCreditMember(int member_id, int startAction = 0)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int rep_id = WebSecurity.CurrentUserId;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime defDueDate = local_time.AddDays(14);
+    int u_id = WebSecurity.CurrentUserId;
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT m_id,member_name,wanum FROM pb WHERE m_id=@0 ";
+    var member = op_data.QuerySingle(sqlSelect, member_id);
+
+    sqlSelect = "SELECT * FROM VENDORS WHERE is_active=1";
+    var vendors = op_data.Query(sqlSelect);
+
+    string member_name = "";
+    if (member != null)
+    {
+        member_name = member.member_name;
+    }
+
+
+    if (member_id == 0)
+    {
+        <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+            <div style="overflow:auto;" id="NonRegOrderDiv">
+
+                <div style="overflow:auto;">
+                    <div style="color:black;overflow:auto;text-align:right;">
+                        שם משתמש
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="text" name="nick_name" value="@member_name" style="padding: 5px; margin: 5px; font-size: 16px; direction: rtl; text-align: right;float:right" placeholder="חיפוש כינוי / #ווטסאפ.." id="NewOrderSearchBox" oninput="SearchMember(this.value, 'NewCredit', 'NewOrderNameSearch');" onblur="setTimeout(function () { ResetSearch('NewOrder'); }, 1000);" />
+                        <div class="Tinyloader" style="float:right;margin:5px;display:none" id="NewOrderSearchLoader"></div>
+                    </div>
+                </div>
+                <div style="overflow:auto;display:none;position:absolute;right:50px;max-height:200px;z-index:99997;width:200px;background-color:white;" id="NewOrderNameSearchContainter">
+                    <div style="overflow:auto;" id="NewOrderNameSearch"></div>
+                </div>
+
+            </div>
+
+        </div>
+    }
+    else
+    {
+        string newCreditDivStartState = "none;";
+        string returnCreditDivStartState = "none;";
+        if (startAction == 2)
+        {
+            returnCreditDivStartState = "block;";
+        }
+
+        <div style="float: right; direction: rtl; padding: 5px; margin: 5px; color: black">
+            <div style="overflow:auto;">
+                <div style="overflow:auto;text-align:right;">
+                    משתמש# @member_id
+                    <button type="button" style="padding:2px;margin:0;float:left;font-size:12px;" onclick="RepAjaxUpdate('SelectCreditMember', 'NewOrderMemberContainer');">איפוס</button>
+
+                </div>
+                <div style="overflow:auto;">
+                    <input type="text" value="@member_name" style="padding: 5px; margin: 5px; font-size: 16px; direction: ltr; text-align: right;float:right" disabled id="NewOrderSearchBox" />
+                </div>
+
+            </div>
+
+            <div style="overflow:auto;display:none;position:absolute;right:5px;max-height:200px;z-index:99997;width:200px;background-color:white;" id="NewOrderNameSearchContainter">
+                <div style="overflow:auto;" id="NewOrderNameSearch"></div>
+            </div>
+
+        </div><div style="float: right; direction: rtl; padding: 5px; margin: 5px; color: black">
+            <div style="overflow:auto;">
+                <div style="overflow:auto;text-align:right;">
+                    פעולה
+                </div>
+                <div style="overflow:auto;">
+                    <select style="padding:5px;margin:5px;font-size:16px;" onchange="if (this.value == '2') { hideElement('NewCreditDiv'); showElement('ReturnCreditDiv'); }if (this.value == '1') { showElement('NewCreditDiv'); hideElement('ReturnCreditDiv'); }if (this.value == '') { hideElement('NewCreditDiv'); hideElement('ReturnCreditDiv'); }">
+                        <option value="">נא לבחור</option>
+                        <option value="1" @if (startAction == 1) { <text> selected </text> }>רישום חוב</option>
+                        <option value="2" @if (startAction == 2) { <text> selected </text> }>רישום תשלום</option>
+                    </select>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div id="NewCreditDiv" style="display:@newCreditDivStartState;color:black">
+            <form id="CreditChargeForm">
+                <input type="hidden" name="member_id" value="@member_id" />
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style="overflow:auto;">
+                        <div style=";overflow:auto;text-align:right;">
+                            סכום (₪)
+                        </div>
+                        <div style="overflow:auto;">
+                            <input type="text" name="amount" style="padding:5px;margin:5px;font-size:16px;width:50px;" />
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style="overflow:auto;">
+                        <div style=";overflow:auto;text-align:right;">
+                            ספק
+                        </div>
+                        <div style="overflow:auto;">
+                            <select style="padding: 5px; margin: 5px; font-size: 16px;" name="vendor_id">
+                                <option>נא לבחור</option>
+                                @foreach (var vendor in vendors)
+                                {
+                                    <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                }
+                            </select>
+                        </div>
+
+                    </div>
+
+                </div>
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style=";overflow:auto;text-align:right;">
+                        תאריך נטילה
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="date" name="credit_date" id="credit_date" style="padding:5px;font-size:16px;" value="@local_time.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+
+                    <div style=";overflow:auto;text-align:right;display:none" id="reg_due_date_div">
+                        <input type="checkbox" style="margin:5px;font-size:16px;float:right" id="reg_due_date_cb" onclick="hideElement('reg_due_date_div'); showElement('nor_due_date_div'); setElementDisablity('due_date', true); setElementCheck('nor_due_date_cb',true);" />
+                        תאריך החזרה מוסכם
+                    </div>
+                    <div style="overflow:auto;text-align:right;" id="nor_due_date_div">
+                        <input type="checkbox" name="next_order_return" id="nor_due_date_cb" style="margin:5px;font-size:16px;float:right" checked onclick="hideElement('nor_due_date_div'); showElement('reg_due_date_div'); setElementDisablity('due_date',false);setElementCheck('reg_due_date_cb',true);" />
+                        החזרה בהזמנה הבאה
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="date" name="due_date" id="due_date" style="padding:5px;font-size:16px;" disabled value="@defDueDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style=";overflow:auto;text-align:right;">
+                        הערה?
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="text" style="padding: 5px; font-size: 16px; margin:5px;" name="creditnote" />
+                    </div>
+                </div>
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;overflow:auto">
+                    <div style=";overflow:auto;text-align:right;">
+                        &nbsp;
+                    </div>
+                    <button type="button" style="padding: 5px; margin: 5px; float: left; font-size: 16px; display: none" onclick="RepAjaxUpdate('SelectCreditMember', 'NewOrderMemberContainer');">רישום חוב</button>
+                    <button type="button" style="padding: 5px;  font-size: 16px; float: left " onclick="AjaxActions('CMCreditAction', '@member_id', '', 'CreditChargeForm', '@member_id');">ביצוע</button>
+
+                </div>
+
+            </form>
+
+
+
+        </div>
+
+        <div id="ReturnCreditDiv" style="display: @returnCreditDivStartState; color: black">
+            <form id="DebtReturnForm">
+                <input type="hidden" name="member_id" value="@member_id" />
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style="overflow:auto;">
+                        <div style=";overflow:auto;text-align:right;">
+                            סכום (₪)
+                        </div>
+                        <div style="overflow:auto;">
+                            <input type="text" name="amount" style="padding:5px;margin:5px;font-size:16px;width:50px;" />
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style="overflow:auto;">
+                        <div style=";overflow:auto;text-align:right;">
+                            ספק אוסף
+                        </div>
+                        <div style="overflow:auto;">
+                            <select style="padding: 5px; margin: 5px; font-size: 16px;" name="vendor_id">
+                                <option>נא לבחור</option>
+                                @foreach (var vendor in vendors)
+                                {
+                                    <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                }
+                            </select>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                    <div style=";overflow:auto;text-align:right;">
+                        תאריך קבלת תשלום
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="date" name="return_date" style="padding:5px;font-size:16px;" value="@local_time.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+
+                <div style="float:right;direction:rtl;padding:5px;margin:5px;overflow:auto">
+                    <div style="color:yellow;overflow:auto;text-align:right;">
+                        &nbsp;
+                    </div>
+                    <button type="button" style="padding:5px;margin:5px;float:left;font-size:16px;display:none" onclick="RepAjaxUpdate('SelectCreditMember', 'NewOrderMemberContainer');">רישום תשלום</button>
+                    <button type="button" style="padding: 5px; font-size: 16px; float: left " onclick="AjaxActions('CMCreditReturn', '@member_id', '', 'DebtReturnForm', '@member_id');">ביצוע</button>
+
+                </div>
+            </form>
+        </div>
+
+
+
+    }
+    op_data.Close();
+}
+
+@helper DebtsStatus(string showWhat = "ALL")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+
+    //DataFunctions.ImportWebContactForm();
+
+    switch (showWhat)
+    {
+        case "ALL":
+            sqlSelect = "SELECT serial,m_id,member_name,debt,due_date FROM pb WHERE debt>0 order by next_order_return, due_date";
+            break;
+        case "DUE":
+            sqlSelect = "SELECT serial,m_id,member_name,debt,due_date FROM pb WHERE debt>0 AND due_date<=@0 AND next_order_return=0 order by due_date";
+            break;
+        case "GOOD":
+            sqlSelect = "SELECT serial,m_id,member_name,debt,due_date FROM pb WHERE debt>0 AND due_date>@0 AND next_order_return=0 order by due_date";
+            break;
+        case "NOR":
+            sqlSelect = "SELECT serial,m_id,member_name,debt,due_date FROM pb WHERE debt>0 AND next_order_return=1";
+            break;
+    }
+
+
+    var Debtees = op_data.Query(sqlSelect, local_time);
+
+    <table style="width:99%;direction:rtl">
+        <tr class="ListRow" style="width: 100%;">
+            <td class="TableCell" style="text-align:center"><div></div></td>
+            <td class="TableCell">שם חבר.ה</td>
+            <td class="TableCell">סכום חוב</td>
+            <td class="TableCell">לתשלום מיידי</td>
+            <td class="TableCell">לתשלום עד</td>
+
+        </tr>
+
+        @foreach (var entry in Debtees)
+        {
+            int member_id = entry.m_id;
+            string member_name = entry.member_name;
+            decimal debt = entry.debt;
+            DateTime due_date = entry.due_date;
+
+            int DaysTillDue = 0;
+            DaysTillDue = AppFunctions.HowManyDaysAgoWas(due_date);
+
+            sqlSelect = "SELECT DISTINCT vendor_id FROM ChargeBook WHERE is_paid=0 AND m_id=@0";
+            var owedVendors = op_data.Query(sqlSelect, member_id);
+            string vendorsList = "";
+            sqlSelect = "SELECT * FROM chargebook WHERE is_paid=0 AND m_id=@0 ORDER BY is_paid, current_due_date";
+            var chargebook = op_data.Query(sqlSelect, member_id);
+
+            sqlSelect = "SELECT SUM(amount_due) as amount_due FROM chargebook WHERE is_paid=0 AND m_id=@0 AND current_due_date<=@1";
+            var currDueAmount = op_data.QuerySingle(sqlSelect, member_id, local_time.Date);
+            decimal cur_amount_due = 0; try { cur_amount_due = currDueAmount.amount_due; } catch { }
+
+            foreach (var vendor in owedVendors)
+            {
+                string vendor_name = AppFunctions.GetVendorTitleById(vendor.vendor_id);
+                vendorsList += vendor_name + " ";
+            }
+
+
+            <tr class="ListRow" id="CreditEntryRow_@entry.m_id">
+                @AppHelpers.CreditEntryRow(entry)
+            </tr>
+
+
+            <tr>
+                <td colspan="999">
+                    <button class="Accordion" style="display:none" id="credInf_@member_id"></button>
+                    <div class="panel" style="width:99%">
+                        <table style="width: 99%; background-color: #e3e3e3; border: 1px dotted #808080;text-align:right">
+                            <tr style="padding: 5px; border-bottom: 1px dotted #e3e3e3; width: 95%; color: #000;">
+                                <td style=" color: #000; padding: 3px; margin: 3px;width:70px;">תאריך נטילה</td>
+                                <td style=" padding: 3px; margin: 3px; ">ספק</td>
+                                <td style=" padding: 3px; margin: 3px; ">סכום</td>
+                                <td style=" color: #000; padding: 3px; margin: 3px; ">תאריך החזרה</td>
+                                <td style="padding: 3px; margin: 3px;">הערות</td>
+                                <td style="padding: 3px; margin: 3px; "></td>
+                            </tr>
+
+                            @foreach (var charge in chargebook)
+                            {
+
+                                <tr id="CreditEntryInfoRow_@charge.serial">
+                                    @AppHelpers.CreditEntryInfoRow(charge)
+                                </tr>
+
+
+                            }
+
+                        </table>
+
+                    </div>
+                </td>
+            </tr>
+
+
+
+        }
+    </table>
+
+
+    op_data.Close();
+
+}
+
+
+@helper CreditStatus()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+    sqlSelect = "SELECT SUM(amount_due) as TotalDebt FROM chargebook WHERE is_paid=0";
+    var totDebt = op_data.QuerySingle(sqlSelect);
+    decimal totalDebt = 0; try { totalDebt = totDebt.TotalDebt; } catch { }
+    sqlSelect = "SELECT SUM(amount_due) as DueDebt FROM chargebook WHERE is_paid=0 AND current_due_date<=@0";
+    var dueDebt = op_data.QuerySingle(sqlSelect, local_time);
+    decimal DueDebt = 0; try { DueDebt = dueDebt.DueDebt; } catch { }
+
+
+    <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #b200ff; text-align: center; border-radius: 5px " onclick="PageNavigator('CREDITHISTORY');">
+        <span style="font-size:18px;">היסטוריה</span><br />חובות ששולמו
+    </div>
+    <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #808080; text-align: center; border-radius: 5px;background-color:#e3e3e3 " onclick="Accordionize('CreditActionsAcc')">
+        <span style="font-size:18px;">פעולות</span><br />חוב חדש / החזרה
+    </div>
+    <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid red;text-align:center;border-radius:5px;margin-left:15px;">
+        <span style="font-size:18px;">@DueDebt.ToString("C", culture)</span><br />חובות לגביה
+    </div>
+    <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #808080; text-align: center; border-radius: 5px ">
+        <span style="font-size:18px;">@totalDebt.ToString("C", culture)</span><br />סה"כ חובות
+    </div>
+
+    op_data.Close();
+
+}
+
+@helper CreditEntryRow(dynamic entry)
+{
+
+    if (entry != null)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+        int u_id = WebSecurity.CurrentUserId;
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+        string username = WebSecurity.CurrentUserName;
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime ts = local_time;
+        DateTime default_date = Convert.ToDateTime("1/1/1900");
+        int member_id = entry.m_id;
+        string member_name = entry.member_name;
+        decimal debt = entry.debt;
+        DateTime due_date = entry.due_date;
+        DateTime NOR_date = Convert.ToDateTime("1/1/1901");
+
+        int DaysTillDue = 0;
+        DaysTillDue = AppFunctions.HowManyDaysAgoWas(due_date);
+
+        sqlSelect = "SELECT DISTINCT vendor_id FROM ChargeBook WHERE is_paid=0 AND m_id=@0";
+        var owedVendors = op_data.Query(sqlSelect, member_id);
+        string vendorsList = "";
+        sqlSelect = "SELECT * FROM chargebook WHERE is_paid=0 AND m_id=@0 ORDER BY is_paid, current_due_date";
+        var chargebook = op_data.Query(sqlSelect, member_id);
+
+        sqlSelect = "SELECT SUM(amount_due) as amount_due FROM chargebook WHERE is_paid=0 AND m_id=@0 AND current_due_date<=@1";
+        var currDueAmount = op_data.QuerySingle(sqlSelect, member_id, local_time.Date);
+        decimal cur_amount_due = 0; try { cur_amount_due = currDueAmount.amount_due; } catch { }
+
+        foreach (var vendor in owedVendors)
+        {
+            string vendor_name = AppFunctions.GetVendorTitleById(vendor.vendor_id);
+            vendorsList += vendor_name + " ";
+        }
+
+        <td class="TableCell" style="text-align:center">
+        </td>
+        <td class="TableCell">
+            <div style="overflow:auto;color:#000">
+                <button type="button" style="margin-left: 5px; font-size: 16px;float:right;border:0 " onclick="sbload('MainSb', 'Caller?p1=Member_Info&p2=@entry.m_id');">👤</button>
+
+                <b>@member_name</b>
+
+            </div>
+        </td>
+
+        <td class="TableCell">
+            <div style="overflow:auto;color:#000">
+                <b>@debt.ToString("C", culture) </b>
+                <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0 " onclick="Accordionize('credInf_@member_id');">❔</button>
+
+            </div>
+
+        </td>
+        <td class="TableCell">
+            <div style="overflow:auto;color:#000">
+                <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0 " onclick="RepAjaxUpdate('SelectCreditMember', 'NewOrderMemberContainer','','@member_id','2');">💰</button>
+
+                <b>@cur_amount_due.ToString("C", culture) </b>
+            </div>
+
+        </td>
+
+        if (due_date == NOR_date)
+        {
+            <td class="TableCell">
+                <div style="overflow: auto; color: #F00"><b>בהזמנה הבאה </b></div>
+            </td>
+        }
+        else
+        {
+            if (DaysTillDue < 0)
+            {
+                <td class="TableCell">
+                    <div style="overflow:auto;color:#000"><b>@due_date.ToShortDateString() (בעוד @(DaysTillDue*-1) ימים) </b></div>
+                </td>
+            }
+            else
+            {
+                <td class="TableCell">
+                    <div style="overflow:auto;color:#F00"><b>@due_date.ToShortDateString() (לפני @DaysTillDue ימים) </b></div>
+                </td>
+            }
+        }
+
+        op_data.Close();
+
+    }
+
+
+}
+
+@helper CreditEntryInfoRow(dynamic charge)
+{
+
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int transaction_id = 0;
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    //var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+    sqlSelect = "SELECT * FROM chargebook WHERE serial=@0";
+    //var charge = op_data.QuerySingle(sqlSelect, transaction_id);
+    if (charge != null)
+    {
+        int member_id = charge.m_id;
+        int transaction_type = charge.transaction_type;
+        string amt_color = "#000";
+        DateTime current_due_date = default_date; try { current_due_date = charge.current_due_date; } catch { }
+        DateTime actual_return_date = default_date; try { actual_return_date = charge.actual_return_date; } catch { }
+        int daysTillDue = 0;
+        daysTillDue = AppFunctions.HowManyDaysAgoWas(current_due_date) * -1;
+        bool is_paid = false;
+        decimal amount_due = charge.amount_due;
+        decimal amount = charge.amount;
+        string due_date_text = "";
+        bool next_order_return = false; try { next_order_return = charge.next_order_return; } catch { }
+        int debt_days = 0; debt_days = AppFunctions.HowManyDaysAgoWas(charge.credit_ts);
+        if (charge.is_paid)
+        {
+            is_paid = true;
+            amt_color = "#57d600";
+        }
+        if (daysTillDue <= 0)
+        {
+            amt_color = "#f00";
+        }
+        if (amount != amount_due)
+        {
+
+        }
+        else
+        {
+
+        }
+        <td class="TableCell" style="color: #000;  padding: 3px; margin: 3px;width:20%"><span>@charge.credit_ts.ToShortDateString()<br /><span style="font-size:11px;color:#808080">החוב מלפני @debt_days ימים</span></span></td>
+        <td class="TableCell" style=" padding: 3px; margin: 3px; width: 15%;vertical-align:top">@AppFunctions.GetVendorTitleById(charge.vendor_id)</td>
+
+        if (amount != amount_due)
+        {
+            <td class="TableCell" style="padding: 3px; margin: 3px;width:15%;color:@amt_color;vertical-align:top"><span>@amount_due.ToString("c", culture)</span><br /><span style="font-size:11px;color:#808080">חוב מקורי: @amount.ToString("c", culture)</span></td>
+
+        }
+        else
+        {
+            <td class="TableCell" style="padding: 3px; margin: 3px; width: 15%;color:@amt_color;vertical-align:top">@amount_due.ToString("c", culture)</td>
+        }
+
+
+        if (next_order_return)
+        {
+            current_due_date = local_time.AddDays(14);
+
+            <td class="TableCell" id="viewDueDate_@charge.serial">
+                <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0; background: transparent; " onclick="hideElement('viewDueDate_@charge.serial'); showElement('editDueDate_@charge.serial'); FixAccordion('credInf_@member_id');">⚙️</button>
+                <div style="overflow:auto;color:#F00"> <span>להחזרה בהזמנה הבאה</span> </div>
+            </td>
+        }
+        else
+        {
+            if (daysTillDue <= 0)
+            {
+                <td class="TableCell" id="viewDueDate_@charge.serial">
+                    <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0; background: transparent; " onclick="hideElement('viewDueDate_@charge.serial'); showElement('editDueDate_@charge.serial'); FixAccordion('credInf_@member_id');">⚙️</button>
+                    <div style="overflow:auto;color:#F00"> <span>@current_due_date.ToShortDateString()</span>  <br /><span style="font-size:11px;color:#f00">לתשלום לפני @(daysTillDue * -1) ימים</span></div>
+                </td>
+            }
+            else
+            {
+                <td class="TableCell" id="viewDueDate_@charge.serial">
+                    <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0; background: transparent; " onclick="hideElement('viewDueDate_@charge.serial');showElement('editDueDate_@charge.serial'); FixAccordion('credInf_@member_id');">⚙️</button>
+                    <div style="overflow:auto;color:#000"> <span>@current_due_date.ToShortDateString()</span> <br /><span style="font-size:11px;color:#808080">עוד @daysTillDue ימים</span></div>
+                </td>
+            }
+        }
+
+
+        <td class="TableCell" style="display:none" id="editDueDate_@charge.serial">
+            <div style="overflow:auto;float:right">
+                <input type="checkbox" name="NextOrderReturn" id="NextOrderReturn_@charge.serial" @if (next_order_return) { <text> checked </text> } onclick="document.getElementById('NewReturnDate_@charge.serial').disabled = this.checked;" /> בהזמנה הבאה<br />
+                <input type="date" name="NewReturnDate" id="NewReturnDate_@charge.serial" style="font-size: 16px;float:right" @if (next_order_return) { <text> disabled </text> } value="@current_due_date.ToString("yyyy-MM-dd")" />
+                <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0;padding:0;background:transparent;" onclick="hideElement('editDueDate_@charge.serial');showElement('viewDueDate_@charge.serial');">❌</button>
+                <button type="button" style="margin-left: 5px; font-size: 16px; float: right; border: 0; padding: 0; background: transparent;" onclick="AjaxActions('CreditPostponePayment', '@member_id', '','@charge.serial', document.getElementById('NewReturnDate_@charge.serial').value, document.getElementById('NextOrderReturn_@charge.serial').checked);">✔️</button>
+            </div>
+
+        </td>
+
+        <td class="TableCell" style=" padding: 3px; margin: 3px;">@charge.transaction_notes</td>
+        <td class="TableCell" style=" padding: 3px; margin: 3px;">
+            <button type="button" style="padding:5px;margin:5px;font-size:12px;float:left;background:transparent;border:0;color:#b200ff" id="cancelbtn_@charge.serial" onclick="hideElement('cancelbtn_@charge.serial'); showElement('cancelDiv_@charge.serial'); FixAccordion('credInf_@member_id');">ביטול תנועה</button>
+
+            <div style="padding:5px;margin:5px;font-size:12px;float:left;display:none;" id="cancelDiv_@charge.serial">
+                <form id="cancelForm_@charge.serial">
+                    <div>
+                        <input type="text" style="padding: 3px; margin: 3px; font-size: 16px " name="cancellation_notes" placeholder="הערות ביטול" /><br />
+                        <input type="password" style="padding: 3px; margin: 3px; font-size: 16px " name="cancellation_pw" placeholder="סיסמא" />
+                    </div>
+
+
+                    <button type="button" style="margin-left: 5px; font-size: 16px; float: left; border: 0; padding: 0; background: transparent;" onclick="AjaxActions('CancelCreditTransaction', '@charge.serial', '','cancelForm_@charge.serial');">✔️</button>
+                    <button type="button" style="margin-left: 5px; font-size: 16px; float: left; border: 0;padding:0;background:transparent;" onclick="hideElement('cancelDiv_@charge.serial');showElement('cancelbtn_@charge.serial');">❌</button>
+
+                </form>
+            </div>
+
+
+
+        </td>
+    }
+
+
+    //   op_data.Close();
+}

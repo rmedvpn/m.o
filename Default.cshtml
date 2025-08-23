@@ -1,0 +1,69 @@
+﻿@{
+    Layout = "~/Shared/Layouts/_Layout.cshtml";
+    Page.Title = "התחברות";
+    var UserName = "";
+    var password = "";
+    if(IsPost)
+    {
+        UserName = Request["UserName"];
+        password = Request["password"];
+
+
+        // Validation
+        if (UserName.IsEmpty()) {
+            ModelState.AddError("UserName", "שם משתמש הוא שדה חובה");
+        }
+
+
+        if (password.IsEmpty()) {
+            ModelState.AddError("password", "חובה להזין סיסמא");
+        }
+        // Attempt login
+        if(ModelState.IsValid)
+        {
+            if(WebSecurity.Login(UserName, password,true))
+            {
+                int u_id = WebSecurity.CurrentUserId;
+                if (u_id > 0)
+                {
+                    AppFunctions.DoLogin(u_id);
+                    Response.Redirect("Main_new");
+                }
+                        else
+                        {
+                            <div>@u_id</div>
+                        }
+            }
+            else
+            {
+                ModelState.AddFormError("התחברות נכשלה");
+            }
+        }
+    }
+}
+
+
+  <div style="overflow: auto;padding: 10px;margin: 10px;border-radius: 15px;background-color: #fff;border: 3px solid #000">
+    
+
+      <br>
+   <div style="overflow: auto;text-align: center">
+   <span style="float: right;"><iframe width="100%;"  src="https://www.youtube.com/embed/PtkjdkIt0Zg?autoplay=1">
+   </iframe></span>
+
+   </div>
+    <h1><span  onclick="window.location.href='fastlogin';">&copy; </span>מערכות ישראל - נא להתחבר</h1>
+  <form action="Default" method="post">
+    <input type="text" name="UserName" placeholder="משתמש" style="padding: 5px;margin: 5px;font-size: 16px;">
+    <input type="password" name="password" placeholder="סיסמא" style="padding: 5px;margin: 5px;font-size: 16px;">
+    <input type="submit" name="login" class="login login-submit" value="יאללה" style="background-color: #57d600;">
+<span style="color: #f00;">@Html.ValidationSummary(false)</span>
+
+  </form>
+         
+
+
+</div>
+
+
+

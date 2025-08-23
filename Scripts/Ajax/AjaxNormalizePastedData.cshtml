@@ -1,0 +1,126 @@
+﻿@{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    
+string PastedText="";
+PastedText=Request["PastedText"];
+bool is_show = false;
+StringReader strReader=null;
+if (!PastedText.IsEmpty()){
+    strReader = new StringReader(PastedText);
+    is_show = true;
+}
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("irgoon");
+var sqlSelect = ""; 
+int curRow=0;
+bool is_commit =false;
+string DisplayState="block";
+if(!Request["is_commit"].IsEmpty()){
+    is_commit=true;
+    DisplayState="none";
+}
+int toAddCount=0;
+int duplicateCount=0;
+int pastedCount=0;
+int added_count=0;
+int existingUserCount=0;
+int errCount=0;
+    string aLine = null;
+    int totalCount=0;
+
+}
+
+<div style="overflow: auto;display: @DisplayState">
+
+<h2>תוצאות מנורמלות1</h2>
+<div style="overflow:auto;width: 100%;font-size: 14px;text-align: right;background-color: #fff">
+  @while(is_show)
+{   bool bad_input=false;
+    string row_bg="#fff";
+    string sep = "\t";
+    string[] userRec;
+    string nick_name="";
+    string wanum="";
+    pastedCount++;
+    totalCount++;
+    curRow++;
+    aLine = strReader.ReadLine();
+    
+    if(aLine != null)
+    {
+     userRec=aLine.Split(sep.ToCharArray());
+     nick_name=userRec[0];
+     for (int i = 1; i < userRec.GetUpperBound(0); i++) 
+     {
+        if(userRec[i]!=""){
+            wanum=userRec[i];
+            break;
+        }
+     }
+     wanum = AppFunctions.wanumize(wanum);
+     bool isValidWanum=false;
+     if(ValidationFunctions.IsNumbersOnly(wanum)){
+         isValidWanum=true;
+     }
+     
+     bool is_exist=false;
+
+     if(isValidWanum){
+       sqlSelect = "SELECT serial FROM phonebook WHERE wanum=@0";
+         var is_exist_check = db.QuerySingle(sqlSelect,wanum);
+         if(is_exist_check!=null){
+             is_exist=true;
+             duplicateCount++;
+         }
+         else{
+             sqlSelect = "INSERT INTO phonebook(pb_name,wanum,ts) VALUES(@0,@1,@2)";
+             try{db.Execute(sqlSelect,nick_name,wanum,DateTime.Now);}catch{errCount++;}
+             added_count++;
+         }  
+     }
+
+     
+
+        <div style="overflow:auto;padding:5px;margin:5px;">
+            <div style="overflow: auto;">
+            <span style="float: right;padding: 5px;margin: 5px;font-size: 18px;font-weight: bold">
+
+            @if(isValidWanum){
+                if(is_exist){
+                    <span>✔️</span>
+                }
+                else{
+                    <span>❌</span>
+                }
+            }
+            else{
+                    <span>🚫</span>
+            }
+            </span>
+            <span style="float: right;padding: 5px;margin: 5px;font-size: 18px;font-weight: bold">@nick_name</span>
+            <span style="float: right;padding: 5px;margin: 5px;font-size: 18px;font-weight: bold">@wanum</span>
+            </div>
+            
+        </div>
+   }
+   else{
+       break;
+   }
+
+}
+
+</div>    
+<div style="overflow: auto;font-size: 20px;">
+    סך הכל רשומות הודבקו: @totalCount <br>
+    סך הכל רשומות התווספו: @added_count <br>
+    סך הכל רשומות עם שגיאות: @errCount <br>
+</div>
+<div style="overflow: auto;height: 200px;">&nbsp;</div>
+</div>
+
+
+
+@{db.Close();}
+
+
+

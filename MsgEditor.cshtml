@@ -1,0 +1,74 @@
+﻿@{
+      if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+      
+
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+var db = Database.Open("irgoon");
+var sqlSelect="";
+
+int template_id=0;
+try{template_id=Convert.ToInt32(Request["id"]);}catch{}
+
+sqlSelect = "select * from irgoon.msgTemplates WHERE id=@0";
+var msgTemplate = db.QuerySingle(sqlSelect,template_id);
+
+db.Close();
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+
+
+
+        <div style="overflow: auto;font-weight: bold;font-size: 30px;padding: 5px;">
+עריכת תבנית הודעה - @msgTemplate.msg_title
+        </div>
+
+  <div style="overflow: auto;-webkit-overflow-scrolling: touch;width: 100%;height: 100%;background-color: #ffffcc">
+    <form id="msgTemplateForm">
+        <div style="overflow: auto;padding: 5px;margin: 5px;">
+        <span style="font-size: 16px;font-weight: bold;color: #000;">שם תבנית</span><br>
+        <input type="text" style="font-size: 16px;padding: 5px;width: 90%;" id="templateTitle" name="templateTitle" value="@msgTemplate.msg_title">
+        </div>
+        <div style="overflow: auto;padding: 5px;margin: 5px;">
+        <span style="font-size: 16px;font-weight: bold;color: #000;">גוף תבנית</span><br>
+        <textarea style="font-size: 16px;padding: 5px;width: 90%;height: 200px;" id="templateBody" name="templateBody" >@msgTemplate.msg_body</textarea>
+        </div>
+    </form>
+<div style="overflow: auto;">
+    <button class="accordion" id="temlatesHelp" style="display: none"></button>
+    <div class="panel" style="padding: 0;margin: 0;">
+        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #000;color: #fff;font-size: 16px;font-weight: bold">
+            ביצירת תבנית ניתן להשתמש בפרמטרים הבאים<br>
+            <div style="overflow: auto;padding: 5px;margin: 5px;border: 1px dotted #fff;"><span style="color: #ffffcc;">USERNAME </span><br> לשם החבר המבוקש</div>
+            <div style="overflow: auto;padding: 5px;margin: 5px;border: 1px dotted #fff;"><span style="color: #ffffcc;">REPNAME </span><br> לשם חבר הצוות השולח</div>
+            <div style="overflow: auto;padding: 5px;margin: 5px;border: 1px dotted #fff;"><span style="color: #ffffcc;">MOKEDPHONENUMBER </span><br> למספר הטלפון של מוקד ההזמנות</div>
+            <div style="overflow: auto;padding: 5px;margin: 5px;border: 1px dotted #fff;"><span style="color: #ffffcc;">DISCONNECTPHONENUMBER </span><br> למספר הטלפון של מוקד הניתוקים</div>
+            <div style="overflow: auto;padding: 5px;margin: 5px;border: 1px dotted #fff;"><span style="color: #ffffcc;">JOINPHONENUMBER </span><br> למספר הטלפון של מוקד ההצטרפות</div>
+
+        </div>
+    </div>
+</div>
+
+<div style="overflow: auto;text-align: center;margin-left: 10%">
+    <button style="font-size: 16px;padding: 5px;margin: 5px;font-weight: bold;background-color: #57d600;color: #fff;" onclick="AjaxActions('SaveMsgTemplate',@msgTemplate.id,1);">שמירת שינוים</button>
+    <button style="font-size: 16px;padding: 5px;margin: 5px;font-weight: bold;background-color: #b200ff;color: #fff;" onclick="Accordionize('temlatesHelp');">עזרה</button>
+
+    <button style="font-size: 16px;padding: 5px;margin: 5px;font-weight: bold;background-color: #f00;color: #fff;" onclick="controller.open('Info');clearContent('SubMenuContent');">ביטול שינוים</button>
+
+</div>
+<div style="overflow: auto;height: 200px;">&nbsp;</div>
+</div>
+
+</body>
+</html>

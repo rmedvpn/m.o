@@ -1,0 +1,43 @@
+﻿@{
+   var db = Database.Open("op_data");
+   var sql = "";
+    int id = 0;
+    int p_id=0;
+    if(Request["Id"].IsInt()){id = Request["Id"].AsInt();}
+    if(Request["p_id"].IsInt()){p_id = Request["p_id"].AsInt();}
+
+
+    if(id==0){
+        sql = "SELECT file_id FROM ProductImages WHERE is_primary=1 AND product_id=@0";
+        var rs = db.QuerySingle(sql,p_id);
+        try{id=Convert.ToInt32(rs.file_id);}catch{}
+    }    
+
+        if(Request["size"]!="tn"){
+        sql = "Select MimeType,fileContent,filename From ProductImages Where File_Id = @0";    
+        }
+        else{
+        sql = "Select MimeType,filename,ImageThumb AS fileContent From ProductImages Where File_Id = @0";    
+        }
+        
+        var file = db.QuerySingle(sql, id);
+
+        if(file!=null)
+        {
+
+        if(file.MimeType.StartsWith("image/")){
+            Response.AddHeader("content-disposition", "inline; filename=" + file.FileName);
+        } 
+        Response.ContentType = file.MimeType;
+        Response.BinaryWrite((byte[])file.FileContent);
+      }
+      else{
+        string path = Server.MapPath("~/logo_tn.jpg");
+        byte[] byteArray = File.ReadAllBytes(path);
+        Response.ContentType = "image/jpg";
+        Response.BinaryWrite(byteArray);
+         }
+
+
+
+     db.Close(); }

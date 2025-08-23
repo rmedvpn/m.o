@@ -1,0 +1,78 @@
+﻿@{
+if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+int DaysAgo=3; try{DaysAgo=Convert.ToInt32(Request["DaysAgo"]);}catch{}
+int minimal_orders=1; try{minimal_orders=Convert.ToInt32(Request["minimal_orders"]);}catch{}
+bool is_minimal_orders=false; if(!Request["is_minimal_orders"].IsEmpty()){is_minimal_orders=true;}
+
+string theHtmlOutput="";
+
+    if(DaysAgo<=0){
+        theHtmlOutput = theHtmlOutput + "נא להזין ערך תקין עבור מספר הימים המבוקש<br>";
+    }
+
+    if(is_minimal_orders){
+    if(minimal_orders<=0){
+        theHtmlOutput = theHtmlOutput + "נא להזין ערך תקין עבור כמות ההזמנות המינימלית<br>";
+    }    
+    }
+    
+
+        DateTime ts=DateTime.Now;
+        DateTime DaysXdaysAgo = ts.AddDays(DaysAgo*-1);
+
+    var db = Database.Open("irgoon");
+    var sqlSelect="select top(100) * from dbo.irgUsers WHERE last_order_ts<=@0";
+
+    if(is_minimal_orders){sqlSelect = sqlSelect + " AND order_count>@1";}
+
+    sqlSelect = sqlSelect + " ORDER BY last_order_ts DESC";
+    var irgUsers = db.Query(sqlSelect,DaysXdaysAgo,minimal_orders);
+
+    db.Close();
+<div style="overflow: auto;padding: 0;margin: 0">
+     <div style="padding: 5px;margin: 5px;background-color: #fff;text-align: center;border: 2px dotted #000;">
+    <div style="overflow: auto">
+        <h2 style="float: right;" onclick="Accordionize('ReportSettingsAcc');">שימור לקוחות</h2>
+            <select style="padding: 5px;margin: 5px;font-size: 16px;width: 50%" onchange="if(IsAccordion('ReportSettingsAcc')){reOpenAccordion('ReportSettingsAcc');}else{Accordionize('ReportSettingsAcc');}AjaxUpdate(this.value,'RepResDiv','mHLoader');">
+                <option>בבקשה לבחור דוח</option>
+                <option value="NonActiveReport">דוח חברים רדומים</option>
+                <option  value="SupposedOrders">דוח אמורים להזמין</option>
+                <option value="ByCity">דוח חברים לפי ערים</option>
+                <option>דוח </option>
+            </select>     
+    </div>
+
+    <div style="overflow: auto;padding: 0;margin: 0">
+
+        <button class="accordion" id="ReportSettingsAcc" style="display: none;"></button>
+        <div class="panel" style="padding: 0;margin: 0">
+             <div style="overflow: auto;padding: 5px;border: 2px dotted #000;color: #000;font-size: 16px;text-align: right;margin: 5px">
+                 <form id="NonActiveReport">
+                 <div style="overflow: auto;">הצגת חברים שלא הזמינו מעל <input type="text" id="DaysAgo" name="DaysAgo" style="width:30px;font-size: 16px;margin: 5px;padding: 5px" maxlength="3" placeholder="x" value="28"> ימים</div>
+                 <div style="overflow: auto;"><input type="checkbox" name="is_minimal_orders" id="is_minimal_orders" style="height: 20px;width: 20px;margin: 5px;" checked> רק חברים שהזמינו מעל <input type="text" style="width:30px;font-size: 16px;margin: 5px;padding: 5px" maxlength="3" value="2" id="minimal_orders" name="minimal_orders"> פעמים</div>
+                     <button type="button" style="float: left;font-size: 16px;padding: 5px;margin: 5px;border: 0" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader')">בצע</button>
+                  </form>
+             </div>
+        </div>
+
+    </div>
+     </div>
+
+    <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #fff;width: 100%;display: none;" id="mHLoader">
+              <div class="spinner" style="text-align: center;font-size: 30px;" >
+                                      <div class="bounce1"></div>
+                                      <div class="bounce2"></div>
+                                      <div class="bounce3"></div>
+              </div>
+             </div>
+
+<div style="overflow: auto" id="RepResDiv"></div>
+</div> 
+
+
+ }

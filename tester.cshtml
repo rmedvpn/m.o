@@ -1,0 +1,54 @@
+﻿@using System.Text.RegularExpressions
+
+@{
+    int u_id = WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    Layout = "~/Shared/Layouts/_Rep.cshtml";
+    var op_data = Database.Open("op_data");
+
+    var tlg = Database.Open("op_data");
+
+    var sqlSelect = "SELECT  * from pb where wanum='sdfsdf' order by birth_date DESC ";
+    var table = tlg.Query(sqlSelect);
+
+    string emojiPattern = "[\uD83C-\uDBFF\uDC00-\uDFFF]+";
+
+
+//for every record to be imported:
+<div class="A">
+    <table border="1">
+
+        @foreach (var rec in table)
+        {
+            var member_name = rec.member_name;
+            int age = 0;
+            string wanum = rec.wanum;
+            string lastChar = "";
+            string beforelastChar = "";
+            string editedWanum= wanum.Substring(0,wanum.Length - 2);
+            try { lastChar = wanum.Substring(wanum.Length - 1 ); } catch { }
+            try { beforelastChar = wanum.Substring(wanum.Length - 2, 1); } catch { }
+            editedWanum = editedWanum + lastChar + beforelastChar;
+            try {age= AppFunctions.HowManyYearsAgoWas(rec.birth_date); } catch { }
+
+            member_name = Regex.Replace(member_name, @"[\d-]", string.Empty);
+            member_name = Regex.Replace(member_name, @"\p{Cs}", "");
+            member_name = Regex.Replace(member_name, emojiPattern, "");
+
+
+            <tr>
+                <td>@member_name</td>
+                <td>@wanum</td>
+                <td>
+                    @if (age >= 18 && age < 100)
+                    {<span>@age </span>}
+                </td>
+
+            </tr>
+        }
+    </table>
+</div>
+<div class="A" style="height:300px;">&nbsp;</div>
+op_data.Close();
+// theHtmlOutput = "סבבה ";
+}

@@ -1,0 +1,56 @@
+﻿@{
+var db = Database.Open("tlg");
+
+var sqlSelect = "SELECT  * FROM tlg_products  WHERE is_appearinsearch=1 AND (title LIKE @0 OR e_title LIKE @0 OR v_name LIKE @0 )";
+   
+    string term = "%" + Request["q"] + "%";
+
+    string theHtmlOutput="";
+    
+    var products = db.Query( sqlSelect, term );
+
+    if(products.Count()==0)
+    {
+     theHtmlOutput="<div id=##ResultsTable2##>אין תוצאות</div>";
+    }
+    else
+    {
+    
+
+     theHtmlOutput="<TABLE id=##ResultsTable2##>";
+   
+
+
+    foreach(var item in products){
+            decimal price =item.price;
+            int v_id =item.v_id;
+            string title =item.title;
+            string e_title =item.e_title;
+            string boldedQry="";
+            boldedQry=item.title;
+            boldedQry=boldedQry.Replace(Request["q"],"<B>" + Request["q"] + "</B>");
+
+           
+        
+            
+    
+
+            theHtmlOutput=theHtmlOutput + "<TR id=##result_line_div## onclick=##AjaxProductSelector('" + item.p_id + "');##>";
+
+            theHtmlOutput=theHtmlOutput + "<td ><image   src=##imgViewer?size=tn&p_id=" + item.p_id + "##></td>";
+            theHtmlOutput=theHtmlOutput + "<TD>";
+            theHtmlOutput=theHtmlOutput + "<div >" + boldedQry + "</div>";
+            theHtmlOutput=theHtmlOutput + "</TD>";
+            theHtmlOutput=theHtmlOutput + "<TD>";
+            theHtmlOutput=theHtmlOutput + "<div>₪" + Convert.ToInt32(price) + "</div>";
+            theHtmlOutput=theHtmlOutput + "</TD>";
+            theHtmlOutput=theHtmlOutput + "</TR>";
+            theHtmlOutput=theHtmlOutput + "<TR><TD colspan=3><hr></td></tr>";
+            }
+theHtmlOutput=theHtmlOutput.Replace("##","\"");
+theHtmlOutput=theHtmlOutput + "</div>";
+}
+db.Close();    
+Response.Write (theHtmlOutput);
+}
+

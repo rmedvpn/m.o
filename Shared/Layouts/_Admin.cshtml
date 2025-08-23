@@ -1,0 +1,237 @@
+﻿@{
+   if (!WebSecurity.IsAuthenticated){
+        Response.Redirect("~/");
+      }
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+
+var db = Database.Open("irgoon");
+var sqlSelect="";
+
+sqlSelect="SELECT is_admin FROM irgoon.members WHERE userId=@0";;
+var currentUser = db.QuerySingle(sqlSelect,u_id);
+bool is_admin=false;
+if(currentUser!=null){
+    is_admin=currentUser.is_admin;
+}
+db.Close();
+
+
+
+
+}
+<!DOCTYPE html>
+ <html lang="en">
+    <head>
+        <meta name="google" value="notranslate">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta charset="utf-8" />
+        <meta http-equiv="cache-control" content="max-age=0" />
+        <meta http-equiv="cache-control" content="no-cache" />
+        <meta http-equiv="expires" content="0" />
+        <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+        <meta http-equiv="pragma" content="no-cache" />
+
+
+        <title>מערכת ארגון</title>
+       <link href="@Href("~/Css/DevStyle.css")" rel="stylesheet" />
+       <link href="@Href("~/Css/Style.css")" rel="stylesheet" />
+        <link rel="stylesheet" href="~/Css/slidebars.css">
+		<link rel="stylesheet" href="~/Css/style_sb.css">
+	   <link rel="stylesheet" href="~/Css/toastify.css">
+
+<script type="text/javascript" src="js/main.js"></script>
+<script type="text/javascript" src="js/toastify.js"></script>
+<script type="text/javascript" src="js/interface.js"></script>
+<script type="text/javascript" src="js/ImageTools.js"></script>
+
+<style>
+    div.sticky {
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  bottom: 0;
+}
+    
+</style>
+
+</head>
+
+<body dir="rtl">
+
+<div style="position: fixed;height: 100%;width: 100%;padding: 0;margin: 0;background-color: #fff;opacity: 0.8;z-index: 99998;display: none;text-align: center;top: 0;bottom: 0;left: 0;right: 0;" id="ContentLoader">
+       <!---->      <div class="loader" style="position:fixed;top: 35%;right: 45%;z-index: 99999;"></div> 
+</div> 
+
+
+
+
+<div id="HEADER" style="overflow: auto;padding: 0;font-size: 30px;color: #fff;background-color: #000;position: fixed;top: 0;;width: 100%;height: 60px;">
+        <span style="font-size: 36px;color: #fff;font-weight: bold;padding: 5px;margin: 5px;">מערכת ניהול <span style="padding: 5px;margin: 5px;font-size: 12px;color: White;">@WebSecurity.CurrentUserName מחובר/ת</span>
+    </span>    
+    <button style="padding:5px;margin:5px;font-size: 24px;float: right;border-radius: 50%;background-color: #fff;border: 2px solid #57d600" onclick="Accordionize('MainMenuAcc');">💚</button>
+     <div class="spinner" style="text-align: center;float: left;color: #fff;display: none" id="MsngrLoader">
+                                      <div class="bounce1"></div>
+                                      <div class="bounce2"></div>
+                                      <div class="bounce3"></div>
+     </div>
+</DIV>
+
+
+
+<div id="MainMenu" style="overflow: auto;padding: 0;font-size: 30px;color: #fff;background-color: #000;position: fixed;top: 60px;right: 0;z-index: 90000;width: 35%">
+<button class="accordion" id="MainMenuAcc" style="display: none;"></button>
+<div class="panel" style="padding: 0;margin: 0;width: 100%;">
+    
+    <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="AjaxLoad('MainCaller?p1=OrdersAdmin');Accordionize('MainMenuAcc');"  >היסטורית הזמנות</div>
+    <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="AjaxLoad('MainCaller?p1=PhoneBook');Accordionize('MainMenuAcc');" >ספרsad טלפונים</div>
+    <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="AjaxLoad('MainCaller?p1=MembersReachout');Accordionize('MainMenuAcc');"  >מאגר חברים</div>
+    <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="AjaxLoad('MainCaller?p1=Prospects');Accordionize('MainMenuAcc');" >ניהול מצטרפים</div>
+    
+
+    <div >
+        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;"  onclick="sbload('GenSb','MainCaller?p1=msgTemplates');" >עריכת תבניות הודעה</div>
+           @if(is_admin){
+        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="AjaxLoad('MainCaller?p1=ImportSettings');Accordionize('MainMenuAcc');" >הגדרות יבוא קבצים</div>
+
+            <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="sbload('GenSb','MainCaller?p1=Admin');" >ניהול משתמשים</div>       
+            <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="sbload('GenSb','MainCaller?p1=SyncInfo');" >סנכרון מידע</div>
+           }
+        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;" onclick="sbload('GenSb','MainCaller?p1=ChangePw');" >שינוי סיסמא</div>
+    </div>
+</div>
+</div>
+
+
+
+<div style="text-align: right;position: fixed;top: 60px;bottom: 0;left: 0;right: 0;overflow: auto;-webkit-overflow-scrolling: touch;" id="ContentContainer">
+    <div style="position: fixed;height: 100%;width: 100%;padding: 0;margin: 0;background-color: #808080;opacity: 1;z-index: 99998;text-align: left;top: 80px;bottom: 0;left: 0;right: 0;display: none;-webkit-overflow-scrolling: touch;overflow: auto;" id="ContentMasker">
+                        <div style="background-color: #fff;font-size: 18px;width: 65%;overflow: auto;float: left;height: 100%">
+                            <div style="overflow: auto;height: 100px;background-color: #e3e3e3;">&nbsp;</div>
+                    </div>
+    </div> 
+
+    <div style="display: block;width: 100%" id="MainContentContainer">
+        <div id="MainContentDiv" style="display: block;;width: 100%;">
+        @RenderBody()
+        </div>
+    </div>
+</div>
+
+
+<div id="footer" style="overflow: auto;padding: 10px;font-size: 30px;position: fixed;bottom: 20px;left: 0;display: none;" onclick="AjaxLoad('crmHome');">
+    &copy;@DateTime.Now.Year מַעַרְכֹת יִשְׂרָאֵל
+</div>
+
+<div off-canvas="GenSb left overlay" style="padding: 0;margin: 0;background-color: #e3e3e3;">
+
+
+<button style="position: fixed;left: 5px;font-size: 24px;padding: 0;background: transparent;border: 0;z-index: 99999;" onclick="controller.close('GenSb');clearContent('GenSbContent');AdjustMainView('right','CLOSE');">❎</button>
+    <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #e3e3e3;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="GenSbLoader">
+   <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+        <div class="bounce1"></div>
+        <div class="bounce2"></div>
+        <div class="bounce3"></div>
+    </div>
+    </div>
+     <div style="width: 100%;padding: 0;margin: 0;;background-color: #fff;" id="GenSbContent"></div>
+
+
+ </div>
+    
+<div off-canvas="GenSbSubMenu left overlay" style="padding: 0;margin: 0;background-color: #e3e3e3;">
+<button style="position: fixed;left: 5px;font-size: 24px;padding: 0;background: transparent;border: 0;z-index: 99999;" onclick="controller.open('GenSb');">❎</button>
+    <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #e3e3e3;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="GenSbSubMenuLoader">
+   <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+        <div class="bounce1"></div>
+        <div class="bounce2"></div>
+        <div class="bounce3"></div>
+    </div>
+    </div>
+     <div style="width: 100%;padding: 0;margin: 0;;background-color: #fff;" id="GenSbSubMenuContent"></div>
+
+
+ </div>
+
+<div off-canvas="GenSbDialogMenu left overlay" style="padding: 0;margin: 0;background-color: #e3e3e3;">
+<button style="position: fixed;left: 5px;font-size: 24px;padding: 0;background: transparent;border: 0;z-index: 99999;" onclick="controller.open('GenSbSubMenu');">❎</button>
+    <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #e3e3e3;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="GenSbDialogMenuLoader">
+   <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+        <div class="bounce1"></div>
+        <div class="bounce2"></div>
+        <div class="bounce3"></div>
+    </div>
+    </div>
+     <div style="width: 100%;padding: 0;margin: 0;;background-color: #fff;" id="GenSbDialogMenuContent"></div>
+
+
+ </div>
+
+
+<script src="js/jquery-3.2.1.min.js"></script>
+<script src="js/slidebars.js"></script>
+<script src="js/sb_scripts.js"></script>
+
+
+
+<input type="file" name="image" id="filebox"  accept="image/jpeg" style="display: none;">
+<input type="file" name="image" id="picfilebox"  accept="image/jpeg" style="display: none;">
+<script>
+    document.getElementById('filebox').onchange = function (evt) {
+        ImageTools.resize(this.files[0], {
+            width: 640, // maximum width
+            height: 1136 // maximum height
+        }, function (blob, didItResize) {
+            // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
+            //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
+            ImageUpload(blob);
+            // you can also now upload this blob using an XHR.
+        });
+    };      
+
+    document.getElementById('picfilebox').onchange = function (evt) {
+        ImageTools.resize(this.files[0], {
+            width: 640, // maximum width
+            height: 1136 // maximum height
+        }, function (blob, didItResize) {
+            // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
+            //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
+            ProductImageUpload(blob);
+            // you can also now upload this blob using an XHR.
+        });
+    };     
+</script>
+
+
+<script>
+var acc = document.getElementsByClassName("accordion");
+var i;
+
+for (i = 0; i < acc.length; i++) {
+  acc[i].onclick = function() {
+    this.classList.toggle("active");
+    var panel = this.nextElementSibling;
+    if (panel.style.maxHeight){
+      panel.style.maxHeight = null;
+    } else {
+      panel.style.maxHeight = panel.scrollHeight + "px";
+    } 
+  }
+}
+</script>
+
+<script>
+    var controller = new slidebars();
+    controller.init();
+    var is_controller_open = false;
+    var currentlyOpenSidebar = "";
+    var callerSidebar = "";
+    var sbRefresh = "";
+
+</script>
+
+</body>
+<!--
+     
+-->
+</html>
+

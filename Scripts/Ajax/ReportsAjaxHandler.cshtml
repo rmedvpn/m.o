@@ -1,0 +1,283 @@
+﻿@{
+    if (!WebSecurity.IsAuthenticated)
+{
+    Response.Redirect("~/");
+}
+int u_id = WebSecurity.CurrentUserId;
+string theAction="";
+theAction=Request["theAction"];
+
+string theHtmlOutput= "";
+
+if(theAction=="NonActive")
+{
+        <form id="NonActiveReport">
+         <div style="overflow: auto;padding: 5px;border: 2px dotted #000;color: #000;font-size: 16px;text-align: right;margin: 5px;background-color: #e3e3e3;">
+             <div style="overflow: auto;">הצגת חברים שלא הזמינו מעל <input type="text" id="DaysAgo" name="DaysAgo" style="width:30px;font-size: 16px;margin: 5px;padding: 5px" maxlength="3" placeholder="x"> ימים והזמינו לפחות <input type="checkbox" name="is_minimal_orders" id="is_minimal_orders"> רק חברים שהזמינו מעל <input type="text" style="width:30px;font-size: 16px;margin: 5px;padding: 5px" maxlength="3" value="2" id="minimal_orders" name="minimal_orders"> פעמים</div>
+                 <button type="button" style="float: left;font-size: 16px;padding: 5px;margin: 5px;border: 0" onclick="AjaxUpdate('NonActiveReport','ReportResultsContent','InfoAccLoader')">בצע</button>
+         </div>        
+         </form>
+}
+
+if(theAction=="NonActiveReport")
+{
+    int DaysAgo=0; try{DaysAgo=Convert.ToInt32(Request["DaysAgo"]);}catch{}
+    int minimal_orders=0; try{minimal_orders=Convert.ToInt32(Request["minimal_orders"]);}catch{}
+    bool is_minimal_orders=false; if(!Request["is_minimal_orders"].IsEmpty()){is_minimal_orders=true;}
+    string sortBy=Request["param1"];
+    string sortDir=Request["param2"];
+    string repTitle="מציג חברים שלא הזמינו ב " + DaysAgo + " הימים האחרונים ";
+
+    if(sortBy.IsEmpty()){
+        sortBy="LO";
+    }
+    string nextSortDir="";
+    if(sortDir.IsEmpty()){
+        nextSortDir="DESC";
+    }
+
+  
+    if(DaysAgo<=0){
+        theHtmlOutput = theHtmlOutput + "נא להזין ערך תקין עבור מספר הימים המבוקש<br>";
+    }
+
+    if(is_minimal_orders){
+    if(minimal_orders<=0){
+        theHtmlOutput = theHtmlOutput + "נא להזין ערך תקין עבור כמות ההזמנות המינימלית<br>";
+    }    
+    }
+    
+    if(theHtmlOutput.IsEmpty()){
+
+        DateTime ts=DateTime.Now;
+        DateTime DaysXdaysAgo = ts.AddDays(DaysAgo*-1);
+
+    var db = Database.Open("irgoon");
+    var sqlSelect="select * from irgoon.irgUsers WHERE reachout_active=1 AND last_order_ts<=@0 AND dnc_before<=@1";
+    //sqlSelect="select top(100) * from irgoon.irgUsers";
+
+    if(is_minimal_orders){
+        sqlSelect = sqlSelect + " AND order_count>@2";
+    }
+
+      switch(sortBy){
+        case "OC":
+           sqlSelect = sqlSelect + " ORDER BY order_count" ;
+           repTitle = repTitle + "לפי כמות הזמנות כללית ";
+           if(sortDir=="DESC"){
+               sqlSelect = sqlSelect + " DESC";
+               repTitle = repTitle + "בסדר יורד ";
+               }
+        break;
+        case "AVG":
+           sqlSelect = sqlSelect + " ORDER BY avgDaysBetweenOrders" ;
+           repTitle = repTitle + "לפי ממוצע ימים בין הזמנות ";
+
+           if(sortDir=="DESC"){
+               sqlSelect = sqlSelect + " DESC";
+               repTitle = repTitle + "בסדר יורד ";
+               }
+        break;
+        case "LO":
+           sqlSelect = sqlSelect + " ORDER BY last_order_ts" ;
+           repTitle = repTitle + "לפי תאריך הזמנה אחרונה ";
+
+           if(sortDir=="DESC"){
+               sqlSelect = sqlSelect + " DESC";
+               repTitle = repTitle + "בסדר יורד ";
+               }
+        break;
+
+    }
+
+
+    //sqlSelect = "select  * from irgoon.irgUsers WHERE last_order_ts<=@0 AND order_count>0 ORDER BY last_order_ts ";
+    DaysAgo=10;
+    minimal_orders=2;
+    var irgUsers = db.Query(sqlSelect,DaysXdaysAgo,DateTime.Now,minimal_orders);
+
+    db.Close();
+
+
+    <div style="overflow: auto;font-size: 14px;">
+   <div style="overflow: auto;padding: 5px;"><b>@repTitle  <span style="color: #b200ff">סהכ @irgUsers.Count() תוצאות</span></b></div>
+
+        <span style="padding: 5px;margin: 5px;float: right;width: 100px;">שם </span>
+        <span style="padding: 5px;margin: 5px;float: right;width: 50px;" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader','OC','@nextSortDir')">הזמנות</span> 
+        <span style="padding: 5px;margin: 5px;float: right" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader','AVG','@nextSortDir')">י.ב.ה</span> 
+        <div style="padding: 5px;margin: 5px;float: left;text-align: left;" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader','LO','@nextSortDir')">הזמנה אחרונה</div>
+   
+    </div> 
+<div style="overflow: auto;max-height: 400px;">
+   @foreach(var userRec in irgUsers){
+        TimeSpan DaysSinceLastOrder = DateTime.Now - userRec.last_order_ts;
+        var DaysSinceLastOrderInt = DaysSinceLastOrder.Days;
+
+    <div style="background-color: #e3e3e3;color: #000;font-size: 16px;padding: 5px;margin: 5px;overflow: auto;" onclick="sbload('Info','UserReachout?member_id=@userRec.userId')" id="prospect_@userRec.userId">
+    <div style="overflow: auto;">
+        <span style="padding: 5px;margin: 5px;float: right;width: 100px;">@userRec.pbname </span>
+        <span style="padding: 5px;margin: 5px;float: right;width: 50px;">@userRec.order_count</span> 
+        <span style="padding: 5px;margin: 5px;float: right;">@Convert.ToInt32(userRec.avgDaysBetweenOrders)</span> 
+        <div style="padding: 5px;margin: 5px;float: left;text-align: left;font-size: 14px;">@userRec.last_order_ts.ToShortDateString()<span style="font-size: 12px;color: #b200ff"><br>(לפני @DaysSinceLastOrderInt  ימים)</span></div>
+   
+    </div>
+    </div>
+    }
+    </div>
+  }
+  else{
+      <div>@theHtmlOutput</div>
+  }
+
+ }
+
+ if(theAction=="ByCity")
+{
+    var db = Database.Open("irgoon");
+    var sqlSelect="select distinct(ship_city) from irgoon.masterWebOrders order by ship_city DESC";
+    var Cities=db.Query(sqlSelect);
+        <form id="ByCityReport">
+         <div style="overflow: auto;padding: 5px;border: 2px dotted #000;color: #000;font-size: 16px;text-align: right;margin: 5px;background-color: #e3e3e3;">
+             <div style="overflow: auto;">נא לבחור ערים </div>
+             @foreach(var city in Cities){
+                 <div style="overflow: auto;font-size: 16px;padding: 5px;"><input type="checkbox" style="height: 20px;width: 20px;margin: 5px;">@city.ship_city</div>
+             }
+                 <button type="button" style="float: left;font-size: 16px;padding: 5px;margin: 5px;border: 0" onclick="AjaxUpdate('ByCityReport','ReportResultsContent','InfoAccLoader')">בצע</button>
+         </div>        
+         </form>
+}
+
+if(theAction=="ByCityReport")
+{
+    int DaysAgo=0; try{DaysAgo=Convert.ToInt32(Request["DaysAgo"]);}catch{}
+    int minimal_orders=0; try{minimal_orders=Convert.ToInt32(Request["minimal_orders"]);}catch{}
+    bool is_minimal_orders=false; if(!Request["is_minimal_orders"].IsEmpty()){is_minimal_orders=true;}
+    string sortBy=Request["param1"];
+    string sortDir=Request["param2"];
+    string repTitle="מציג חברים שלא הזמינו ב " + DaysAgo + " הימים האחרונים ";
+
+    if(sortBy.IsEmpty()){
+        sortBy="LO";
+    }
+    string nextSortDir="";
+    if(sortDir.IsEmpty()){
+        nextSortDir="DESC";
+    }
+
+  
+    if(DaysAgo<=0){
+        theHtmlOutput = theHtmlOutput + "נא להזין ערך תקין עבור מספר הימים המבוקש<br>";
+    }
+
+    if(is_minimal_orders){
+    if(minimal_orders<=0){
+        theHtmlOutput = theHtmlOutput + "נא להזין ערך תקין עבור כמות ההזמנות המינימלית<br>";
+    }    
+    }
+    
+    if(theHtmlOutput.IsEmpty()){
+
+        DateTime ts=DateTime.Now;
+        DateTime DaysXdaysAgo = ts.AddDays(DaysAgo*-1);
+
+    var db = Database.Open("irgoon");
+    var sqlSelect="select * from irgoon.irgUsers WHERE reachout_active=1 AND last_order_ts<=@0 AND dnc_before<=@1";
+    //sqlSelect="select top(100) * from irgoon.irgUsers";
+
+    if(is_minimal_orders){
+        sqlSelect = sqlSelect + " AND order_count>@2";
+    }
+
+      switch(sortBy){
+        case "OC":
+           sqlSelect = sqlSelect + " ORDER BY order_count" ;
+           repTitle = repTitle + "לפי כמות הזמנות כללית ";
+           if(sortDir=="DESC"){
+               sqlSelect = sqlSelect + " DESC";
+               repTitle = repTitle + "בסדר יורד ";
+               }
+        break;
+        case "AVG":
+           sqlSelect = sqlSelect + " ORDER BY avgDaysBetweenOrders" ;
+           repTitle = repTitle + "לפי ממוצע ימים בין הזמנות ";
+
+           if(sortDir=="DESC"){
+               sqlSelect = sqlSelect + " DESC";
+               repTitle = repTitle + "בסדר יורד ";
+               }
+        break;
+        case "LO":
+           sqlSelect = sqlSelect + " ORDER BY last_order_ts" ;
+           repTitle = repTitle + "לפי תאריך הזמנה אחרונה ";
+
+           if(sortDir=="DESC"){
+               sqlSelect = sqlSelect + " DESC";
+               repTitle = repTitle + "בסדר יורד ";
+               }
+        break;
+
+    }
+
+
+    //sqlSelect = "select  * from irgoon.irgUsers WHERE last_order_ts<=@0 AND order_count>0 ORDER BY last_order_ts ";
+    DaysAgo=10;
+    minimal_orders=2;
+    var irgUsers = db.Query(sqlSelect,DaysXdaysAgo,DateTime.Now,minimal_orders);
+
+    db.Close();
+
+
+    <div style="overflow: auto;font-size: 14px;">
+   <div style="overflow: auto;padding: 5px;"><b>@repTitle  <span style="color: #b200ff">סהכ @irgUsers.Count() תוצאות</span></b></div>
+
+        <span style="padding: 5px;margin: 5px;float: right;width: 100px;">שם </span>
+        <span style="padding: 5px;margin: 5px;float: right;width: 50px;" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader','OC','@nextSortDir')">הזמנות</span> 
+        <span style="padding: 5px;margin: 5px;float: right" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader','AVG','@nextSortDir')">י.ב.ה</span> 
+        <div style="padding: 5px;margin: 5px;float: left;text-align: left;" onclick="AjaxUpdate('NonActiveReport','RepResDiv','mHLoader','LO','@nextSortDir')">הזמנה אחרונה</div>
+   
+    </div> 
+<div style="overflow: auto;max-height: 400px;">
+   @foreach(var userRec in irgUsers){
+        TimeSpan DaysSinceLastOrder = DateTime.Now - userRec.last_order_ts;
+        var DaysSinceLastOrderInt = DaysSinceLastOrder.Days;
+
+    <div style="background-color: #e3e3e3;color: #000;font-size: 16px;padding: 5px;margin: 5px;overflow: auto;" onclick="sbload('Info','UserReachout?member_id=@userRec.userId')" id="prospect_@userRec.userId">
+    <div style="overflow: auto;">
+        <span style="padding: 5px;margin: 5px;float: right;width: 100px;">@userRec.pbname </span>
+        <span style="padding: 5px;margin: 5px;float: right;width: 50px;">@userRec.order_count</span> 
+        <span style="padding: 5px;margin: 5px;float: right;">@Convert.ToInt32(userRec.avgDaysBetweenOrders)</span> 
+        <div style="padding: 5px;margin: 5px;float: left;text-align: left;font-size: 14px;">@userRec.last_order_ts.ToShortDateString()<span style="font-size: 12px;color: #b200ff"><br>(לפני @DaysSinceLastOrderInt  ימים)</span></div>
+   
+    </div>
+    </div>
+    }
+    </div>
+  }
+  else{
+      <div>@theHtmlOutput</div>
+  }
+
+ }
+
+if(theAction=="LoadProspectTemplate")
+{
+        int prospect_id=0; try{prospect_id=Convert.ToInt32(Request["param1"]);}catch{}
+        int template_id=0; try{template_id=Convert.ToInt32(Request["param2"]);}catch{}
+        <div style="overflow: auto;">
+        @AppHelpers.LoadProspectTemplate(prospect_id,template_id)
+        </div>
+
+}
+
+if(theAction=="LoadReachOutTemplate")
+{
+        int member_id=0; try{member_id=Convert.ToInt32(Request["param1"]);}catch{}
+        int template_id=0; try{template_id=Convert.ToInt32(Request["param2"]);}catch{}
+        <div style="overflow: auto;">
+        @AppHelpers.LoadReachoutTemplate(member_id,template_id)
+        </div>
+
+}
+
+}
+

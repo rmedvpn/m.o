@@ -1,0 +1,417 @@
+﻿@helper RepsAdmin()
+{
+    if (!WebSecurity.IsAuthenticated) { Response.Redirect("~/"); }
+
+
+    int u_id = WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    string PageTitle = "";
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT is_admin FROM members WHERE userId=@0"; ;
+    var currentUser = db.QuerySingle(sqlSelect, u_id);
+    if (currentUser != null)
+    {
+        if (!currentUser.is_admin)
+        {
+            Response.Redirect("~/Main");
+        }
+    }
+
+
+    sqlSelect = "SELECT * FROM members order by userId";
+    var AllUsers = db.Query(sqlSelect);
+
+
+    <div class="A">
+        <div style="overflow: auto;padding: 5px;">
+
+            <h2 style="float:right">ניהול משתמשים</h2>
+            <div class="B" style="float:right;margin-right:10px;margin-top:5px;">
+                <span class="PrplMiniTag">@AllUsers.Count() משתמשים</span>
+            </div>
+            <button style="float: left;background-color: #fff;color: #808080;border: 2px solid #808080;padding: 5px;margin: 5px;font-size: 16px;" onclick="Accordionize('AddUserAcc')">חדש</button>
+        </div>
+        <div style="overflow: auto;">
+            <button class="accordion" id="AddUserAcc" style="display: none"></button>
+            <div class="panel">
+                <div style="overflow: auto;padding: 5px;border: 1px dotted #b200ff">
+                    <div style="overflow: auto;float: right;">
+                        <input type="text" id="user_nick" name="user_nick" placeholder="שם משתמש" style="font-size: 16px;margin: 5px;padding: 5px;">
+                        <button style="padding: 5px;margin: 5px;font-size: 12px;" onclick="AjaxActions('ADDUSER',document.getElementById('user_nick').value,1);">שמירה</button>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+        <div style="overflow: auto;" id="ProspectsDataDiv">
+            @foreach (var user in AllUsers)
+            {
+                <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;" id="prospect_@user.userId" onclick="sbload('GenSb', 'Caller?p1=RepInfo&p2=@user.userId'); AdjustMainView();">
+                    <div style="overflow: auto" onclick="Accordionize('UserSettingsAcc_@user.userId');">
+                        <button style="font-size: 12px;margin: 5px;float: left;display: none" onclick="AjaxActions('RESETPW',@user.userId,1);">איפוס סיסמא</button>
+                        <span style="font-size: 16px;font-weight: bold;">
+                            <input type="checkbox" style="padding: 5px;margin: 5px;" @if (user.is_active) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@user.userId,'',this.checked,'is_active');"> @user.username @if (user.is_admin)
+                            {<span style="color: #b200ff">מנהל</span>}
+                        </span>
+                    </div>
+                    <button class="accordion" id="UserSettingsAcc_@user.userId" style="display: none"></button>
+                    <div class="panel">
+                        <div style="overflow: auto;">
+                            <div style="overflow: auto;float: right;">
+                                <span style="float: right;">
+                                    <input type="checkbox" style="padding: 5px;margin: 5px;" @if (user.is_admin) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@user.userId,'',this.checked,'is_admin');">
+                                    ניהול
+                                </span>
+                                <span style="float: right;">
+                                    <input type="checkbox" style="padding: 5px;margin: 5px;" @if (user.is_preserving) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@user.userId,'',this.checked,'is_preserving');">
+                                    שימור
+                                </span>
+                                <span style="float: right;">
+                                    <input type="checkbox" style="padding: 5px;margin: 5px;" @if (user.is_blaster) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@user.userId,'',this.checked,'is_blaster');">
+                                    בלסטר
+                                </span>
+                            </div>
+                            <button style="font-size: 12px;margin: 5px;float: left;" onclick="AjaxActions('RESETPW',@user.userId,1);">סיסמא</button>
+                            <button style="font-size: 12px;margin: 5px;float: left;" onclick="AjaxActions('DELUSER',@user.userId,1);">מחיקה</button>
+
+                        </div>
+                    </div>
+
+
+                </div>
+            }
+        </div>
+
+    </div>
+    <div class="A" style="height:150px;">&nbsp;</div>
+
+
+    db.Close();
+}
+@helper RepInfo(int rep_id)
+{
+
+
+int u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM members WHERE userId=@0"; ;
+var rep = db.QuerySingle(sqlSelect, rep_id);
+int vendor_id = 0;
+if (rep != null)
+{
+    vendor_id = rep.vendor_id;
+    sqlSelect = "SELECT vendor_id,vendor_name FROM vendors WHERE is_active=1 ORDER BY vendor_id";
+    var vendors = db.Query(sqlSelect);
+
+        <div class="A" style="color:#000000">
+            <div style="overflow: auto;padding: 5px;">
+
+                <h2 style="float:right">הגדרות המשתמש: @rep.username</h2>
+                <span class="PrplMiniTag" style="padding:5px;margin:5px;">משתמש #@rep.userid </span>
+            </div>
+            <div class="A">
+
+
+                <div class="A">
+                    <h3 style="float:right">ספק</h3>
+                    <select class="A" style="float:left" onchange="AjaxActions('LINKREPTOVENDOR',@rep.userId,'',this.value,'vendor_id');">
+                        <option value="0" @if (vendor_id == 0) { <text> selected</text> }>מערכת</option>
+                        @foreach (var vendor in vendors)
+                        {
+                            <option value="@vendor.vendor_id" @if (vendor_id == vendor.vendor_id) { <text> selected</text> }>@vendor.vendor_name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="A">
+                    <h3 style="float:right">הרשאות</h3>
+                    <div style="float: left;">
+                        <div class="B">
+                            <span>
+                                <input type="checkbox" @if (rep.is_admin) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@rep.userId,'',this.checked,'is_admin');">
+                                ניהול
+                            </span>
+                            <span>
+                                <input type="checkbox" @if (rep.is_preserving) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@rep.userId,'',this.checked,'is_preserving');">
+                                שימור
+                            </span>
+                            <span>
+                                <input type="checkbox" @if (rep.is_blaster) { <text> checked</text>} onclick="AjaxActions('TOGGLEUSERPERMISSION',@rep.userId,'',this.checked,'is_blaster');">
+                                בלסטר
+                            </span>
+                        </div>
+                     
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="A" style="text-align:center">
+                <button class="A" onclick="AjaxActions('RESETPW',@rep.userId,1);">סיסמא</button>
+                <button class="A" onclick="AjaxActions('DELUSER',@rep.userId,1);">מחיקה</button>
+
+            </div>
+
+
+        </div>
+    }
+
+
+    <div class="A" style="height:150px;">&nbsp;</div>
+
+
+    db.Close();
+}
+
+
+
+
+@functions {
+    public static string ValidateCouponCreation()
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string errTxt = "";
+        string coupon_code = Request["coupon_code"];
+        string coupon_code_e = Request["coupon_code_e"];
+        string coupon_title = Request["coupon_title"];
+        string coupon_title_e = Request["coupon_title_e"];
+        string coupon_notes = Request["coupon_notes"];
+        string coupon_notes_e = Request["coupon_notes_e"];
+        string offer_type = Request["offer_type"];
+        int free_product_id = 0; try { free_product_id = Convert.ToInt32(Request["free_product_id"]); } catch { }
+        int free_product_quan = 0; try { free_product_quan = Convert.ToInt32(Request["free_product_quan"]); } catch { }
+        int invoking_product_id = 0; try { invoking_product_id = Convert.ToInt32(Request["invoking_product_id"]); } catch { }
+        int invoking_product_quan = 0; try { invoking_product_quan = Convert.ToInt32(Request["invoking_product_quan"]); } catch { }
+        bool allow_multi_discount = false; if (!Request["allow_multi_discount"].IsEmpty()) { allow_multi_discount = true; }
+        bool allow_multi_coupon = false; if (!Request["allow_multi_coupon"].IsEmpty()) { allow_multi_coupon = true; }
+        decimal max_discount_rate_validity = 0; try { max_discount_rate_validity = Convert.ToDecimal(Request["max_discount_rate_validity"]); } catch { }
+        int days_to_expire = 0; try { days_to_expire = Convert.ToInt32(Request["days_to_expire"]); } catch { }
+        decimal min_order_total = 0; try { min_order_total = Convert.ToDecimal(Request["min_order_total"]); } catch { }
+        decimal max_order_total = 0; try { max_order_total = Convert.ToDecimal(Request["max_order_total"]); } catch { }
+        decimal max_coupon_value = 0; try { max_coupon_value = Convert.ToDecimal(Request["max_coupon_value"]); } catch { }
+        string coupon_terms = Request["coupon_terms"];
+        string coupon_item_type = Request["coupon_item_type"];
+        decimal item_discount_rate = 0; try { item_discount_rate = Convert.ToDecimal(Request["item_discount_rate"]); } catch { }
+        decimal offer_price = 0; try { offer_price = Convert.ToDecimal(Request["offer_price"]); } catch { }
+        decimal activation_order_total = 0; try { activation_order_total = Convert.ToDecimal(Request["activation_order_total"]); } catch { }
+        bool does_min_order_total_includes_spItems = false; if (!Request["does_min_order_total_includes_spItems"].IsEmpty()) { does_min_order_total_includes_spItems = true; }
+        bool does_min_order_total_includes_sh = false; if (!Request["does_min_order_total_includes_sh"].IsEmpty()) { does_min_order_total_includes_sh = true; }
+        bool is_min_cat_purchase = false; if (!Request["is_min_cat_purchase"].IsEmpty()) { is_min_cat_purchase = true; }
+        decimal cat_invoking_amount = 0; try { cat_invoking_amount = Convert.ToDecimal(Request["cat_invoking_amount"]); } catch { }
+        int invoking_cat_Id = 0; try { invoking_cat_Id = Convert.ToInt32(Request["invoking_cat_Id"]); } catch { }
+        bool is_cat_invoking_items_count = false; if (!Request["is_cat_invoking_items_count"].IsEmpty()) { is_cat_invoking_items_count = true; }
+        int cat_invoking_items_count = 0; try { cat_invoking_items_count = Convert.ToInt32(Request["cat_invoking_items_count"]); } catch { }
+        bool is_sun = false; if (!Request["is_sun"].IsEmpty()) { is_sun = true; }
+        bool is_mon = false; if (!Request["is_mon"].IsEmpty()) { is_mon = true; }
+        bool is_tue = false; if (!Request["is_tue"].IsEmpty()) { is_tue = true; }
+        bool is_wed = false; if (!Request["is_wed"].IsEmpty()) { is_wed = true; }
+        bool is_thu = false; if (!Request["is_thu"].IsEmpty()) { is_thu = true; }
+        bool is_fri = false; if (!Request["is_fri"].IsEmpty()) { is_fri = true; }
+        bool is_sat = false; if (!Request["is_sat"].IsEmpty()) { is_sat = true; }
+        string validity_start_hour = Request["validity_start_hour"];
+        string validity_end_hour = Request["validity_end_hour"];
+        decimal order_discount_amount = 0; try { order_discount_amount = Convert.ToDecimal(Request["order_discount_amount"]); } catch { }
+        decimal order_discount_percantage = 0; try { order_discount_percantage = Convert.ToDecimal(Request["order_discount_percantage"]); } catch { }
+        string voucher_type = Request["voucher_type"];
+        decimal credit_amount = 0; try { credit_amount = Convert.ToDecimal(Request["credit_amount"]); } catch { }
+        decimal shipping_price = 0; try { shipping_price = Convert.ToDecimal(Request["shipping_price"]); } catch { }
+        string shipping_cost_type = Request["shipping_cost_type"];
+        string terms = Request["terms"];
+        string terms_e = Request["terms_e"];
+        DateTime expiration_date = local_time.AddYears(1); try { expiration_date = Convert.ToDateTime(Request["expiration_date"]); } catch { }
+        bool does_discount_includes_spItems = false; if (!Request["does_discount_includes_spItems"].IsEmpty()) { does_discount_includes_spItems = true; }
+        bool does_discount_includes_sh = false; if (!Request["does_discount_includes_sh"].IsEmpty()) { does_discount_includes_sh = true; }
+        int invoking_orders_count = 0; try { invoking_orders_count = Convert.ToInt32(Request["invoking_orders_count"]); } catch { }
+        int membership_duration_months = 0; try { membership_duration_months = Convert.ToInt32(Request["membership_duration_months"]); } catch { }
+
+        bool is_comission_discount = false; if (!Request["is_comission_discount"].IsEmpty()) { is_comission_discount = true; }
+        decimal comission_discount = 0; try { comission_discount = Convert.ToDecimal(Request["comission_discount"]); } catch { }
+        string comission_discount_type = Request["comission_discount_type"];
+
+
+        if (coupon_code.IsEmpty() || coupon_code_e.IsEmpty())
+        {
+            errTxt += "חובה להזין קודי קופון תקינים!<br>";
+        }
+        if (coupon_title.IsEmpty() || coupon_title_e.IsEmpty())
+        {
+            errTxt += "חובה להזין כותרות לקופון!<br>";
+        }
+
+        switch (offer_type)
+        {
+            case "":
+                errTxt += "חובה לבחור סוג קופון!<br>";
+                break;
+            case "ITEM":
+                if (true)
+                {
+                    switch (coupon_item_type)
+                    {
+                        case "DISC":
+                            if (item_discount_rate <= 0)
+                            {
+                                errTxt += "חובה להזין % הנחה תקין למוצר הטבה!<br>";
+                            }
+                            break;
+                        case "PRICE":
+                            if (offer_price <= 0)
+                            {
+                                errTxt += "חובה להזין מחיר תקין למוצר הטבה!<br>";
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (free_product_id == 0)
+                    {
+                        errTxt += "חובה לבחור מוצר הטבה!<br>";
+                    }
+                    else
+                    {
+                        if (free_product_quan <= 0)
+                        {
+                            errTxt += "חובה להזין כמות תקינה למוצר הטבה!<br>";
+                        }
+                    }
+                }
+                break;
+
+            case "VOUCHER":
+                if (true)
+                {
+                    if (voucher_type == "GIFT" && order_discount_amount <= 0)
+                    {
+                        errTxt += "חובה להזין סכום תקין לשובר מתנה!<br>";
+                    }
+                    if (voucher_type == "DISC" && order_discount_percantage <= 0)
+                    {
+                        errTxt += "חובה להזין ערך תקין לשובר הנחה!<br>";
+                    }
+
+                }
+                break;
+
+            case "CREDIT":
+                if (true)
+                {
+                    if (credit_amount <= 0)
+                    {
+                        errTxt += "חובה להזין סכום תקין לשובר זיכוי!<br>";
+                    }
+
+                }
+                break;
+            case "SHIPPING":
+                if (true)
+                {
+                    if (shipping_cost_type.IsEmpty())
+                    {
+                        errTxt += "חובה לבחור משלוח חינם או משלוח מוזל!<br>";
+                    }
+                    else
+                    {
+                        if (shipping_cost_type == "PRICE" && shipping_price <= 0)
+                        {
+                            errTxt += "חובה להזין סכום תקין למחיר המשלוח!<br>";
+                        }
+                    }
+                }
+                break;
+        }
+
+        switch (coupon_terms)
+        {
+            case "BYPRODUCT":
+                if (true)
+                {
+                    if (invoking_product_id == 0)
+                    {
+                        errTxt += "חובה לבחור מוצר מזכה!<br>";
+                    }
+                    else
+                    {
+                        if (invoking_product_quan <= 0)
+                        {
+                            errTxt += "חובה להזין כמות תקינה למוצר מזכה!<br>";
+                        }
+                    }
+
+                }
+                break;
+
+            case "OVERAMOUNT":
+                if (activation_order_total <= 0)
+                {
+                    errTxt += "חובה להזין סכום הזמנה תקין עבור תנאי מימוש הקופון!<br>";
+                }
+                break;
+
+
+            case "PRODBYCAT":
+
+                if (invoking_cat_Id <= 0)
+                {
+                    errTxt += "חובה לבחור קטגוריה מזכה!<br>";
+                }
+                else
+                {
+                    if (is_min_cat_purchase && cat_invoking_amount <= 0)
+                    {
+                        errTxt += "חובה להזין מינימום סכום לרכישה מהקטגוריה באופן תקין!<br>";
+                    }
+
+                    if (is_cat_invoking_items_count && cat_invoking_items_count <= 0)
+                    {
+                        errTxt += "חובה להזין מינימום מספר פריטים לרכישה מהקטגוריה באופן תקין!<br>";
+                    }
+
+
+                }
+
+
+                break;
+
+            default:
+                break;
+        }
+
+        if (!is_sun && !is_mon && !is_tue && !is_wed && !is_thu && !is_fri && !is_sat)
+        {
+            errTxt += "חובה לבחור לפחות יום אחד בשבוע בו הקופון תקף!<br>";
+
+        }
+        if (Convert.ToDateTime(local_time.ToShortDateString() + " " + validity_start_hour) > Convert.ToDateTime(local_time.ToShortDateString() + " " + validity_end_hour))
+        {
+            errTxt += "זמן תחילת המבצע חייב להיות מוקדם מזמן סיום המבצע!<br>";
+        }
+
+        if (invoking_orders_count <= 0 && !Request["invoking_orders_count"].IsEmpty())
+        {
+            errTxt += "חובה להזין כמות הזמנות תקינה!<br>";
+        }
+        if (membership_duration_months <= 0 && !Request["membership_duration_months"].IsEmpty())
+        {
+            errTxt += "חובה להזין מספר חודשים תקין!<br>";
+        }
+        if (expiration_date <= local_time)
+        {
+            errTxt += "חובה להזין תאריך תפוגה עתידי לקופון!<br>";
+        }
+
+        if (is_comission_discount)
+        {
+            if (comission_discount <= 0)
+            {
+                errTxt += "חובה להזין ערך תקין להנחת העמלה!<br>";
+
+            }
+        }
+
+        return errTxt;
+    }
+
+}

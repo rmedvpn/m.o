@@ -1,0 +1,144 @@
+﻿@{
+    
+/*
+Registration Page
+
+This App requires pre-approval to register.
+This page accepts a pre approval identifier and retrieves the pre approval info.
+After that this is a Standard Registration Form using WebSecurity
+*/
+
+ Layout = "~/Shared/Layouts/_Layout.cshtml";
+Page.Title = "הרשמה";
+var wa_num = "";
+var password1 = "";
+var password2 = "";
+var user_nick="";
+var telegram_nick=""; 
+var telegram_number="";
+var accountType="";
+
+     
+
+ if(IsPost)
+    {
+        WebSecurity.Logout();
+        wa_num = Request["wa_num"];
+        user_nick = Request["user_nick"];
+        password1 = Request["password1"];
+        password2 = Request["password2"];
+        telegram_nick = Request["telegram_nick"];
+        telegram_number = Request["telegram_number"];
+        accountType = Request["accountType"];
+     
+ // Validation
+            if (user_nick.IsEmpty()) {
+            ModelState.AddError("user_nick", "שדה חובה!");
+        }
+
+        if (!ValidationFunctions.IsAlphaNumeric(user_nick)) {
+            ModelState.AddError("user_nick", "שם משתמש צריך להכיל מספרים ואותיות בלבד!");
+        }
+       
+ if (password1.IsEmpty()) {
+            ModelState.AddError("password1", "שדה חובה!");
+        }
+ if(WebSecurity.UserExists(user_nick))
+        {
+            ModelState.AddError("user_nick", "שם משתמש רשום כבר במערכת");
+        }
+ if(password1 != password2)
+        {
+            ModelState.AddError("password1", "הסיסמאות לא תואמות");
+        }
+
+if (telegram_nick.IsEmpty()) {
+            ModelState.AddError("telegram_nick", "שדה חובה!");
+        }
+if (telegram_number.IsEmpty()) {
+            ModelState.AddError("telegram_number", "שדה חובה!");
+        }
+if (accountType.IsEmpty()) {
+            ModelState.AddError("accountType", "שדה חובה!");
+        }
+
+        if (Request["terms_accept"].IsEmpty())
+                {
+            ModelState.AddError("terms_accept", "שדה חובה!");
+        }
+        
+
+
+ // Create Account
+        if(ModelState.IsValid)
+        {
+            WebSecurity.CreateUserAndAccount(user_nick, password1, null, false);
+            WebSecurity.Login(user_nick, password1);
+            var u_id = WebSecurity.CurrentUserId;
+            var db = Database.Open("tlg");
+            var sqlSelect = "Update members set telegram_nick=@0,telegram_number=@1,user_type=@2 WHERE userID=@3"; 
+            db.Execute(sqlSelect,telegram_nick,telegram_number,accountType,u_id);
+            
+          
+                Response.Redirect("Main" );
+           
+        }
+    }
+ }
+  <div class="login-card" style="font-size: 24px;">
+ <div><h1>הרשמה</h1><small style="color: #f00"><br>כל השדות הם חובה</small></div>
+
+
+<form action="Register" method="post" >
+    <p>
+      
+        @Html.Label("שם משתמש:", "user_nick")<br />
+        @Html.TextBox("user_nick", user_nick) <br />
+        @Html.ValidationMessage("user_nick")
+    </p>
+    <p>
+        @Html.Label("סיסמא:", "password1")<br />
+        @Html.Password("password1", password1) <br />
+        @Html.ValidationMessage("password1")
+    </p>
+    <p>
+        @Html.Label("אישור סיסמא:", "password2")<br />
+        @Html.Password("password2", password2)
+    </p>
+     <p>
+      
+        @Html.Label("כינוי טלגרם:", "telegram_nick")<br />
+        @Html.TextBox("telegram_nick", telegram_nick) <br />
+        @Html.ValidationMessage("telegram_nick")
+    </p>
+      <p>
+      
+        @Html.Label("#טלפון טלגרם:", "telegram_number")<br />
+        @Html.TextBox("telegram_number", telegram_number) <br />
+        @Html.ValidationMessage("telegram_number")
+    </p>
+      <p>
+      
+        @Html.Label("סוג חשבון:", "accountType")<br />
+
+          <input type="radio" Value="1" name="accountType" id="accountType">  רגיל
+          <input type="radio" Value="2" name="accountType" id="accountType">  סוחר
+          <input type="radio" Value="3" name="accountType" id="accountType">  גם וגם
+            
+
+        @Html.ValidationMessage("accountType")
+    </p>
+    <br>
+    <p>
+        בהרשמה , את/ה מקבל/ת עליך את <b><a href="~/terms">תנאי החברות</a></b><br><br>
+         @Html.CheckBox("terms_accept", false)
+        @Html.Label("קראתי ואני מסכימ/ה!", "terms_accept")<br />
+          @Html.ValidationMessage("terms_accept")
+       
+    </p>
+    <p>
+         <input type="submit" value="הבא" />
+    </p>
+</form>
+
+</div>

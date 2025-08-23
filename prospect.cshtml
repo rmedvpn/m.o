@@ -1,0 +1,192 @@
+﻿@{
+      if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+      
+
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+var db = Database.Open("irgoon");
+var sqlSelect="";
+
+int member_id=0;
+try{member_id=Convert.ToInt32(Request["id"]);}catch{}
+
+sqlSelect = "select * from prospects WHERE serial=@0";
+var memberRs = db.QuerySingle(sqlSelect,member_id);
+
+sqlSelect = "select * from msgTemplates";
+var msgTemplates = db.Query(sqlSelect);
+
+
+string wanum="";
+if(memberRs!=null){
+    wanum=memberRs.wanum;
+}
+
+db.Close();
+var DaysSinceJoinInt = 0;
+string JoinPhoneNumber = AppFunctions.GetAppProperty("JoinPhoneNumber");
+int MaxProspectsReachoutAttempts= Convert.ToInt32(AppFunctions.GetAppProperty("MaxProspectsReachoutAttempts"));
+
+DateTime tss=DateTime.Now;
+TimeSpan DaysSinceLastReachout = tss - memberRs.last_reachout_ts;
+DaysSinceJoinInt = DaysSinceLastReachout.Days;
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+<div class="heart" style="text-align: center;z-index: 99999;position: fixed;bottom: 75px;width: 50%;right: 25%;left: 25%;;text-align: center;opacity: 0.8;background: transparent;" id="ControlButtonDiv">
+              <button id="ControlButton" onclick="controller.close('Info');"  style="border: 0;background-color: #e3e3e3;border-radius: 50%;font-size: 30px;z-index: 99999;padding: 5px;" >
+                       ❎
+              </button>
+</div>
+
+
+   @if(memberRs!=null){
+//string msgTxt= "שלום " + memberRs.prospect_name + ", כאן מוקד צירוף החברים של *המחתרת, ארגון הפצת הקנאביס המוביל במדינה*, ואנו פונים אליך כי מלאת בעבר טופס בקשת הצטרפות לשירות שלנו. יכול להיות שזה היה מזמן ואם כן אנחנו מתנצלים על העיכוב וחוזרים אליך כדי להשלים את התהליך. כדי להתקדם בתהליך האימות *יש לשלוח צילום מסך של הודעה זו לווטסאפ מספר " + JoinPhoneNumber + "* .. תודה וברוכים הבאים ✌️ ";
+string msgTxt= "Hello " + memberRs.prospect_name + ", We are reaching out to you because you have filled-in an application form to join our organization, *The Mahteret*, the leading Cannabis distribution service in Israel. To continue with your membership process, please send a screenshot of this message via WHATSAPP to *" + JoinPhoneNumber + "* ✌️ Thank you and Welcome  ";
+
+        <div style="overflow: auto;font-weight: bold;font-size: 30px;padding: 5px;">
+            @memberRs.prospect_name
+        </div>
+  <div style="overflow: auto;-webkit-overflow-scrolling: touch;width: 100%;height: 100%;">
+ 
+    <div style="overflow: auto;">
+        
+       <div style="overflow: auto;">
+        <h2>בקשת הצטרפות #@memberRs.serial</h2>
+       </div>
+       <div style="overflow: auto;">
+            <div style="overflow: auto;">
+          @if(memberRs.email!=""){
+                <div style="overflow: auto">
+                   <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">email<br></span><a href="mailto:@memberRs.email" target=" _blank">@memberRs.email</a></span>   
+                </div>        
+                }
+
+                @if(memberRs.fb!=""){
+                <div style="overflow: auto">
+                   <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;color: #b200ff">fb<br></span><a href="@memberRs.fb" target=" _blank">@memberRs.fb</a></span>   
+                </div>        
+                }
+
+                @if(memberRs.ref_txt!=""){
+                <div style="overflow: auto">
+                     <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">מקור פניה<br></span>@memberRs.ref_txt</span>   
+                </div>        
+                }
+
+                @if(memberRs.occupation!=""){
+                <div style="overflow: auto">
+                     <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">עיסוק<br></span>@memberRs.occupation</span>   
+                </div>        
+                }
+
+                @if(memberRs.more_info!=""){
+                <div style="overflow: auto">
+                     <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">מידע נוסף<br></span>@memberRs.more_info</span>   
+                </div>        
+                }
+
+                @if(memberRs.join_reason!=""){
+                <div style="overflow: auto">
+                     <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">סיבת הצטרפות<br></span>@memberRs.join_reason</span>   
+                </div>        
+                }
+                @if(memberRs.involvement!=""){
+                <div style="overflow: auto">
+                     <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">מעורבות<br></span>@memberRs.involvement</span>   
+                </div>        
+                }
+                @if(memberRs.notes!=""){
+                <div style="overflow: auto">
+                     <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;"><span style="font-size: 11px;;color: #b200ff">הערות<br></span>@memberRs.notes</span>   
+                </div>        
+                }
+    </div>
+
+       </div>
+            </div>
+
+@if(MaxProspectsReachoutAttempts>=memberRs.reachout_attempts){
+
+ <div style="overflow: auto;margin: 5px;padding: 5px;color: #000;font-size: 16px;background-color: #fff;text-align: center">
+    
+     <div style="overflow: auto;background-color: #ffffcc" id="MsgTemplatesDiv">
+       @AppHelpers.LoadProspectTemplate(memberRs.serial)
+  </div>
+     <button style="font-size: 16px;text-align: center;color: #fff;background-color: #57d600;border:2px solid #57d600;padding: 5px;margin: 5px;width: 90%;font-weight: bold" onclick="hideElement('tb_@memberRs.serial');showElement('txt_@memberRs.serial');selectElementContents( document.getElementById('txt_@memberRs.serial') );hideElement('txt_@memberRs.serial');showElement('tb_@memberRs.serial');window.location.href='https://api.whatsapp.com/send?phone=@wanum';showElement('MsgSentBtn');">שליחת הודעה ל<span>@memberRs.prospect_name</span></button>
+
+           <div style="overflow: auto;font-size: 18px;" onclick="toggle_visibility('entry_@memberRs.serial')">
+
+      
+            <div  style="overflow: auto;display: none" id="entry_@memberRs.serial">
+  <span style="padding: 3px;margin: 3px;float: right;"><span style="font-size: 14px;">#<br></span>@memberRs.serial</span> 
+        <span style="padding: 3px;margin: 3px;float: right;"><span style="font-size: 14px;">שעה<br></span>@memberRs.ts.ToShortDateString()</span>   
+        <span style="padding: 3px;margin: 3px;float: right;"><span style="font-size: 14px;">משתמש<br></span>@memberRs.prospect_name</span>   
+        <span style="padding: 3px;margin: 3px;float: right;"><span style="font-size: 14px;">עיר<br></span>@memberRs.city</span>   
+        <span style="padding: 3px;margin: 3px;float: right;"><span style="font-size: 14px;">ת.לידה<br></span>@memberRs.birth_date</span>   
+        <span style="padding: 3px;margin: 3px;float: right;"><span style="font-size: 14px;">מין<br></span>
+            @if(memberRs.gender==1){
+                <span>זכר</span>
+            }@if(memberRs.gender==2){
+                <span>נקבה</span>
+            }
+        </span>   
+    </div>
+
+    </div>
+
+
+
+
+</div>    
+
+        <div style="overflow: auto;text-align: right;padding: 5px;margin: 5px;">
+                <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;border: 2px dotted #57d600"><input type="checkbox" style="height: 25px;width: 25px;" id="is_vip" onclick="AjaxActions('MarkProspect',@memberRs.serial,1,this.checked);"> סימון בכוכב
+            <br><span style="font-size: 14px;color: #b200ff">@memberRs.prospect_name עשוי/ה לסייע לארגון</span>
+                </div>
+
+         <button id="MsgSentBtn" style="font-size: 16px;text-align: center;color: #fff;background-color: #b200ff;border:2px solid #b200ff;padding: 5px;margin: 5px;width: 90%;font-weight: bold;display: none" onclick="AjaxActions('PROSPECTMSGSENT',@memberRs.serial,1);">הודעת צירוף נשלחה ל<span>@memberRs.prospect_name</span></button>   
+
+            <div style="overflow: auto;text-align: center">
+                
+            
+                <select style="font-size: 16px;padding: 5px;margin: 5px;width: 100%;background-color: #57d600;color: #fff;font-weight: bold;border: 0" id="action_id"  onchange="if(this.value!=''){AjaxActions(this.value,@memberRs.serial,1);}">
+                <option value=""> בבקשה לבחור פעולה</option>
+                <option value="CANCELPROSPECTACTION"> ביטול וחזרה לרשימה</option>
+                <option value="PROSPECTMSGSENT"> הודעת צירוף נשלחה</option>
+                <option value="PROSPECTBADCONTACT"> סגירה - פרטי קשר שגויים</option>
+                <option  value="PROSPECTDUPLICATE"> סגירה - המידע קיים כבר</option>
+                <option  value="PROSPECTNOTINERESTED"> סגירה - לא מעוניינ/ת</option>
+                <option  value="PROSPECTNOWANUM"> סגירה - רשומה ללא ווטסאפ</option>
+                </select>
+            </div>  
+        
+            <div style="overflow: auto;">
+                <button style="font-size: 16px;display: none" onclick="UpdateProspect(@memberRs.serial,document.getElementById('action_id').value,'is_vip');">הלאה!</button>
+            </div>
+
+    <div style="overflow: auto;font-size: 18px;color: #b200ff;text-align: right;background-color: #ffffcc">הודעה אחרונה: @memberRs.last_reachout_ts (לפני @DaysSinceJoinInt  ימים)</div>
+
+        </div>
+
+  }
+else
+  {
+    <div style="background-color: #f00;color: #fff;font-size: 18px;font-weight: bold">הגענו למספר המקסימלי של ניסיונות ליצירת קשר</div>      
+  }  
+<div style="overflow: auto;height: 200px;">&nbsp;</div>
+</div>
+    }
+
+</body>
+</html>

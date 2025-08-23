@@ -1,0 +1,223 @@
+﻿@{
+
+Random rnd = new Random();
+int icon_id = rnd.Next(1, 5);  // 1 <= month < 13
+var menu_icon="Images/icon" + Convert.ToString(icon_id) + ".jpg";
+
+   if (!WebSecurity.IsAuthenticated){
+        Response.Redirect("~/");
+      }
+
+int u_id = WebSecurity.CurrentUserId;
+
+
+}
+
+<!DOCTYPE html>
+ <html >
+<head>
+   <meta name="google" value="notranslate">
+
+    <link href="@Href("~/Css/Style.css")" rel="stylesheet" />
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta charset="utf-8" />
+        <meta http-equiv="cache-control" content="max-age=0" />
+        <meta http-equiv="cache-control" content="no-cache" />
+        <meta http-equiv="expires" content="0" />
+        <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+        <meta http-equiv="pragma" content="no-cache" />
+        <title>מוקד ארגון</title>
+      
+ @RenderSection("head", required: false)
+        <link rel="stylesheet" href="~/Css/slidebars.css">
+		<link rel="stylesheet" href="~/Css/style_sb.css">
+	   <link rel="stylesheet" href="~/Css/toastify.css">
+
+
+<style>
+.navbar {
+  overflow: hidden;
+  background: transparent;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 50px;
+  padding: 5px;
+
+}
+
+</style>
+
+<script type="text/javascript" src="js/interface.js"></script>
+<script type="text/javascript" src="js/asme.js"></script>
+<script type="text/javascript" src="js/toastify.js"></script>
+
+<script>
+    function startTime() {
+        var today = new Date();
+        var h = today.getHours();
+        var m = today.getMinutes();
+        var s = today.getSeconds();
+        m = checkTime(m);
+        s = checkTime(s);
+        document.getElementById('clock').innerHTML =
+            h + ":" + m + ":" + s;
+        var t = setTimeout(startTime, 500);
+    }
+    function checkTime(i) {
+        if (i < 10) { i = "0" + i };  // add zero in front of numbers < 10
+        return i;
+    }
+
+
+</script>
+
+</head>
+<body dir="rtl" onload="startTime()">
+    <input type="hidden" id="MsngrStatus" value="0">
+    <input type="hidden" id="CurThread" value="0">
+    <input type="hidden" id="ActiveAjaxContainer" value="AjaxContainer_0">
+    <input type="hidden" id="ActiveSlideBar" value="">
+    <input type="hidden" id="SliderStatus" value="0">
+
+
+    <div style="position: fixed;display: none;z-index: 50000;width: 100%;height: 100%;background-color: #002070;opacity: 0.5;text-align: center;" id="MainLoader">
+        <div class="cssload-loading"></div>
+    </div>
+
+    <div class="heart" style="text-align: center;z-index: 99999;position: fixed;bottom: 35px;width: 50%;right: 25%;left: 25%;;text-align: center;opacity: 0.8;background: transparent;" id="ControlButtonDiv">
+        <button id="ControlButton" onclick="ControlButton();" style="border: 0;background-color: #e3e3e3;border-radius: 50%;font-size: 30px;z-index: 99999;padding: 5px;">
+            💚
+        </button>
+    </div>
+
+    <div class="navbar" style="text-align: right;vertical-align: middle;width: 100%;padding: 0;margin: 0;background-color: #808080;color: #fff;">
+        <span style="float: left;font-size: 12px;padding: 5px;margin: 5px" onclick="AjaxActions('LOGOUT');">
+            מחובר/ת כ <span>@WebSecurity.CurrentUserName</span>
+            <br><span id="clock"></span>
+        </span>
+        <h2>מוקד שירות לקוחות</h2>
+    </div>
+    <div style="width: 100%;padding: 0;margin: 0;position: fixed;top: 50px;overflow: auto;-webkit-overflow-scrolling: touch;">
+
+        @RenderBody()
+    </div>
+
+
+
+    <div off-canvas="Info right overlay" style="padding: 0px;">
+        <button style="font-size: 24px;position: absolute;left: 5px;border: 0;background: transparent;z-index: 99999;display: none" onclick="controller.close('Info')">❎</button>
+
+        <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #fff;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="InfoLoader">
+            <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+        <div style="width: 100%;height: 100%;padding: 0;margin: 0;background-color: #fff;color: #000" id="InfoContent">
+
+        </div>
+
+    </div>
+
+    <div off-canvas="JoinAdmin right overlay" style="padding: 0px;">
+        <button style="font-size: 24px;position: absolute;left: 5px;border: 0;background: transparent;z-index: 99999;display: none" onclick="controller.close('JoinAdmin')">❎</button>
+
+        <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #fff;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="JoinAdminLoader">
+            <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+        <div style="width: 100%;height: 100%;padding: 0;margin: 0;background-color: #fff;color: #000" id="JoinAdminContent">
+
+        </div>
+
+    </div>
+
+    <div off-canvas="MainSb right overlay" style="padding: 0px;">
+        <button style="font-size: 24px;position: absolute;left: 5px;border: 0;background: transparent;z-index: 99999;display: none" onclick="controller.close('MainSb')">❎</button>
+
+        <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #fff;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="MainSbLoader">
+            <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+        <div style="width: 100%;height: 100%;padding: 0;margin: 0;background-color: #fff;color: #000" id="MainSbContent">
+
+        </div>
+
+    </div>
+
+
+    <div off-canvas="SubMenu right overlay" style="padding: 0px;">
+        <button style="font-size: 24px;position: absolute;left: 5px;border: 0;background: transparent;z-index: 99999;display: none" onclick="controller.close('SubMenu');">❎</button>
+
+        <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #fff;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="SubMenuLoader">
+            <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+        <div style="width: 100%;height: 100%;padding: 0;margin: 0;background-color: #fff;color: #000" id="SubMenuContent">
+
+        </div>
+
+    </div>
+
+    <div off-canvas="SubMenuDialog right overlay" style="padding: 0px;">
+        <button style="font-size: 24px;position: absolute;left: 5px;border: 0;background: transparent;z-index: 99999;display: none" onclick="controller.close('SubMenuDialog');">❎</button>
+
+        <div style="overflow: auto;opacity: 0.7;height: 100%;background-color: #fff;width: 100%;position: absolute;left: 0;right: 0;top: 0;bottom: 0;z-index: 99000;display: none;" id="SubMenuDialogLoader">
+            <div class="spinner" style="text-align: center;font-size: 30px;padding: 50px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+        <div style="width: 100%;height: 100%;padding: 0;margin: 0;background-color: #fff;color: #000" id="SubMenuDialogContent">
+
+        </div>
+
+    </div>
+    <script>
+        setInterval(MonitorUser, 10000);
+    </script>
+
+
+
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <script src="js/slidebars.js"></script>
+    <script src="js/sb_scripts.js"></script>
+
+    <input type="file" name="image" id="filebox" accept="image/jpeg" style="display: none;">
+
+    <script>
+        document.getElementById('filebox').onchange = function (evt) {
+            ImageTools.resize(this.files[0], {
+                width: 640, // maximum width
+                height: 1136 // maximum height
+            }, function (blob, didItResize) {
+                // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
+                //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
+                ImageUpload(blob);
+                // you can also now upload this blob using an XHR.
+            });
+        };
+    </script>
+
+    <script>
+        var controller = new slidebars();
+        controller.init();
+
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+﻿@{
+      if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+      
+
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+
+
+var db = Database.Open("irgoon");
+var sqlSelect="";
+string sortDir = "DESC";
+
+if(!Request["sortDir"].IsEmpty()){
+sortDir = Request["sortDir"];    
+}
+
+
+if(sortDir=="ASC")
+{
+sqlSelect = "select * from prospects WHERE user_id=0 is null AND is_deleted=0 order by reachout_attempts, ts";    
+}
+else
+{
+sqlSelect = "select * from prospects WHERE user_id=0 AND is_deleted=0 order by reachout_attempts, ts DESC";    
+}
+
+//sqlSelect = "select * from prospects WHERE (SELECT wanum FROM irgusers WHERE wanum=prospects.wanum) is null AND is_deleted=0 order by next_reachout_ts,ts DESC";    
+
+var prospects = db.Query(sqlSelect);
+//decimal avgDaysBetweenOrders=0;
+sqlSelect = "select distinct city from prospects order by city";
+var prospectsCities = db.Query(sqlSelect);
+
+db.Close();
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+
+
+
+      
+        <div style="overflow: auto;padding: 5px;">
+        @prospects.Count() רשומות
+           <select style="float: left;padding: 5px;font-size: 16px;" id="sortDir" name="sortDir" onchange="sbload('JoinAdmin','JoinAdmin?sortDir=' + this.value);">
+                <option value="ASC" @if(sortDir=="ASC"){<text> selected</text>}>מהישן לחדש</option>
+                <option value="DESC"  @if(sortDir=="DESC"){<text> selected</text>}>מהחדש לישן</option>
+                </select>
+        </div>
+  
+    <div style="overflow: auto;background-color: #fff;" id="ProspectsDataDiv">
+    @foreach(var prospect in prospects){
+        TimeSpan DaysSinceJoin = DateTime.Now - prospect.ts;
+        var DaysSinceJoinInt = DaysSinceJoin.Days;
+        string bgColor="#e3e3e3";
+        if(prospect.reachout_attempts>0){
+            bgColor="#ffffcc";
+        }
+        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: @bgColor;" onclick="sbload('Info','prospect?id=@prospect.serial');" id="prospect_@prospect.serial">
+            <span style="float: right">
+                @prospect.prospect_name | @prospect.city<br><span style="color: #b200ff;font-size: 12px;">@prospect.ts.ToShortDateString() </span>
+            </span>    
+        <span style="float: left">
+                <span style="color: #b200ff;font-size: 12px;">@prospect.reachout_attempts ניסיונות</span><BR>לפני @DaysSinceJoinInt ימים
+            </span>    
+        
+        
+        </div>
+    }
+    </div>
+    
+
+      
+
+
+</body>
+</html>

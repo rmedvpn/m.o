@@ -1,0 +1,473 @@
+﻿@helper Lobby(string showWhat = "ALL")
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+int round_id = 0;
+int requested_z_id = 0;
+
+
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("op_data");
+var sqlSelect = "";
+DateTime local_time = AppFunctions.LocalTime();
+
+DateTime z_date = Convert.ToDateTime("1/1/1900"); try { z_date = Convert.ToDateTime(AppFunctions.GetAppProperty("ActiveZDate")); } catch { };
+int active_z_id = 0; try { active_z_id = Convert.ToInt32(AppFunctions.GetAppProperty("ActiveZId")); } catch { };
+int active_z_serial = 0; try { active_z_serial = Convert.ToInt32(AppFunctions.GetAppProperty("ActiveZSerial")); } catch { };
+
+int z_id = 0;
+
+
+
+bool is_sorted = false;
+string viewTitle = "";
+// showWhat = "ALL";
+
+
+sqlSelect = "SELECT TOP (500) * FROM MainOrders WHERE is_deleted=0 AND order_status<=0 AND order_status>=-2 AND (z_id=@0 OR (z_id=0 AND round_id>0)) ORDER BY order_id"; // order by is_approved, order_id DESC";
+var order_data = db.Query(sqlSelect,active_z_id);
+int orders_counter = 0; try { orders_counter = order_data.Count(); } catch { }
+
+sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM MainOrders WHERE is_cancelled=0 AND (z_id=@0 OR (z_id=0 AND round_id>0))";
+var TodaysOrdersCounter = db.QuerySingle(sqlSelect,active_z_id);
+int todays_orders_counter = 0; try { todays_orders_counter = TodaysOrdersCounter.the_cnt; } catch { }
+
+
+
+    <input type="hidden" name="is_lobby" id="is_lobby" value="1">
+
+    <input type="hidden" name="cur_record" id="cur_record" value="0">
+    <input type="hidden" name="IsInline" id="IsInline" value="1"><div style="text-align: right;font-size: 16px;width: 100%;height: 100%;overflow: auto;">
+        <div style="position: fixed;display: none;z-index: 500000;width: 100%;height: 100%;background-color: #e3e3e3;opacity: 0.5;text-align: center;" id="RoundBoardLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        <div style="max-height: 95%;overflow: auto;direction:rtl">
+            <div class="B">
+                <div style="overflow: auto;background-color: #808080;color: yellow;padding: 5px;">
+                    <span style="font-size: 30px;float: right">
+                        <b>לובי - הזמנות חדשות </b>
+                    </span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">💰 15646.00 ₪</span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">🤩 @todays_orders_counter הזמנות<span class="PrplMiniTag"> (היום)</span></span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">📅 היום @AppFunctions.DayOfWeekTxt(((int)local_time.DayOfWeek)) @local_time.ToShortDateString()</span>
+                </div>
+            </div>
+
+            <div class="B">
+                <button class="Accordion" id="RoundOptionsAcc" style="display:none"></button>
+                <div class="B" style="padding:0;margin:0;background-color:#fff">
+                    <div class="LobbySubBtn" onclick="sbload('GenSb','Caller?p1=AddOrder&p2=0');AdjustMainView();">➕ הזמנה חדשה</div>
+                    <div class="LobbySubBtn" style="display:none">📦 מסך אריזה</div>
+                    <div class="LobbySubBtn" style="display:none">🚚 מסך משלוחים</div>
+                    <div class="LobbySubBtn">📜 יומן פעילות</div>
+                    <div class="LobbySubBtn" onclick="PageNavigator('ZADMIN');">📄 דו"ח יומי</div>
+                    <div class="LobbySubBtn" onclick="sbload('GenSb','Caller?p1=RoundCP&p2=@round_id');AdjustMainView();">⚙️ הגדרות</div>
+
+
+
+                </div>
+            </div>
+
+            @if (orders_counter > 0)
+            {
+                <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #808080;direction:rtl " id="round_board_container">
+                    <center>
+                        <table style="font-size: 16px; border-collapse: collapse; background-color: white; ">
+                            <tr style="overflow: auto;background-color: #808080;color: #57d600;font-size:18px;">
+                                <td class="header" style="width:20px;"></td>
+
+                                <td class="header" style="width:80px;"></td>
+                                <td class="header">ערוץ</td>
+                                <td class="header">הזמנה</td>
+                                <td class="header">שם</td>
+                                <td class="header">עיר</td>
+                                <td class="header">סטטוס</td>
+                                <td class="header" style="width:20px;"></td>
+
+                            </tr>
+                            @if (order_data.Count() != 0)
+                            {
+                                foreach (var order in order_data)
+                                {
+                                    @Order.RoundBoardEntry(order, "MAIN")
+
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="999">-- אין הזמנות להצגה --</td></tr>
+                            }
+                            <tr>
+                                <td colspan="999" style="height: 50px;">&nbsp;</td>
+                            </tr>
+                        </table>
+                    </center>
+                </div>
+            }
+            else
+            {
+                <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #e3e3e3;direction:rtl;color:#808080 " id="round_board_container">
+                    <center>
+                        <h1>אין הזמנות חדשות</h1>
+                    </center>
+                </div>
+            }
+
+        </div>
+
+
+        <div style="overflow:auto;height:250px;">&nbsp;</div>
+
+    </div>
+
+
+    db.Close();
+}
+
+@helper OrdersAdmin(string showWhat = "ALL")
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+int round_id = 0;
+int requested_z_id = 0;
+
+
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("op_data");
+var sqlSelect = "";
+DateTime local_time = AppFunctions.LocalTime();
+
+DateTime z_date = Convert.ToDateTime("1/1/1900"); try { z_date = Convert.ToDateTime(AppFunctions.GetAppProperty("ActiveZDate")); } catch { };
+int active_z_id = 0; try { active_z_id = Convert.ToInt32(AppFunctions.GetAppProperty("ActiveZId")); } catch { };
+int active_z_serial = 0; try { active_z_serial = Convert.ToInt32(AppFunctions.GetAppProperty("ActiveZSerial")); } catch { };
+
+int z_id = 0;
+
+
+
+bool is_sorted = false;
+string viewTitle = "";
+// showWhat = "ALL";
+
+
+sqlSelect = "SELECT TOP (200) * FROM MainOrders WHERE is_deleted=0 ORDER BY order_id desc"; // order by is_approved, order_id DESC";
+var order_data = db.Query(sqlSelect,active_z_id);
+int orders_counter = 0; try { orders_counter = order_data.Count(); } catch { }
+
+sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM MainOrders WHERE is_cancelled=0 AND (z_id=@0 OR (z_id=0 AND round_id>0))";
+var TodaysOrdersCounter = db.QuerySingle(sqlSelect,active_z_id);
+int todays_orders_counter = 0; try { todays_orders_counter = TodaysOrdersCounter.the_cnt; } catch { }
+
+
+
+    <input type="hidden" name="is_lobby" id="is_lobby" value="1">
+
+    <input type="hidden" name="cur_record" id="cur_record" value="0">
+    <input type="hidden" name="IsInline" id="IsInline" value="1"><div style="text-align: right;font-size: 16px;width: 100%;height: 100%;overflow: auto;">
+        <div style="position: fixed;display: none;z-index: 500000;width: 100%;height: 100%;background-color: #e3e3e3;opacity: 0.5;text-align: center;" id="RoundBoardLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        <div style="max-height: 95%;overflow: auto;direction:rtl">
+            <div class="B">
+                <div style="overflow: auto;background-color: #808080;color: yellow;padding: 5px;">
+                    <span style="font-size: 30px;float: right">
+                        <b>ניהול הזמנות </b>
+                    </span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">💰 15646.00 ₪</span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">🤩 @todays_orders_counter הזמנות<span class="PrplMiniTag"> (היום)</span></span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">📅 היום @AppFunctions.DayOfWeekTxt(((int)local_time.DayOfWeek)) @local_time.ToShortDateString()</span>
+                </div>
+            </div>
+
+            <div class="B">
+                <button class="Accordion" id="RoundOptionsAcc" style="display:none"></button>
+                <div class="B" style="padding:0;margin:0;background-color:#fff">
+                    <div class="LobbySubBtn" onclick="sbload('GenSb','RepCaller?p1=AddOrder&p2=@round_id');AdjustMainView();">➕ הזמנה חדשה</div>
+                    <div class="LobbySubBtn" style="display:none">📦 מסך אריזה</div>
+                    <div class="LobbySubBtn" style="display:none">🚚 מסך משלוחים</div>
+                    <div class="LobbySubBtn">📜 יומן פעילות</div>
+                    <div class="LobbySubBtn" onclick="PageNavigator('ZADMIN');">📄 דו"ח יומי</div>
+                    <div class="LobbySubBtn" onclick="sbload('GenSb','Caller?p1=RoundCP&p2=@round_id');AdjustMainView();">⚙️ הגדרות</div>
+
+
+
+                </div>
+            </div>
+
+            @if (orders_counter > 0)
+            {
+                <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #808080;direction:rtl " id="round_board_container">
+                    <center>
+                        <table style="font-size: 16px; border-collapse: collapse; background-color: white;width:90% ">
+                            <tr style=";font-size:18px;">
+                                <td class="header">#</td>
+                                <td class="header"></td>
+                                <td class="header">ערוץ</td>
+                                <td class="header">הזמנה</td>
+                                <td class="header">שם</td>
+                                <td class="header">עיר</td>
+                                <td class="header">סטטוס</td>
+                                <td class="header"></td>
+
+                            </tr>
+                            @if (order_data.Count() != 0)
+                            {
+                                foreach (var order in order_data)
+                                {
+                                    if (true)
+                                    {
+                                        string colorPickerClass = "";
+                                        string colorPickerIcon = "";
+                                        string order_type = ""; try { order_type = order.order_type; } catch { }
+                                        bool is_postponed = false; try { is_postponed = order.is_postponed; } catch { }
+                                        string round_short_title = ""; try { round_short_title = order.round_title; } catch { }
+                                        round_id = order.round_id;
+                                        if (round_short_title == "")
+                                        {
+                                            sqlSelect = "SELECT short_title FROM rounds WHERE id=@0";
+                                            var round = db.QuerySingle(sqlSelect, round_id);
+                                            round_short_title = ""; try { round_short_title = round.short_title; } catch { }
+                                        }
+                                        switch (order_type)
+                                        {
+                                            case "ROUND":
+                                                if (true)
+                                                {
+                                                    colorPickerIcon = "🚚";
+
+                                                }
+                                                break;
+                                            case "PICKUP":
+                                                if (true)
+                                                {
+                                                    colorPickerIcon = "🏠";
+
+                                                }
+                                                break;
+                                            case "EXPRESS":
+                                                if (true)
+                                                {
+                                                    colorPickerIcon = "🛵";
+
+                                                }
+                                                break;
+                                        }
+
+                                        <tr id="entry_@order.order_id">
+                                            <td class="OrdersViewerCell" >
+                                                @order.order_id
+                                            </td>
+                                            <td class="OrdersViewerCell">
+                                                @colorPickerIcon
+                                            </td>
+
+
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+
+                                                <div style="overflow: auto; font-size: 16px;color:#000">
+                                                    @if (round_id > 0)
+                                                    {
+                                                        <b>@round_short_title</b>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span style="color:#f00"><b>לא הוגדר</b></span>
+                                                    }
+
+                                                    <div class="B" style="display:none">
+                                                        <span class="MiniTag">#@order.order_id</span>
+                                                        <span class="PrplMiniTag">@AppFunctions.FormatRelativeDate(order.requested_delivery_date)</span>
+                                                    </div>
+                                                </div>
+
+
+                                            </td>
+
+
+
+
+                                            <td class="OrdersViewerCell"  onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+
+                                                <div style="overflow:auto;font-size:12px;color:#000">
+                                                    @if (order.timestamp.Date == local_time.Date)
+                                                    {
+                                                        int min_ago = 0; min_ago = Convert.ToInt32(AppFunctions.HowManyMinutesAgoWas(order.timestamp));
+                                                        <div style="overflow:auto;font-size:16px;color:#000">
+                                                            <b>@order.timestamp.ToString("HH:mm")</b> <span class="GrayMiniTag">היום</span>
+                                                           
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div style="overflow:auto;font-size:12px;color:#000">
+                                                            <b>@order.timestamp.ToShortDateString()</b>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
+
+
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+                                                <b>@order.username</b>
+                                                <div class="B" style="display:none;"><span class="MiniTag">@order.ship_city</span></div>
+                                            </td>
+                                            <td class="OrdersViewerCell"  onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+                                                <b>@order.ship_city</b>
+                                            </td>
+
+                                            <td class="OrdersViewerCell"  onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+                                                <div style="font-size:14px;overflow:auto;color:#000"><b>@NewAppFunctions.GetTitleById("OrderStatus", order.order_status)</b></div>
+                                                <div style="font-size:12px;overflow:auto;display:none">@Order.RoundBoardEntryActions(order.order_id, order.order_status)</div>
+                                            </td>
+
+                                            <td style=""></td>
+
+                                        </tr>
+                                        <tr><td colspan="999" style="background-color:#808080;height:2px;"> </td></tr>
+
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="999">-- אין הזמנות להצגה --</td></tr>
+                            }
+                            <tr>
+                                <td colspan="999" style="height: 50px;">&nbsp;</td>
+                            </tr>
+                        </table>
+                    </center>
+                </div>
+            }
+            else
+            {
+                <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #e3e3e3;direction:rtl;color:#808080 " id="round_board_container">
+                    <center>
+                        <h1>אין הזמנות</h1>
+                    </center>
+                </div>
+            }
+
+        </div>
+
+
+        <div style="overflow:auto;height:250px;">&nbsp;</div>
+
+    </div>
+
+
+    db.Close();
+}
+
+@helper Lobby_bck(string showWhat = "ALL")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int round_id = 0;
+    int requested_z_id = 0;
+
+
+    var u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime z_date = Convert.ToDateTime("1/1/1900");
+
+    int active_z_id = 0;
+    int active_z_serial = 0;
+    int z_id = 0;
+
+
+
+    bool is_sorted = false;
+    string viewTitle = "";
+    // showWhat = "ALL";
+
+
+    sqlSelect = "SELECT TOP (200) * FROM MainOrders WHERE  (is_deleted=0 AND order_status<=0 AND order_status>=-2) OR order_status=-1 ORDER BY order_id DESC"; // order by is_approved, order_id DESC";
+
+
+    var order_data = db.Query(sqlSelect);
+    int orders_counter = 0; try { orders_counter = order_data.Count(); } catch { }
+
+
+    string orders_counter_text = "🤩  " + orders_counter + " הזמנות פעילות";
+    if (showWhat == "CANCELLED")
+    {
+        orders_counter_text = "⛔  " + orders_counter + " הזמנות שבוטלו";
+    }
+
+    <input type="hidden" name="is_lobby" id="is_lobby" value="1">
+
+    <input type="hidden" name="cur_record" id="cur_record" value="0">
+    <input type="hidden" name="IsInline" id="IsInline" value="1"><div style="text-align: right;font-size: 16px;width: 100%;height: 100%;overflow: auto;">
+        <div style="position: fixed;display: none;z-index: 500000;width: 100%;height: 100%;background-color: #e3e3e3;opacity: 0.5;text-align: center;" id="RoundBoardLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        <div style="max-height: 95%;overflow: auto;direction:rtl">
+            <div class="B">
+                <div style="overflow: auto;background-color: #808080;color: yellow;padding: 5px;">
+                    <span style="font-size: 30px;float: right">
+                        <b>לובי - הזמנות חדשות </b>
+                    </span>
+
+
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">💰 15646.00 ₪</span>
+                    <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">💰 היום @AppFunctions.DayOfWeekTxt(((int)local_time.DayOfWeek)) @local_time.ToShortDateString()</span>
+
+                </div>
+            </div>
+
+            <div class="B">
+                <button class="Accordion" id="RoundOptionsAcc" style="display:none"></button>
+                <div class="panel" style="padding:0;margin:0;background-color:#000">
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px;float:right;" onclick="sbload('GenSb','RepCaller?p1=AddOrder&p2=@round_id');AdjustMainView();">➕ הזמנה חדשה</div>
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: right;">📦 מסך אריזה</div>
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: right;">🚚 מסך משלוחים</div>
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: right;">📜 יומן פעילות</div>
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: right;">📄 דו"ח יומי</div>
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: right;" onclick="sbload('GenSb','Caller?p1=RoundCP&p2=@round_id');AdjustMainView();">⚙️ הגדרות ערוץ</div>
+                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: right;" onclick="PageNavigator('ROUNDBOARD',@round_id);">⟳ רענון דף</div>
+
+
+                </div>
+            </div>
+
+
+            <div style="overflow: auto; -webkit-overflow-scrolling: touch;background-color:#808080 ">
+                <center>
+                    <table style="width: 100%; font-size: 16px; border-collapse: collapse; background-color: white; ">
+                        <tr style="overflow: auto;background-color: #808080;color: #57d600;font-size:18px;">
+                            <td class="header" style="width:80px;"></td>
+                            <td class="header">סוג</td>
+                            <td class="header">הזמנה</td>
+                            <td class="header">שם</td>
+                            <td class="header">מחיר</td>
+                            <td class="header">סטטוס</td>
+                        </tr>
+                        @if (order_data.Count() != 0)
+                        {
+                            foreach (var order in order_data)
+                            {
+                                @Order.RoundBoardEntry(order, "MAIN")
+
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="999">-- אין הזמנות להצגה --</td></tr>
+                        }
+                        <tr>
+                            <td colspan="999" style="height: 50px;">&nbsp;</td>
+                        </tr>
+                    </table>
+                </center>
+            </div>
+        </div>
+
+
+        <div style="overflow:auto;height:250px;">&nbsp;</div>
+
+    </div>
+
+
+    db.Close();
+}

@@ -1,0 +1,27 @@
+﻿@{
+
+string thePage="";
+int param2=0;
+int param3=0;
+int param4=0;
+string PARAM2=""; PARAM2=Request["p2"];
+string PARAM3=""; PARAM3=Request["p3"];
+string PARAM4=""; PARAM4=Request["p4"];
+thePage=Request["p1"];
+try{param2=Convert.ToInt32(Request["p2"]);}catch{}
+try{param3=Convert.ToInt32(Request["p3"]);}catch{}
+try{param4=Convert.ToInt32(Request["p4"]);}catch{}
+
+switch(thePage){
+
+    case "PreserveMembers":
+        Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+        <div>@AppPages.PreserveMembers() </div>
+    break;
+
+    
+}
+
+    
+}
+

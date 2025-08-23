@@ -1,0 +1,310 @@
+﻿@{
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("irgoon");
+bool is_commit = false;
+if(!Request["is_commit"].IsEmpty()){
+    is_commit=true;
+}
+
+var sqlSelect="";
+var uploadedFile = Request.Files[0];
+var fileSavePath = Server.MapPath("~/App_Data/Uploads/orders.csv");
+var fileName = "";
+
+if(!is_commit){
+fileName = Path.GetFileName(uploadedFile.FileName);
+uploadedFile.SaveAs(fileSavePath);
+}
+var dataFile =fileSavePath;
+Array userData = File.ReadAllLines(dataFile);
+string[] userRec;
+
+bool is_ok=true;
+
+string aLine, aParagraph = null;
+
+string last_sync="";
+last_sync=AppFunctions.GetAppProperty("LastOrdersFileSync");
+decimal default_order_total=0;
+//default_order_total=Convert.ToDecimal(AppFunctions.GetAppProperty("DefaultOrderValue"));
+int MemberOrderPlacingRankingCredit=0;
+//MemberOrderPlacingRankingCredit=Convert.ToInt32(AppFunctions.GetAppProperty("MemberOrderPlacingRankingCredit"));
+
+DateTime lastFileSync=Convert.ToDateTime("1/1/1970");
+if(!last_sync.IsEmpty()){
+    lastFileSync=Convert.ToDateTime(last_sync);
+}
+
+string test_str="";
+test_str=File.ReadAllText(dataFile);
+bool is_show = false;
+StringReader strReader=null;
+if (!test_str.IsEmpty()){
+    strReader = new StringReader(test_str);
+
+    is_show = true;
+}
+
+int counter=0;
+int ok_counter=0;
+int totalCount=0;
+bool is_ok_to_insert=false;
+
+        string userName="";
+        string wanum="";
+        string delivery_option="";
+        string shipping_address="";
+        string shipping_city="";
+        string orderBody="";
+        string orderpw="";
+        string str_date="";
+        string tmpDate="";
+        string tmptime="";
+        string fail_field="";
+        DateTime order_date=Convert.ToDateTime("1/1/1900");
+        int cur_user_id=0;
+        int lang=1;
+string actionLog="";
+int users_created=0;
+int added_count=0;
+int duplicateCount=0;
+int existingUserCount=0;
+string previewDisplayState="block";
+if(is_commit){
+    previewDisplayState="none";
+}
+
+
+<!DOCTYPE html>
+<html>
+<body style="color: #000;">
+    <div style="overflow: auto;display: @previewDisplayState">
+        <div style="background-color:  #000; overflow: auto; font-size: 24px; color: #fff;"><span style="float: left;color: #57d600;font-size: 12px;padding: 5px"> סנכרון אחרון:<br>@lastFileSync.ToShortDateString() @lastFileSync.ToString("H:mm")</span> סנכרון היסטוריית הזמנות</div>
+         <div style="overflow: auto;padding: 0;margin: 0;background-color: #fff">
+            @while(is_show)
+            {totalCount++;
+            counter++;
+           // if(ok_counter>10){break;}
+
+            aLine = strReader.ReadLine();
+    
+            if(aLine != null)
+            {
+              order_date=Convert.ToDateTime("1/1/1900",culture);
+                 userName="";
+                 wanum="";
+                 delivery_option="";
+                 shipping_address="";
+                 shipping_city="";
+                 orderBody="";
+                 orderpw="";
+                lang=1;
+                cur_user_id = 0;
+                fail_field="";
+
+                    string sep = ",";
+                    is_ok_to_insert=true;
+                    userRec=aLine.Split(sep.ToCharArray());
+
+                str_date=userRec[0];
+                str_date=str_date.Replace("GMT‎+3","");
+                str_date=str_date.Replace("אחה״צ","");
+                str_date=str_date.Replace("לפנה״צ","");
+                str_date=str_date.Replace("\"","");
+                str_date=str_date.Trim();
+                string[] tmpRec;
+                tmpRec = str_date.Split(' ');
+                 tmpDate="";
+                 tmptime="";
+                 string tmptmp="";
+                try{tmpDate=tmpRec[0];}catch{}
+                try{tmptime=tmpRec[1];}catch{}
+                 tmptmp = tmpDate + " " + tmptime;
+                 bool is_pm=false;
+                 if(userRec[0].Contains("PM") || userRec[0].Contains("אחה")){
+                     is_pm=true;
+                 }
+
+                 //try{order_date = Convert.ToDateTime(userRec[0],culture);}catch{}
+
+                    try{order_date=Convert.ToDateTime(tmptmp);}catch{is_ok_to_insert=false;order_date=Convert.ToDateTime("1/1/1910",culture);}
+
+                    try{userName=Convert.ToString(userRec[1]);userName=userName.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="userName";}
+                    try{wanum=Convert.ToString(userRec[2]);wanum=wanum.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="wanum";}
+                    try{delivery_option=Convert.ToString(userRec[3]);delivery_option=delivery_option.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="delivery_option";}
+                    try{shipping_address=Convert.ToString(userRec[4]);shipping_address=shipping_address.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="shipping_address";}
+                    try{shipping_city=Convert.ToString(userRec[5]);shipping_city=shipping_city.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="shipping_city";}
+                    try{orderBody=Convert.ToString(userRec[6]);orderBody=orderBody.Replace("\"","");}catch{}
+                    try{orderpw=Convert.ToString(userRec[7]);orderpw=orderpw.Replace("\"","");}catch{}
+                    if(is_pm){
+                        order_date=order_date.AddHours(12);
+                    }
+                     if(delivery_option.Contains("e")){
+                     lang=2;
+                 }
+            }
+            else
+            {
+                aParagraph = aParagraph + "\n";
+                break;
+            }
+
+
+            if(is_ok_to_insert){
+            ok_counter++;
+            userName=userName.Replace("\"","");
+            wanum=wanum.Replace("\"","");
+            wanum=AppFunctions.wanumize(wanum);
+
+                sqlSelect="SELECT serial FROM irgoon.MasterWebOrders WHERE ts=@0 AND wanum=@1";
+            var existing_order=db.QuerySingle(sqlSelect,order_date,wanum);
+            if(existing_order==null)
+            {
+
+                sqlSelect="INSERT INTO irgoon.MasterWebOrders(orderpw,ts,ship_rec,ship_address,ship_city,wanum,orderBody,delivery_option,lang) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8)";
+                   added_count++;
+               if(is_commit){
+                    try{db.Execute(sqlSelect,orderpw,order_date,userName,shipping_address,shipping_city,wanum,orderBody,delivery_option,lang);}catch{}
+               }
+
+
+               sqlSelect = "SELECT userId FROM irgoon.irgUsers WHERE wanum=@0";
+               var existing_user=db.QuerySingle(sqlSelect,wanum);
+               if(existing_user!=null){
+                   sqlSelect = "UPDATE irgoon.irgUsers SET last_order_ts=(SELECT max(ts) from masterWebOrders WHERE wanum=@0) WHERE wanum=@0";
+                  //--> 
+                  if(is_commit){
+                    db.Execute(sqlSelect,wanum);
+                    }
+                       DateTime first_order_ts=DateTime.Now;
+                       DateTime last_order_ts=first_order_ts;
+                       int order_count=0;
+                       int recent_order_count=0;
+                       decimal avgDaysBetweenOrders=0;
+                       decimal recentAvgDaysBetweenOrders=0;
+
+                       sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM irgoon.irgoon.MasterWebOrders WHERE wanum=@0";
+                       var userOrderStats = db.QuerySingle(sqlSelect,wanum);
+
+                   if(userOrderStats!=null){
+
+                       try{first_order_ts=userOrderStats.first_order_ts;}catch{}
+                       try{last_order_ts=userOrderStats.last_order_ts;}catch{}
+                       try{order_count=userOrderStats.order_count;}catch{}
+               
+                    double DaysBetweenFirstAndLastOrders=0;
+
+                    TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+                    DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+                    if(DaysBetweenFirstAndLastOrders>0){
+                    try{avgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / order_count);}catch{}    
+                    }
+           
+                    }
+
+                   int MonthsToCalculateAvgTimeBetweenOrders = 3;//Convert.ToInt32(AppFunctions.GetAppProperty("MonthsToCalculateAvgTimeBetweenOrders"));
+                   DateTime DateToCalculateAverageFrom = DateTime.Today.AddMonths(MonthsToCalculateAvgTimeBetweenOrders*-1);
+                   sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM irgoon.irgoon.MasterWebOrders WHERE wanum=@0 AND ts>@1";
+                   userOrderStats = db.QuerySingle(sqlSelect,wanum,DateToCalculateAverageFrom);
+
+                    if(userOrderStats!=null){
+
+                       try{first_order_ts=userOrderStats.first_order_ts;}catch{first_order_ts=DateTime.Now;}
+                       try{last_order_ts=userOrderStats.last_order_ts;}catch{last_order_ts=DateTime.Now;}
+                       try{recent_order_count=userOrderStats.order_count;}catch{recent_order_count=0;}
+
+                       double DaysBetweenFirstAndLastOrders=0;
+                       TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+                       DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+                    if(DaysBetweenFirstAndLastOrders>0){
+                    try{recentAvgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / recent_order_count);}catch{}                }
+                    //
+                    //recentAvgDaysBetweenOrders=Convert.ToDecimal(DaysBetweenFirstAndLastOrders);
+                    //
+
+                    }
+                  
+                        sqlSelect = "UPDATE irgoon.irgUsers SET avgDaysBetweenOrders=@0,recentAvgDaysBetweenOrders=@1,order_count=@2,recent_order_count=@3 WHERE wanum=@4";
+                  //-->       
+                   if(is_commit){
+                        db.Execute(sqlSelect,avgDaysBetweenOrders,recentAvgDaysBetweenOrders,order_count,recent_order_count,wanum);
+                         }
+           
+                existingUserCount++;
+               }
+               else{
+                   sqlSelect = "INSERT INTO irgoon.irgUsers(pbname,wanum,order_count,first_order_ts,last_order_ts,recent_order_count) VALUES(@0,@1,@2,@3,@3,1)";
+                     users_created++;
+                 if(is_commit){
+                   db.Execute(sqlSelect,userName,wanum,1,order_date);
+               }
+               }
+            }
+            else{
+                duplicateCount++;
+            }
+ 
+      
+    
+
+            <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #57d600;">
+                          <div style="overflow: auto;@if(cur_user_id!=-1){<TEXT>color: #fff;</TEXT>}" >@userName | @wanum</div>
+                          <div style="overflow: auto;">@orderBody</div>
+                          <div style="overflow: auto;">@fail_field</div>
+                        <div style="overflow: auto;">@order_date</div>
+                    </div>
+
+            }
+            else
+            {
+            <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff;display: none;">
+                          <div style="overflow: auto;">@userName | @wanum</div>
+                          <div style="overflow: auto;">@orderBody</div>
+                             <div style="overflow: auto;">@order_date</div>
+                                  <div style="overflow: auto;">@fail_field</div>
+
+        
+            
+
+                    </div>
+            }
+                 }
+
+
+
+         <div style="overflow: auto;padding: 5px;background-color: #fff;text-align: center">
+     <div style="overflow: auto;">
+     <h1>נא לאשר @added_count רשומות חדשות</h1>
+        <div style="overflow: auto;font-size: 14px;">@duplicateCount רשומות קיימות כבר<br>@existingUserCount משתמשים רשומים<br>@users_created משתמשים חדשים יווצרו</div>
+         <button style="background-color: #57d600;width: 90%;padding: 5px;margin: 5px;font-size: 16px;color: #fff;font-weight: bold;" onclick="SyncOrdersFile(1);" id="OrdersSyncCommitBtn">קליטת @added_count רשומות</button>
+         <div class="spinner" style="text-align: center;font-size: 20px;display: none;" id="OrdersSyncCommitloader">
+            <div class="bounce1"></div>
+            <div class="bounce2"></div>
+            <div class="bounce3"></div>
+        </div>
+     </div>
+
+     </div>   
+   
+<div style="height:150px;overflow: auto;">&nbsp;</div>
+
+        </div>
+    </div>
+
+@if(is_commit){
+    AppFunctions.SetAppProperty("LastWebOrdersSyncDate",DateTime.Now.ToString());
+    AppFunctions.SetAppProperty("LastWebOrdersSyncBy",u_id.ToString());
+    AppFunctions.SetAppProperty("LastWebOrdersSyncCount",added_count.ToString());
+    string logMsg= "בוצע סנכרון עם קובץ הזמנות - נרשמו " + added_count + " הזמנות חדשות במערכת ונרשמו " + users_created + " משתמשים חדשים";
+    AppFunctions.WriteLog ("SYNC", u_id,logMsg);
+
+   <span>רשומות הזמנה נקלטו למערכת</span>
+
+}
+</body>
+</html>
+  db.Close();  }
+

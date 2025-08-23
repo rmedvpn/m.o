@@ -1,0 +1,1054 @@
+﻿@helper PaymentsAdmin(int vendor_id = 0,int dep_id=0)
+{
+    if (!WebSecurity.IsAuthenticated) { Response.Redirect("~/"); }
+
+
+    int u_id = WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    string PageTitle = "";
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT vendor_id,vendor_name FROM vendors WHERE is_active=1";
+    var Vendors = db.Query(sqlSelect);
+    string srchTitle = " תשלומי ספקים";
+
+    string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+    <div style="overflow: auto; padding: 5px; direction: rtl">
+        <div id="CreditStatusDiv">
+            @Payments.PaymentsStatus(vendor_id)
+        </div>
+
+
+        <h2 style="float:right;direction:rtl">
+            <span onclick="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader', -1);">⚙️</span>
+            <span onclick="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader', 0);">🏠</span>
+            @srchTitle
+        </h2>
+        <select style="padding:5px;margin:5px;font-size:16px;float:right;margin-right:20px;" onchange="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader', this.value);">
+            <option value="0">כל הספקים</option>
+            @foreach (var vendor in Vendors)
+            {
+                <option value="@vendor.vendor_id" @if (vendor.vendor_id == vendor_id) { <text> selected</text>}>@vendor.vendor_name</option>
+            }
+
+
+        </select>
+    </div>
+    <button class="Accordion" style="display:none" id="CreditActionsAcc"></button>
+    <div class="panel" style="padding:0;margin:0">
+        <div style="overflow:auto;background-color:#e3e3e3;width:99%;float:right" id="NewOrderMemberContainer">
+            @Payments.VendorPaymentActions(vendor_id)
+        </div>
+    </div>
+
+
+    if (vendor_id > 0)
+    {
+        <div style="overflow: auto;text-align:right;direction:rtl;">
+            @Payments.VendorPaymentsStatus(vendor_id)
+        </div>
+
+    }
+    else
+    {
+        if (vendor_id == 0)
+        {
+            <div style="overflow: auto;text-align:right;direction:rtl;">
+                @Payments.VendorPaymentsSummary()
+            </div>
+            <div style="overflow: auto;text-align:right;direction:rtl;">
+                @Payments.DepositoriesSummary()
+            </div>
+
+        }
+
+        if (vendor_id == -1)
+        {
+            <div style="overflow: auto;text-align:right;direction:rtl;">
+                @Payments.Depositories()
+            </div>
+
+        }
+        if (vendor_id == -2)
+        {
+            <div style="overflow: auto;text-align:right;direction:rtl;">
+                @Payments.DepositoryLog(dep_id)
+            </div>
+
+        }
+    }
+
+
+
+    <div class="A" style="height:150px;">&nbsp;</div>
+
+
+    db.Close();
+}
+
+@helper PaymentsStatus(int vendor_id = 0)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+    sqlSelect = "SELECT SUM(amount_due) as TotalDebt FROM vendorpayments WHERE is_paid=0";
+    if (vendor_id > 0) { sqlSelect += " AND vendor_id=@0"; }
+    var totDebt = op_data.QuerySingle(sqlSelect, vendor_id);
+    decimal totalDebt = 0; try { totalDebt = totDebt.TotalDebt; } catch { }
+    sqlSelect = "SELECT SUM(amount_due) as DueDebt FROM vendorpayments WHERE is_paid=0 AND current_due_date<=@0";
+    if (vendor_id > 0) { sqlSelect += " AND vendor_id=@1"; }
+
+    var dueDebt = op_data.QuerySingle(sqlSelect, local_time, vendor_id);
+    decimal DueDebt = 0; try { DueDebt = dueDebt.DueDebt; } catch { }
+    string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+
+    <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #808080; text-align: center; border-radius: 5px ">
+        <span style="font-size:18px;">@totalDebt.ToString("C", culture)</span><br />סה"כ חוב @vendor_name
+    </div>
+    <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #808080; text-align: center; border-radius: 5px;background-color:#e3e3e3 " onclick="Accordionize('CreditActionsAcc')">
+        <span style="font-size:18px;">פעולות</span><br />חיוב / זיכוי
+    </div>
+
+    op_data.Close();
+
+}
+
+@helper VendorPaymentsStatus(int vendor_id, string showWhat = "ALL")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+    string vendor_name = "";
+    string pageTitle = "";
+
+    //DataFunctions.ImportWebContactForm();
+
+    switch (showWhat)
+    {
+        case "ALL":
+            sqlSelect = "SELECT * FROM VendorPayments WHERE (is_paid=0 OR is_paid=1) ";
+
+            break;
+        case "DUE":
+            break;
+        case "PAID":
+            sqlSelect = "SELECT serial,m_id,member_name,debt,due_date FROM pb WHERE debt>0 AND due_date>@0 AND next_order_return=0 order by due_date";
+            break;
+
+    }
+    if (vendor_id > 0)
+    {
+        sqlSelect += "AND vendor_id=@0 ORDER BY vendor_id,serial DESC";
+        vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+        pageTitle = "מצב חשבון לספק " + vendor_name;
+    }
+    else
+    {
+        sqlSelect += "ORDER BY vendor_id,serial DESC";
+
+    }
+
+
+    var Payments = op_data.Query(sqlSelect, vendor_id);
+
+    <div class="A">
+        <h2>@pageTitle</h2>
+        <table style="width:99%;direction:rtl">
+            <tr class="ListRow" style="width: 100%;">
+                <td class="TableCell">Z</td>
+                <td class="TableCell">תאריך</td>
+                <td class="TableCell">תאור</td>
+                <td class="TableCell">סכום חוב</td>
+
+            </tr>
+
+            @foreach (var entry in Payments)
+            {
+
+                <tr class="ListRow" id="CreditEntryRow_@entry.serial">
+                    <td class="TableCell1">
+                        @if (entry.z_serial > 0)
+                        {@entry.z_serial}
+                    else
+                    {<span>-</span>}
+                    </td>
+
+                    <td class="TableCell1">@entry.z_date.ToShortDateString()</td>
+                    <td class="TableCell1">
+                        @entry.transaction_title
+                        @if (entry.transaction_notes != "")
+                        {
+                            <br /><span class="PrplMiniTag">@entry.transaction_notes</span>
+                        }
+                    </td>
+
+                    @if (entry.transaction_type == 1)
+                    {
+                        <td class="TableCell1" style="color:#ff0000">@entry.amount.ToString("C", culture)</td>
+                    }
+                    @if (entry.transaction_type == 2)
+                    {
+                        <td class="TableCell1" style="color:#57d600">@entry.amount.ToString("C", culture)-</td>
+                    }
+
+
+                </tr>
+
+
+
+
+
+            }
+        </table>
+    </div>
+
+    op_data.Close();
+
+}
+
+
+@helper VendorPaymentsSummary()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+    sqlSelect = "SELECT * FROM vendors Order By debt DESC";
+    var vendors = op_data.Query(sqlSelect);
+
+    <div class="A">
+        <div class="A">
+            <h2>מצב חשבונות</h2>
+        </div>
+        @foreach (var vendor in vendors)
+        {
+            <div class="VednorSummaryBox" onclick="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader', @vendor.vendor_id);">
+                @vendor.vendor_name <br />
+                @vendor.debt.ToString("C", culture)
+            </div>
+
+        }
+
+    </div>
+
+    op_data.Close();
+
+}
+
+@helper DepositoriesSummary()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+    sqlSelect = "SELECT * FROM depositories Order By depository_amount DESC";
+    var depositories = op_data.Query(sqlSelect);
+
+    <div class="A">
+        <div class="A">
+            <h2>קופות</h2>
+            <div class="A">
+                @foreach (var dep in depositories)
+                {
+                    <div class="VednorSummaryBox" onclick="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader', @dep.serial);">
+                        @dep.depository_name
+                        <br /><span class="PrplMiniTag"> @dep.depository_amount.ToString("C", culture)</span>
+                    </div>
+                }
+                <div class="VednorSummaryBox" style="text-align:center;" onclick="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader',-1);">
+                    ⚙️
+                    <br /><span class="MiniTag"> הגדרות </span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    op_data.Close();
+
+}
+
+
+@helper DepositoryLog(int dep_id)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+int u_id = WebSecurity.CurrentUserId;
+string repTitle = "";
+var op_data = Database.Open("op_data");
+var sqlSelect = "";
+string username = WebSecurity.CurrentUserName;
+DateTime local_time = AppFunctions.LocalTime();
+DateTime ts = local_time;
+DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+sqlSelect = "SELECT * FROM depositoryLog WHERE depository_id=@0 Order By timestamp DESC";
+var log = op_data.Query(sqlSelect,dep_id);
+sqlSelect = "SELECT depository_name FROM depositories WHERE serial=@0";
+var depository = op_data.QuerySingle(sqlSelect, dep_id);
+string depository_name = depository.depository_name;
+
+    <div class="A">
+        <div class="A">
+            <h2>פירוט תנועות קופה - <span style="color:#ff6a00">@depository_name</span></h2>
+            <div class="A">
+                @foreach (var entry in log)
+                {
+                    <div class="A" style="border-bottom:1px dotted #808080">
+                        <div class="A" style="float:right;">
+                         <span class="PrplMiniTag">   @entry.timestamp.ToShortDateString() @entry.timestamp.ToString("HH:mm")<br /> <span class="MiniTag"> @AppFunctions.GetRepName(entry.rep_id) (#@entry.rep_id)</span>
+</div>
+                        @if (entry.amount < 0)
+                        {
+                            <div class="A" style="float:right;"> @entry.entry<br /> <span class="GreenMiniTag">משיכה @entry.amount.ToString("C", culture)</span></div>
+                        }
+                        else
+                        {
+                            <div class="A" style="float:right;"> @entry.entry<br /> <span class="RedMiniTag">הפקדה @entry.amount.ToString("C", culture)</span></div>
+                        }
+
+
+
+
+
+
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    op_data.Close();
+
+}
+
+
+
+@helper VendorPaymentActions(int vendor_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int member_id = 0;
+    int rep_id = WebSecurity.CurrentUserId;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime defDueDate = local_time.AddDays(14);
+    int u_id = WebSecurity.CurrentUserId;
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT m_id,member_name,wanum FROM pb WHERE m_id=@0 ";
+    var member = op_data.QuerySingle(sqlSelect, member_id);
+
+    sqlSelect = "SELECT * FROM VENDORS WHERE is_active=1";
+    var vendors = op_data.Query(sqlSelect);
+    sqlSelect = "SELECT serial,depository_name FROM depositories WHERE is_active=1";
+    var depositories = op_data.Query(sqlSelect);
+
+    string member_name = "";
+    if (member != null)
+    {
+        member_name = member.member_name;
+    }
+
+
+
+    <form id="VendorChargeForm">
+
+        <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+            @if (vendor_id == 0)
+            {
+                <div style="overflow:auto;">
+                    <div style="color:black;overflow:auto;text-align:right;">
+                        ספק
+                    </div>
+                    <div style="overflow:auto;">
+                        <select style="padding: 5px; margin: 5px; font-size: 16px;" name="vendor_id" id="vendor_id_selector">
+                            <option>נא לבחור</option>
+                            @foreach (var vendor in vendors)
+                            {
+                                <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                            }
+                        </select>
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                string vendor_name = ""; vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+                <div style="overflow:auto;">
+                    <div style="color:black;overflow:auto;text-align:right;">
+                        ספק
+                    </div>
+                    <div style="overflow:auto;color:#b200ff">
+                        <b>@vendor_name</b>
+                    </div>
+                    <input type="hidden" name="vendor_id" value="@vendor_id" id="vendor_id_selector" />
+
+                </div>
+
+            }
+
+        </div>
+        <div style="float: right; direction: rtl; padding: 5px; margin: 5px; color: black">
+            <div style="overflow:auto;">
+                <div style="overflow:auto;text-align:right;">
+                    פעולה
+                </div>
+                <div style="overflow:auto;">
+                    <select style="padding:5px;margin:5px;font-size:16px;" name="reqAction" id="reqAction" onchange="if (this.value == '2' || this.value == '3') { hideElement('NewChargeDiv'); showElement('VendorPaymentDiv'); }if (this.value == '1') { showElement('NewChargeDiv'); hideElement('VendorPaymentDiv'); }if (this.value == '0') { hideElement('NewChargeDiv'); hideElement('VendorPaymentDiv'); }">
+                        <option value="0">נא לבחור</option>
+                        <option value="1">דיווח תשלום</option>
+                        <option value="2">חיוב חשבון</option>
+                        <option value="3">זיכוי חשבון</option>
+
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="NewChargeDiv" style="color:black;display:none;">
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style="overflow:auto;">
+                    <div style=";overflow:auto;text-align:right;">
+                        סכום (₪)
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="text" name="payment_amount" style="padding:5px;margin:5px;font-size:16px;width:50px;" />
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style=";overflow:auto;text-align:right;">
+                    תאריך תשלום
+                </div>
+                <div style="overflow:auto;">
+                    <input type="date" name="payment_date" id="payment_date" style="padding:5px;font-size:16px;" value="@local_time.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style=";overflow:auto;text-align:right;">
+                    הפקדה ל
+                </div>
+                <div style="overflow:auto;">
+                    <select style="padding: 5px; margin: 5px; font-size: 16px;" name="depository_id" id="depository_id">
+                        <option>נא לבחור</option>
+                        @foreach (var depository in depositories)
+                        {
+                            <option value="@depository.serial">@depository.depository_name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style=";overflow:auto;text-align:right;">
+                    הערות
+                </div>
+                <div style="overflow:auto;">
+                    <input type="text" style="padding: 5px; font-size: 16px; margin:5px;" name="payment_notes" />
+                </div>
+            </div>
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;overflow:auto">
+                <div style=";overflow:auto;text-align:right;">
+                    &nbsp;
+                </div>
+                <button type="button" style="padding: 5px;  font-size: 16px; float: left " onclick="AjaxActions('VendorPaymentAction', document.getElementById('vendor_id_selector').value, 'MainLoader', 'VendorChargeForm', document.getElementById('vendor_id_selector').value);">ביצוע</button>
+
+            </div>
+
+
+
+
+        </div>
+
+        <div id="VendorPaymentDiv" style="color: black;display:none;">
+            <input type="hidden" name="member_id" value="@member_id" />
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style="overflow:auto;">
+                    <div style=";overflow:auto;text-align:right;">
+                        סכום (₪)
+                    </div>
+                    <div style="overflow:auto;">
+                        <input type="text" name="amount" style="padding:5px;margin:5px;font-size:16px;width:50px;" />
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style=";overflow:auto;text-align:right;">
+                    תאריך פעולה
+                </div>
+                <div style="overflow:auto;">
+                    <input type="date" name="transaction_date" style="padding:5px;font-size:16px;" value="@local_time.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style=";overflow:auto;text-align:right;">
+                    תאור פעולה
+                </div>
+                <div style="overflow:auto;">
+                    <input type="text" style="padding: 5px; font-size: 16px; margin:5px;" name="transaction_title" />
+                </div>
+            </div>
+
+
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;">
+                <div style=";overflow:auto;text-align:right;">
+                    הערות לפעולה
+                </div>
+                <div style="overflow:auto;">
+                    <input type="text" style="padding: 5px; font-size: 16px; margin:5px;" name="transaction_notes" />
+                </div>
+            </div>
+
+
+
+            <div style="float:right;direction:rtl;padding:5px;margin:5px;overflow:auto">
+                <div style="color:yellow;overflow:auto;text-align:right;">
+                    &nbsp;
+                </div>
+                <button type="button" style="padding: 5px;  font-size: 16px; float: left " onclick="AjaxActions('VendorPaymentAction', document.getElementById('vendor_id_selector').value, 'MainLoader', 'VendorChargeForm', document.getElementById('vendor_id_selector').value);">ביצוע</button>
+
+            </div>
+
+        </div>
+    </form>
+
+    op_data.Close();
+}
+
+@helper Depositories()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+    sqlSelect = "SELECT * FROM depositories WHERE is_deleted=0 Order By depository_amount DESC";
+    var depositories = op_data.Query(sqlSelect);
+    sqlSelect = "SELECT SUM(depository_amount) AS theCash FROM depositories WHERE is_deleted=0 ";
+    var theCash = op_data.QuerySingle(sqlSelect);
+    decimal cash = 0; try { cash = theCash.thecash; } catch { }
+
+
+    <div class="A">
+        <div class="VednorSummaryBox" style="float:left;">
+            @cash.ToString("C", culture)
+            <br /><span class="MiniTag"> מזומן בקופה סה"כ</span>
+        </div>
+        <div class="VednorSummaryBox" style="float:left;background-color:#e3e3e3" onclick="Accordionize('AccDepositorySettings');">
+            פעולות
+            <br /><span class="MiniTag"> משיכה / הפקדה </span>
+        </div>
+        <div class="A">
+            <div class="B">
+                <h2><span onclick="Accordionize('AccAddDepository');">➕</span>הגדרות קופות</h2>
+            </div>
+            <div class="B">
+                <form id="AddDepository">
+                    <button class="Accordion" id="AccAddDepository" style="display:none"></button>
+                    <div class="panel">
+                        <div class="A" style="background-color:#e3e3e3">
+                            הוספת קופה
+                            <input type="text" class="A" name="depository_name" id="depository_name" />
+                            <button type="button" class="A" onclick="AjaxActions('AddDepository', document.getElementById('depository_name').value, 'MainLoader');">הוספה</button>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+
+            <div class="B">
+                <button class="Accordion" id="AccDepositorySettings" style="display:none"></button>
+                <div class="panel">
+                    <div class="A" style="background-color:#e3e3e3;">
+                        <form id="depository_action">
+                            <select class="A" style="float:right" name="depository_id">
+                                <option value="">נא לבחור קופה..</option>
+                                @foreach (var dep in depositories)
+                                {
+                                    <option value="@dep.serial">@dep.depository_name</option>
+                                }
+
+                            </select>
+                            <select class="A" style="float:right" name="reqAction" onchange="if (this.value == 'delete') { hideElement('action_amount');hideElement('action_note'); showElement('action_pw'); } else {hideElement('action_pw'); showElement('action_note');showElement('action_amount'); }">
+                                <option value="deposit">הפקדה לקופה</option>
+                                <option value="withdrawal">משיכה מהקופה</option>
+                                <option value="delete">מחיקת הקופה</option>
+                            </select>
+                            <span style="float:right"><input type="text" class="A50" id="action_amount" name="action_amount" placeholder="סכום (₪)" /> </span>
+                            <span style="float:right"><input type="text" class="A" placeholder="הערות לפעולה" id="action_note" name="action_note"/> </span>
+                            <span style="float:right"><input type="password" class="A" style="display:none;" placeholder="סיסמא לפעולה" id="action_pw" name="action_pw"/> </span>
+                            <button type="button" class="A" style="float:right" onclick="AjaxActions('DepositoryAction', '', 'MainLoader','depository_action');">ביצוע</button>
+                        </form>
+                  
+                    
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <div class="A">
+        @foreach (var dep in depositories)
+        {
+
+
+            <div class="A" style="border-bottom:1px dotted #e3e3e3">
+                <span class="A" onclick="RepAjaxUpdate('PAYMENTS', 'MainBoardContainer', 'MainLoader',-2, @dep.serial);">📃</span>
+                <input type="checkbox" class="A" @if (dep.is_active) { <text> checked</text> } />
+                @dep.depository_name
+                <span class="PrplMiniTag" style="float:left"> @dep.depository_amount.ToString("C", culture)</span>
+            </div>
+            
+        }
+
+
+    </div>
+
+    op_data.Close();
+
+}
+
+
+@functions {
+    public static string VendorPaymentAction()
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int order_id = 0;
+        int vendor_id = 0;
+        try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        int reqAction = 0; try { reqAction = Convert.ToInt32(Request["reqAction"]); } catch { }
+        string theHtmlOutput = "";
+        string logMsg = "";
+        int rep_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+
+
+        if (vendor_id == 0) { theHtmlOutput = "חובה לבחור ספק לפעולה!<br>"; }
+
+        if (theHtmlOutput == "")
+        {
+            switch (reqAction)
+            {
+
+                case 0:
+                    theHtmlOutput += "חובה לבחור פעולה מבוקשת!<br>";
+
+                    break;
+
+                case 1:
+                    if (true)
+                    {
+                        decimal amount = 0; try { amount = Convert.ToDecimal(Request["payment_amount"]); } catch { }
+                        DateTime payment_date = local_time; try { payment_date = Convert.ToDateTime(Request["payment_date"]); } catch { }
+                        string payment_notes = Request["payment_notes"];
+                        string transaction_title = "התקבל תשלום מ" + vendor_name;
+                        int depository_id = 0; try { depository_id = Convert.ToInt32(Request["depository_id"]); } catch { }
+                        if (amount <= 0)
+                        {
+                            theHtmlOutput += "חובה להזין סכום תשלום תקין!<br>";
+                        }
+                        if (payment_date > local_time)
+                        {
+                            theHtmlOutput += "חובה להזין תאריך תשלום תקין!<br>";
+                        }
+                        if (depository_id <= 0)
+                        {
+                            theHtmlOutput += "חובה לבחור יעד הפקדה!<br>";
+                        }
+
+                        if (theHtmlOutput == "")
+                        {
+                            sqlSelect = "INSERT INTO VendorPayments(ts,vendor_id,transaction_type,amount,rep_id,transaction_notes,is_update,is_paid,transaction_title,original_due_date,current_due_date,z_date,amount_due,depository_id,transaction_date) ";
+                            sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@0,@0,@0,@9,@10,@11)";
+                            db.Execute(sqlSelect, local_time, vendor_id, 2, amount, rep_id, payment_notes, 1, 0, transaction_title, amount * -1, depository_id, payment_date);
+                            Payments.ApplyVendorPayment(vendor_id);
+
+                            sqlSelect = "UPDATE depositories SET depository_amount=depository_amount+@0 WHERE serial=@1";
+                            db.Execute(sqlSelect, amount, depository_id);
+
+                            logMsg = "התקבלה הפקדה מאת " + vendor_name;
+
+                            sqlSelect = "INSERT INTO DepositoryLog(depository_id,rep_id,entry,timestamp,amount) VALUES(@0,@1,@2,@3,@4)";
+                            db.Execute(sqlSelect, depository_id, rep_id, logMsg, local_time, amount);
+
+
+
+                            theHtmlOutput = "התשלום דווח בהצלחה!";
+                            logMsg = theHtmlOutput;
+                            // AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                        }
+                        else
+                        {
+                            theHtmlOutput = "!$!" + theHtmlOutput;
+                        }
+                    }
+
+                    break;
+
+                case 2:
+                case 3:
+                    if (true)
+                    {
+                        decimal amount = 0; try { amount = Convert.ToDecimal(Request["amount"]); } catch { }
+                        DateTime transaction_date = local_time; try { transaction_date = Convert.ToDateTime(Request["transaction_date"]); } catch { }
+                        string transaction_notes = Request["transaction_notes"];
+                        string transaction_title = Request["transaction_title"];
+                        int transaction_type = 1;
+                        decimal amount_due = amount;
+                        if (amount <= 0)
+                        {
+                            theHtmlOutput += "חובה להזין סכום פעולה תקין!<br>";
+                        }
+                        if (transaction_date > local_time)
+                        {
+                            theHtmlOutput += "חובה להזין תאריך פעולה תקין!<br>";
+                        }
+                        if (transaction_title == "")
+                        {
+                            theHtmlOutput += "חובה להזין תאור לפעולה!<br>";
+                        }
+
+                        if (theHtmlOutput == "")
+                        {
+                            if (reqAction == 3)
+                            {
+                                transaction_type = 2;
+                                amount_due = amount * -1;
+                            }
+
+                            sqlSelect = "INSERT INTO VendorPayments(ts,vendor_id,transaction_type,amount,rep_id,transaction_notes,is_update,is_paid,transaction_title,original_due_date,current_due_date,z_date,amount_due,transaction_date) ";
+                            sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@0,@0,@0,@9,@10)";
+                            db.Execute(sqlSelect, local_time, vendor_id, transaction_type, amount, rep_id, transaction_notes, 1, 0, transaction_title, amount_due, transaction_date);
+                            Payments.ApplyVendorPayment(vendor_id);
+
+                            theHtmlOutput = "הפעולה נרשמה!";
+                            logMsg = theHtmlOutput;
+                            // AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                        }
+                        else
+                        {
+                            theHtmlOutput = "!$!" + theHtmlOutput;
+                        }
+
+                    }
+                    break;
+
+                default:
+                    theHtmlOutput = "!$!לא קרה כלום עם הזמנה #" + order_id;
+
+                    break;
+            }
+        }
+
+
+
+
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+    public static string AddDepository()
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int order_id = 0;
+        string depository_name = Request["value"];
+        string phone = Request["param1"];
+        string theHtmlOutput = "";
+        string logMsg = "";
+        int rep_id = WebSecurity.CurrentUserId;
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+
+        if (depository_name == "") { theHtmlOutput = "חובה להזין שם לקופה!<br>"; }
+
+        if (theHtmlOutput == "")
+        {
+            sqlSelect = "SELECT serial FROM depositories WHERE depository_name=@0";
+            var dupChk = db.QuerySingle(sqlSelect, depository_name);
+            if (dupChk != null)
+            {
+                theHtmlOutput = "קיימת כבר קופה בשם הזה!<br>";
+            }
+
+            if (theHtmlOutput == "")
+            {
+
+                sqlSelect = "INSERT INTO depositories (create_ts,created_by,depository_name,phone) VALUES(@0,@1,@2,@3)";
+                db.Execute(sqlSelect, local_time, rep_id, depository_name, phone);
+                theHtmlOutput = "הקופה נוצרה בהצלחה!<br>";
+            }
+        }
+
+
+
+
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+
+    public static string DepositoryAction()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+        DateTime local_time = AppFunctions.LocalTime();
+        string reqAction= Request["reqAction"];
+        string action_pw = Request["action_pw"];
+        string action_note = Request["action_note"];
+        string theHtmlOutput = "";
+        string logMsg = "";
+        int rep_id = WebSecurity.CurrentUserId;
+        int depository_id = 0; try { depository_id = Convert.ToInt32(Request["depository_id"]); } catch { }
+        decimal action_amount = 0; try { action_amount = Convert.ToDecimal(Request["action_amount"]); } catch { }
+        string log_entry = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        if (depository_id == 0)
+        {
+            theHtmlOutput += "!$!חובה לבחור קופה לפעולה!<br>";
+        }
+        else
+        {
+            if (reqAction == "delete")
+            {
+                string delPw = ""; try { delPw = AppFunctions.GetAppProperty("DepositoryDelPw"); } catch { }
+                if (delPw != action_pw)
+                {
+                    theHtmlOutput += "סיסמא שגויה!<br>";
+                }
+                else
+                {
+                    sqlSelect = "SELECT depository_amount FROM depositories WHERE serial=@0";
+                    var delChk = db.QuerySingle(sqlSelect, depository_id);
+                    if (delChk != null)
+                    {
+                        if (delChk.depository_amount != 0)
+                        {
+                            theHtmlOutput += "לא ניתן למחוק קופה שיש בה יתרה!<br>";
+                        }
+
+                    }
+
+                }
+
+                if (theHtmlOutput == "")
+                {
+                    sqlSelect = "UPDATE depositories SET is_deleted=1,is_active=0,delete_ts=@0,is_update=1,deleted_by=@1 WHERE serial=@2";
+                    db.Execute(sqlSelect, local_time, rep_id, depository_id);
+                    logMsg = "הקופה נמחקה!";
+                    sqlSelect = "INSERT INTO DepositoryLog(depository_id,rep_id,entry,timestamp,amount) VALUES(@0,@1,@2,@3,@4)";
+                    db.Execute(sqlSelect, depository_id, rep_id, logMsg, local_time, action_amount);
+                    theHtmlOutput = logMsg;
+                }
+                else
+                {
+                    theHtmlOutput = "!$!" + theHtmlOutput;
+                }
+
+            }
+            else
+            {
+                if (action_amount <= 0)
+                {
+                    theHtmlOutput += "נא להזין סכום תקין!<br>";
+
+                }
+                if (action_note == "")
+                {
+                    theHtmlOutput += "חובה להזין הערה לפעולה!<br>";
+                }
+
+                if (theHtmlOutput == "")
+                {
+                    if(reqAction== "withdrawal")
+                    {
+
+                        sqlSelect = "SELECT depository_amount FROM depositories WHERE serial=@0";
+                        var balanceChk = db.QuerySingle(sqlSelect, depository_id);
+                        if (balanceChk != null)
+                        {
+                            if(balanceChk.depository_amount < action_amount)
+                            {
+                                theHtmlOutput += "לא ניתן למשוך מעל "+ balanceChk.depository_amount.ToString("C",culture) + "!<br>";
+                                theHtmlOutput = "!$!" + theHtmlOutput;
+
+                            }
+                            action_amount = action_amount * -1;
+                        }
+
+
+                    }
+                    if (theHtmlOutput == "")
+                    {
+                        sqlSelect = "UPDATE depositories SET is_update=1,depository_amount=depository_amount+@0 WHERE serial=@1";
+                        db.Execute(sqlSelect, action_amount, depository_id);
+
+                        sqlSelect = "INSERT INTO DepositoryLog(depository_id,rep_id,entry,timestamp,amount) VALUES(@0,@1,@2,@3,@4)";
+                        db.Execute(sqlSelect, depository_id, rep_id, action_note, local_time, action_amount);
+                        theHtmlOutput =  "הפעולה נרשמה!";
+                    }
+                }
+                else
+                {
+                    theHtmlOutput = "!$!" + theHtmlOutput;
+                }
+
+            }
+
+        }
+
+
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+    public static void ApplyVendorPayment(int vendor_id)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT * FROM vendorpayments WHERE transaction_type=2 AND is_paid=0 AND vendor_id=@0 ORDER BY serial";
+        var PaymentsToApply = db.Query(sqlSelect, vendor_id);
+        foreach (var payment in PaymentsToApply)
+        {
+            decimal payment_amount = payment.amount_due * -1;
+            sqlSelect = "SELECT serial,amount_due FROM vendorpayments WHERE transaction_type=1 AND is_paid=0 AND vendor_id=@0 ORDER BY serial";
+            var DebtsToPay = db.Query(sqlSelect, vendor_id);
+            foreach (var debt in DebtsToPay)
+            {
+                bool is_paid = true;
+                decimal debt_amount = debt.amount_due;
+
+                if (payment_amount >= debt_amount)
+                {
+
+                    payment_amount = payment_amount - debt_amount;
+                    debt_amount = 0;
+
+                }
+                else
+                {
+
+                    is_paid = false;
+                    debt_amount = debt_amount - payment_amount;
+                    payment_amount = 0;
+
+                }
+                sqlSelect = "UPDATE vendorpayments SET payment_ts=@0,marked_paid_by=@1,amount_due=@2,is_paid=@3 WHERE serial=@4";
+                db.Execute(sqlSelect, local_time, rep_id, debt_amount, is_paid, debt.serial);
+
+
+            }
+
+            var no_balance = false;
+            if (payment_amount == 0)
+            {
+                no_balance = true;
+            }
+
+            sqlSelect = "UPDATE vendorpayments SET payment_ts=@0,marked_paid_by=@1,amount_due=@2,is_paid=@3 WHERE serial=@4";
+            db.Execute(sqlSelect, local_time, rep_id, payment_amount * -1, no_balance, payment.serial);
+
+            decimal vendor_debt = Payments.VendorDebt(vendor_id);
+            sqlSelect = "UPDATE vendors SET debt=@0 WHERE vendor_id=@1";
+            db.Execute(sqlSelect, vendor_debt, vendor_id);
+            DataFunctions.WriteDebugLine("vendor_debt " + vendor_debt);
+        }
+
+        db.Close();
+
+    }
+
+    public static decimal VendorDebt(int vendor_id = 0)
+    {
+        decimal DueDebt = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT SUM(amount_due) as DueDebt FROM vendorpayments WHERE is_paid=0";
+
+        if (vendor_id > 0) { sqlSelect += " AND vendor_id=@1"; }
+
+        var dueDebt = db.QuerySingle(sqlSelect, local_time, vendor_id);
+        DueDebt = 0; try { DueDebt = dueDebt.DueDebt; } catch { }
+
+        db.Close();
+
+        return DueDebt;
+    }
+
+
+
+    public static decimal funcSamp(int vendor_id = 0)
+    {
+        decimal debt = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        db.Close();
+
+        return debt;
+    }
+
+}

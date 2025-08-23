@@ -1,0 +1,3280 @@
+﻿@helper RoundBoard(int round_id, string showWhat = "ALL", int requested_z_id = 0, int requested_delivery_id = 0)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    var u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+    var db = WebMatrix.Data.Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime defTime = Convert.ToDateTime("1/1/1900");
+    DateTime z_date = Convert.ToDateTime("1/1/1900");
+    DateTime order_close_hour = Convert.ToDateTime("1/1/1900");
+    DateTime round_start = Convert.ToDateTime("1/1/1900");
+
+    dynamic deliveries = null;
+    dynamic requested_delivery = null;
+    dynamic active_delivery = null;
+
+    int main_z_id = 0;
+    int active_z_serial = 0;
+    int active_delivery_id = 0;
+    int z_id = 0;
+    bool is_active_z = false;
+    bool is_open_for_orders = false;
+
+    int round_type = 0;
+    bool is_express = false;
+    bool is_pickup = false;
+    bool is_route = false;
+    string round_type_title = "";
+    string viewTitle = "";
+    string viewTitleColor = "#57d600";
+    string title_bar_bg_color = "#000";
+    string sub_title_bar_bg_color = "yellow";
+    string round_start_time_bg_color = "";
+
+
+
+    sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
+    var round_info = db.QuerySingle(sqlSelect, round_id);
+    try { round_type = round_info.round_type; } catch { }
+
+    if (round_type == 1)
+    {
+        //   tmpit.InitRoundDeliveries(round_id);
+        //   round_info = db.QuerySingle(sqlSelect, round_id);
+    }
+
+    try { is_open_for_orders = round_info.is_open_for_orders; } catch { }
+    try { is_express = round_info.is_express; } catch { }
+    try { is_pickup = round_info.is_pickup; } catch { }
+    try { is_route = round_info.is_route; } catch { }
+
+    try { main_z_id = round_info.main_z_id; } catch { }
+    try { active_z_serial = round_info.z_serial; } catch { }
+
+    sqlSelect = "SELECT TOP(1) * FROM ZREPORTS WHERE serial=@0 ORDER BY z_date DESC";
+    var ActiveZ = db.QuerySingle(sqlSelect, active_z_serial);
+    if (ActiveZ != null)
+    {
+        is_active_z = true;
+    }
+
+
+    if (round_type == 1)
+    {
+        is_route = true;
+        is_express = false;
+        is_pickup = false;
+
+        try { active_delivery_id = round_info.active_delivery_id; } catch { }
+
+
+        if (requested_delivery_id > 0)
+        {
+            sqlSelect = "SELECT scheduled_start,order_close_hour FROM deliveries WHERE serial=@0";
+            requested_delivery = db.QuerySingle(sqlSelect, requested_delivery_id);
+
+        }
+        if (active_delivery_id > 0)
+        {
+            sqlSelect = "SELECT scheduled_start,order_close_hour FROM deliveries WHERE serial=@0";
+            active_delivery = db.QuerySingle(sqlSelect, active_delivery_id);
+        }
+
+
+        if (active_delivery != null)
+        {
+            try { order_close_hour = active_delivery.order_close_hour; } catch { }
+            try { round_start = active_delivery.scheduled_start; } catch { }
+        }
+        else
+        {
+            active_delivery_id = 0;
+        }
+
+        sqlSelect = "SELECT serial,scheduled_start,order_close_hour,z_serial,main_z_id,has_started FROM deliveries WHERE z_serial=@0 OR (z_serial<=0 AND round_id=@1) ORDER BY scheduled_start";
+        deliveries = db.Query(sqlSelect, active_z_serial, round_id);
+
+    }
+
+
+
+
+
+    round_type_title = NewAppFunctions.GetRoundTypeTitleById(round_type);
+
+
+    bool is_sorted = false;
+    is_sorted = round_info.is_sorted;
+
+    //  showWhat = "ALL";
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND  z_serial=@0   AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    var CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=-3  AND order_status<1 AND  z_serial=@0 AND  round_id = @1  "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id, local_time);
+    int new_orders_counter = 0;
+    try { new_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=4  AND order_status<=6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+    int in_proc_orders_counter = 0;
+    try { in_proc_orders_counter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=1  AND order_status<=3 AND  z_serial=@0 AND  round_id = @1  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3)"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id, local_time, active_delivery_id);
+    int in_prep_orders_counter = 0;
+    try { in_prep_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=1  AND order_status<=3 AND  z_serial=@0 AND  round_id = @1   AND packing_trouble_flag=1"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id, local_time, active_delivery_id);
+    int packing_issues_orders_counter = 0;
+    try { packing_issues_orders_counter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=9 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+    int completed_orders_counter = 0;
+    try { completed_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+    int cancelled_orders_counter = 0;
+    try { cancelled_orders_counter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+    int vendor_cancelled_orders_counter = 0;
+    try { vendor_cancelled_orders_counter = CntRs.the_cnt; } catch { }
+
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND order_status>0  "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id, local_time);
+    int today_orders_counter = 0;
+    try { today_orders_counter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND  round_id = @1 AND CAST(requested_delivery_date AS DATE)>CAST(@2 AS DATE)"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id, local_time);
+    int future_orders_counter = 0;
+    try { future_orders_counter = CntRs.the_cnt; } catch { }
+
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+    int awaiting_vendor_approval_orders_counter = 0;
+    try { awaiting_vendor_approval_orders_counter = CntRs.the_cnt; } catch { }
+
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE  is_cancelled=0 AND order_type='ROUND' AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND order_status>=-1 AND order_status<=3 ";
+    CntRs = db.QuerySingle(sqlSelect, active_z_serial, round_id, local_time);
+    int unAssignedOrdersCounter = 0;
+    try { unAssignedOrdersCounter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM MainOrders WHERE is_cancelled=0 AND delivery_id=@0  AND delivery_id>0 "; // order by is_approved, order_id DESC";
+    var current_orders = db.QuerySingle(sqlSelect, active_delivery_id);
+    int delivery_orders_counter = 0; try { delivery_orders_counter = current_orders.the_cnt; } catch { }
+
+
+
+    if (showWhat == "")
+    {
+        if (round_type == 1)
+        {
+            showWhat = "DELIVERY";
+            requested_delivery_id = active_delivery_id;
+
+            if (new_orders_counter > 0)
+            {
+                showWhat = "NEW";
+                requested_delivery_id = 0;
+            }
+            if (unAssignedOrdersCounter > 0)
+            {
+                showWhat = "NODELIVERY";
+                requested_delivery_id = 0;
+            }
+
+        }
+        else
+        {
+            showWhat = "ACTIVE";
+        }
+
+
+
+
+    }
+
+    sqlSelect = "SELECT top(200)  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE ";
+    switch (showWhat)
+    {
+
+        case "NEW":
+            sqlSelect += " is_cancelled=0 AND  MainOrders.z_serial=@0 AND  round_id = @1 AND order_status>=-3 AND order_status<1  ORDER BY envelope_id,order_status,order_id "; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות חדשות";
+            viewTitleColor = "#fff";
+            sub_title_bar_bg_color = "#57d600";
+            break;
+
+
+        case "ACTIVE":
+            sqlSelect += " is_cancelled=0 AND is_postponed=0 AND  MainOrders.z_serial=@0  AND  round_id = @1 ORDER BY envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות פעילות";
+            viewTitleColor = "#57d600";
+            sub_title_bar_bg_color = "#fff";
+
+            break;
+
+
+        case "DELIVERY":
+            sqlSelect += " is_cancelled=0 AND  MainOrders.z_serial=@0 AND  round_id = @1 AND delivery_id=@3  ORDER BY envelope_id,order_status,order_id "; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות במשלוח של " + AppFunctions.FormatRelativeDate(order_close_hour) + " בשעה " + order_close_hour.ToString("HH:mm");
+            viewTitleColor = "#fff";
+            sub_title_bar_bg_color = "#57d600";
+
+            break;
+
+        case "FUTURE":
+            sqlSelect += " is_cancelled=0 AND  (MainOrders.z_serial=@0 OR MainOrders.z_serial<=0)   AND  round_id = @1 AND CAST(requested_delivery_date AS DATE)>CAST(@2 AS DATE) ORDER BY requested_delivery_date, order_status,envelope_id,order_id"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות עתידיות";
+            break;
+
+        case "PROC":
+            sqlSelect += " is_cancelled=0 AND  MainOrders.z_serial=@0   AND  round_id = @1  AND order_status>=4 AND order_status<=6   ORDER BY envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "בתהליך אספקה";
+
+            break;
+
+        case "COMPLETED":
+            sqlSelect += " is_cancelled=0 AND  MainOrders.z_serial=@0   AND  round_id = @1  AND order_status>=9  ORDER BY envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שבוצעו";
+
+            break;
+        case "CANCELLED":
+            sqlSelect += "  is_cancelled=1 AND  MainOrders.z_serial=@0   AND  round_id = @1 ORDER BY envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שבוטלו";
+            break;
+
+        case "NODELIVERY":
+            sqlSelect += " is_cancelled=0 AND delivery_id<=0 AND MainOrders.z_serial=@0   AND  round_id = @1 AND order_status>=-3 ORDER BY envelope_id,delivery_id,order_status,order_id"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שלא משובצות למשלוח";
+            viewTitleColor = "#fff";
+            sub_title_bar_bg_color = "#f00";
+            break;
+
+        case "ALL":
+            sqlSelect += " is_cancelled=0 AND  MainOrders.z_serial=@0  AND  round_id = @1 ORDER BY envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "כל ההזמנות";
+
+            break;
+
+        case "VENDOR":
+            sqlSelect += " order_status=-6 AND  (MainOrders.z_serial=@0 OR MainOrders.z_serial=0) AND  round_id = @1 ORDER BY envelope_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "ביטולי ספק";
+            break;
+    }
+
+    var order_data = db.Query(sqlSelect, active_z_serial, round_id, local_time, requested_delivery_id);
+    int orders_counter = 0;
+    orders_counter = order_data.Count();
+
+
+
+    var title = round_info.title;
+    decimal round_total = 0; try { round_total = Convert.ToInt32(NewAppFunctions.GetRoundTotalOrdersSum(round_id, z_id)); } catch { }
+
+    string orders_counter_text = "🤩  " + orders_counter + " הזמנות פעילות";
+    if (showWhat == "CANCELLED")
+    {
+        orders_counter_text = "⛔  " + orders_counter + " הזמנות שבוטלו";
+        viewTitleColor = "#f00";
+    }
+
+    string tmpOrdersList = "";
+    //new code
+    int tableColSpan = 8;
+
+    bool is_multi_select_mode = false;
+
+    <input type="hidden" name="round_id" id="round_id" value="@round_id">
+    <input type="hidden" name="board_round_id" id="board_round_id" value="@round_id">
+    <input type="hidden" id="board_show_what" name="board_show_what" value="@showWhat" />
+
+    <input type="hidden" name="cur_record" id="cur_record" value="0">
+    <input type="hidden" name="IsInline" id="IsInline" value="1">
+    <div style="text-align: right;font-size: 16px;width: 100%;height: 100%;overflow: auto;background-color:#fff">
+        <div style="position: fixed;display: none;z-index: 500000;width: 100%;height: 100%;background-color: #e3e3e3;opacity: 0.5;text-align: center;" id="RoundBoardLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        <div style="max-height: 95%;overflow: auto;">
+
+            <div class="B">
+                <div style="overflow: auto;">
+                    <div style="overflow: auto;background-color: @title_bar_bg_color;color: #fff;padding: 5px;">
+                        <div style="float: right">
+
+                            <div class="RoundBoardTitleBarButton" style="display:none" onclick="Accordionize('RoundOptionsAcc');">⚙️</div>
+                            <div class="RoundBoardTitleBarButton" onclick="PageNavigator('ROUNDBOARD',@round_id,false,'MAIN');">🏠</div>
+                            <div class="RoundBoardTitleBarButton" onclick="sbload('GenSb','Caller?p1=RoundCP&p2=@round_id');AdjustMainView();">⚙️</div>
+                            <div class="RoundBoardTitleBarButton" onclick="sbload('GenSb','RepCaller?p1=AddOrder&p2=@round_id');AdjustMainView();">➕</div>
+
+                        </div>
+
+                        <div style="float: right">
+                            <div class="B" style="font-size: 28px;" id="RoundMainTitle">
+                                <b>@round_info.title  <span style="color:@viewTitleColor;font-size:20px;display:none">@viewTitle</span></b> <span class="WhiteMiniTag"> @round_type_title #@round_id</span>
+                            </div>
+                            <div class="B" style="font-size: 28px; color:yellow;display:none;" id="deliveriesTitle">
+                                <b>@round_info.title ניהול משלוחים </b> <span class="WhiteMiniTag"> @round_type_title #@round_id</span>
+                            </div>
+                        </div>
+
+
+
+
+
+                        <div style="font-size: 30px;float: left">
+
+
+                            <span class="RoundBoardToolTipBox" style="float: left;" id="SelectZDateDiv">
+                                <span style="float:left">📄</span><span><b> Z#@main_z_id</b></span> <span class="MiniTag">@ActiveZ.z_date.ToShortDateString()</span>
+                            </span>
+                            <span class="RoundBoardToolTipBox" style="float: left;">💰 @round_total.ToString("C", culture)</span>
+                            <span class="RoundBoardToolTipBox" style=" float: left;" onclick="sbload('GenSb','Caller?p1=ZREPORT&p2=@active_z_serial');AdjustMainView();">📋</span>
+
+
+
+                            <div class="RoundBoardTitleBarButton" style="float: left;" onclick="RepAjaxUpdate('ROUNDLOG',  'round_board_container', 'MainLoader', @round_id);">📜 </div>
+                            @if (round_type == 1)
+                            {
+
+                                <div class="RoundBoardTitleBarButton">
+
+                                    📦 אריזה
+                                    @if (packing_issues_orders_counter > 0)
+                                    {
+                                        <span style="float:left;background-color:#f00;color:yellow;padding:2px"><b>@packing_issues_orders_counter</b></span>
+                                    }
+
+                                </div>
+                                <div class="RoundBoardTitleBarButton" style="display:none " onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, 0); hideElement('RoundMainTitle'); showElement('deliveriesTitle');">
+                                    <b>🚚 משלוחים</b>
+
+                                </div>
+
+                            }
+                            @if (round_type == 4)
+                            {
+                                string expressAvailabilityBgColor = "white;";
+                                string pickupAvailabilityBgColor = "white;";
+                                if (is_express) { expressAvailabilityBgColor = "#57d600;"; }
+                                if (is_pickup) { pickupAvailabilityBgColor = "#57d600;"; }
+                                <div class="RoundBoardTitleBarButton" style="background-color: @expressAvailabilityBgColor;">🛵</div>
+                                <div class="RoundBoardTitleBarButton" style="background-color: @pickupAvailabilityBgColor; ">🏠</div>
+                            }
+
+                        </div>
+
+
+                        <div class="B" style="padding: 0; margin: 0; background-color: #000; text-align: center; float: left">
+
+
+                            @if (!is_active_z)
+                            {
+                                <span style="background-color: #fff;color: #000;padding: 5px;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;">
+                                    <span style="color:#ff6a00"><b>אין Z פעיל! </b></span>
+                                </span>
+
+
+                            }
+
+
+                            <div class="B" style="float:left">
+
+                                @if (vendor_cancelled_orders_counter > 0)
+                                {
+                                    <span class="RoundBoardToolTipBox" style="color: #f00; float: left" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'VENDOR', '@z_id');">
+                                        😞 @vendor_cancelled_orders_counter
+                                    </span>
+                                }
+
+
+
+                                @if (future_orders_counter > 0)
+                                {
+                                    <span class="RoundBoardToolTipBox" style="float:left" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'FUTURE', '@z_id');">
+                                        🌎 @future_orders_counter
+                                    </span>
+                                }
+
+                                @if (completed_orders_counter > 0)
+                                {
+                                    <span class="RoundBoardToolTipBox" style="float:left" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'COMPLETED', '@z_id');">
+                                        ✅ @completed_orders_counter
+                                    </span>
+                                }
+
+                                @if (cancelled_orders_counter > 0)
+                                {
+                                    <span class="RoundBoardToolTipBox" style="float:left" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'CANCELLED', '@z_id');">
+                                        ⛔ @cancelled_orders_counter
+                                    </span>
+                                }
+
+                            </div>
+
+
+
+
+                        </div>
+
+
+
+
+                    </div>
+                    @if (round_type == 1)
+                    {
+                        string newOrdersViewClass = "RoundBoardDeliveryTipBox";
+                        string unAssignedOrdersViewClass = "RoundBoardDeliveryTipBox";
+                        if (showWhat == "NODELIVERY") { unAssignedOrdersViewClass = "RoundBoardSelectedView"; }
+                        if (showWhat == "NEW") { newOrdersViewClass = "RoundBoardSelectedView"; }
+
+                        <div style="overflow: auto;background-color: @title_bar_bg_color;color: #fff;vertical-align:bottom">
+                            <div class="B" style="float:right;">
+                                <span class="@newOrdersViewClass" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'NEW', '@z_id');">
+                                    💫 @new_orders_counter
+                                </span>
+                                @if (unAssignedOrdersCounter > 0)
+                                {
+                                    <span class="@unAssignedOrdersViewClass" style="color:#f00;float:right;" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'NODELIVERY', '@z_id');">
+                                        ⛓️‍💥 @unAssignedOrdersCounter
+                                    </span>
+                                }
+
+
+                                <div class="B" style="float: right;display:none ">
+                                    <span class="RoundBoardToolTipBox" style="color:@round_start_time_bg_color;float:left;" onclick="hideElement('viewRoundStartDiv'); showElement('changeRoundStartDiv');">
+                                        🕒 @order_close_hour.ToString("HH:mm") <span style="font-size:11px;">@AppFunctions.FormatRelativeDate(order_close_hour)</span>
+                                    </span>
+
+                                    <span style="display: none; float: left;">
+                                        <span style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; float: left; margin: 5px; margin-right: 1px; margin-left: 1px" onclick="AjaxActions('UpdateRoundScheduledDelivery', '@round_id', 'MainLoader', document.getElementById('order_close_hour').value);">
+                                            <span style="color:#ff6a00">✔️</span>
+                                        </span>
+                                        <span style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; float: left; margin: 5px; margin-right: 1px; margin-left: 1px" onclick="hideElement('changeRoundStartDiv');showElement('viewRoundStartDiv');">
+                                            <span style="color:#ff6a00">❌</span>
+                                        </span>
+                                        <span style="background-color: #fff;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;margin-right:1px;margin-left:1px">
+                                            <input type="time" style="padding:5px;font-size:16px;border:0;direction:rtl;font-weight:bold;" id="order_close_hour" name="order_close_hour" value="@round_info.order_close_hour.ToString("HH:mm")">
+                                        </span>
+                                    </span>
+                                </div>
+
+
+                                @foreach (var dlvry in deliveries)
+                                {
+
+                                    if (dlvry != null)
+                                    {
+                                        try { order_close_hour = dlvry.order_close_hour; } catch { }
+                                        try { round_start = dlvry.scheduled_start; } catch { }
+                                    }
+
+
+                                    if (order_close_hour > local_time)
+                                    {
+                                        round_start_time_bg_color = "#57d600";
+                                    }
+                                    else
+                                    {
+                                        round_start_time_bg_color = "#f00";
+                                    }
+
+                                    bool has_started = dlvry.has_started;
+
+                                    int orders_in_delivery = 0;
+                                    string delivery_class = "RoundBoardFutureDelivery";
+                                    string delivery_order_counter_class = "RoundBoardOrdersDeliveryCounter";
+                                    string active_delivery_icon = "";
+                                    sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM MainOrders WHERE delivery_id=@0 AND is_cancelled=0";
+                                    var ordersCnt = db.QuerySingle(sqlSelect, dlvry.serial);
+                                    try { orders_in_delivery = ordersCnt.the_cnt; } catch { }
+                                    if (orders_in_delivery == 0)
+                                    {
+                                        delivery_order_counter_class = "RoundBoardNoOrdersDeliveryCounter";
+                                    }
+
+                                    DateTime delivery_order_close_hour = dlvry.order_close_hour;
+                                    round_start_time_bg_color = "#57d600";
+                                    if (delivery_order_close_hour < local_time)
+                                    {
+                                        delivery_class = "RoundBoardPastDelivery";
+                                    }
+                                    if (dlvry.serial == active_delivery_id)
+                                    {
+                                        active_delivery_icon = "⭐";
+                                    }
+
+                                    if (has_started)
+                                    {
+                                        active_delivery_icon = "🚚";
+                                        delivery_class = "RoundBoardInTransitDelivery";
+                                    }
+
+                                    if (dlvry.serial == requested_delivery_id)
+                                    {
+
+                                        delivery_class = "RoundBoardSelectedView";
+                                    }
+
+                                    <span class="@delivery_class">
+
+                                        <span style="float: right; margin-left: 10px;padding-left:5px;padding-right:5px;border-left:1px dashed #000" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, @dlvry.serial);">
+                                            ⚙️
+                                        </span>
+
+                                        <span style="float:left" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'DELIVERY', '@z_id', @dlvry.serial);">
+                                            @active_delivery_icon
+                                            @delivery_order_close_hour.ToString("HH:mm") <span style="font-size:11px;">@AppFunctions.FormatRelativeDate(delivery_order_close_hour)</span>
+                                            <span class="@delivery_order_counter_class">@orders_in_delivery</span>
+                                        </span>
+
+
+                                    </span>
+
+                                    <span class="@delivery_class" style="display:none" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, @dlvry.serial);">
+                                        <span class="@delivery_order_counter_class">@orders_in_delivery</span>
+                                        @delivery_order_close_hour.ToString("HH:mm") <span style="font-size:11px;">@AppFunctions.FormatRelativeDate(delivery_order_close_hour)</span>
+
+                                    </span>
+
+                                }
+
+
+
+                            </div>
+                            @if (order_close_hour < local_time || active_delivery_id == 0)
+                            {
+
+                                string tmp_date = "";
+                                tmp_date = defTime.ToShortDateString() + " " + local_time.ToString("HH:mm");
+
+                                round_start = Convert.ToDateTime(tmp_date);
+                                DateTime next_scheduled_launch = defTime;
+
+                                int schedule_id = 0;
+
+                                int curDayOfWeek = 0;
+                                curDayOfWeek = ((int)local_time.DayOfWeek);
+                                sqlSelect = "SELECT Top(1) * FROM RoundsSchedules WHERE round_id=@0 AND ((dayOfWeek=@1 AND round_start>@2) OR dayOfWeek>@1 )  ORDER BY dayOfWeek";
+                                var next_schedule = db.QuerySingle(sqlSelect, round_id, curDayOfWeek, round_start);
+                                if (next_schedule == null)
+                                {
+                                    sqlSelect = "SELECT Top(1) * FROM RoundsSchedules WHERE round_id=@0 AND dayOfWeek>=0  ORDER BY dayOfWeek";
+                                    next_schedule = db.QuerySingle(sqlSelect, round_id);
+                                }
+
+                                if (next_schedule != null)
+                                {
+                                    schedule_id = next_schedule.schedule_id;
+                                    next_scheduled_launch = AppFunctions.GetDateOfNextDayOfWeek(next_schedule.dayOfWeek);
+                                    next_scheduled_launch = Convert.ToDateTime(next_scheduled_launch.ToShortDateString() + " " + next_schedule.round_start.ToString("HH:mm"));
+                                }
+
+                                <span class="RoundBoardAddDeliveryBtn" id="AddDeliveryBtn" onclick="hideElement('AddDeliveryBtn');showElement('AddDeliveryDiv');">🚚 יצירת משלוח חדש</span>
+
+                                <div class="B" id="AddDeliveryDiv" style="float: right;display:none;background-color:#e3e3e3 ">
+                                    <div class="B" style="text-align:center" id="ScheduledDeliveryDiv">
+                                        <div class="B" style="float:right;padding:5px;color:#000">👈 יצירת משלוח חדש</div>
+                                        <div class="B" style="float: right;">
+                                            <select id="selected_schedule_id" name="selected_schedule_id" class="A" style="margin: 0;" onchange="if (this.value == '-1') { hideElement('ScheduledDeliveryDiv'); showElement('CustomDeliveryDiv'); } else {hideElement('CustomDeliveryDiv'); showElement('ScheduledDeliveryDiv'); };">
+                                                <option value="0">נא לבחור מועד..</option>
+                                                @if (next_schedule != null)
+                                                {
+                                                    schedule_id = next_schedule.schedule_id;
+                                                    <option value="@schedule_id">@AppFunctions.FormatRelativeDate(next_scheduled_launch) @next_scheduled_launch.ToString("HH:mm") (יום @AppFunctions.DayOfWeekTxt(next_schedule.dayOfWeek))</option>
+                                                }
+                                                <option value="-1">מועד אחר</option>
+                                            </select>
+                                        </div>
+
+
+                                        <div class="B" style="float:right;">
+                                            <button class="A" style="margin:0;" onclick="hideElement('AddDeliveryDiv'); showElement('AddDeliveryBtn'); ">❌</button>
+                                        </div>
+                                        <div class="B" style="float:right;">
+                                            <button class="A" style="margin:0;" onclick="AjaxActions('CreateNewDeliveryInRound', '@round_id', 'MainLoader', document.getElementById('new_delivery_date').value,document.getElementById('new_delivery_time').value,document.getElementById('selected_schedule_id').value);">✔️</button>
+                                        </div>
+
+
+                                    </div>
+
+                                    <div class="B" style="text-align:center;display:none" id="CustomDeliveryDiv">
+                                        <div class="B" style="float:right;padding:5px;color:#000">👈 יצירת משלוח חדש</div>
+                                        <div class="B" style="float:right;">
+                                            <div class="B" style="float:right;">
+                                                <input type="date" id="new_delivery_date" class="A" style="margin: 0; float: right;" value="@local_time.Date.ToString("yyyy-MM-dd")" />
+                                            </div>
+                                            <div class="B" style="float:right;">
+                                                <input type="time" id="new_delivery_time" class="A" style="margin: 0; float: right;" />
+                                            </div>
+                                            <div class="B" style="float:right;">
+                                                <button class="A" style="margin:0;" onclick="hideElement('CustomDeliveryDiv'); showElement('ScheduledDeliveryDiv'); ">❌</button>
+                                            </div>
+                                            <div class="B" style="float:right;">
+                                                <button class="A" style="margin:0;" onclick="AjaxActions('CreateNewDeliveryInRound', '@round_id', 'MainLoader', document.getElementById('new_delivery_date').value,document.getElementById('new_delivery_time').value,document.getElementById('selected_schedule_id').value);">✔️</button>
+                                            </div>
+                                        </div>
+
+
+
+
+
+                                    </div>
+
+                                    <span class="RoundBoardToolTipBox" id="viewRoundStartDiv" style="color:@round_start_time_bg_color;float:left;display:none" onclick="hideElement('viewRoundStartDiv'); showElement('changeRoundStartDiv');">
+                                        🕒 @order_close_hour.ToString("HH:mm") <span style="font-size:11px;">@AppFunctions.FormatRelativeDate(order_close_hour)</span>
+                                    </span>
+
+                                    <span style="display: none; float: left;" id="changeRoundStartDiv">
+                                        <span class="RoundBoardAddDeliveryActionBtn" onclick="AjaxActions('UpdateRoundScheduledDelivery', '@round_id', 'MainLoader', document.getElementById('order_close_hour').value);">
+                                            <span style="color:#ff6a00">✔️</span>
+                                        </span>
+                                        <span class="RoundBoardAddDeliveryActionBtn" onclick="hideElement('AddDeliveryDiv');showElement('AddDeliveryBtn');">
+                                            <span style="color:#ff6a00">❌</span>
+                                        </span>
+                                        <span style="background-color: #fff;font-size: 16px;border-radius: 5px;border: 1px solid #57d600;float: left;margin: 5px;margin-right:1px;margin-left:1px">
+                                            <input type="time" style="padding:5px;font-size:16px;border:0;direction:rtl;font-weight:bold;" id="order_close_hour" name="order_close_hour" value="@round_info.order_close_hour.ToString("HH:mm")">
+                                        </span>
+                                    </span>
+                                </div>
+
+                            }
+                        </div>
+                    }
+
+                </div>
+                <div style="overflow:auto;">
+                    <button class="Accordion" id="RoundOptionsAcc" style="display:none"></button>
+                </div>
+            </div>
+
+
+
+            <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #808080 " id="round_board_container">
+                <center>
+                    @if (orders_counter == 0)
+                    {
+                        <div class="B" style="width:100%; background-color: #e3e3e3; direction: rtl; color: #808080;">
+                            <h2>אין @viewTitle</h2>
+                        </div>
+                    }
+                    else
+                    {
+
+                        <div class="B" style="width:100%; background-color: @sub_title_bar_bg_color; direction: rtl; color: @viewTitleColor;">
+
+                            <h2>@viewTitle</h2>
+                        </div>
+
+                        <table style="font-size: 16px; border-collapse: collapse; background-color: white;width:100% ">
+
+
+
+                            <tr style="overflow: auto;background-color: #808080;color: #57d600;font-size:18px;">
+                                <td class="header" style="width:100px;"></td>
+                                <td class="header" style="width:20px;"></td>
+
+                                <td class="header">התקבלה</td>
+                                <td class="header">שם</td>
+                                <td class="header">עיר</td>
+                                <td class="header">סטטוס</td>
+                                <td class="header"></td>
+
+                            </tr>
+
+
+
+                            @if (unAssignedOrdersCounter > 0 && showWhat == "NODELIVERY")
+                            {
+                                is_multi_select_mode = true;
+                                //      sqlSelect = "SELECT serial,scheduled_start FROM deliveries WHERE has_started=0 AND is_completed=0 AND round_id=@0 AND z_serial=@1 ORDER BY scheduled_start";
+                                //     deliveries = db.Query(sqlSelect, round_id, active_z_serial);
+
+
+                                <tr style="background-color:#e3e3e3;">
+                                    <td style="background-color:#000;border-bottom:1px solid #e3e3e3"></td>
+                                    <td>
+                                        <center>
+                                            <div class="A" style="text-align:center;background-color:#e3e3e3;">
+                                                <input type="checkbox" class="A" onclick="MiscActions('OrderSelector',this.checked); " />
+
+
+
+
+                                            </div>
+                                        </center>
+                                    </td>
+                                    <td colspan="999" style="text-align:right;background-color:#e3e3e3;vertical-align:middle">
+                                        <select class="A" style="float:left" onchange="AjaxActions('AddMultiOrdersToDelivery', document.getElementById('SelectedOrders').value, 'MainLoader', this.value,@round_id);">
+                                            <option value="">נא לבחור פעולה..</option>
+                                            @foreach (var delivery in deliveries)
+                                            {
+                                                bool has_started = delivery.has_started;
+
+                                                if (!has_started)
+                                                {
+                                                    DateTime scheduled_start = delivery.scheduled_start;
+                                                    <option value="@delivery.serial">הוספה למשלוח #@delivery.serial - @AppFunctions.FormatRelativeDate(scheduled_start) | @scheduled_start.ToString("HH:mm")</option>
+                                                }
+
+                                            }
+                                        </select>
+
+                                    </td>
+                                </tr>
+                            }
+
+                            <tr id="NewOrderContainer"></tr>
+                            @if (order_data.Count() != 0)
+                            {
+                                foreach (var order in order_data)
+                                {
+                                    string order_mode = "NEW";
+
+                                    if (order.order_status > 0)
+                                    {
+                                        tmpOrdersList += "##" + order.order_id + "##";
+                                    }
+                                    else
+                                    {
+                                        order_mode = "PRE";
+                                    }
+
+
+                                    @Order.RoundBoardEntry(order, order_mode, is_multi_select_mode)
+                                }
+                            }
+                            <tr>
+                                <td colspan="999" style="height: 50px; color: #808080;text-align:center">
+                                    <input type="hidden" id="SelectedOrders" name="SelectedOrders" />
+                                    <input type="hidden" id="AllViewableOrders" name="AllViewableOrders" value="@tmpOrdersList" />
+
+                                    -- סוף הרשימה --
+                                </td>
+                            </tr>
+                        </table>
+
+                    }
+
+
+
+
+                </center>
+
+            </div>
+
+
+        </div>
+
+
+        <div style="overflow:auto;height:250px;"></div>
+
+    </div>
+
+
+    db.Close();
+}
+
+@helper AddOrder(int round_id = 0)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+    var u_id = WebSecurity.CurrentUserId;
+    var db = WebMatrix.Data.Database.Open("op_data");
+
+
+    var sqlSelect = "";
+
+    <div style="border: 1px solid #808080; padding: 2px;overflow: auto;background-color: #000; font-size: 16px; color: #fff;">
+        <div style="overflow: auto;width: 100%;text-align: right;">
+            <div class="B">
+                <div class="B">
+                    <h2>יצירת הזמנה חדשה</h2>
+                </div>
+                <div class="A">
+                    <select class="A" style="width:90%" onchange="hideElement('reg_order_div');hideElement('return_order_div');hideElement('payment_order_div');showElement(this.value);">
+                        <option value="reg_order_div">הזמנה רגילה</option>
+                        <option value="return_order_div">החלפה / החזרה</option>
+                        <option value="payment_order_div">תשלום / משכורת / איסוף חוב / זיכוי כספי</option>
+                    </select>
+
+                    <div class="B" id="reg_order_div">
+                        <div class="B" style="color: #57d600; font-size: 18px;">
+                            כדי לצור הזמנה חדשה, נא לבחור לקוח
+                        </div>
+                        <input type="text" class="A" style="width:90%" placeholder="חיפוש כינוי / #ווטסאפ.." />
+                    </div>
+
+
+                    <div class="B" style="display:none" id="return_order_div">
+                        <div class="B" style="color: #ff6a00; font-size: 18px;">
+                            כדי לצור הזמנה להחלפה / החזרה, נא לבחור את ההזמנה הרלוונטית
+                        </div>
+                        <input type="text" class="A" style="width:90%" placeholder="חיפוש #הזמנה / כינוי / #ווטסאפ.." />
+                    </div>
+
+
+                    <div class="B" style="display:none" id="payment_order_div">
+                        <div class="B" style="color: yellow; font-size: 18px;">
+                            כדי לצור הזמנה תפעולית, נא לבחור את סוג ההזמנה הרלוונטי
+                        </div>
+                        <input type="text" class="A" style="width:90%" placeholder="חיפוש #הזמנה / כינוי / #ווטסאפ.." />
+                    </div>
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+        </div>
+    </div>
+
+
+    db.Close();
+}
+
+@helper OrderItemsReturn(int order_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+    var u_id = WebSecurity.CurrentUserId;
+    var db = WebMatrix.Data.Database.Open("op_data");
+
+
+    var sqlSelect = "SELECT * FROM MainOrders where order_id=@0";
+    var order_data = db.QuerySingle(sqlSelect, order_id);
+    if (order_data != null)
+    {
+        int order_status = order_data.order_status;
+        int round_id = order_data.round_id;
+        int member_id = order_data.u_id;
+
+        int returnable_days = 365;
+        returnable_days = -1 * returnable_days;
+        DateTime last_returnable_date = local_time.Date;
+        last_returnable_date = last_returnable_date.AddDays(returnable_days);
+
+        string round_title = "טרם נקבע"; try { round_title = AppFunctions.GetRoundTitleById(round_id); } catch { }
+        sqlSelect = "SELECT * FROM mainorders WHERE order_status>=10 AND u_id=@0 AND timestamp>@1 AND order_id<>@2 ORDER BY timestamp DESC";
+        sqlSelect = "SELECT * FROM mainorders WHERE  u_id=@0 AND timestamp>@1 AND order_id<>@2 ORDER BY timestamp DESC";
+        var ReturnableOrders = db.Query(sqlSelect, member_id, last_returnable_date, order_id);
+
+        <div style="border: 1px solid #808080; padding: 2px;overflow: auto;background-color: #808080; font-size: 16px; color: #fff;">
+            <input type="hidden" id="CurSelectedEntry" value="@order_id">
+            <div style="overflow: auto;width: 100%;text-align: right;">
+                <div class="B">
+                    <div class="B" style="float: right; margin-right: 20px;margin-top:5px;">
+                        <div class="B">
+                            @order_data.ship_reciepient, @order_data.ship_city
+                        </div>
+                        <div class="B">
+                            @round_title
+                        </div>
+                        <div class="B">
+                            <span class="YellowMiniTag">#@order_id @order_data.timestamp.ToString("HH:mm") @order_data.timestamp.ToShortDateString() </span>
+                        </div>
+                    </div>
+
+                </div>
+
+
+
+            </div>
+        </div>
+
+
+
+
+        <div class="B" style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080">
+            <center>
+                <div class="OrderSection" id="SelectOrderItemsForReturnDiv">
+                    <div class="OrderSectionTitle">
+                        <h2>החזרות והחלפות</h2>
+                    </div>
+                    <div class="B">
+                        <div class="A">נא לבחור את ההזמנה הרלוונטית</div>
+                        @foreach (var order in ReturnableOrders)
+                        {
+                            string short_round_title = NewAppFunctions.GetTitleById("Round_Short", order.round_id);
+                            <div class="B" style="border-bottom:1px dashed #ff6a00;font-size:14px;">
+                                <div class="A" style="float: right; font-size: 14px; ">
+                                    @order.order_id
+                                </div>
+                                <div class="A" style="float: right; font-size: 14px;">
+                                    @order.timestamp.ToShortDateString()
+                                </div>
+                                <div class="A" style="float: right; font-size: 14px;">
+                                    @short_round_title
+                                </div>
+                                <div class="A" style="float: right; font-size: 14px;">
+                                    @order.ship_city
+                                </div>
+                                <div class="A" style="float: right; font-size: 14px;">
+                                    @order.grand_total.ToString("C", culture)
+                                </div>
+                                <div class="A" style="float: left; font-size: 14px;">
+                                    <button type="button" style="padding:2px;font-size:14px;" onclick="RepAjaxUpdate('LoadOrderItemsForReturn', 'SelectOrderItemsForReturnDiv', 'MainLoader',@order.order_id,@order_id);">בחירה</button>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+
+
+
+
+                    <div class="A" id="SelectOrderItemsForReturnDiv34">
+
+                    </div>
+
+
+
+                </div>
+
+            </center>
+
+            <div style="overflow: auto;height: 200px;">&nbsp;</div>
+        </div>
+
+
+
+    }
+
+
+    db.Close();
+}
+
+@helper LoadOrderItemsForReturn(int order_id, int loading_order_id = 0)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+    var u_id = WebSecurity.CurrentUserId;
+    var db = WebMatrix.Data.Database.Open("op_data");
+
+
+    var sqlSelect = "SELECT * FROM orderitems WHERE order_id=@0 AND p_id>0";
+    var ReturnableItems = db.Query(sqlSelect, order_id);
+    sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+    var order = db.QuerySingle(sqlSelect, order_id);
+    string short_round_title = ""; try { short_round_title = NewAppFunctions.GetTitleById("Round_Short", order.round_id); } catch { }
+    string vendor_name = ""; try { vendor_name = NewAppFunctions.GetTitleById("Vendor", order.vendor_id); } catch { }
+    int round_id = order.round_id;
+
+    <div class="B">
+        <form id="ReturnSetupForm">
+            <input type="hidden" name="order_id" value="@order_id" />
+            <input type="hidden" name="round_id" value="@round_id" />
+            <input type="hidden" name="loading_order_id" value="@loading_order_id" />
+            <div class="OrderSection">
+                <div class="OrderSectionTitle">
+                    <h2 style="float:right">החזרה / זיכוי הזמנה</h2>
+                    <button type="button" style="padding:2px;font-size:14px;float:left;background:transparent;border:0" onclick="sbload('SubMenuLeft','Caller?p1=OrderItemsReturn&p2=@loading_order_id');">❌</button>
+
+                </div>
+                <div class="B" style="background-color:#e3e3e3">
+                    <div class="B">
+                        <div class="A" style="float: right; font-size: 14px; ">
+
+                            <div class="B" style="font-size: 14px; ">
+                                #@order.order_id
+
+                                <div class="B">
+                                    <span class="PrplMiniTag">@order.timestamp.ToShortDateString()</span>
+
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px;">
+
+                            <div class="B" style="font-size: 14px; ">
+                                @vendor_name
+                            </div>
+
+                            <div class="B">
+                                <span class="PrplMiniTag">@short_round_title</span>
+
+                            </div>
+
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px;">
+
+                            <div class="B" style="font-size: 14px; ">
+                                @order.ship_city
+                            </div>
+
+                            <div class="B">
+                                <span class="PrplMiniTag"> @order.grand_total.ToString("C", culture)</span>
+
+                            </div>
+
+                        </div>
+
+
+
+                    </div>
+
+
+                    <div class="B" style="background-color:white;border:2px solid #e3e3e3">
+                        <div class="B">
+                            <div class="A">@Order.ShowOrder(order_id)</div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="OrderSectionTitle">
+                    <div class="A"><h3>נא לבחור את הפריטים להחזרה / זיכוי<span class="RedMiniTag">*</span></h3></div>
+                </div>
+                <div class="B" style="width: 100%">
+                    <div class="ItemRow" id="itemRowNoReturn">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="checkbox" name="is_no_return" checked style="padding:5px;font-size:14px;display:none" />
+                            <input type="radio" name="return_items_scope" value="NONE" onclick="MiscActions('ResetItemsReturnView'); setElementClass('itemRowNoReturn', 'ItemRowSelected'); " />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            ללא החזרת פריטים
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="B" style="width: 100%">
+                    <div class="ItemRow" id="itemRowAll">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="radio" name="return_items_scope" value="ALL" onclick="MiscActions('ResetItemsReturnView'); setElementClass('itemRowAll','ItemRowSelected');" />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            החזרה של כל ההזמנה
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+                <div class="B" style="width: 100%">
+                    <input type="hidden" id="ItemsToReplace" name="ItemsToReplace" />
+
+
+                    <div class="ItemRow" id="itemRowSome">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="radio" name="return_items_scope" value="SOME" onclick="MiscActions('ResetItemsReturnView');setElementClass('itemRowSome','ItemRowSelected'); showElement('PartialReturnDiv');" />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            החזרת פריטים מסויימים
+                        </div>
+                    </div>
+                    <div class="B" style="width: 100%;">
+                        <div class="B" style="display: none;   border: 1px dotted #e3e3e3" id="PartialReturnDiv">
+                            @foreach (var item in ReturnableItems)
+                            {
+                                string ActionTypefldName = "ItemToReplaceAction_" + item.id + "_For_" + order_id;
+                                string QuanToReplacefldName = "tb_ItemToReplace_" + item.p_id + "_For_" + order_id;
+                                int special_id = 0; try { special_id = item.special_id; } catch { }
+
+
+                                decimal item_return_value = 0;
+                                <div class="ItemRow" id="itemRow_@item.id">
+                                    <div class="A" style="float: right; font-size: 14px;">
+                                        <input type="checkbox" style="padding:5px;font-size:14px;" onclick="let x = document.getElementById('ItemsToReplace'); if (this.checked) {document.getElementById('itemRow_@item.id').className = 'ItemRowSelected'; x.value += '##@item.id##'; showElement('quan_option_@item.id');showElement('ResultsDiv_@item.p_id'); } else {x.value= x.value.replace('##@item.id##',''); hideElement('quan_option_@item.id');hideElement('ResultsDiv_@item.p_id');document.getElementById('itemRow_@item.id').className = 'ItemRow'; }" />
+
+                                    </div>
+                                    <div class="A" style="float: right; font-size: 14px; ">
+                                        <div class="B">
+                                            @item.quan @item.itemunit  @item.title
+                                        </div>
+
+                                        <div class="B" style="float: right; font-size: 14px;">
+                                            <span class="PrplMiniTag">מוצר #@item.p_id</span>
+                                        </div>
+
+                                    </div>
+                                    @if (special_id > 0)
+                                    {
+                                        <div class="A" style="float: right; font-size: 12px;color:#fff;background-color:#ff6a00;border-radius:5px;padding:2px;">
+                                            פריט בהטבה!
+                                        </div>
+
+                                    }
+
+
+                                    <div class="A" style="font-size: 14px;display:none" id="quan_option_@item.id">
+
+
+                                        <div class="B" style="float: left;">
+                                            <input name="@QuanToReplacefldName" type="text" style="padding:2px;width:20px;" value="@item.quan" onfocus="this.value=''" /> @item.itemunit
+
+
+
+
+                                        </div>
+
+
+
+                                    </div>
+
+
+                                </div>
+
+
+                            }
+
+                        </div>
+                    </div>
+
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+                <div class="OrderSectionTitle">
+                    <div class="A"><h3>נא לבחור את אופן הטיפול<span class="RedMiniTag">*</span></h3></div>
+                </div>
+
+                <div class="B" style="width: 100%">
+                    <div class="ItemRow" id="CustomerRefundSelector">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="checkbox" name="is_refund" style="padding:5px;font-size:14px;" onclick="if (this.checked) {setElementClass('CustomerRefundSelector','ItemRowSelected'); } else {setElementClass('CustomerRefundSelector','ItemRow'); } setElementVisibility('CustomerRefundDiv', this.checked);" />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            זיכוי
+                        </div>
+                    </div>
+                    <div class="B" style="display: none; border: 1px dotted #e3e3e3; font-size: 14px;" id="CustomerRefundDiv">
+                        <div class="A">
+                            <div class="A" style="float: right; font-size: 14px;">
+                                <input type="radio" class="A" name="refund_type" value="CREDIT" onclick="showElement('creditRefundWarning');" checked /> זיכוי כספי
+                            </div>
+                            <div class="A" style="float: right; font-size: 14px;">
+                                <input type="radio" class="A" name="refund_type" value="CASH" onclick="hideElement('creditRefundWarning');" /> החזר במזומן
+                            </div>
+                            <div class="B" style="float: left; font-size: 14px;">
+                                סכום הזיכוי <input class="A30" name="refund_amount" />₪
+                            </div>
+
+                            <div class="B" style="width:100%">
+                                <div class="B" style="color:#000;padding:5px;margin:2px;font-size:14px;" id="creditRefundWarning">
+                                    <span style="border-bottom:1px dotted #f00">⚠️ זיכוי כספי הוא שווה ערך למזומן</span>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="B" style="width: 100%">
+                    <div class="ItemRow" id="CustomerVoucherSelector">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="checkbox" name="is_voucher" style="padding:5px;font-size:14px;" onclick="if (this.checked) {setElementClass('CustomerVoucherSelector','ItemRowSelected'); } else {setElementClass('CustomerVoucherSelector','ItemRow'); } setElementVisibility('CustomerVoucherDiv', this.checked);" />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            פיצוי
+                        </div>
+                    </div>
+
+                    <div class="B" style="display: none; border: 1px dotted #e3e3e3; font-size: 14px;" id="CustomerVoucherDiv">
+                        <div class="B">
+                            <div style="overflow:auto;">
+                                סוג קופון
+
+                                <div style="float: left">
+                                    <select class="A" name="offer_type" onchange="if (this.value != '') { RepAjaxUpdate('CouponOfferSetup', 'OfferTypeResults', 'OfferTypeLoader', this.value,'true'); }">
+                                        <option value="">נא לבחור סוג קופון</option>
+                                        <option value="ITEM">מוצר במתנה / הנחה / במחיר</option>
+                                        <option value="VOUCHER">שובר מתנה / הנחה</option>
+                                        <option value="SHIPPING">משלוח חינם / מוזל</option>
+                                    </select>
+                                </div>
+                                <div style="float:left;display:none" id="OfferTypeLoader">
+                                    <center>
+                                        <div class="Tinyloader"></div>
+                                    </center>
+                                </div>
+                            </div>
+
+
+
+                            <div style="overflow:auto;" id="OfferTypeResults">
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="B" style="width: 100%">
+                    <div class="ItemRow" id="CustomerExchangeSelector">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="checkbox" name="is_exchange" style="padding:5px;font-size:14px;" onclick="if (this.checked) { setElementClass('CustomerExchangeSelector', 'ItemRowSelected'); RepAjaxUpdate('GetReplacementProducts', 'SelectReplacementItemsDiv', 'LoadReturnItemsLoader', 'ReturnSetupForm'); showElement('exchange_amount_div'); } else { setElementClass('CustomerExchangeSelector', 'ItemRow'); clearContent('SelectReplacementItemsDiv'); hideElement('exchange_amount_div'); } " />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            החלפה
+
+                        </div>
+                        <span style="float:left;display:none" id="exchange_amount_div">
+                           שדרוג בעלות של <input class="A30" name="exchange_upgrade_price" />₪
+                        </span>
+                        <div class="A" style="float: left; font-size: 14px; ">
+                            <div class="B" id="LoadReturnItemsLoader" style="text-align:center;display:none">
+                                <div class="spinner">
+                                    <div class="bounce1"></div>
+                                    <div class="bounce2"></div>
+                                    <div class="bounce3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="B" id="SelectReplacementItemsDiv">
+
+                    </div>
+
+                </div>
+
+
+                <div class="OrderSectionTitle">
+                    <div class="A"><h3>נא לציין את סיבת ההחזרה<span class="RedMiniTag">*</span></h3></div>
+                    <div class="B" style="background-color: #fff">
+                        <textarea class="A" style="width: 90%;resize:none" name="return_notes" placeholder="בבקשה לרשום הערות.."></textarea>
+
+                    </div>
+                </div>
+
+
+
+                <div class="A" style="text-align:center;">
+                    <button type="button" class="A" style="width: 90%" onclick="sbload('SubMenuDialogLeft','Caller?p1=ReviewReplacementOrder&p2=@order_id','MainLoader','ReturnSetupForm',true);AdjustMainView();">הבא>></button>
+                </div>
+
+
+
+            </div>
+
+
+</form>
+    </div>
+
+
+    db.Close();
+
+}
+
+@helper GetReplacementProducts(int blablaTmp = 0)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+DateTime local_time = AppFunctions.LocalTime();
+var u_id = WebSecurity.CurrentUserId;
+var db = WebMatrix.Data.Database.Open("op_data");
+var sqlSelect = "";
+string titleTxt = " נא לבחור פריטים";
+string errMsg = "";
+int p_id = 0;
+int cur_cat_id = 0;
+int order_id = Convert.ToInt32(Request["order_id"]);
+int loading_order_id = Convert.ToInt32(Request["loading_order_id"]);
+int round_id = Convert.ToInt32(Request["round_id"]);
+bool is_return_all = false; //try { is_return_all = Convert.ToBoolean(Request["is_return_all"]); } catch { }
+if (!Request["is_return_all"].IsEmpty()) { is_return_all = true; }
+
+string ItemsToReplace = Request["ItemsToReplace"];
+string ReturnActionType = Request["ReturnActionType"];
+string return_items_scope = Request["return_items_scope"];
+
+string[] ItemsToReplaceArr;
+string sep = "##";
+
+sqlSelect = "SELECT DISTINCT maincat_id  FROM roundMenuItems WHERE round_id=@0 ORDER BY maincat_id";
+var CategoriesInRound = db.Query(sqlSelect, round_id);
+
+
+
+ItemsToReplaceArr = ItemsToReplace.Split(sep.ToCharArray());
+
+if (return_items_scope=="SOME")
+{
+    if (ItemsToReplace.IsEmpty())
+    {
+        errMsg += "נא לבחור לפחות פריט אחד להחזרה / זיכוי<br/>";
+    }
+    else
+    {
+        foreach (var item in ItemsToReplaceArr)
+        {
+            int return_item_id = 0; try { return_item_id = Convert.ToInt32(item); } catch { }
+
+            if (return_item_id > 0)
+            {
+                int quan_to_replace = 0;
+                sqlSelect = "SELECT * FROM orderitems WHERE id=@0";
+                var ReturningItem = db.QuerySingle(sqlSelect, return_item_id);
+                string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+                string QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id;
+                try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+                if (quan_to_replace <= 0)
+                {
+                    errMsg += "⚠️ <b>" + product_title + "</b> - חובה להכניס כמות תקינה להחלפה! <br/>";
+                }
+                if (quan_to_replace > itemQuan)
+                {
+                    errMsg += "⚠️ <b>" + product_title + "</b> - הכמות המבוקשת להחזרה גדולה מהכמות בהזמנה! <br/>";
+                }
+            }
+
+        }
+
+    }
+
+}
+
+
+
+
+
+if (!errMsg.IsEmpty())
+{
+        <div class="A" style="color:#f00;text-align:center">
+
+            @Html.Raw(errMsg)
+
+        </div>
+
+    }
+    else
+    {
+        sqlSelect = "SELECT * FROM mainorders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        string short_round_title = ""; try { short_round_title = NewAppFunctions.GetTitleById("Round_Short", order.round_id); } catch { }
+        string vendor_name = ""; try { vendor_name = NewAppFunctions.GetTitleById("Vendor", order.vendor_id); } catch { }
+        int historic_order_round_id = order.round_id;
+        <div class="B" style="text-align:right">
+            <div class="B">
+                <div class="OrderSectionTitle">
+                    <h3>נא לבחור פריטים וכמות להחלפה<span class="RedMiniTag">*</span></h3>
+                </div>
+                <div class="B">
+                    <input type="hidden" id="ReplacementItemsList" name="ReplacementItemsList" />
+                </div>
+
+                @foreach (var cat in CategoriesInRound)
+                {
+                    int maincat_id = cat.maincat_id;
+                    string cat_title = ""; try { cat_title = NewAppFunctions.GetTitleById("Cat", maincat_id); } catch { }
+                    sqlSelect = "SELECT * FROM roundMenuItems WHERE round_id=@0 AND maincat_id=@1";
+                    var repItems = db.Query(sqlSelect, round_id, maincat_id);
+                    <div class="ProdReturnSelectCatRow" id="CatItems_@maincat_id">
+                        <div class="A" style="float: right; font-size: 14px;">
+                            <input type="checkbox" style="padding:5px;font-size:14px;" onclick="if (this.checked) { setElementClass('CatItems_@maincat_id', 'ProdReturnSelectCatRowSelected'); } else { setElementClass('CatItems_@maincat_id', 'ProdReturnSelectCatRow'); } setElementVisibility('catItems_@maincat_id', this.checked) " />
+                        </div>
+                        <div class="A" style="float: right; font-size: 14px; ">
+                            @cat_title
+                        </div>
+                    </div>
+
+
+                    <div class="B" style="display: none;border:1px solid #808080;margin-bottom:2px;" id="catItems_@maincat_id">
+                        @foreach (var item in repItems)
+                        {
+                            p_id = item.p_id;
+                            string fldName = "";
+                            string CbfldName = "";
+                            string tbfldName = "";
+                            string ReplacementItemQuanfldName = "ReplacementItemQuan_" + item.id + "_For_" + p_id;
+                            string ReplacementItemSelectorfldName = "ReplacementItemSelector_" + item.id + "_For_" + p_id;
+                            bool is_close_acc = false;
+                            fldName = "RepItem_" + item.p_id + "_For_" + p_id;
+                            tbfldName = "tb_RepItem_" + item.p_id + "_For_" + p_id;
+
+
+                            <div class="ProductRow" id="repItemDiv_@item.id">
+                                <div class="B">
+                                    <div class="B" style="float: right">
+                                        <input type="checkbox" class="A" id="@ReplacementItemSelectorfldName" onclick="let x = document.getElementById('ReplacementItemsList');if (this.checked) {setElementClass('repItemDiv_@item.id', 'ProductRowSelected'); x.value += '##@item.id##'; showElement('quan_option_@item.id'); } else {setElementClass('repItemDiv_@item.id', 'ProductRow');x.value= x.value.replace('##@item.id##','');hideElement('quan_option_@item.id'); setElementValue('@ReplacementItemQuanfldName',''); }" />
+                                    </div>
+                                    <div class="B" style="float: right;">
+                                        <div class="B">
+                                            @item.Title
+                                        </div>
+                                        <div class="B">
+                                            <span class="PrplMiniTag" style="font-size: 11px; display: none">@ReplacementItemQuanfldName</span>
+                                            <span class="PrplMiniTag" style="font-size:11px;">מוצר #@item.p_id</span>
+                                        </div>
+                                    </div>
+                                    <div class="B" style="float: left; display: none" id="quan_option_@item.id">
+                                        <div class="B">
+                                            <span class="MiniTag">@item.itemunit</span>
+                                        </div>
+                                        <div class="B">
+                                            <input type="text" style="padding:2px;width:20px;font-size:14px;" id="@ReplacementItemQuanfldName" name="@ReplacementItemQuanfldName" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        }
+
+                    </div>
+
+                }
+
+            </div>
+
+
+        </div>
+
+
+
+
+        <div class="B" id="ReviewOrderReplacementItemsDiv">
+            <center>
+                <div class="A" id="ReviewReturnItemsLoader" style="text-align:center;display:none">
+                    <div class="spinner">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+            </center>
+            <button type="button" class="A" style="width:95%;border-radius:10px;display:none" onclick="AjaxActions('CreateOrderReturn', '@ReturnActionType', 'MainLoader', 'ReturnSetupForm');">פעל>></button>
+            <button type="button" class="A" style="width: 90%; display: none;" onclick="RepAjaxUpdate('ReviewReplacementOrder', 'ReviewOrderReplacementItemsDiv', 'ReviewReturnItemsLoader','ReturnSetupForm');AdjustMainView();">הבא>></button>
+
+
+        </div>
+
+
+
+    }
+
+    db.Close();
+
+}
+
+@helper ReviewReplacementOrder()
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+int u_id = WebSecurity.CurrentUserId;
+string logmsg = "";
+string theHtmlOutput = "";
+DateTime local_time = AppFunctions.LocalTime();
+DateTime defDate = Convert.ToDateTime("1/1/1900");
+int order_id = 0; try { order_id = Convert.ToInt32(Request["order_id"]); } catch { }
+int loading_order_id = 0; try { loading_order_id = Convert.ToInt32(Request["loading_order_id"]); } catch { }
+int round_id = 0; try { round_id = Convert.ToInt32(Request["round_id"]); } catch { }
+string return_notes = Request["return_notes"];
+string return_items_scope = Request["return_items_scope"];
+string ItemsToReplace = Request["ItemsToReplace"];
+string ReplacementItemsList = Request["ReplacementItemsList"];
+//string ReturnActionType = ""; ReturnActionType = Request["ReturnActionType"];
+bool is_voucher = false; if (!Request["is_voucher"].IsEmpty()) { is_voucher = true; }
+bool is_refund = false; if (!Request["is_refund"].IsEmpty()) { is_refund = true; }
+bool is_exchange = false; if (!Request["is_exchange"].IsEmpty()) { is_exchange = true; }
+string errMsg = "";
+bool is_ok = true;
+bool is_return_all = false; if (!Request["is_return_all"].IsEmpty()) { is_return_all = true; }
+
+string offer_type = Request["offer_type"];
+string coupon_item_type = Request["coupon_item_type"];
+string item_discount_type = Request["item_discount_type"];
+decimal exchange_upgrade_price = 0;  try { exchange_upgrade_price = Convert.ToDecimal(Request["exchange_upgrade_price"]); } catch { }
+decimal offer_price = 0; try { offer_price = Convert.ToDecimal(Request["offer_price"]); } catch { }
+decimal item_discount_rate = 0; try { item_discount_rate = Convert.ToDecimal(Request["item_discount_rate"]); } catch { }
+int free_product_id = 0; try { free_product_id = Convert.ToInt32(Request["free_product_id"]); } catch { }
+int free_product_quan = 0; try { free_product_quan = Convert.ToInt32(Request["free_product_quan"]); } catch { }
+string free_product_scope = Request["free_product_scope"];
+int free_product_cat_id = 0; try { free_product_cat_id = Convert.ToInt32(Request["free_product_cat_id"]); } catch { }
+int free_product_itemunit = 0; try { free_product_itemunit = Convert.ToInt32(Request["free_product_itemunit"]); } catch { }
+
+string voucher_type = Request["voucher_type"];
+decimal order_discount_amount = 0; try { order_discount_amount = Convert.ToDecimal(Request["order_discount_amount"]); } catch { }
+decimal order_discount_percantage = 0; try { order_discount_percantage = Convert.ToDecimal(Request["order_discount_percantage"]); } catch { }
+bool does_discount_includes_spItems = true; if (!Request["does_discount_includes_spItems"].IsEmpty()) { does_discount_includes_spItems = true; }
+bool does_discount_includes_sh = true; if (!Request["does_discount_includes_sh"].IsEmpty()) { does_discount_includes_sh = true; }
+
+string shipping_cost_type = Request["shipping_cost_type"];
+decimal shipping_price = 0; try { shipping_price = Convert.ToDecimal(Request["shipping_price"]); } catch { }
+
+decimal refund_amount = 0; try { refund_amount = Convert.ToDecimal(Request["refund_amount"]); } catch { }
+string refund_type = Request["refund_type"];
+
+var db = WebMatrix.Data.Database.Open("op_data");
+var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+var order = db.QuerySingle(sqlSelect, order_id);
+string short_round_title = ""; try { short_round_title = NewAppFunctions.GetTitleById("Round_Short", order.round_id); } catch { }
+string vendor_name = ""; try { vendor_name = NewAppFunctions.GetTitleById("Vendor", order.vendor_id); } catch { }
+//  int round_id = order.round_id;
+
+string round_title = "טרם נקבע"; try { round_title = AppFunctions.GetRoundTitleById(round_id); } catch { }
+string ItemUnit = "";
+
+
+int ItemsToBeReplacedCount = 0;
+int ReplacementItemsCount = 0;
+string reqActionTxt = "";
+
+string sep = "##";
+
+if (return_items_scope.IsEmpty())
+{
+    errMsg += "חובה לבחור פריטים להחזרה!<br/>";
+
+}
+
+if (!is_refund && !is_voucher && !is_exchange)
+{
+    errMsg += "חובה לבחור את אופן הטיפול בהחזרה!<br/>";
+
+}
+
+if (return_notes.IsEmpty())
+{
+    errMsg += "חובה לציין את סיבת ההחזרה!<br/>";
+
+}
+
+
+if (return_items_scope == "SOME")
+{
+    if (!ItemsToReplace.IsEmpty())
+    {
+
+        string[] returningItemsArr;
+
+
+        returningItemsArr = ItemsToReplace.Split(sep.ToCharArray());
+
+
+        foreach (var item in returningItemsArr)
+        {
+            int return_item_id = 0; try { return_item_id = Convert.ToInt32(item); } catch { }
+
+            if (return_item_id > 0)
+            {
+                errMsg = "";
+                int quan_to_replace = 0;
+                ItemsToBeReplacedCount++;
+                sqlSelect = "SELECT id,p_id,title,quan FROM orderitems WHERE id=@0";
+                var ReturningItem = db.QuerySingle(sqlSelect, return_item_id);
+                string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                int product_id = 0; try { product_id = ReturningItem.p_id; } catch { }
+                int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+
+                string ActionTypefldName = ""; try { ActionTypefldName = "ItemToReplaceAction_" + ReturningItem.id + "_For_" + order_id; } catch { }
+
+                // string QuanToReplacefldName = "ReplacementItemQuan_" + ReturningItem.id + "_For_" + ReturningItem.p_id;
+                string QuanToReplacefldName = "";
+                try { QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id; } catch { }
+
+                try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+
+                if (quan_to_replace <= 0)
+                {
+                    errMsg += "חובה להכניס כמות תקינה להחלפה עבור המוצר " + product_title + "<br/>" ;
+                }
+
+                if (quan_to_replace > itemQuan)
+                {
+                    errMsg += "הכמות המבוקשת להחזרה גדולה מהכמות בהזמנה!<br/>";
+                }
+            }
+
+
+        }
+
+    }
+    else
+    {
+        errMsg += "חובה לבחור פריטים להחלפה!<br/>";
+
+    }
+
+
+}
+
+if (is_exchange)
+{
+    reqActionTxt = " יוחלפו";
+
+    string replacementItemListFieldName = "SubItemsForProduct_";
+    string[] replacementItemsArr;
+    if (ReplacementItemsList.IsEmpty())
+    {
+        errMsg += "חובה לבחור מוצרים להחלפה!<br/>";
+    }
+
+    else
+    {
+
+        replacementItemsArr = ReplacementItemsList.Split(sep.ToCharArray());
+        foreach (var rep_item in replacementItemsArr)
+        {
+
+            int rep_item_id = 0;
+            try { rep_item_id = Convert.ToInt32(rep_item); } catch { }
+
+            if (rep_item_id > 0)
+            {
+                sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+                var replacementItem = db.QuerySingle(sqlSelect, rep_item_id);
+                string replacementItemTitle = ""; try { replacementItemTitle = replacementItem.title; } catch { }
+                string replacementItemUnit = ""; try { replacementItemUnit = replacementItem.itemunit; } catch { }
+                string ReplacementItemQuanfldName = "ReplacementItemQuan_" + rep_item_id + "_For_" + replacementItem.p_id;
+                int ReplacementItemQuan = 0; try { ReplacementItemQuan = Convert.ToInt32(Request[ReplacementItemQuanfldName]); } catch { }
+
+                if (ReplacementItemQuan <= 0)
+                {
+                    errMsg += "חובה להזין כמות תקינה להחלפה עבור המוצר " + replacementItemTitle + "<br/>";
+                }
+                else
+                {
+                    ReplacementItemsCount++;
+                }
+            }
+
+
+
+
+        }
+
+
+
+
+    }
+
+
+}
+
+if (is_voucher)
+{
+    if (offer_type.IsEmpty())
+    {
+        errMsg += "חובה לבחור את סוג הפיצוי!<br>";
+    }
+    else
+    {
+        switch (offer_type)
+        {
+            case "ITEM":
+                if (true)
+                {
+                    if(free_product_scope=="PROD")
+                    {
+                        if (free_product_id == 0)
+                        {
+                            errMsg += "חובה לבחור מוצר הטבה!<br>";
+                        }
+
+                    }
+
+
+
+                    if(free_product_scope=="CAT")
+                    {
+                        if (free_product_cat_id == 0)
+                        {
+                            errMsg += "חובה לבחור קטגוריית מוצר הטבה!<br>";
+                        }
+                    }
+
+                    if (free_product_quan <= 0)
+                    {
+                        errMsg += "חובה לבחור כמות למוצר הטבה!<br>";
+                    }
+
+                }
+                break;
+
+            case "VOUCHER":
+                if (true)
+                {
+                    if (voucher_type.IsEmpty())
+                    {
+                        errMsg += "חובה לבחור סוג שובר!<br>";
+                    }
+
+                    if (voucher_type == "GIFT")
+                    {
+                        if (order_discount_amount <= 0 )
+                        {
+                            errMsg += "חובה להזין סכום תקין לשובר מתנה!<br>";
+                        }
+                    }
+
+                    if (voucher_type == "DISC")
+                    {
+                        if (order_discount_percantage <= 0)
+                        {
+                            errMsg += "חובה להזין שיעור % תקין לשובר הנחה!<br>";
+                        }
+                    }
+
+                }
+                break;
+
+            case "SHIPPING":
+                if (true)
+                {
+                    if (shipping_cost_type == "")
+                    {
+                        errMsg += "חובה לבחור סוג הטבת משלוח!<br>";
+
+                    }
+                    if (shipping_cost_type == "PRICE")
+                    {
+                        if (shipping_price <= 0) {
+                            errMsg += "חובה להזין סכום תקין למחיר המשלוח!<br>";
+                        }
+
+
+                    }
+
+                }
+                break;
+
+        }
+    }
+
+
+
+}
+
+if (is_refund)
+{
+    if (refund_type.IsEmpty())
+    {
+        errMsg += "חובה לבחור  את סוג הזיכוי!<br>";
+
+    }
+    else
+    {
+        if (refund_amount <= 0)
+        {
+            errMsg += "חובה להזין סכום תקין לזיכוי!<br>";
+        }
+    }
+
+}
+
+
+
+if (!errMsg.IsEmpty())
+{
+    Response.Write("!$!" + errMsg);
+
+}
+else
+{
+    string[] returningItemsArr;
+
+    returningItemsArr = ItemsToReplace.Split(sep.ToCharArray());
+
+
+
+        <div class="B" style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080">
+            <center>
+
+                <div class="OrderSection">
+                    <div class="OrderSectionTitle">
+                        <h2>אישור זיכוי / החזרה / החלפה</h2>
+
+
+                        <div class="B" style="background-color:#e3e3e3">
+                            <div class="B">
+                                <div class="A" style="float: right; font-size: 14px; ">
+
+                                    <div class="B" style="font-size: 14px; ">
+                                        #@order.order_id
+
+                                        <div class="B">
+                                            <span class="PrplMiniTag">@order.timestamp.ToShortDateString()</span>
+
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                                <div class="A" style="float: right; font-size: 14px;">
+
+                                    <div class="B" style="font-size: 14px; ">
+                                        @vendor_name
+                                    </div>
+
+                                    <div class="B">
+                                        <span class="PrplMiniTag">@short_round_title</span>
+
+                                    </div>
+
+                                </div>
+                                <div class="A" style="float: right; font-size: 14px;">
+
+                                    <div class="B" style="font-size: 14px; ">
+                                        @order.ship_city
+                                    </div>
+
+                                    <div class="B">
+                                        <span class="PrplMiniTag"> @order.grand_total.ToString("C", culture)</span>
+
+                                    </div>
+
+                                </div>
+
+
+
+                            </div>
+
+
+                            <div class="B" style="background-color:white;border:2px solid #e3e3e3">
+                                <div class="B">
+                                    <div class="A">@Order.ShowOrder(order_id)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="B" style="color:#000">
+                        <div class="B">
+
+
+                            <div class="B">
+                                <div class="B" style="background-color:yellow;color:#000;font-size:24px;padding:5px;">
+                                    <b>⚠️ נא לאשר את הפעולה!</b>
+                                </div>
+                                <div class="B" style="margin-top:10px;">
+                                    @if (return_items_scope == "ALL")
+                                    {
+                                        sqlSelect = "SELECT * FROM orderitems WHERE order_id=@0 AND p_id>0";
+                                        var orderItems = db.Query(sqlSelect, order_id);
+                                        <div class="B">
+
+                                            <div class="B" style="float:right">
+                                                💡
+                                            </div>
+                                            <div class="B" style="font-size:18px">
+                                                <div class="B" style=" margin-right: 5px;">
+                                                    <div class="B" style="">
+                                                        <b>החזרת כל הפריטים <span>מהזמנה #@order_id</span></b>
+                                                    </div>
+                                                    <div class="B" style="color: #ff6a00; font-size: 12px; margin-left: 5px; ">
+                                                        החזרה באמצעות הזמנה #@loading_order_id
+                                                    </div>
+                                                </div>
+                                                <div class="B" style=" margin-right: 5px; float: right">
+                                                    @foreach (var item in orderItems)
+                                                    {
+
+                                                        <div class="B" style="font-size:14px;">
+                                                            <b>@item.quan @item.itemunit</b>  @item.title <span class="PrplMiniTag">(#@item.p_id)</span>
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                            </div>
+
+
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        int quan_to_replace = 0;
+
+                                        if (return_items_scope == "SOME")
+                                        {
+
+                                            <div class="B">
+
+                                                <div class="B" style="float:right">
+                                                    📋
+                                                </div>
+                                                <div class="B" style=" margin-right: 5px;font-size:18px">
+                                                    <div class="B">
+                                                        <div class="B" style="margin-right: 5px; ">
+                                                            <b> החזרת הפריטים הבאים <span>מהזמנה #@order_id</span></b>
+                                                        </div>
+                                                        <div class="B" style="color: #ff6a00; font-size: 12px; margin-left: 5px; ">
+                                                            החזרה באמצעות הזמנה #@loading_order_id
+                                                        </div>
+                                                    </div>
+
+
+                                                    <div class="B" style="margin-right: 5px; float: right">
+                                                        @foreach (var item in returningItemsArr)
+                                                        {
+                                                            int return_item_id = 0; try { return_item_id = Convert.ToInt32(item); } catch { }
+                                                            if (return_item_id > 0)
+                                                            {
+                                                                sqlSelect = "SELECT * FROM orderitems WHERE id=@0"; var ReturningItem = db.QuerySingle(sqlSelect, return_item_id); string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                                                                string product_itemunit = ""; try { product_itemunit = ReturningItem.itemunit; } catch { }
+                                                                string requested_action_type = ""; int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+                                                                string ActionTypefldName = ""; try { ActionTypefldName = "ItemToReplaceAction_" + ReturningItem.id + "_For_" + order_id; } catch { }
+                                                                string QuanToReplacefldName = ""; try { QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id; } catch { }
+                                                                requested_action_type = Request[ActionTypefldName]; try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+
+                                                                <div class="B" style="font-size:14px;">
+                                                                    <b>@quan_to_replace @product_itemunit</b>  @product_title <span class="PrplMiniTag">(#@ReturningItem.p_id)</span>
+                                                                </div>
+
+                                                            }
+                                                        }
+
+                                                    </div>
+
+
+                                                </div>
+
+
+                                            </div>
+
+
+
+                                        }
+                                        if (return_items_scope == "NONE")
+                                        {
+
+                                            <div class="B">
+
+                                                <div class="B" style="float:right">
+                                                    ✅
+                                                </div>
+                                                <div class="B" style=" margin-right: 5px;font-size:18px">
+                                                    <div class="B">
+                                                        <div class="B" style="margin-right: 5px; float: right">
+                                                            <b> ללא החזרת פריטים <span>מהזמנה #@order_id</span></b>
+                                                        </div>
+                                                        <div class="B" style=" color: #ff6a00; font-size: 12px; margin-left: 5px;display:none ">
+                                                            הזמנה #@order_id
+                                                        </div>
+                                                    </div>
+
+
+
+
+                                                </div>
+
+
+                                            </div>
+
+
+
+                                        }
+
+                                    }
+
+
+
+                                </div>
+
+                            </div>
+
+
+
+
+                            <div class="B">
+                                @if (is_exchange)
+                                {
+                                    string[] replacementItemsArr;
+                                    replacementItemsArr = ReplacementItemsList.Split(sep.ToCharArray());
+                                    
+                                    <div class="B" style="margin-top:10px;">
+
+                                        <div class="B" style="float:right">
+                                            ♻️
+                                        </div>
+                                        <div class="B" style=" margin-right: 5px;font-size:18px">
+                                            <div class="B">
+                                                <div class="B" style="margin-right: 5px; float: right">
+                                                    <b>הפריטים הבאים יסופקו במקום </b>
+                                                </div>
+
+                                            </div>
+
+                                            <div class="B" style="margin-right: 5px; float: right">
+                                                @foreach (var rep_item in replacementItemsArr)
+                                                {
+
+                                                    int rep_item_id = 0;
+                                                    try { rep_item_id = Convert.ToInt32(rep_item); } catch { }
+
+                                                    if (rep_item_id > 0)
+                                                    {
+                                                        sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+                                                        var replacementItem = db.QuerySingle(sqlSelect, rep_item_id);
+                                                        string replacementItemTitle = ""; try { replacementItemTitle = replacementItem.title; } catch { }
+                                                        string replacementItemUnit = ""; try { replacementItemUnit = replacementItem.itemunit; } catch { }
+                                                        string ReplacementItemQuanfldName = "ReplacementItemQuan_" + replacementItem.id + "_For_" + replacementItem.p_id;
+
+                                                        //string ReplacementItemQuanfldName = "tb_RepItem_" + rep_item_id + "_For_" + replacementItem.p_id;
+                                                        int ReplacementItemQuan = 0; try { ReplacementItemQuan = Convert.ToInt32(Request[ReplacementItemQuanfldName]); } catch { }
+
+                                                        <div class="B" style="font-size:14px;">
+                                                            <b>@ReplacementItemQuan @replacementItemUnit</b>  @replacementItemTitle <span class="PrplMiniTag">(#@replacementItem.p_id)</span>
+                                                        </div>
+                                                    }
+
+
+
+
+                                                }
+                                            </div>
+
+                                        
+                                            <div class="B" style="clear:both">
+                                                @if (exchange_upgrade_price > 0)
+                                                {
+                                                    <div class="B">
+                                                        <div class="B" style="margin-right: 5px; font-size: 14px">
+                                                            <span style="background-color:yellow;color:#000">ההחלפה בעלות שדרוג של <b>@exchange_upgrade_price.ToString("C", culture) </b></span>
+                                                        </div>
+
+                                                    </div>
+
+                                                }
+                                                else
+                                                {
+                                            <div class="B">
+                                                <div class="B" style="margin-right: 5px; font-size: 14px">
+                                                    <span style="color:#57d600"> החלפה ללא תוספת מחיר</span>
+                                                </div>
+
+                                            </div>
+                                                }
+
+                                            </div>
+
+                                        </div>
+
+                                        
+                                    </div>
+                                }
+
+                            </div>
+                            <div class="B">
+                                @if (is_voucher)
+                                {
+                                    string offer_type_title = "";
+
+                                    string voucher_title = "";
+                                    switch (coupon_item_type)
+                                    {
+                                        case "FREE":
+                                            offer_type_title = "מוצר בחינם";
+                                            voucher_title = "בחינם";
+                                            break;
+                                        case "DISC":
+                                            offer_type_title = "מוצר בהנחה";
+                                            if (item_discount_type == "LIST")
+                                            {
+                                                voucher_title = " בהנחת מחירון בסך של " + item_discount_rate + "%";
+                                            }
+                                            else
+                                            {
+                                                voucher_title = " בהנחה אפקטיבית בסך של " + item_discount_rate + "%";
+                                            }
+                                            break;
+                                        case "PRICE":
+                                            offer_type_title = "מוצר במחיר";
+
+                                            voucher_title = " במחיר " + offer_price.ToString("C", culture);
+
+                                            break;
+                                    }
+
+
+                                    <div class="B" style="margin-top:20px;">
+
+                                        <div class="B" style="float:right">
+                                            🎟️
+                                        </div>
+                                        <div class="B" style=" margin-right: 5px;font-size:18px">
+                                            <div class="B">
+                                                <div class="B" style="margin-right: 5px; float: right">
+                                                    <b>הנפקת שובר פיצוי</b>
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="B" style="font-size:14px;">
+                                                @if (free_product_scope == "PROD")
+                                                {
+                                                    sqlSelect = "SELECT title,itemunit FROM products WHERE p_id=@0"; var product = db.QuerySingle(sqlSelect, free_product_id);
+                                                    if (product != null)
+                                                    {
+                                                        <div class="B">
+                                                            <div class="B" style="margin-right: 5px; float: right">
+                                                                <b>@free_product_quan @product.itemunit @product.title</b> <span class="PrplMiniTag">(#@free_product_id)</span>  <span>@voucher_title</span>
+                                                            </div>
+
+                                                        </div>
+
+                                                    }
+                                                }
+
+                                                @if (free_product_scope == "CAT")
+                                                {
+                                                    sqlSelect = "SELECT title FROM categories WHERE id=@0";
+                                                    var cat = db.QuerySingle(sqlSelect, free_product_cat_id);
+                                                    if (cat != null)
+                                                    {
+                                                        string cat_prod_itemunit = ""; try { cat_prod_itemunit = NewAppFunctions.GetTitleById("ItemType", free_product_itemunit); } catch { }
+                                                        <div class="B">
+                                                            <div class="B" style="float:right">
+                                                                <b>@free_product_quan @cat_prod_itemunit</b> מקטגורית <b>@cat.title</b>  <span class="PrplMiniTag">(#@free_product_cat_id)</span> <span>@voucher_title</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+
+                                                <div class="B" style="float:right;display:none">
+                                                    @if (coupon_item_type == "FREE")
+                                                    {<span> <b>בחינם</b></span>}
+                                                    @if (coupon_item_type == "DISC")
+                                                    {
+                                                        if (item_discount_type == "LIST")
+                                                        {
+                                                            <span> בהנחת מחירון בסך של <b>@item_discount_rate%</b></span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span> בהנחה אפקטיבית בסך של <b>@item_discount_rate%</b></span>
+                                                        }
+                                                    }
+                                                    @if (coupon_item_type == "PRICE")
+                                                    {<span> במחיר מיוחד של <b>@offer_price.ToString("C", culture)</b></span>}
+                                                </div>
+
+                                            </div>
+
+
+                                        </div>
+
+
+                                    </div>
+
+
+
+
+
+                                }
+
+                            </div>
+                            <div class="B">
+                                @if (is_refund)
+                                {
+
+                                    <div class="B" style="margin-top:20px;">
+
+                                        <div class="B" style="float:right">
+                                            💰
+                                        </div>
+                                        <div class="B" style=" font-size:18px">
+                                            <div class="B">
+                                                <div class="B" style="margin-right: 5px; float: right">
+                                                    <b>זיכוי חשבון</b>
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="B" style="font-size:14px;">
+                                                @if (refund_type == "CASH")
+                                                {
+                                                    <div class="B">
+                                                        <div class="B" style="margin-right: 5px; float: right">
+                                                            החזר כספי במזומן בסך של <b>@refund_amount.ToString("C", culture)</b>
+                                                        </div>
+
+                                                    </div>
+                                                }
+                                                @if (refund_type == "CREDIT")
+                                                {
+                                                    <div class="B">
+                                                        <div class="B" style="margin-right: 5px; float: right">
+                                                            זיכוי כספי בסך של <b>@refund_amount.ToString("C", culture)</b>
+                                                        </div>
+
+                                                    </div>
+                                                }
+
+
+                                            </div>
+
+
+                                        </div>
+
+
+                                    </div>
+
+                                }
+
+                            </div>
+
+
+                            <div class="B">
+                                <div class="B" style="margin-top:20px;">
+
+                                    <div class="B" style="float:right">
+                                        📋
+                                    </div>
+                                    <div class="B" style=" font-size:18px">
+                                        <div class="B">
+                                            <div class="B" style="margin-right: 5px; float: right">
+                                                <b>סיבת ההחזרה</b>
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="B" style="font-size:14px;">
+                                        @return_notes
+
+                                        </div>
+
+
+                                    </div>
+
+
+                                </div>
+
+                            </div>
+
+
+
+                            <div class="A" style="text-align:center;margin-top:20px;">
+                                <button type="button" class="A" style="margin-top: 10px; float: right;  " onclick="controller.open('SubMenuLeft');currentlyOpenSidebar = 'SubMenuLeft';">⭕ חזרה</button>
+                                <button type="button" class="A" style="margin-top: 10px; float: left; " onclick="AjaxActions('CreateReplacementOrder', '@order_id', 'MainLoader','CreateReplacementOrder');">✅ אישור</button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    </div>
+
+                <form id="CreateReplacementOrder">
+
+                    <input type="hidden" name="order_id" value="@order_id" />
+                    <input type="hidden" name="loading_order_id" value="@loading_order_id" />
+                    <input type="hidden" name="round_id" value="@round_id" />
+                    <input type="hidden" name="return_items_scope" value="@return_items_scope" />
+                    <input type="hidden" name="ItemsToReplace" value="@ItemsToReplace" />
+                    <input type="hidden" name="ReplacementItemsList" value="@ReplacementItemsList" />
+                    <input type="hidden" name="is_voucher" value="@is_voucher" />
+                    <input type="hidden" name="is_refund" value="@is_refund" />
+                    <input type="hidden" name="is_exchange" value="@is_exchange" />
+                    <input type="hidden" name="is_return_all" value="@is_return_all" />
+                    <input type="hidden" name="offer_type" value="@offer_type" />
+                    <input type="hidden" name="coupon_item_type" value="@coupon_item_type" />
+                    <input type="hidden" name="item_discount_type" value="@item_discount_type" />
+                    <input type="hidden" name="offer_price" value="@offer_price" />
+                    <input type="hidden" name="item_discount_rate" value="@item_discount_rate" />
+
+                    <input type="hidden" name="return_notes" value="@return_notes" />
+                    <input type="hidden" name="exchange_upgrade_price" value="@exchange_upgrade_price" />
+                    <input type="hidden" name="free_product_id" value="@free_product_id" />
+                    <input type="hidden" name="free_product_quan" value="@free_product_quan" />
+                    <input type="hidden" name="free_product_scope" value="@free_product_scope" />
+                    <input type="hidden" name="free_product_cat_id" value="@free_product_cat_id" />
+                    <input type="hidden" name="free_product_itemunit" value="@free_product_itemunit" />
+                    <input type="hidden" name="voucher_type" value="@voucher_type" />
+                    <input type="hidden" name="order_discount_amount" value="@order_discount_amount" />
+                    <input type="hidden" name="order_discount_percantage" value="@order_discount_percantage" />
+                    <input type="hidden" name="does_discount_includes_spItems" value="@does_discount_includes_spItems" />
+                    <input type="hidden" name="does_discount_includes_sh" value="@does_discount_includes_sh" />
+
+                    <input type="hidden" name="shipping_cost_type" value="@shipping_cost_type" />
+                    <input type="hidden" name="shipping_price" value="@shipping_price" />
+                    <input type="hidden" name="refund_amount" value="@refund_amount" />
+                    <input type="hidden" name="refund_type" value="@refund_type" />
+
+                    @if (!ItemsToReplace.IsEmpty())
+                    {
+
+                        returningItemsArr = ItemsToReplace.Split(sep.ToCharArray());
+
+
+                        foreach (var item in returningItemsArr)
+                        {
+                            int return_item_id = 0; try { return_item_id = Convert.ToInt32(item); } catch { }
+
+                            if (return_item_id > 0)
+                            {
+                                int quan_to_replace = 0;
+                                sqlSelect = "SELECT id,p_id,title,quan FROM orderitems WHERE id=@0";
+                                var ReturningItem = db.QuerySingle(sqlSelect, return_item_id);
+                                string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                                int product_id = 0; try { product_id = ReturningItem.p_id; } catch { }
+                                int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+                                string ActionTypefldName = ""; try { ActionTypefldName = "ItemToReplaceAction_" + ReturningItem.id + "_For_" + order_id; } catch { }
+                                string QuanToReplacefldName = "";
+                                try { QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id; } catch { }
+                                try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+
+                                <input type="hidden" name="@QuanToReplacefldName" value="@quan_to_replace" />
+
+
+                            }
+
+
+                        }
+
+                    }
+
+                    @if (is_exchange)
+                    {
+                        string replacementItemListFieldName = "SubItemsForProduct_";
+                        string[] replacementItemsArr;
+                        if (!ReplacementItemsList.IsEmpty())
+                        {
+
+                            replacementItemsArr = ReplacementItemsList.Split(sep.ToCharArray());
+                            foreach (var rep_item in replacementItemsArr)
+                            {
+
+                                int rep_item_id = 0;
+                                try { rep_item_id = Convert.ToInt32(rep_item); } catch { }
+
+                                if (rep_item_id > 0)
+                                {
+                                    sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+                                    var replacementItem = db.QuerySingle(sqlSelect, rep_item_id);
+                                    string replacementItemTitle = ""; try { replacementItemTitle = replacementItem.title; } catch { }
+                                    string replacementItemUnit = ""; try { replacementItemUnit = replacementItem.itemunit; } catch { }
+                                    string ReplacementItemQuanfldName = "ReplacementItemQuan_" + rep_item_id + "_For_" + replacementItem.p_id;
+                                    int ReplacementItemQuan = 0; try { ReplacementItemQuan = Convert.ToInt32(Request[ReplacementItemQuanfldName]); } catch { }
+                                    <input type="hidden" name="@ReplacementItemQuanfldName" value="@ReplacementItemQuan" />
+
+
+                                }
+
+
+
+
+                            }
+
+
+
+
+                        }
+
+
+                    }
+
+
+                </form>
+            </center>
+
+            <div style="overflow: auto;height: 200px;">&nbsp;</div>
+        </div>
+
+
+    }
+    db.Close();
+    <div>@Html.Raw(theHtmlOutput)</div>
+
+}
+
+@functions {
+    public static int CreateDeliveryAndReturnId(int round_id = 0, int schedule_id = 0, string next_schedule_date_str = "1/1/1900")
+    {
+
+        int u_id = WebSecurity.CurrentUserId;
+        int new_delivery_id = 0;
+        int delivery_z_serial = 0;
+        string logmsg = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        DateTime next_schedule_date = defDate; try { next_schedule_date = Convert.ToDateTime(next_schedule_date_str); } catch { }
+        int delivery_status = 0;
+        DateTime delivery_z_date = defDate;
+        bool is_team_leader = false;
+        int z_serial = 0;
+        int main_z_id = 0;
+        int todayDayOfWeek = ((int)local_time.DayOfWeek);
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+
+        sqlSelect = "SELECT * FROM RoundsSchedules WHERE schedule_id=@0";
+        var Schedule = db.QuerySingle(sqlSelect, schedule_id);
+        int schedDayOfWeek = Schedule.dayOfWeek;
+
+
+        DateTime round_start = Schedule.round_start;
+        try { round_id = Schedule.round_id; } catch { }
+
+        sqlSelect = "SELECT * FROM dbo.rounds WHERE id=@0";
+        var round = db.QuerySingle(sqlSelect, round_id);
+
+        next_schedule_date = tmpit.GetNextScheduleDate(round_id);
+        DataFunctions.WriteDebugLine("NEXT SCHED DATE " + round.title + "  -  " + next_schedule_date.ToString() + " SCHED " + Schedule.schedule_id);
+
+        sqlSelect = "SELECT * FROM zReports WHERE round_id=@0 AND z_date=@1";
+        var zReport = db.QuerySingle(sqlSelect, round_id, next_schedule_date.Date);
+        if (zReport != null)
+        {
+            z_serial = zReport.serial;
+            main_z_id = zReport.main_z_id;
+        }
+        else
+        {
+            z_serial = -1;
+            main_z_id = -1;
+
+        }
+
+
+
+
+        int active_deliveries = round.active_deliveries;
+        int active_delivery_id = round.active_delivery_id;
+        int vendor_id = round.vendor_id;
+        DateTime next_order_close = defDate;
+        DateTime next_scheduled_launch = defDate;
+        DateTime next_scheduled_finish = defDate;
+        int estimated_duration = Schedule.estimated_duration;
+        string start_address_street = ""; try { start_address_street = round.start_address_street; } catch { }
+        string start_address_city = ""; try { start_address_city = round.start_address_city; } catch { }
+        string start_address_notes = ""; try { start_address_notes = round.start_address_notes; } catch { }
+        string end_address_street = ""; try { end_address_street = round.end_address_street; } catch { }
+        string end_address_city = ""; try { end_address_city = round.end_address_city; } catch { }
+        string end_address_notes = ""; try { end_address_notes = round.end_address_notes; } catch { }
+        int start_address_id = 0; try { start_address_id = round.start_address_id; } catch { }
+        int end_address_id = 0; try { end_address_id = round.end_address_id; } catch { }
+        string tmpDate = "";
+
+        next_scheduled_launch = next_schedule_date;
+
+        tmpDate = next_scheduled_launch.ToShortDateString() + " " + Schedule.round_start.ToString("HH:mm");
+        next_scheduled_launch = Convert.ToDateTime(tmpDate);
+
+        tmpDate = next_scheduled_launch.ToShortDateString() + " " + Schedule.round_order_close.ToString("HH:mm");
+        next_order_close = Convert.ToDateTime(tmpDate);
+        next_scheduled_finish = next_scheduled_launch.AddMinutes(estimated_duration);
+
+        sqlSelect = "SELECT serial,scheduled_start,z_serial FROM deliveries WHERE is_completed=0 AND round_id=@0 AND scheduled_start=@1 AND schedule_id=@2";
+        var new_delivery = db.QuerySingle(sqlSelect, round_id, next_scheduled_launch, schedule_id);
+        if (new_delivery == null)
+        {
+
+            int deliveryDayOfWeek = 0; deliveryDayOfWeek = ((int)next_scheduled_launch.DayOfWeek);
+
+            sqlSelect = "INSERT INTO deliveries(round_id,create_ts,created_by,delivery_status,is_team_leader,vendor_id,scheduled_start,scheduled_end,planned_duration,schedule_id,start_address_street,start_address_city,start_address_notes,end_address_street,end_address_city,end_address_notes,start_address_id,end_address_id,order_close_hour,z_serial,main_z_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20)";
+            db.Execute(sqlSelect, round_id, local_time, u_id, delivery_status, is_team_leader, vendor_id, next_scheduled_launch, next_scheduled_finish, estimated_duration, schedule_id, start_address_street, start_address_city, start_address_notes, end_address_street, end_address_city, end_address_notes, start_address_id, end_address_id, next_order_close, z_serial, main_z_id);
+
+            sqlSelect = "SELECT serial,scheduled_start FROM deliveries WHERE round_id=@0 AND create_ts=@1 AND schedule_id=@2";
+            new_delivery = db.QuerySingle(sqlSelect, round_id, local_time, schedule_id);
+            try { new_delivery_id = new_delivery.serial; } catch { }
+
+
+            sqlSelect = "UPDATE RoundsSchedules set delivery_id=@0,next_delivery_id=@0,next_scheduled_launch=@1,next_order_close=@2,next_scheduled_finish=@3 where schedule_id=@4";
+            db.Execute(sqlSelect, new_delivery_id, next_scheduled_launch, next_order_close, next_scheduled_finish, schedule_id);
+
+
+            if (z_serial == -1)
+            {
+                logmsg = "נוצר משלוח חדש #" + new_delivery_id + " ליום " + AppFunctions.DayOfWeekTxt(deliveryDayOfWeek) + " ה" + new_delivery.scheduled_start.ToShortDateString() + " בשעה " + new_delivery.scheduled_start.ToString("HH:mm") + " המשלוח נוצר ללא שיוך ל#Z";
+            }
+            else
+            {
+                logmsg = "נוצר משלוח חדש #" + new_delivery_id + " ליום " + AppFunctions.DayOfWeekTxt(deliveryDayOfWeek) + " ה" + new_delivery.scheduled_start.ToShortDateString() + " בשעה " + new_delivery.scheduled_start.ToString("HH:mm") + " עבור Z#" + main_z_id + " / " + z_serial;
+            }
+
+            AppFunctions.WriteRoundComment(round_id, logmsg);
+
+
+        }
+        else
+        {
+            try { delivery_z_date = new_delivery.scheduled_start; } catch { }
+            delivery_z_date = delivery_z_date.Date;
+            try { new_delivery_id = new_delivery.serial; } catch { }
+            try { delivery_z_serial = new_delivery.z_serial; } catch { }
+
+            if (delivery_z_serial == -1)
+            {
+                if (delivery_z_date == next_schedule_date && z_serial > -1)
+                {
+                    sqlSelect = "UPDATE deliveries SET main_z_id=@0,z_serial=@1 WHERE serial=@2";
+                    db.Execute(sqlSelect, main_z_id, z_serial, new_delivery_id);
+                }
+
+
+            }
+
+
+
+
+        }
+
+
+
+        db.Close();
+        return new_delivery_id;
+    }
+
+    public static string CreateReplacementOrder()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string logmsg = "";
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        int order_id = 0; try { order_id = Convert.ToInt32(Request["order_id"]); } catch { }
+        int loading_order_id = 0; try { loading_order_id = Convert.ToInt32(Request["loading_order_id"]); } catch { }
+
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["round_id"]); } catch { }
+        string return_items_scope = Request["return_items_scope"];
+        string ItemsToReplace = Request["ItemsToReplace"];
+        string ReplacementItemsList = Request["ReplacementItemsList"];
+        //string ReturnActionType = ""; ReturnActionType = Request["ReturnActionType"];
+        string return_notes = Request["return_notes"];
+        decimal exchange_upgrade_price = 0; try { exchange_upgrade_price = Convert.ToDecimal(Request["exchange_upgrade_price"]); } catch { }
+        bool is_voucher = false; if (!Request["is_voucher"].IsEmpty()) { is_voucher = true; }
+        bool is_refund = false; if (!Request["is_refund"].IsEmpty()) { is_refund = true; }
+        bool is_exchange = false; if (!Request["is_exchange"].IsEmpty()) { is_exchange = true; }
+        string errMsg = "";
+        bool is_ok = true;
+        bool is_return_all = false; if (!Request["is_return_all"].IsEmpty()) { is_return_all = true; }
+
+        string offer_type = Request["offer_type"];
+        string coupon_item_type = Request["coupon_item_type"];
+        string item_discount_type = Request["item_discount_type"];
+        decimal offer_price = 0; try { offer_price = Convert.ToDecimal(Request["offer_price"]); } catch { }
+        decimal item_discount_rate = 0; try { item_discount_rate = Convert.ToDecimal(Request["item_discount_rate"]); } catch { }
+        int free_product_id = 0; try { free_product_id = Convert.ToInt32(Request["free_product_id"]); } catch { }
+        int free_product_quan = 0; try { free_product_quan = Convert.ToInt32(Request["free_product_quan"]); } catch { }
+        string free_product_scope = Request["free_product_scope"];
+        int free_product_cat_id = 0; try { free_product_cat_id = Convert.ToInt32(Request["free_product_cat_id"]); } catch { }
+        int free_product_itemunit = 0; try { free_product_itemunit = Convert.ToInt32(Request["free_product_itemunit"]); } catch { }
+
+        string voucher_type = Request["voucher_type"];
+        decimal order_discount_amount = 0; try { order_discount_amount = Convert.ToDecimal(Request["order_discount_amount"]); } catch { }
+        decimal order_discount_percantage = 0; try { order_discount_percantage = Convert.ToDecimal(Request["order_discount_percantage"]); } catch { }
+        bool does_discount_includes_spItems = true; if (!Request["does_discount_includes_spItems"].IsEmpty()) { does_discount_includes_spItems = true; }
+        bool does_discount_includes_sh = true; if (!Request["does_discount_includes_sh"].IsEmpty()) { does_discount_includes_sh = true; }
+
+        string shipping_cost_type = Request["shipping_cost_type"];
+        decimal shipping_price = 0; try { shipping_price = Convert.ToDecimal(Request["shipping_price"]); } catch { }
+
+        decimal refund_amount = 0; try { refund_amount = Convert.ToDecimal(Request["refund_amount"]); } catch { }
+        string refund_type = Request["refund_type"];
+
+        bool is_returned_items_pickup = false;
+        int returned_items_order_id = 0;
+
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        sqlSelect = "SELECT order_id,round_id,vendor_id,z_serial,u_id FROM MainOrders WHERE order_id=@0";
+        var loading_order = db.QuerySingle(sqlSelect, loading_order_id);
+        string short_round_title = ""; try { short_round_title = NewAppFunctions.GetTitleById("Round_Short", order.round_id); } catch { }
+        string vendor_name = ""; try { vendor_name = NewAppFunctions.GetTitleById("Vendor", order.vendor_id); } catch { }
+        //  int round_id = order.round_id;
+
+        string round_title = "טרם נקבע"; try { round_title = AppFunctions.GetRoundTitleById(round_id); } catch { }
+        string ItemUnit = "";
+
+
+        int ItemsToBeReplacedCount = 0;
+        int ReplacementItemsCount = 0;
+        string reqActionTxt = "";
+
+        string sep = "##";
+
+        if (return_items_scope.IsEmpty())
+        {
+            errMsg += "חובה לבחור פריטים להחזרה!<br/>";
+
+        }
+
+        if (!is_refund && !is_voucher && !is_exchange)
+        {
+            errMsg += "חובה לבחור את אופן הטיפול בהחזרה!<br/>";
+
+        }
+
+
+        if (return_items_scope == "SOME")
+        {
+            if (!ItemsToReplace.IsEmpty())
+            {
+
+                string[] returningItemsArr;
+
+
+                returningItemsArr = ItemsToReplace.Split(sep.ToCharArray());
+
+
+                foreach (var item in returningItemsArr)
+                {
+                    int return_item_id = 0; try { return_item_id = Convert.ToInt32(item); } catch { }
+
+                    if (return_item_id > 0)
+                    {
+                        errMsg = "";
+                        int quan_to_replace = 0;
+                        ItemsToBeReplacedCount++;
+                        sqlSelect = "SELECT id,p_id,title,quan FROM orderitems WHERE id=@0";
+                        var ReturningItem = db.QuerySingle(sqlSelect, return_item_id);
+                        string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                        int product_id = 0; try { product_id = ReturningItem.p_id; } catch { }
+                        int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+
+                        string ActionTypefldName = ""; try { ActionTypefldName = "ItemToReplaceAction_" + ReturningItem.id + "_For_" + order_id; } catch { }
+
+                        // string QuanToReplacefldName = "ReplacementItemQuan_" + ReturningItem.id + "_For_" + ReturningItem.p_id;
+                        string QuanToReplacefldName = "";
+                        try { QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id; } catch { }
+
+                        try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+
+                        if (quan_to_replace <= 0)
+                        {
+                            errMsg += "חובה להכניס כמות תקינה להחלפה עבור המוצר " + product_title + "<br/>";
+                        }
+
+                        if (quan_to_replace > itemQuan)
+                        {
+                            errMsg += "הכמות המבוקשת להחזרה גדולה מהכמות בהזמנה!<br/>";
+                        }
+                    }
+
+
+                }
+
+            }
+            else
+            {
+                errMsg += "חובה לבחור פריטים להחלפה!<br/>";
+
+            }
+
+
+        }
+
+        if (is_exchange)
+        {
+            reqActionTxt = " יוחלפו";
+
+            string replacementItemListFieldName = "SubItemsForProduct_";
+            string[] replacementItemsArr;
+            if (ReplacementItemsList.IsEmpty())
+            {
+                errMsg += "חובה לבחור מוצרים להחלפה!<br/>";
+            }
+
+            else
+            {
+
+                replacementItemsArr = ReplacementItemsList.Split(sep.ToCharArray());
+                foreach (var rep_item in replacementItemsArr)
+                {
+
+                    int rep_item_id = 0;
+                    try { rep_item_id = Convert.ToInt32(rep_item); } catch { }
+
+                    if (rep_item_id > 0)
+                    {
+                        sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+                        var replacementItem = db.QuerySingle(sqlSelect, rep_item_id);
+                        string replacementItemTitle = ""; try { replacementItemTitle = replacementItem.title; } catch { }
+                        string replacementItemUnit = ""; try { replacementItemUnit = replacementItem.itemunit; } catch { }
+                        string ReplacementItemQuanfldName = "ReplacementItemQuan_" + rep_item_id + "_For_" + replacementItem.p_id;
+                        int ReplacementItemQuan = 0; try { ReplacementItemQuan = Convert.ToInt32(Request[ReplacementItemQuanfldName]); } catch { }
+
+                        if (ReplacementItemQuan <= 0)
+                        {
+                            errMsg += "חובה להזין כמות תקינה להחלפה עבור המוצר " + replacementItemTitle + "<br/>";
+                        }
+                        else
+                        {
+                            ReplacementItemsCount++;
+                        }
+                    }
+
+
+
+
+                }
+
+
+
+
+            }
+
+
+        }
+
+        if (is_voucher)
+        {
+            if (offer_type.IsEmpty())
+            {
+                errMsg += "חובה לבחור את סוג הפיצוי!<br>";
+            }
+            else
+            {
+                switch (offer_type)
+                {
+                    case "ITEM":
+                        if (true)
+                        {
+                            if (free_product_scope == "PROD")
+                            {
+                                if (free_product_id == 0)
+                                {
+                                    errMsg += "חובה לבחור מוצר הטבה!<br>";
+                                }
+
+                            }
+
+
+
+                            if (free_product_scope == "CAT")
+                            {
+                                if (free_product_cat_id == 0)
+                                {
+                                    errMsg += "חובה לבחור קטגוריית מוצר הטבה!<br>";
+                                }
+                            }
+
+                            if (free_product_quan <= 0)
+                            {
+                                errMsg += "חובה לבחור כמות למוצר הטבה!<br>";
+                            }
+
+                        }
+                        break;
+
+                    case "VOUCHER":
+                        if (true)
+                        {
+                            if (voucher_type.IsEmpty())
+                            {
+                                errMsg += "חובה לבחור סוג שובר!<br>";
+                            }
+
+                            if (voucher_type == "GIFT")
+                            {
+                                if (order_discount_amount <= 0)
+                                {
+                                    errMsg += "חובה להזין סכום תקין לשובר מתנה!<br>";
+                                }
+                            }
+
+                            if (voucher_type == "DISC")
+                            {
+                                if (order_discount_percantage <= 0)
+                                {
+                                    errMsg += "חובה להזין שיעור % תקין לשובר הנחה!<br>";
+                                }
+                            }
+
+                        }
+                        break;
+                    case "SHIPPING":
+                        if (true)
+                        {
+                            if (shipping_cost_type == "")
+                            {
+                                errMsg += "חובה לבחור סוג הטבת משלוח!<br>";
+
+                            }
+                            if (shipping_cost_type == "PRICE")
+                            {
+                                if (shipping_price <= 0)
+                                {
+                                    errMsg += "חובה להזין סכום תקין למחיר המשלוח!<br>";
+                                }
+
+
+                            }
+
+                        }
+                        break;
+
+                }
+            }
+        }
+
+        if (is_refund)
+        {
+            if (refund_type.IsEmpty())
+            {
+                errMsg += "חובה לבחור  את סוג הזיכוי!<br>";
+
+            }
+            else
+            {
+                if (refund_amount <= 0)
+                {
+                    errMsg += "חובה להזין סכום תקין לזיכוי!<br>";
+                }
+            }
+
+        }
+
+
+        if (errMsg.IsEmpty())
+        {
+
+
+            int new_order_status = 0;
+
+            switch (return_items_scope)
+            {
+
+                case "ALL":
+                case "SOME":
+                    if (true)
+                    {
+                        string item_title = "החזרת פריטים מהזמנה #" + order_id;
+                        //create orderitem for Main Return Items .(-11)
+                        is_returned_items_pickup = true;
+                        returned_items_order_id = order_id;
+                        int new_item_id = -11;
+                        int item_status = -1;
+                        int vendor_id = 0;
+                        int z_serial = 0;
+                        try { round_id = loading_order.round_id; } catch {}
+                        try { vendor_id = loading_order.vendor_id; } catch {}
+                        try { z_serial = loading_order.z_serial; } catch {}
+                        DateTime group_ts = local_time;
+
+                        string title = "החזרת פריטים מהזמנה #" + order_id;
+                        string e_title = "Items return from previous order #" + order_id;
+
+                        sqlSelect = "INSERT INTO orderitems(order_id,quan,price,item_id,item_status,round_id,title,e_title,u_id,vendor_id,group_ts,calc_price,notes,z_serial,last_change_ts,last_change_by,add_ts,returning_order_id) ";
+                        sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17)";
+                        db.Execute(sqlSelect, loading_order_id, 1, 0, new_item_id, item_status, round_id, title, e_title, loading_order.u_id, vendor_id, group_ts, 0, return_notes, z_serial, local_time, u_id, local_time,order_id);
+
+                        logmsg = "צורפו פריטים להחזרה מהזמנה #" + order_id + " באמצעות הזמנה זו<br>" + return_notes;
+                        AppFunctions.WriteOrderComment(loading_order_id, logmsg);
+
+                        if (return_items_scope == "ALL")
+                        {
+                            new_order_status = 30;
+                            sqlSelect = "SELECT * FROM orderitems WHERE order_id=@0 AND p_id>0";
+                            var orderItems = db.Query(sqlSelect, order_id);
+                            foreach (var item in orderItems)
+                            {
+                                new_item_id = -12;
+                                item_status = -2;
+
+                                int return_item_id = 0; try { return_item_id = item.id; } catch { }
+                                int quan_to_replace = item.quan;
+                                string product_title = ""; try { product_title = item.title; } catch { }
+                                int product_id = 0; try { product_id = item.p_id; } catch { }
+                                int itemQuan = 0; try { itemQuan = item.quan; } catch { }
+                                int itemunit_type = 0; try { itemunit_type = item.itemunit_type; } catch { }
+                                string item_unit = ""; try { item_unit = item.itemunit; } catch { }
+
+                                sqlSelect = "UPDATE orderitems SET is_returned=1,returned_quan=quan WHERE id=@0";
+                                db.Execute(sqlSelect, return_item_id);
+
+                                sqlSelect = "INSERT INTO orderitems(order_id,quan,price,item_id,item_status,round_id,title,e_title,vendor_id,group_ts,calc_price,z_serial,last_change_ts,last_change_by,add_ts,returning_order_id,p_id,itemunit_type,itemunit) ";
+                                sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18)";
+                                db.Execute(sqlSelect, loading_order_id, itemQuan, 0, new_item_id, item_status, round_id, item.title, item.e_title, item.vendor_id, group_ts, 0, z_serial, local_time, u_id, local_time, order_id, product_id, itemunit_type,item_unit);
+
+
+
+
+                            }
+                            logmsg = "ההזמנה מוחזרת לספק<br>" + return_notes;
+                            AppFunctions.WriteOrderComment(order_id, logmsg);
+
+                        }
+
+                        if (return_items_scope == "SOME")
+                        {
+                            new_order_status = 40;
+                            sqlSelect = "SELECT * FROM orderitems WHERE order_id=@0 AND p_id>0";
+                            var orderItems = db.Query(sqlSelect, order_id);
+                            new_order_status = 40;
+                            string[] returningItemsArr;
+                            returningItemsArr = ItemsToReplace.Split(sep.ToCharArray());
+                            foreach (var item_id in returningItemsArr)
+                            {
+                                errMsg = "";
+                                int quan_to_replace = 0;
+                                sqlSelect = "SELECT * FROM orderitems WHERE id=@0";
+                                var ReturningItem = db.QuerySingle(sqlSelect, item_id);
+
+                                if (ReturningItem != null)
+                                {
+                                    string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                                    int product_id = 0; try { product_id = ReturningItem.p_id; } catch { }
+                                    int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+                                    string QuanToReplacefldName = "";
+                                    try { QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id; } catch { }
+                                    try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+
+                                    new_item_id = -12;
+                                    item_status = -2;
+
+                                    int return_item_id = 0; try { return_item_id = ReturningItem.id; } catch { }
+                                    int itemunit_type = 0; try { itemunit_type = ReturningItem.itemunit_type; } catch { }
+                                    string item_unit = ""; try { item_unit = ReturningItem.itemunit; } catch { }
+                                    sqlSelect = "UPDATE orderitems SET is_returned=1,returned_quan=quan WHERE id=@0";
+                                    db.Execute(sqlSelect, return_item_id);
+
+                                    sqlSelect = "INSERT INTO orderitems(order_id,quan,price,item_id,item_status,round_id,title,e_title,vendor_id,group_ts,calc_price,z_serial,last_change_ts,last_change_by,add_ts,returning_order_id,p_id,itemunit_type,itemunit) ";
+                                    sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18)";
+                                    db.Execute(sqlSelect, loading_order_id, quan_to_replace, 0, new_item_id, item_status, round_id, ReturningItem.title, ReturningItem.e_title, ReturningItem.vendor_id, group_ts, 0, z_serial, local_time, u_id, local_time, order_id, product_id, itemunit_type, item_unit);
+
+                                }
+
+
+
+
+
+                            }
+                            logmsg = "פריטים מסויימים בהזמנה הוחזרו לספק<br>" + return_notes;
+                            AppFunctions.WriteOrderComment(order_id, logmsg);
+                        }
+
+                    }
+
+                    break;
+
+
+                case "NONE":
+                    new_order_status = 50;
+                    //update order
+                    break;
+
+            }
+
+            //mark replaced order
+            sqlSelect = "UPDATE mainorders SET is_order_returned=1,order_return_ts=@0,order_return_by=@1,order_return_scope=@2,order_return_note=@3,order_status=@4,status_change_ts=@0,status_change_by=@1 WHERE order_id=@5";
+            db.Execute(sqlSelect, local_time, u_id, return_items_scope, return_notes, new_order_status, local_time, u_id, order_id);
+
+            //mark here the loading order
+            sqlSelect = "UPDATE mainorders SET is_returned_items_pickup=@0,returned_items_order_id=@1 WHERE order_id=@2";
+            db.Execute(sqlSelect, is_returned_items_pickup,  returned_items_order_id, loading_order_id);
+
+
+
+            if (is_exchange)
+            {
+                string item_title = "החלפת פריטים מהזמנה #" + order_id;
+                //create orderitem for Main Return Items .(-11)
+                is_returned_items_pickup = true;
+                returned_items_order_id = order_id;
+                int new_item_id = -14;
+                int item_status = -1;
+                int vendor_id = 0;
+                int z_serial = 0;
+                try { round_id = loading_order.round_id; } catch { }
+                try { vendor_id = loading_order.vendor_id; } catch { }
+                try { z_serial = loading_order.z_serial; } catch { }
+                DateTime group_ts = local_time;
+                string title = "החלפת פריטים להזמנה #" + order_id;
+                string e_title = "Items Exchange for order #" + order_id;
+
+                string replacementItemListFieldName = "SubItemsForProduct_";
+                string[] replacementItemsArr;
+                replacementItemsArr = ReplacementItemsList.Split(sep.ToCharArray());
+
+                //create main replacement order item (item -11)
+
+                sqlSelect = "INSERT INTO orderitems(order_id,quan,price,item_id,item_status,round_id,title,e_title,u_id,vendor_id,group_ts,calc_price,notes,z_serial,last_change_ts,last_change_by,add_ts,returning_order_id) ";
+                sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17)";
+                db.Execute(sqlSelect, loading_order_id, 1, exchange_upgrade_price, new_item_id, item_status, round_id, title, e_title, loading_order.u_id, vendor_id, group_ts, exchange_upgrade_price, return_notes, z_serial, local_time, u_id, local_time, order_id);
+
+                logmsg = "צורפו פריטים להחלפה עבור הזמנה #" + order_id + " באמצעות הזמנה זו<br>" + return_notes;
+                AppFunctions.WriteOrderComment(loading_order_id, logmsg);
+
+
+                foreach (var rep_item in replacementItemsArr)
+                {
+
+                    int item_id = 0;
+                    try { item_id = Convert.ToInt32(rep_item); } catch { }
+
+                    if (item_id > 0)
+                    {
+                        sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+                        var replacementItem = db.QuerySingle(sqlSelect, item_id);
+
+                        string replacementItemTitle = ""; try { replacementItemTitle = replacementItem.title; } catch { }
+                        string replacementItemUnit = ""; try { replacementItemUnit = replacementItem.itemunit; } catch { }
+                        string ReplacementItemQuanfldName = "ReplacementItemQuan_" + item_id + "_For_" + replacementItem.p_id;
+                        int ReplacementItemQuan = 0; try { ReplacementItemQuan = Convert.ToInt32(Request[ReplacementItemQuanfldName]); } catch { }
+
+                        if (replacementItem != null)
+                        {
+                            string product_title = ""; try { product_title = replacementItem.title; } catch { }
+                            int product_id = 0; try { product_id = replacementItem.p_id; } catch { }
+
+                            new_item_id = -15;
+                            item_status = -1;
+
+                            int return_item_id = 0; try { return_item_id = replacementItem.id; } catch { }
+                            int itemunit_type = 0; try { itemunit_type = replacementItem.itemunit_type; } catch { }
+
+                            sqlSelect = "INSERT INTO orderitems(order_id,quan,price,item_id,item_status,round_id,title,e_title,vendor_id,group_ts,calc_price,z_serial,last_change_ts,last_change_by,add_ts,returning_order_id,p_id,itemunit_type,itemunit) ";
+                            sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18)";
+                            db.Execute(sqlSelect, loading_order_id, ReplacementItemQuan, 0, new_item_id, item_status, round_id, replacementItem.title, replacementItem.title_e, replacementItem.vendor_id, group_ts, 0, z_serial, local_time, u_id, local_time, order_id, product_id, itemunit_type, replacementItem.itemunit);
+
+                        }
+
+
+                        DataFunctions.WriteDebugLine(ReplacementItemQuan + " " + replacementItemUnit + " " + replacementItemTitle);
+
+
+
+
+                        //create subsidary replacement order item (item -12)
+
+                    }
+
+
+
+
+                }
+
+                logmsg = "פריטים מסויימים בהזמנה הוחלפו בהזמנה #" + loading_order_id + "<br>" + return_notes;
+                AppFunctions.WriteOrderComment(order_id, logmsg);
+
+
+                /*
+                                new_order_status = 40;
+                string[] returningItemsArr;
+                returningItemsArr = ItemsToReplace.Split(sep.ToCharArray());
+                foreach (var item_id in returningItemsArr)
+                {
+                    errMsg = "";
+                    int quan_to_replace = 0;
+                    sqlSelect = "SELECT * FROM orderitems WHERE id=@0";
+                    var ReturningItem = db.QuerySingle(sqlSelect, item_id);
+
+                    if (ReturningItem != null)
+                    {
+                        string product_title = ""; try { product_title = ReturningItem.title; } catch { }
+                        int product_id = 0; try { product_id = ReturningItem.p_id; } catch { }
+                        int itemQuan = 0; try { itemQuan = ReturningItem.quan; } catch { }
+                        string QuanToReplacefldName = "";
+                        try { QuanToReplacefldName = "tb_ItemToReplace_" + ReturningItem.p_id + "_For_" + order_id; } catch { }
+                        try { quan_to_replace = Convert.ToInt32(Request[QuanToReplacefldName]); } catch { }
+
+                        new_item_id = -12;
+                        item_status = -2;
+
+                        int return_item_id = 0; try { return_item_id = ReturningItem.id; } catch { }
+                        int itemunit_type = 0; try { itemunit_type = ReturningItem.itemunit_type; } catch { }
+                        sqlSelect = "UPDATE orderitems SET is_returned=1,returned_quan=quan WHERE id=@0";
+                        db.Execute(sqlSelect, return_item_id);
+
+                        sqlSelect = "INSERT INTO orderitems(order_id,quan,price,item_id,item_status,round_id,title,e_title,vendor_id,group_ts,calc_price,z_serial,last_change_ts,last_change_by,add_ts,returning_order_id,p_id,itemunit_type) ";
+                        sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17)";
+                        db.Execute(sqlSelect, loading_order_id, quan_to_replace, 0, new_item_id, item_status, round_id, ReturningItem.title, ReturningItem.e_title, ReturningItem.vendor_id, group_ts, 0, z_serial, local_time, u_id, local_time, order_id, product_id, itemunit_type);
+
+                    }
+
+                }
+
+                    */
+
+            }
+
+            if (is_voucher)
+            {
+                if (offer_type.IsEmpty())
+                {
+                    errMsg += "חובה לבחור את סוג הפיצוי!<br>";
+                }
+                else
+                {
+                    switch (offer_type)
+                    {
+                        case "ITEM":
+                            if (true)
+                            {
+                                if (free_product_scope == "PROD")
+                                {
+                                    if (free_product_id == 0)
+                                    {
+                                        errMsg += "חובה לבחור מוצר הטבה!<br>";
+                                    }
+
+                                }
+
+
+
+                                if (free_product_scope == "CAT")
+                                {
+                                    if (free_product_cat_id == 0)
+                                    {
+                                        errMsg += "חובה לבחור קטגוריית מוצר הטבה!<br>";
+                                    }
+                                }
+
+                                if (free_product_quan <= 0)
+                                {
+                                    errMsg += "חובה לבחור כמות למוצר הטבה!<br>";
+                                }
+
+                            }
+                            break;
+
+                        case "VOUCHER":
+                            if (true)
+                            {
+                                if (voucher_type.IsEmpty())
+                                {
+                                    errMsg += "חובה לבחור סוג שובר!<br>";
+                                }
+
+                                if (voucher_type == "GIFT")
+                                {
+                                    if (order_discount_amount <= 0)
+                                    {
+                                        errMsg += "חובה להזין סכום תקין לשובר מתנה!<br>";
+                                    }
+                                }
+
+                                if (voucher_type == "DISC")
+                                {
+                                    if (order_discount_percantage <= 0)
+                                    {
+                                        errMsg += "חובה להזין שיעור % תקין לשובר הנחה!<br>";
+                                    }
+                                }
+
+                            }
+                            break;
+                        case "SHIPPING":
+                            if (true)
+                            {
+                                if (shipping_cost_type == "")
+                                {
+                                    errMsg += "חובה לבחור סוג הטבת משלוח!<br>";
+
+                                }
+                                if (shipping_cost_type == "PRICE")
+                                {
+                                    if (shipping_price <= 0)
+                                    {
+                                        errMsg += "חובה להזין סכום תקין למחיר המשלוח!<br>";
+                                    }
+
+
+                                }
+
+                            }
+                            break;
+
+                    }
+                }
+            }
+
+            if (is_refund)
+            {
+
+                if (refund_type == "CASH")
+                {
+                    //create cash refund in order //
+                }
+
+
+                if (refund_type == "CREDIT")
+                {
+                    int voucher_id = 0;
+                    DateTime issue_ts = local_time;
+                    DateTime exp_date = local_time.AddYears(1);
+                    exp_date = exp_date.Date;
+                    int issued_by = u_id;
+
+                    int refund_voucher_type = 1;
+                    int voucher_status = 10;
+
+                    int issuing_order_id = order_id;
+                    decimal voucher_amount = refund_amount;
+                    string title = "";
+                    string issue_notes = "";
+                    int issuing_vendor_id = 0; try { issuing_vendor_id = order.vendor_id; } catch { }
+                    int m_id = 0; try { m_id = order.u_id; } catch { }
+
+                    sqlSelect = "INSERT INTO MoneyVouchers(voucher_id,issue_ts,issued_by,voucher_type,voucher_status,voucher_amount,issuing_order_id,title,issue_notes,issuing_vendor_id,m_id,exp_date,available_amount)";
+                    sqlSelect+= " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12)";
+                    db.Execute(sqlSelect, voucher_id, issue_ts, issued_by, refund_voucher_type, voucher_status, voucher_amount, issuing_order_id, title, issue_notes, issuing_vendor_id, m_id, exp_date,voucher_amount);
+
+                    //create credit voucher for order
+                }
+
+
+
+
+            }
+
+
+            //if exchange: deal with exchange
+
+            //create exchange item in orderitems
+
+
+            //if voucher: create voucher 
+
+            //if refund: create refund in member account
+
+
+            theHtmlOutput += "ALL GOOD!" + return_items_scope + offer_type;
+
+        }
+        else
+        {
+            theHtmlOutput += "<br>" + errMsg + "<br>";
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+
+
+
+        db.Close();
+        return theHtmlOutput;
+    }
+
+}

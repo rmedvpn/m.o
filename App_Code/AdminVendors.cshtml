@@ -1,0 +1,1334 @@
+﻿@helper VendorSummary(int vendor_id, string summaryOf = "")
+{
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM vendors WHERE vendor_id=@0 ";
+    var vendor = db.QuerySingle(sqlSelect, vendor_id);
+    sqlSelect = "SELECT * from products WHERE v_id=@0 ORDER BY p_id";
+    var products = db.Query(sqlSelect, vendor.vendor_id);
+    sqlSelect = "SELECT * from rounds WHERE is_active=1 AND vendor_id=@0 ORDER BY round_type";
+    var rounds = db.Query(sqlSelect, vendor.vendor_id);
+
+    sqlSelect = "SELECT inventory.*,products.title,products.itemunit FROM inventory INNER JOIN products ON products.P_id=inventory.p_id WHERE inventory.v_id=@0";
+    var inventory = db.Query(sqlSelect, vendor_id);
+
+    string vendor_name = "";
+    string vendor_name_e = "";
+    string vendor_desc_e = "";
+    string vendor_desc = "";
+    int admin_u_id = 0;
+    string admin_username = "";
+
+    vendor_name = vendor.vendor_name;
+    vendor_name_e = vendor.vendor_name_e;
+    vendor_desc_e = vendor.vendor_desc_e;
+    vendor_desc = vendor.vendor_desc;
+    admin_u_id = vendor.admin_u_id;
+    admin_username = AppFunctions.GetRepName(admin_u_id);
+
+
+    switch (summaryOf)
+    {
+        case "":
+            <div>@AdminVendors.VendorGeneralSettings(vendor_id)</div>
+            break;
+        case "TEAM":
+            <div>@AdminVendors.VendorTeamSettings(vendor_id)</div>
+
+            break;
+        case "PRODUCTS":
+            <div>@AdminVendors.VendorProductsSettings(vendor_id)</div>
+            break;
+        case "ROUNDS":
+            <div>@AdminVendors.VendorRoundSettings(vendor_id)</div>
+            break;
+        case "INVENTORY":
+            <div>@AdminVendors.VendorProductInventory(vendor_id)</div>
+            break;
+        case "ENTITIES":
+            <div>@AdminVendors.VendorEntitiesSettings(vendor_id)</div>
+            break;
+        case "ENTITYINVENTORY":
+            <div>@AdminVendors.VendorEntitiesInventory(vendor_id)</div>
+            break;
+        case "INVENTORYACTIONS":
+            <div>@AdminVendors.VendorInventoryActions(vendor_id)</div>
+            break;
+
+        default:
+            break;
+    }
+
+    db.Close();
+}
+
+@helper VendorInventory(int vendor_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    string sqlSelect = "";
+    string vendor_name = "";
+    string vendor_name_e = "";
+    string vendor_desc_e = "";
+    string vendor_desc = "";
+    int admin_u_id = 0;
+    string admin_username = "";
+
+    sqlSelect = "SELECT * FROM vendors WHERE vendor_id=@0 ";
+    var Vendor = db.QuerySingle(sqlSelect, vendor_id);
+    vendor_name = Vendor.vendor_name;
+    vendor_name_e = Vendor.vendor_name_e;
+    vendor_desc_e = Vendor.vendor_desc_e;
+    vendor_desc = Vendor.vendor_desc;
+    admin_u_id = Vendor.admin_u_id;
+    admin_username = AppFunctions.GetMemberName(admin_u_id);
+
+
+
+    sqlSelect = "SELECT COUNT(serial) as the_cnt from TeamVendorAssignment WHERE is_active=1 AND vendor_id=@0";
+    var cnt_rs = db.QuerySingle(sqlSelect, vendor_id);
+    int teamCount = 0; try { teamCount = cnt_rs.the_cnt; } catch { }
+    sqlSelect = "SELECT COUNT(p_id) as the_cnt from products WHERE is_active=1 AND v_id=@0";
+    cnt_rs = db.QuerySingle(sqlSelect, vendor_id);
+    int productCount = 0; try { productCount = cnt_rs.the_cnt; } catch { }
+    sqlSelect = "SELECT COUNT(id) as the_cnt from rounds WHERE is_catalog=1 AND vendor_id=@0";
+    cnt_rs = db.QuerySingle(sqlSelect, vendor_id);
+    int roundsCount = 0; try { roundsCount = cnt_rs.the_cnt; } catch { }
+
+    decimal inventoryValue = 0;
+    sqlSelect = "SELECT * FROM tlg_App_ServiceArea ";
+    //var Areas = db.Query(sqlSelect);
+
+
+
+    <input type="hidden" name="vendor_id" id="vendor_id" value="@vendor_id">
+
+    <div style="text-align: right;padding: 5px;background-color: #000;color: #ddd;">
+        <h1>@vendor_name - ניהול מלאי</h1>
+    </div>
+
+    <div style="overflow: auto;color: #000;background-color: white;">
+        <div style="overflow: auto;background-color: #000;color: #fff;">
+            <div style="overflow: auto;">
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="AdminAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'INVENTORY');">לפי מוצרים</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="AdminAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'ENTITYINVENTORY');">לפי ישויות</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="AdminAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'ENTITIES');">ניהול ישויות</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="AdminAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'INVENTORYACTIONS');">פעולות מלאי</div>
+                <div id="VendorSettingsLoader" style="display: none;float: left">
+                    <div class="spinner">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="overflow: auto" id="vendorContentDiv">
+            @AdminVendors.VendorProductInventory(vendor_id)
+        </div>
+
+    </div>
+    db.Close();
+}
+
+@helper VendorGeneralSettings(int vendor_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM vendors WHERE vendor_id=@0 ";
+    var vendor = db.QuerySingle(sqlSelect, vendor_id);
+    string vendor_name = "";
+    string vendor_name_e = "";
+    string vendor_desc_e = "";
+    string vendor_desc = "";
+    int admin_u_id = 0;
+    string admin_username = "";
+
+    vendor_name = vendor.vendor_name;
+    vendor_name_e = vendor.vendor_name_e;
+    vendor_desc_e = vendor.vendor_desc_e;
+    vendor_desc = vendor.vendor_desc;
+    admin_u_id = vendor.admin_u_id;
+    admin_username = AppFunctions.GetRepName(admin_u_id);
+
+    sqlSelect = "SELECT * FROM VendorAddresses WHERE vendor_id=@0 ORDER BY id DESC";
+    var vendorAddresses = db.Query(sqlSelect, vendor_id);
+
+    <div style="overflow: auto;min-height: 500px;">
+        <div style="overflow: auto;padding: 0;margin: 0">
+            <div style="padding: 0;margin: 0;border: 1px solid #e3e3e3;background-color: #e3e3e3;border-radius: 5px;">
+                <div style="overflow: auto;">
+                    <form id="EditVendorSettings">
+                        <div style="padding: 5px;margin: 5px;overflow: auto;">
+                            <span style="font-size: 14px">
+                                שם הספק<br>
+                                <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;" name="vendor_name" id="vendor_name" value="@vendor_name" onfocus="this.value='';" onchange="UpdateVendorSettings('vendor_name', this.value,@vendor_id,'VendorSettingsLoader');">
+                            </span>
+                            <span style="font-size: 14px;">
+                                Vendor Name
+                                <input type="text" style="padding: 5px;margin: 5px;width: 90%;;font-size: 16px" name="vendor_name_e" id="vendor_name_e" value="@vendor_name_e" onfocus="this.value='';" onchange="UpdateVendorSettings('vendor_name_e', this.value,@vendor_id,'VendorSettingsLoader');">
+                            </span>
+                        </div>
+                        <div style="padding: 5px;margin: 5px;overflow: auto;font-size: 14px;">
+                            תיאור ופרטים נוספים <BR>
+                            <textarea style="width: 90%;padding: 5px;margin: 5px;resize: none;" name="vendor_desc" id="vendor_desc" onchange="UpdateVendorSettings('vendor_desc', this.value,@vendor_id,'VendorSettingsLoader');" placeholder="בלה בלה בלה">@vendor_desc</textarea>
+                            <BR>
+                            About & Additional info
+                            <textarea style="width: 90%;padding: 5px;margin: 5px;resize: none;" name="vendor_desc_e" id="vendor_desc_e" onchange="UpdateVendorSettings('vendor_desc_e', this.value,@vendor_id,'VendorSettingsLoader');" placeholder="בלה בלה בלה">@vendor_desc_e</textarea>
+                        </div>
+
+                    </form>
+                </div>
+
+
+            </div>
+        </div>
+
+        <div style="overflow: auto;">
+            <div style="overflow: auto;">
+                <button type="button" style="float: left;padding: 3px;margin: 3px;font-size: 16px;background-color: #000;color: #fff" onclick="Accordionize('AddVendorAddressAcc');">הוספה</button>
+
+                <h2>כתובות ספק</h2>
+            </div>
+            <button class="Accordion" style="display: none" id="AddVendorAddressAcc"></button>
+            <div class="panel">
+                <form id="AddVendorAddress">
+                    <div style="overflow: auto;background-color: #e3e3e3;border: 2px solid #808080;padding: 5px;" id="AddNewAddress">
+                        <div style="font-size: 16px;color: #b200ff;overflow: auto;">
+                            <span style="float: right">
+                                רחוב <br>
+                                <input type="text" style="font-size: 18px;padding: 5px;margin: 5px;width: 70%;" id="ship_address" name="ship_address">
+                            </span>
+                            <span style="float: right">
+                                עיר<br><input type="text" style="font-size: 18px;padding: 5px;margin: 5px;width: 60%;" id="ship_city" name="ship_city">
+                            </span>
+                            <span style="float: right">
+                                כינוי לכתובת<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 60px;" id="address_nick" name="address_nick">
+                            </span>
+
+                        </div>
+
+                        <div style="font-size: 16px;color: #b200ff;overflow: auto;">
+                            הערות לכתובת<br>
+                            <textarea id="address_notes" name="address_notes" style="width: 90%;margin: 5px;padding: 5px;font-size: 16px;resize: none;"></textarea>
+                        </div>
+
+                        <div style="font-size: 16px;text-align: center;overflow: auto;">
+
+                            <input type="button" value="ביטול" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: white" onclick="Accordionize('AddVendorAddressAcc');">
+                            <input type="button" value="הוספה" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: white" onclick="AjaxActions('AddVendorAddress', @vendor_id,'MainLoader', 'AddVendorAddress');">
+                        </div>
+
+
+                    </div>
+
+                </form>
+            </div>
+            @if (vendorAddresses.Count() > 0)
+            {
+                foreach (var address in vendorAddresses)
+                {
+                    <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #808080">@address.address_nick<br><span style="font-size: 12px;color: #b200ff">@address.street @address.house_no @address.city</span></div>
+                }
+            }
+            else
+            {
+                <div style="overflow: auto;color: #f00">לא נמצאו כתובות</div>
+            }
+
+        </div>
+
+
+    </div>
+
+
+    db.Close();
+}
+
+@helper VendorTeamSettings(int vendor_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from TeamMembersInRounds WHERE round_id=0 AND vendor_id=@0 AND permission_id=0";
+    var VendorTeam = db.Query(sqlSelect, vendor_id);
+    sqlSelect = "SELECT * from AppPermissionCodes WHERE permission_group='MAIN'";
+    var VendorPermissions = db.Query(sqlSelect);
+    sqlSelect = "SELECT userId,username from members WHERE (is_vendor_rep=1 AND work_for_vendor_id=@0)";
+    foreach (var vt in VendorTeam)
+    {
+        sqlSelect = sqlSelect + " AND userid<>" + vt.u_id + " ";
+    }
+    var VendorProspects = db.Query(sqlSelect, vendor_id);
+
+
+    <div style="margin: 5px;padding: 5px;overflow: auto;">
+        <button style="float: left;padding: 2px;margin: 2px;font-size: 16px;background-color: #000;color: white" onclick="Accordionize('AddTeamMemberAcc');"> + הוספה</button>
+        <h2>צוות </h2>
+    </div>
+    <div style=";overflow: auto;">
+        <button style="display: none" class="Accordion" id="AddTeamMemberAcc"></button>
+        <div class="panel" style="padding: 0;margin: 0">
+            <div style="overflow: auto;" id="TeamAddContainer">
+                <h2>נא לבחור משתמש/ת מהרשימה</h2>
+                @foreach (var prospect in VendorProspects)
+                {
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;border-bottom: 1px dotted #e3e3e3">
+                        <b>@prospect.username</b>
+                        <button style="float: left;padding: 2px;margin: 2px;font-size: 14px" onclick="AjaxActions('vendorLinkTeamMember', @vendor_id,'MainLoader',@prospect.userid);">בחירה</button>
+                        <button style="float: right;padding: 2px;margin: 2px;font-size: 14px;color: #f00" onclick="AjaxActions('vendorUnLinkTeamMember', @vendor_id,'MainLoader',@prospect.userid);">מחיקה</button>
+
+                    </div>
+
+                }
+                <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: blue;border-bottom: 1px dotted #e3e3e3">
+                    <form id="vendorAddTeamMember">
+                        יצירת משתמש חדש
+                        <button type="button" style="float: left;padding: 2px;margin: 2px;font-size: 14px" onclick="showElement('addNewTeamMember');FixAccordion('AddTeamMemberAcc');">חדש</button>
+                        <div style="overflow: auto;display: none;padding: 5px;margin: 5px;text-align: center;" id="addNewTeamMember">
+                            <div style="overflow: auto;">
+                                <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;" id="UserName" name="UserName" placeholder="UserName">
+                                <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;" id="wanum" name="wanum" placeholder="#WhatsApp">
+                            </div>
+                            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;" onclick="document.getElementById('vendorAddTeamMember').reset();hideElement('addNewTeamMember');Accordionize('AddTeamMemberAcc');">ביטול</button>
+                            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;" onclick="AjaxActions('vendorAddTeamMember', @vendor_id,'MainLoader','vendorAddTeamMember');">הוספה</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <form id="vendorTeamPermissions">
+        @foreach (var item in VendorTeam)
+        {
+            bool ca_is_driver = false; try { ca_is_driver = item.is_driver; } catch { }
+            bool ca_is_packing = false; try { ca_is_packing = item.is_packing; } catch { }
+            bool ca_is_admin = false; try { ca_is_admin = item.is_admin; } catch { }
+
+            string teamMemberName = "";
+            teamMemberName = AppFunctions.GetRepName(item.u_id);
+
+            if (!teamMemberName.IsEmpty())
+            {
+                <div style="overflow: auto;text-align: right;font-size: 12px;">
+                    <div style="padding: 5px;margin: 5px;overflow: auto;border-bottom: 1px solid #000;">
+                        <div style="padding: 5px;margin: 5px;font-size: 16px;overflow: auto">
+                            <button style="float: left;padding: 2px;margin: 2px;color: #f00;background: transparent;" type="button" id="is_remove_@item.u_id" name="is_remove_@item.u_id" onclick="AjaxActions('vendorRemoveTeamMember', @vendor_id,'MainLoader',@item.u_id);">הסרה</button>
+                            <b>@teamMemberName</b>
+                        </div>
+                        <div style="overflow: auto;">
+
+                            @foreach (var p in VendorPermissions)
+                            {
+                                var fld_name = p.code + "_" + item.u_id;
+                                bool is_permission = false;
+                                is_permission = AdminVendors.isPermission(vendor_id, item.u_id, p.id);
+                                <div style="float: right;padding: 5px;margin: 5px;font-size: 16px;"><input type="checkbox" style=";padding: 5px;margin: 5px;" id="@fld_name" name="@fld_name" @if (is_permission) { <TEXT> checked</TEXT>} onclick="AjaxActions('SetVendorTeamPermissions', @vendor_id,'MainLoader', '@p.code',@item.u_id, this.checked,@p.id);">@p.title</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        <div style="overflow: auto;height: 100px;">
+            &nbsp;
+        </div>
+    </form>
+
+    db.Close();
+}
+
+@helper VendorProductsSettings(int vendor_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from products WHERE v_id=@0 ORDER BY p_id";
+    var products = db.Query(sqlSelect, vendor_id);
+    <div style="margin: 5px;padding: 5px;overflow: auto;">
+        <h2>מוצרים </h2>
+        <div style="text-align: right;font-size: 20px;padding: 5px;margin: 5px;overflow: auto;background-color: #fff;color: #000;font-size: 18px;-webkit-overflow-scrolling: touch;margin-bottom: 30px;">
+            @foreach (var item in products)
+            {
+                int prod_inventory = 0;
+                sqlSelect = "SELECT SUM(inventory.quan) AS totQuan FROM inventory INNER JOIN products ON products.P_id=inventory.p_id WHERE inventory.v_id=@0 AND inventory.p_id=@1";
+                var prod_inv = db.QuerySingle(sqlSelect, vendor_id, item.p_id);
+                if (prod_inv != null)
+                {
+                    try { prod_inventory = prod_inv.totQuan; } catch { }
+                }
+                <div style="font-size: 18px;overflow: auto;padding: 2px;margin: 2px;text-align: right;border-bottom: 2px dashed #e3e3e3;">
+                    <img style="width:40px;height:40px;float: right;margin: 5px;padding: 5px;" src="imgViewer?size=tn&p_id=@item.p_id&id=0" alt="@item.title">
+                    <div style="padding: 2px;margin: 2px;float: right;">
+                        @item.title <br>
+                        <small>@prod_inventory @item.itemunit במלאי</small>
+                    </div>
+                </div>
+
+
+            }
+
+        </div>
+    </div>
+
+    db.Close();
+}
+
+@helper VendorRoundSettings(int vendor_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from rounds WHERE is_active=1 AND vendor_id=@0 ORDER BY round_type";
+    var rounds = db.Query(sqlSelect, vendor_id);
+    <div style="overflow: auto">
+        <div style="overflow: auto;">
+            <B>ערוצי הפצה</B>
+        </div>
+        <div style="text-align: right;font-size: 20px;padding: 5px;margin: 5px;overflow: auto;">
+            @foreach (var item in rounds)
+            {
+                <div style="overflow: auto;padding: 5px;text-align: right;border-bottom: 1px dotted #000;">
+                    <div style="padding: 2px;margin: 2px;overflow: auto;">@item.title</div>
+                </div>
+
+
+            }
+
+        </div>
+
+    </div>
+
+    db.Close();
+}
+
+
+
+@helper VendorEntitiesSettings(int v_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from inv_Entities WHERE is_active=1 ORDER BY entity_type";
+    var entities = db.Query(sqlSelect);
+    sqlSelect = "SELECT * from inv_entity_type WHERE is_system=0";
+    var entity_types = db.Query(sqlSelect);
+    int prod_inventory = 0;
+    sqlSelect = "SELECT * from inv_Entities WHERE is_deleted=0 AND v_id=@0 AND is_active=1";
+    var VendorEntities = db.Query(sqlSelect, v_id);
+    sqlSelect = "SELECT * from inv_Entities WHERE  is_deleted=0 AND v_id=@0 AND is_active=0";
+    var inactiveEntities = db.Query(sqlSelect, v_id);
+    <div style="overflow: auto">
+        <div style="overflow: auto;font-size: 20px;padding: 5px;">
+            <B>ניהול ישויות מלאי</B>
+            <button style="float: left;padding: 5px;font-size: 16px;color: white;border-radius: 5px;background-color: #000" onclick="Accordionize('AccAddEntity');">הוספה</button>
+
+        </div>
+        <div style="overflow: auto">
+            <form id="AddEntityForm">
+                <button style="display: none" id="AccAddEntity" class="Accordion"></button>
+                <div class="panel" style="padding: 0;margin: 0;">
+                    <div style="overflow: auto;">
+                        <div style="overflow: auto;">
+                            <div style="overflow: auto;font-size: 12px;color: #000;font-weight: bold">
+                                שם ישות<br><input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%" name="ent_name">
+                            </div>
+                            <div style="overflow: auto;font-size: 12px;color: #000;font-weight: bold">
+                                סוג ישות<br>
+                                <select style="padding: 5px;margin: 5px;font-size: 16px;width: 90%" name="ent_type">
+                                    <option value="0">נא לבחור סוג ישות</option>
+                                    @foreach (var entType in entity_types)
+                                    {
+                                        <option value="@entType.serial">@entType.entity_title</option>
+                                    }
+                                </select>
+                            </div>
+                            <div style="overflow: auto;font-size: 12px;color: #000;font-weight: bold">
+                                הערות<br><textarea style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;resize: none" rows="2" name="ent_notes"></textarea>
+
+                            </div>
+                        </div>
+                        <div style="overflow: auto;text-align: center">
+                            <button type="button" style="float: right;padding: 5px;margin: 5px;font-size: 16px;color: white;border-radius: 5px;background-color: #f00" onclick="Accordionize('AccAddEntity');">ביטול</button>
+                            <button type="button" style="float: left;padding: 5px;margin: 5px;font-size: 16px;color: white;border-radius: 5px;background-color: #57d600" onclick="AdminAjaxAction('AddInvEntity', @v_id,'AddEntityForm');">הוספה</button>
+
+                        </div>
+
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    if (VendorEntities.Count() > 0)
+    {
+        <div style="background-color: #fff;padding: 5px;">
+            <h2>ישויות מלאי פעילות</h2>
+            @foreach (var ent in VendorEntities)
+            {
+                decimal inventoryValue = 0;
+
+                sqlSelect = "SELECT SUM(quan*unitcost) AS inventoryValue from inv_transactions WHERE entity_id=@0 AND v_id=@1 ";
+                var entity_items = db.QuerySingle(sqlSelect, ent.serial, v_id);
+                try { inventoryValue = entity_items.inventoryValue; } catch { }
+
+                <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;border-bottom: 1px solid #e3e3e3">
+                    <div style="overflow: auto;">
+                        @if (ent.is_active)
+                        {
+                            <input type="checkbox" style="padding: 5px;margin: 5px;width: 15px;height: 15px;float: right" checked onclick="if(this.checked){AdminAjaxAction('ActivateInventoryEntity', @v_id,@ent.serial);}else{AdminAjaxAction('DeActivateInventoryEntity', @v_id,@ent.serial);}">
+                        }
+                        else
+                        {
+                            <input type="checkbox" style="padding: 5px;margin: 5px;width: 15px;height: 15px;float: right" onclick="if(this.checked){AdminAjaxAction('ActivateInventoryEntity', @v_id,@ent.serial);}else{AdminAjaxAction('DeActivateInventoryEntity', @v_id,@ent.serial);}">
+                        }
+
+                        <span style="color: #000;float: right">
+
+                            <b>@ent.entity_name</b> <span style="font-size: 12px"><br>@InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.serial))</span>
+                        </span>
+                        <span style="float: left">
+                            @if (inventoryValue > 0)
+                            {
+                                <span style="float: left;padding: 3px;font-size: 12px;color: white;border-radius: 5px;background-color: #57d600;">שווי מלאי @inventoryValue.ToString("C", culture)</span><br>
+                            }
+                            else
+                            {
+                                <span style="float: left;padding: 3px;font-size: 12px;color: #808080;border-radius: 5px;background-color: #e3e3e3;">שווי מלאי @inventoryValue.ToString("C", culture)</span><br>
+                            }
+
+
+                            <button style="float: left;padding: 3px;font-size: 12px;color: white;border-radius: 5px;background-color: #000;display: none">מחיקה</button>
+
+                        </span>
+                    </div>
+
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div style="background-color: #fff;padding: 5px;color: #808080">
+            אין ישויות מלאי פעילות
+        </div>
+    }
+
+    if (inactiveEntities.Count() > 0)
+    {
+        <div style="background-color: #fff;padding: 5px;">
+            <h2>ישויות לא פעילות</h2>
+            @foreach (var ent in inactiveEntities)
+            {
+                decimal inventoryValue = 0;
+
+                sqlSelect = "SELECT SUM(quan*unitcost) AS inventoryValue from inv_transactions WHERE entity_id=@0 AND v_id=@1 ";
+                var entity_items = db.QuerySingle(sqlSelect, ent.serial, v_id);
+                try { inventoryValue = entity_items.inventoryValue; } catch { }
+
+                <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;border-bottom: 1px solid #e3e3e3">
+                    <div style="overflow: auto;">
+                        @if (ent.is_active)
+                        {
+                            <input type="checkbox" style="padding: 5px;margin: 5px;width: 15px;height: 15px;float: right" checked onclick="if(this.checked){AdminAjaxAction('ActivateInventoryEntity', @v_id,@ent.serial);}else{AdminAjaxAction('DeActivateInventoryEntity', @v_id,@ent.serial);}">
+                        }
+                        else
+                        {
+                            <input type="checkbox" style="padding: 5px;margin: 5px;width: 15px;height: 15px;float: right" onclick="if(this.checked){AdminAjaxAction('ActivateInventoryEntity', @v_id,@ent.serial);}else{AdminAjaxAction('DeActivateInventoryEntity', @v_id,@ent.serial);}">
+                        }
+
+                        <span style="color: #000;float: right">
+
+                            <b>@ent.entity_name</b> <span style="font-size: 12px"><br>@InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.serial))</span>
+                        </span>
+                        <span style="float: left">
+                            @if (inventoryValue > 0)
+                            {
+                                <span style="float: left;padding: 3px;font-size: 12px;color: white;border-radius: 5px;background-color: #57d600;">שווי מלאי @inventoryValue.ToString("C", culture)</span><br>
+                            }
+                            else
+                            {
+                                <span style="float: left;padding: 3px;font-size: 12px;color: #808080;border-radius: 5px;background-color: #e3e3e3;">שווי מלאי @inventoryValue.ToString("C", culture)</span><br>
+                            }
+
+
+                            <button style="float: left;padding: 3px;font-size: 12px;color: white;border-radius: 5px;background-color: #000;" onclick="AdminAjaxAction('DeleteInventoryEntity', @v_id,@ent.serial);">מחיקה</button>
+
+                        </span>
+                    </div>
+
+                </div>
+            }
+        </div>
+    }
+
+
+    <div style="overflow: auto;height: 200px">&nbsp;</div>
+
+    db.Close();
+}
+
+@helper VendorProductInventory(int v_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from inv_Entities WHERE is_active=1 AND v_id=@0 ORDER BY entity_type";
+    var entities = db.Query(sqlSelect, v_id);
+    sqlSelect = "SELECT * from inv_entity_type";
+    var entity_types = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT p_id,v_id,title,itemunit,available_quan,is_active,cost FROM products WHERE v_id=@0";
+    var products = db.Query(sqlSelect, v_id);
+    <div style="overflow: auto">
+        <div style="overflow: auto;font-size: 20px;padding: 5px;">
+            <B>מלאי לפי מוצרים</B>
+        </div>
+    </div>
+
+
+    <div style="background-color: #fff;padding: 5px;">
+        @foreach (var product in products)
+        {
+            int prod_inventory = 0;
+
+            sqlSelect = "SELECT * from Products WHERE p_id=@0 ORDER BY p_id";
+            var productInfo = db.QuerySingle(sqlSelect, product.p_id);
+            sqlSelect = "SELECT SUM(inventory.quan) AS totQuan FROM inventory INNER JOIN products ON products.P_id=inventory.p_id WHERE inventory.v_id=@0 AND inventory.p_id=@1";
+            var prod_inv = db.QuerySingle(sqlSelect, product.v_id, product.p_id);
+            if (prod_inv != null)
+            {
+                try { prod_inventory = prod_inv.totQuan; } catch { }
+            }
+            sqlSelect = "SELECT  distinct entity_id,entity_type  FROM inv_transactions WHERE p_id=@0 AND v_id=@1 ORDER BY entity_id";
+            var entities_inventory = db.Query(sqlSelect, product.p_id, product.v_id);
+
+            sqlSelect = "SELECT inventory.*,products.title,products.itemunit FROM inventory INNER JOIN products ON products.P_id=inventory.p_id WHERE inventory.p_id=@0 ORDER BY inventory.serial DESC";
+            var inventory = db.Query(sqlSelect, product.p_id);
+
+
+            if (prod_inventory > 0)
+            {
+                <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;border-radius: 5px;color: #000;border: 1px solid #e3e3e3">
+                    <div style="overflow: auto;">
+                        <div style="overflow: auto;">
+
+                            <button type="button" style="color: #fff;float: right;padding: 1px;margin: 5px;border: 1px dotted #000;border-radius: 5px;background-color: #000;width:25px;height:25px;" id="btnShowEntInf_@product.p_id" onclick="hideElement('btnShowEntInf_@product.p_id');showElement('btnHideEntInf_@product.p_id');Accordionize('ProdInvAcc_@product.p_id');"><b>+</b></button>
+                            <button type="button" style="color: #000;float: right;padding: 1px;margin: 5px;border: 1px dotted #57d600;border-radius: 5px;background-color: #e3e3e3;width:25px;height:25px;display: none" id="btnHideEntInf_@product.p_id" onclick="hideElement('btnHideEntInf_@product.p_id');showElement('btnShowEntInf_@product.p_id');Accordionize('ProdInvAcc_@product.p_id');"><b>-</b></button>
+                            <div style="color: #000;float: right">
+
+                                <b>#@product.p_id @product.title</b><div style="font-size: 12px;overflow: auto">@prod_inventory @product.itemunit</div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div style="overflow: auto;">
+                        <button class="Accordion" style="display: none" id="ProdInvAcc_@product.p_id"></button>
+                        <div class="panel" style="padding: 0;margin: 0">
+                            <div style="overflow: auto;">
+
+                                @foreach (var enti in entities_inventory)
+                                {
+                                    string RowIden = "p_" + product.p_id + "_e_" + enti.entity_id;
+                                    sqlSelect = "SELECT * from inv_transactions WHERE entity_id=@0 AND p_id=@1 AND v_id=@2 ORDER BY timestamp DESC";
+                                    var entity_items = db.Query(sqlSelect, enti.entity_id, product.p_id, product.v_id);
+                                    sqlSelect = "SELECT sum(quan) as entQuan from inv_transactions WHERE entity_id=@0 AND p_id=@1 AND v_id=@2";
+                                    var entity_quan = db.QuerySingle(sqlSelect, enti.entity_id, product.p_id, product.v_id);
+                                    int ent_quan = 0;
+                                    try { ent_quan = entity_quan.entQuan; } catch { }
+                                    string source_entity_name = "";
+                                    string source_entity_type_title = "";
+                                    source_entity_name = InventoryFunctions.GetEntityName(enti.entity_id);
+                                    source_entity_type_title = InventoryFunctions.GetEntityTypeByCode(enti.entity_type);
+                                    <div style="font-size: 16px;color: #808080;overflow: auto;border-bottom: 1px dashed #808080;" onclick="toggle_visibility('@RowIden');FixAccordion('ProdInvAcc_@product.p_id');">
+
+                                        <div>
+                                            <div style="padding: 5px;text-align: right">
+
+                                                <span style="font-size: 14px;color: #57d600;float: left">@ent_quan @product.itemunit</span>
+                                                <div style="font-size: 14px;margin: 5px;"><b>@source_entity_name</b><span style="font-size: 11px;color: #808080;"> @source_entity_type_title</span></div>
+
+
+                                            </div>
+                                        </div>
+
+
+                                        <div style="display: none;" id="@RowIden">
+                                            @foreach (var ent in entity_items)
+                                            {
+                                                int trans_type = 0;
+                                                trans_type = ent.transaction_type;
+                                                string trans_style = "";
+                                                string cur_ent_name = "";
+                                                string cur_ent_type = "";
+                                                <div class="left-right">
+                                                    <div class="slider" id="t_@ent.serial">
+
+
+                                                    </div>
+
+                                                    <div style="font-size: 12px;border-bottom: 1px dashed #000;background-color: #e3e3e3;padding: 3px;overflow: auto;" onclick="GoSlider('t_@ent.serial');">
+
+                                                        @switch (trans_type)
+                                                        {
+                                                            case 0:
+                                                                trans_style = "blue";
+                                                                <span>קליטה ראשונית למלאי</span>
+                                                                break;
+
+                                                            case 1:
+                                                                trans_style = "green";
+                                                                <span>קליטה מ<span style="color: #000">@InventoryFunctions.GetEntityName(ent.source_entity) (@InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.source_entity)))</span> </span>
+                                                                break;
+
+                                                            case 2:
+                                                                trans_style = "red";
+                                                                <span>העברה ל<span style="color: #000">@InventoryFunctions.GetEntityName(ent.dest_entity) (@InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.dest_entity)))</span> </span>
+                                                                break;
+
+                                                            default:
+                                                                trans_style = "gray";
+                                                                <span>תנועה</span>
+                                                                break;
+                                                        }
+
+
+                                                        <span style="color: @trans_style;float: left;"><b>@ent.quan @product.itemunit</b></span>
+                                                        <br>
+                                                        @if (ent.notes != "")
+                                                        {
+                                                            <span style="font-size: 10px;color: #808080;">@ent.notes</span>
+                                                        }
+                                                        <span style="font-size: 10px;color: #808080;float: left"> נרשם ע"י @AppFunctions.GetRepName(ent.clerk_id) ב<span>@ent.timestamp.ToShortDateString() @ent.timestamp.ToString("HH:mm")</span></span>
+
+                                                    </div>
+                                                </div>
+
+
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+
+        }
+    </div>
+    <div style="overflow: auto;height: 200px">&nbsp;</div>
+
+    db.Close();
+}
+
+@helper VendorEntitiesInventory(int v_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from inv_Entities WHERE is_active=1 ORDER BY entity_type";
+    var entities = db.Query(sqlSelect);
+    sqlSelect = "SELECT * from inv_entity_type WHERE is_system=0";
+    var entity_types = db.Query(sqlSelect);
+    int prod_inventory = 0;
+    sqlSelect = "SELECT * from inv_Entities WHERE is_deleted=0 AND v_id=@0";
+    var entities_inventory = db.Query(sqlSelect, v_id);
+    sqlSelect = "SELECT SUM(quan*unitcost) AS inventoryValue from inv_transactions WHERE entity_id<=0 AND v_id=@0 ";
+    var checkRs = db.QuerySingle(sqlSelect, v_id);
+    int unAllocatedInventoryValue = 0;
+    try { unAllocatedInventoryValue = checkRs.inventoryValue; } catch { }
+
+    <div style="overflow: auto">
+        <div style="overflow: auto;font-size: 20px;padding: 5px;">
+            <B>מלאי לפי ישויות</B>
+        </div>
+    </div>
+    if (entities_inventory.Count() > 0)
+    {
+        <div style="background-color: #fff;padding: 5px;">
+            <div style="overflow: auto;">
+
+                @if (unAllocatedInventoryValue > 0)
+                {
+                    <div style="overflow: auto;">
+                        <span style="color: #000;float: right">
+                            <b>מלאי לא מוקצה</b>
+                        </span>
+                        <span style="float: left;padding: 3px;font-size: 12px;color: white;border-radius: 5px;background-color: #57d600;width: 100px;">שווי מלאי<br> @unAllocatedInventoryValue.ToString("C", culture)</span><br>
+                    </div>
+                }
+
+                @foreach (var ent in entities_inventory)
+                {
+                    decimal inventoryValue = 0;
+                    int inventoryQuan = 0;
+                    sqlSelect = "SELECT SUM(quan) AS inventoryQuan,SUM(quan*unitcost) AS inventoryValue from inv_transactions WHERE entity_id=@0 AND v_id=@1 ";
+                    checkRs = db.QuerySingle(sqlSelect, ent.serial, v_id);
+                    try { inventoryValue = checkRs.inventoryValue; } catch { }
+                    try { inventoryQuan = checkRs.inventoryQuan; } catch { }
+
+                    sqlSelect = "SELECT DISTINCT(inv_transactions.p_id),products.title,products.itemunit FROM inv_transactions JOIN products ON products.p_id=inv_transactions.p_id WHERE inv_transactions.entity_id=@0 AND inv_transactions.v_id=@1";
+                    var entity_items = db.Query(sqlSelect, ent.serial, v_id);
+                    string btnColor = "#808080";
+                    if (entity_items.Count > 0)
+                    {
+                        btnColor = "#57d600";
+                    }
+
+                    if (inventoryQuan > 0)
+                    {
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;border-bottom: 1px solid #000">
+                            <div style="overflow: auto;">
+                                <div style="overflow: auto;">
+
+                                    <button type="button" style="color: #fff;float: right;padding: 1px;margin: 5px;border: 1px dotted #000;border-radius: 5px;background-color: #000;width:25px;height:25px;" id="btnShowEntInf_@ent.serial" onclick="hideElement('btnShowEntInf_@ent.serial');showElement('btnHideEntInf_@ent.serial');Accordionize('EntityInvAcc_@ent.serial');"><b>+</b></button>
+                                    <button type="button" style="color: #000;float: right;padding: 1px;margin: 5px;border: 1px dotted #57d600;border-radius: 5px;background-color: #e3e3e3;width:25px;height:25px;display: none" id="btnHideEntInf_@ent.serial" onclick="hideElement('btnHideEntInf_@ent.serial');showElement('btnShowEntInf_@ent.serial');Accordionize('EntityInvAcc_@ent.serial');"><b>-</b></button>
+                                    <div style="color: #000;float: right">
+
+                                        <b>@ent.entity_name</b><div style="font-size: 12px;overflow: auto">@InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.serial))</div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                            <div style="overflow: auto;">
+                                <button class="Accordion" style="display: none" id="EntityInvAcc_@ent.serial"></button>
+                                <div class="panel" style="padding: 0;margin: 0">
+                                    @foreach (var item in entity_items)
+                                    {
+                                        sqlSelect = "SELECT SUM(quan) AS theQuan,SUM(quan*unitcost) AS inventoryValue from inv_transactions WHERE entity_id=@0 AND v_id=@1 AND p_id=@2";
+                                        var curProduct = db.QuerySingle(sqlSelect, ent.serial, v_id, item.p_id);
+                                        decimal curProductQuan = 0;
+                                        decimal curInventoryValue = 0;
+                                        try { curProductQuan = curProduct.theQuan; } catch { }
+                                        try { curInventoryValue = curProduct.inventoryValue; } catch { }
+                                        <div style="overflow: auto;border-bottom: 1px dashed #000;padding: 5px;font-size: 12px;background-color: #e3e3e3">
+                                            <span style="width: 70%">   #@item.p_id @item.title</span>
+                                            <span style="float: left;font-size: 14px;text-align: right;">
+                                                @curProductQuan @item.itemunit
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+                    }
+
+                }
+
+            </div>
+        </div>
+    }
+    else
+    {
+        <div style="background-color: #fff;padding: 5px;color: #808080">
+            אין ישויות מלאי פעילות
+        </div>
+    }
+
+
+
+    <div style="overflow: auto;height: 200px">&nbsp;</div>
+
+    db.Close();
+}
+
+@helper VendorInventoryActions(int v_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from inv_Entities WHERE is_active=1 AND v_id=@0 ORDER BY entity_type";
+    var entities = db.Query(sqlSelect, v_id);
+    sqlSelect = "SELECT * from inv_entity_type";
+    var entity_types = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT p_id,v_id,title,itemunit,available_quan,is_active,cost FROM products WHERE v_id=@0";
+    var products = db.Query(sqlSelect, v_id);
+
+    sqlSelect = "SELECT TOP(50) * FROM inv_transactions WHERE v_id=@0 ORDER BY serial desc";
+    var transactions = db.Query(sqlSelect, v_id);
+
+    <div style="overflow: auto">
+        <div style="overflow: auto;font-size: 20px;padding: 5px;">
+            <B>תנועות מלאי</B>
+            <button style="float: left;padding: 5px;font-size: 16px;color: white;border-radius: 5px;background-color: #000" onclick="Accordionize('AccInventoryActions');">פעולות</button>
+        </div>
+    </div>
+    <div style="overflow: auto">
+        <button class="Accordion" style="display: none" id="AccInventoryActions"></button>
+        <div class="panel" style="padding: 0;margin: 0">
+            <div style="background-color: #ffffcc;overflow: auto;padding: 5px;margin: 5px;">
+                <div id="InventoryActionsLoader" style="display: none;float: left">
+                    <div class="spinner">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+                <h2>פעולות מלאי</h2>
+
+                <div style="overflow: auto;border-bottom: 1px dotted #e3e3e3;">
+                    נא לבחור פעולה
+                    <span style="float: left">
+                        <select style="padding: 5px;margin: 5px;font-size: 16px;" name="invTransType" onchange="if(this.value!=''){AdminAjaxUpdate('LoadInventoryActions','invTransActionsDiv','InventoryActionsLoader',this.value,@v_id);}">
+                            <option value="">נא לבחור</option>
+                            <option value="ADD">קליטת מלאי</option>
+                            <option value="ALLOCATE">העברת מלאי</option>
+                            <option value="SUBSTRACT">גריעת מלאי</option>
+
+                        </select>
+                    </span>
+                </div>
+                <div style="overflow: auto;" id="invTransActionsDiv">
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div style="overflow: auto">
+        @foreach (var ent in transactions)
+        {
+            sqlSelect = "SELECT title,itemunit,p_id FROM products WHERE p_id=@0";
+            var product = db.QuerySingle(sqlSelect, ent.p_id);
+
+            int trans_type = 0;
+            trans_type = ent.transaction_type;
+            string trans_style = "";
+            string trans_style_bg = "#fff";
+            string cur_ent_name = ""; cur_ent_name = InventoryFunctions.GetEntityName(ent.entity_id);
+            string cur_ent_type = ""; cur_ent_type = InventoryFunctions.GetEntityTypeByCode(ent.entity_type);
+            string trans_type_title = "";
+            string trans_title = "";
+            <div>
+                <div style="font-size: 12px;border-bottom: 1px dashed #000;background-color: white;padding: 3px;overflow: auto;">
+                    @switch (trans_type)
+                    {
+                        case 0: //
+                            trans_style = "blue";
+                            trans_type_title = "קליטת מלאי";
+                            trans_title = "קליטה ראשונית למלאי ל" + cur_ent_name + " (" + cur_ent_type + ")";
+                            <span style="display: none">קליטה ראשונית למלאי</span>
+                            break;
+
+                        case 1:
+                            trans_type_title = "קבלת מלאי";
+                            trans_style = "green"; //receive inventory
+                            trans_title = cur_ent_name + " (" + cur_ent_type + ") קיבל/ה מ" + InventoryFunctions.GetEntityName(ent.source_entity) + " (" + InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.source_entity)) + ")";
+                            break;
+
+                        case 2:
+                            trans_type_title = "מסירת מלאי";
+                            trans_style = "red"; //send inventory
+                            trans_title = cur_ent_name + " (" + cur_ent_type + ") מסר/ה ל" + InventoryFunctions.GetEntityName(ent.dest_entity) + " (" + InventoryFunctions.GetEntityTypeByCode(InventoryFunctions.GetEntityType(ent.dest_entity)) + ")";
+                            break;
+
+                        case 3:
+                            trans_type_title = "גריעת מלאי";
+                            trans_style = "red"; //substract inventory
+                            trans_style_bg = "yellow";
+                            trans_title = cur_ent_name + " (" + cur_ent_type + ") גרעה/ה מהמלאי מהסיבה: " + NewAppFunctions.GetTitleById("InventoryActionCode", ent.action_code);
+                            break;
+
+                        default:
+                            trans_type_title = "תנועה לא מזוהה";
+                            trans_style = "gray";
+                            <span>תנועה</span>
+                            break;
+                    }
+                    <div style="float: right;width: 40%">
+                        <div style="overflow: auto;;background-color:@trans_style_bg">
+                            <span style="color: @trans_style;float: right;padding: 2px;margin: 2px;"><b>@ent.quan @product.itemunit</b></span>
+                            <span style="color: @trans_style;float: right;padding: 2px;margin: 2px;"><b>@trans_type_title</b></span>
+
+                        </div>
+                        <div style="overflow: auto">
+                            <span style="font-size: 10px;color: #808080;float: right"><b>תנועה #@ent.serial</b> <span>@ent.timestamp.ToShortDateString() @ent.timestamp.ToString("HH:mm")</span><br><b>מלאי #@ent.inventory_id</b> בוצעה ע"י @AppFunctions.GetRepName(ent.clerk_id)</span>
+                        </div>
+
+
+                    </div>
+                    <div style="float: left;width: 58%;text-align: right">
+                        <div style="overflow: auto">
+                            <div style="overflow: auto;padding: 2px;margin: 2px;background-color:white;font-size: 14px;color: #000">
+                                <b>#@ent.p_id - @product.title</b>
+                            </div>
+                            <div style="overflow: auto;">
+                                @trans_title
+                                @if (ent.notes != "")
+                                {
+                                    <span style="float: left;">
+                                        <button type="button" style="float: left;padding: 2px;margin: 2px;border: 1px solid #e3e3e3" onclick="toggle_visibility('notes_@ent.serial')">💡</button>
+                                    </span>
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (ent.notes != "")
+                    {
+                        <div style="font-size: 14px;color: #000;overflow: auto;clear: both;display: none;padding: 2px;background-color: #ddd" id="notes_@ent.serial">@ent.notes</div>
+                    }
+
+
+                </div>
+            </div>
+
+
+        }
+    </div>
+    <div style="overflow: auto;height: 200px">&nbsp;</div>
+
+    db.Close();
+}
+
+
+@functions {
+
+    public static bool isPermission(int v_id, int u_id, int permission_id, int round_id = 0)
+    {
+        var sqlSelect = "";
+        var db = Database.Open("op_data");
+        sqlSelect = "SELECT serial FROM teamMembersInRounds WHERE vendor_id=@0 AND u_id=@1 AND permission_id=@2 AND round_id=@3";
+        var rsCheck = db.QuerySingle(sqlSelect, v_id, u_id, permission_id, round_id);
+        db.Close();
+        if (rsCheck != null) { return true; }
+        else { return false; }
+
+    }
+
+    public static string vendorAddTeamMember()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id =WebSecurity.CurrentUserId;
+
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        string userNameToAdd = Request["UserName"];
+        string wanum = Request["wanum"];
+        if (userNameToAdd.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין שם משתמש!<br>";
+        }
+        else
+        {
+            if (WebSecurity.UserExists(userNameToAdd))
+            {
+                theHtmlOutput = theHtmlOutput + "שם המשתמש קיים כבר!<br>";
+            }
+        }
+
+        if (wanum.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין מספר ווטסאפ!<br>";
+        }
+        else
+        {
+            try { wanum = AppFunctions.wanumize(wanum); } catch { }
+            if (!ValidationFunctions.IsValidWanum(wanum))
+            {
+                theHtmlOutput = theHtmlOutput + "חובה להזין מספר ווטסאפ תקין!<br>";
+            }
+            else
+            {
+                sqlSelect = "SELECT userid FROM members WHERE wanum=@0";
+                var existingUser = db.QuerySingle(sqlSelect, wanum);
+                if (existingUser != null)
+                {
+                    theHtmlOutput = theHtmlOutput + "מספר הווטסאפ כבר קיים במערכת!<br>";
+                }
+            }
+        }
+
+
+
+        if (theHtmlOutput == "")
+        {
+            string pw = AppFunctions.GetAppProperty("MemberDefaultPassword");
+            WebSecurity.CreateUserAndAccount(userNameToAdd, pw, null, false);
+            sqlSelect = "SELECT userid FROM members WHERE username=@0";
+            var existingUser = db.QuerySingle(sqlSelect, userNameToAdd);
+            int new_user_id = 0;
+            try { new_user_id = existingUser.userid; } catch { }
+            if (new_user_id != 0)
+            {
+                theHtmlOutput = "חשבון המשתמש " + userNameToAdd + " נוצר עם סיסמת ברירת המחדל";
+            }
+            else
+            {
+                theHtmlOutput = "בעיה ביצירת החשבון!";
+            }
+
+
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string vendorLinkTeamMember()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = 0; try { rep_id = Convert.ToInt32(Request["param1"]); } catch { }
+        string member_user_name = "";
+        member_user_name = AppFunctions.GetRepName(rep_id);
+        sqlSelect = "INSERT INTO TeamMembersInRounds (u_id,vendor_id,ts,clerk_id,username,round_id) VALUES (@0,@1,@2,@3,@4,0)";
+        db.Execute(sqlSelect, rep_id, vendor_id, local_time, u_id, member_user_name);
+        theHtmlOutput = "הפעולה בוצעה בהצלחה!";
+        //logMsg = "הפעולה בוצעה בהצלחה!";
+        // AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+    public static string vendorRemoveTeamMember()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = 0; try { rep_id = Convert.ToInt32(Request["param1"]); } catch { }
+        sqlSelect = "DELETE FROM TeamMembersInRounds WHERE u_id=@0 AND vendor_id=@1";
+        db.Execute(sqlSelect, rep_id, vendor_id);
+        theHtmlOutput = "הפעולה בוצעה בהצלחה!";
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+    public static string vendorUnLinkTeamMember()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = 0; try { rep_id = Convert.ToInt32(Request["param1"]); } catch { }
+        sqlSelect = "UPDATE members SET is_vendor_rep=0,work_for_vendor_id=0 WHERE userid=@0";
+        db.Execute(sqlSelect, rep_id, vendor_id);
+        theHtmlOutput = "הפעולה בוצעה בהצלחה!";
+        //logMsg = "הפעולה בוצעה בהצלחה!";
+        // AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string AddVendorTeamMemberToRound()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = 0; try { rep_id = Convert.ToInt32(Request["team_member_id"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+        int permission_id = 0; try { permission_id = Convert.ToInt32(Request["permission_id"]); } catch { }
+
+        sqlSelect = "SELECT u_id FROM TeamMembersInRounds WHERE u_id=@0 AND vendor_id=@1 AND round_id=0 AND permission_id=0";
+        var usercheckRs = db.QuerySingle(sqlSelect, rep_id, vendor_id);
+        if (usercheckRs == null)
+        {
+            theHtmlOutput = theHtmlOutput + "המשתמש לא ברשימת המשתמשים המורשים של הספק!<br>";
+        }
+
+        sqlSelect = "SELECT serial FROM TeamMembersInRounds WHERE vendor_id=@0 AND round_id=@1 AND u_id=@2 AND permission_id=@3";
+        usercheckRs = db.QuerySingle(sqlSelect, vendor_id, round_id, rep_id, permission_id);
+        if (usercheckRs != null)
+        {
+            theHtmlOutput = theHtmlOutput + "הרשאה קיימת!<br>";
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+            //sqlSelect="SELECT u_id FROM tlg.TeamMembersInRounds WHERE u_id=@0 AND vendor_id=@1 AND round_id=@2";
+            sqlSelect = "SELECT * FROM AppPermissionCodes WHERE id=@0";
+            var chkRs = db.QuerySingle(sqlSelect, permission_id);
+            int sort_order = 0; try { sort_order = chkRs.sort_order; } catch { }
+            string permission_code = ""; try { permission_code = chkRs.code; } catch { }
+            usercheckRs = db.QuerySingle(sqlSelect, rep_id, vendor_id, round_id);
+            string member_name = ""; member_name = AppFunctions.GetRepName(rep_id);
+            sqlSelect = "INSERT INTO TeamMembersInRounds(u_id,round_id,vendor_id,clerk_id,username,permission_id,sort_order,permission_code) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+            db.Execute(sqlSelect, rep_id, round_id, vendor_id, u_id, member_name, permission_id, sort_order, permission_code);
+
+            theHtmlOutput = "הפעולה בוצעה בהצלחה!";
+
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+
+
+    public static string RemoveVendorTeamMemberFromRound()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = 0; try { rep_id = Convert.ToInt32(Request["param1"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+        int permission_id = 0; try { permission_id = Convert.ToInt32(Request["param3"]); } catch { }
+
+        sqlSelect = "DELETE FROM teamMembersInRounds WHERE u_id=@0 AND vendor_id=@1 AND round_id=@2 AND permission_id=@3";
+        db.Execute(sqlSelect, rep_id, vendor_id, round_id, permission_id);
+        sqlSelect = "SELECT u_id FROM teamMembersInRounds WHERE u_id=@0 AND vendor_id=@1 AND round_id=@2";
+        var usercheckRs = db.QuerySingle(sqlSelect, rep_id, vendor_id, round_id);
+        if (usercheckRs == null)
+        {
+            sqlSelect = "DELETE FROM TeamMembersInRounds WHERE u_id=@0 AND vendor_id=@1 AND round_id=@2";
+            db.Execute(sqlSelect, rep_id, vendor_id, round_id);
+        }
+        theHtmlOutput = "הפעולה בוצעה בהצלחה!";
+        //logMsg = "הפעולה בוצעה בהצלחה!";
+        //AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
+
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string AddVendorAddress()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        string ship_address = ""; ship_address = Request["ship_address"];
+        string house_no = ""; house_no = Request["house_no"];
+        string ship_city = ""; ship_city = Request["ship_city"];
+        string address_nick = ""; address_nick = Request["address_nick"];
+        string address_notes = ""; address_notes = Request["address_notes"];
+
+        if (ship_address.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "לא ניתן לשמור כתובת ללא רחוב<BR>";
+        }
+        if (ship_city.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "לא ניתן לשמור כתובת ללא עיר<BR>";
+        }
+        if (address_nick.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "לא ניתן לשמור כתובת ללא כינוי<BR>";
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+            sqlSelect = "INSERT INTO VendorAddresses(Address_type,vendor_id,street,city,address_nick,address_notes,create_ts,created_by) VALUES(1,@0,@1,@2,@3,@4,@5,@6)";
+            db.Execute(sqlSelect, vendor_id, ship_address, ship_city, address_nick, address_notes, local_time, u_id);
+
+            theHtmlOutput = theHtmlOutput + " הכתובת נשמרה<BR>";
+        }
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string SetVendorTeamPermissions()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+        string p_code = ""; p_code = Request["param1"];
+        int p_user = 0; try { p_user = Convert.ToInt32(Request["param2"]); } catch { }
+        string fldName = p_code + "_" + p_user;
+        bool set_to = false;
+        try { set_to = Convert.ToBoolean(Request["param3"]); } catch { }
+        int permission_id = 0; try { permission_id = Convert.ToInt32(Request["param4"]); } catch { }
+
+        if (set_to)
+        {
+            sqlSelect = "INSERT INTO TeamMembersInRounds(u_id,vendor_id,round_id,ts,clerk_id,permission_id) VALUES(@0,@1,@2,@3,@4,@5)";
+            db.Execute(sqlSelect, p_user, vendor_id, 0, local_time, u_id, permission_id);
+            theHtmlOutput = " 👌 השינויים נשמרו - ההרשאה ניתנה";
+        }
+        else
+        {
+            sqlSelect = "DELETE FROM TeamMembersInRounds WHERE u_id=@0 AND vendor_id=@1 AND permission_id=@2";
+            db.Execute(sqlSelect, p_user, vendor_id, permission_id);
+            theHtmlOutput = " 👌 השינויים נשמרו - ההרשאה נשללה";
+        }
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string xxx()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+}

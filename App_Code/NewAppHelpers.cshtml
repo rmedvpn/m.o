@@ -1,0 +1,2547 @@
+﻿@helper TeamRoundMiniStatus(int round_status, int round_id, bool is_actions = true)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM dbo.rounds WHERE id=@0";
+    var round = db.QuerySingle(sqlSelect, round_id);
+
+    string start_time = round.start_time;
+    DateTime round_start = round.round_start;
+    DateTime nextRound = round_start.AddDays(1);
+    string next_round = nextRound.ToString("yyyy'-'MM'-'dd");
+    <div>
+        @switch (round_status)
+        {
+            case 0:
+                <div style="overflow: auto;text-align: right">
+                    <div style="padding: 5px;text-align: center;overflow: auto;min-width: 100px;background-color: white;border-radius: 5px;">
+                        <span style="font-size: 14px;color: #57d600"> מצב עריכה  </span>
+                    </div>
+
+                </div>
+                break;
+            case 1:
+                <div style="overflow: auto;text-align: right">
+                    <div style="padding: 5px;text-align: center;overflow: auto;min-width: 100px;background-color: white;border-radius: 5px;">
+                        <span style="font-size: 14px;color: #57d600"> פתוח להזמנות  </span>
+                    </div>
+
+                </div>
+
+                break;
+            case 2:
+                <div style="overflow: auto;text-align: right">
+                    <div style="padding: 5px;text-align: center;overflow: auto;min-width: 100px;background-color: white;border-radius: 5px;">
+                        <span style="font-size: 14px;color: #f00"> ההזמנות נעצרו זמנית  </span>
+                    </div>
+
+                </div>
+
+                break;
+            case 3:
+
+                <div style="overflow: auto;text-align: right">
+                    <div style="padding: 5px;text-align: center;;background-color: white;border-radius: 5px;overflow: auto">
+                        <span style="font-size: 14px;color: #f00"> הסבב נסגר להזמנות </span>
+
+                    </div>
+                </div>
+                break;
+            case 4:
+                <div style="overflow: auto;text-align: right">
+                    בהכנת מסלולים
+                </div>
+                break;
+            case 5:
+                <div style="overflow: auto;text-align: right">
+                    מסלולי חלוקה מוכנים
+                </div>
+                break;
+            case 6:
+                <div style="overflow: auto;text-align: right">
+                    מיון טרום יציאה הושלם
+                </div>
+                break;
+
+            case 8:
+                <div style="overflow: auto;text-align: right">
+                    הסבב נמסר לאחמש
+                </div>
+                break;
+            case 9:
+                <div style="overflow: auto;text-align: right">
+                    נמסר לנהגי חלוקה
+                </div>
+                break;
+            case 10:
+                <div style="overflow: auto;text-align: right">
+                    במהלך סבב חלוקה
+                </div>
+                break;
+            case 11:
+                <div style="overflow: auto;text-align: right">
+                    כל המשלוחים בוצעו
+                </div>
+                break;
+            case 12:
+                <div style="overflow: auto;text-align: right">
+                    נוהל סגירה
+                </div>
+                break;
+            case 13:
+                <div style="overflow: auto;text-align: right">
+                    הסבב הושלם בהצלחה
+                </div>
+                break;
+            case 99:
+                <div style="overflow: auto;text-align: right">
+                    קוד אדום
+                </div>
+                break;
+
+            default:
+                <div style="overflow: auto;text-align: right">@NewAppFunctions.StatusLabelByCode(round_id, "ROUND") </div>
+                break;
+
+        }
+        <div style="display: none;" id="roundLoader_@round_id">
+            <div class="spinner" style="text-align: center;padding: 5px;margin: 5px;">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+
+    </div>
+}
+
+@helper EditCatalogProduct(int product_id)
+{
+<div>@Products.EditCatalogProduct(product_id)</div>
+}
+
+
+@helper EditCatalogProduct_bck(int product_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+    var product = db.QuerySingle(sqlSelect, product_id);
+    bool is_catalog = false;
+    try { is_catalog = product.is_catalog; } catch { }
+    bool is_setup = false;
+    try { is_setup = product.is_setup; } catch { }
+    bool init_complete = false;
+    try { init_complete = product.init_complete; } catch { }
+
+    int itemunit_type = 0;
+    try { itemunit_type = product.itemunit_type; } catch { }
+    sqlSelect = "SELECT * from ItemUnitTypes";
+    var itemUnitTypes = db.Query(sqlSelect);
+    //var itemTypes
+    string itemunit = "";
+    itemunit = product.itemunit;
+    sqlSelect = "SELECT * FROM rounds WHERE is_catalog=1";
+    var Menus = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0";
+    var PricingOptions = db.Query(sqlSelect, product_id);
+
+    sqlSelect = "SELECT * FROM roundMenuItems WHERE p_id=@0";
+    var AvailableInMenus = db.Query(sqlSelect, product_id);
+
+    sqlSelect = "SELECT * FROM categories WHERE is_maincat=1";
+    var MainCategories = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1";
+    var spOfferCategries = db.Query(sqlSelect);
+
+
+    sqlSelect = "SELECT * FROM vendors WHERE is_active=1";
+    var Vendors = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM  ProductsCustomFields WHERE p_id=@0 AND is_activated=1";
+    var customFields = db.Query(sqlSelect, product_id);
+    sqlSelect = "SELECT * FROM  ProductsCustomFields WHERE p_id=@0 AND is_activated=0";
+    var unUsedCustomFields = db.Query(sqlSelect, product_id);
+
+    bool sell_1s = false; try { sell_1s = product.sell_1s; } catch { }
+    bool sell_3s = false; try { sell_3s = product.sell_3s; } catch { }
+    bool sell_5s = false; try { sell_5s = product.sell_5s; } catch { }
+    int sell_inXs = 0; try { sell_inXs = product.sell_inXs; } catch { }
+
+    string sell_1s_display_state = "none";
+    string sell_Xs_display_state = "block";
+
+    if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"; }
+
+    <div style="overflow: auto;text-align: right;background-color: #fff">
+        <div style="overflow: auto;font-size: 24px;color: #000;">
+            <div style="overflow: auto">
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">@product.title <span style="font-size: 12px;color: #57d600;margin-right:10px;">מוצר קטלוגי </span> <span style="font-size: 12px;color: yellow;margin-right:10px;">#@product.p_id </span></div>
+            </div>
+        </div>
+
+        @if (!is_setup)
+        {
+            <div style="overflow: auto;;color: #000;">
+                <div style="overflow: auto;background-color: #ffffcc;color: #f00;">
+                    <div style="overflow: auto;font-size: 18px;padding: 5px;">⚠️ המוצר לא מופעל במערכת <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;" onclick="AjaxActions('ActivateCatalogProduct', '@product_id', '', '1');">הפעלה</button></div>
+
+                </div>
+            </div>
+
+        }
+        else
+        {
+            <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold;font-size: 18px;background-color: #ffffcc">
+                <input type="checkbox" onclick="if (this.checked) { AjaxActions('ActivateProduct', '@product_id', '', '1'); } else { AjaxActions('ActivateProduct', '@product_id','', '0'); }" style="padding: 5px;margin: 5px;height: 30px;width: 30px;float: left" @if (product.is_active) { <text> checked</text>}> מוצר פעיל
+            </div>
+
+        }
+
+        <div style="overflow: auto;text-align: center;" id="ProductOptionsMenu">
+            <button style="padding: 2px;margin: 2px;font-size: 16px;background-color: #b200ff;color: #fff;float: right;border: 0" onclick="hideElement('ActiveProductsDiv');hideElement('ProductSettingsDiv');hideElement('ProductPricingDiv');hideElement('ProductCustomFieldsDiv');showElement('ProductEditInfoDiv');"><b>פרטים</b></button>
+            <button style="padding: 2px;margin: 2px;font-size: 16px;background-color: #808080;color: #fff;float: left;border: 0" onclick="hideElement('ActiveProductsDiv');hideElement('ProductSettingsDiv');hideElement('ProductPricingDiv');hideElement('ProductEditInfoDiv');showElement('ProductCustomFieldsDiv');"><b>שדות</b></button>
+            <button style="padding: 2px;margin: 2px;font-size: 16px;background-color: #000;color: #fff;float: right;border: 0" onclick="hideElement('ActiveProductsDiv');hideElement('ProductEditInfoDiv');hideElement('ProductPricingDiv');hideElement('ProductCustomFieldsDiv');showElement('ProductSettingsDiv');"><b>הגדרות</b></button>
+            <button style="padding: 2px;margin: 2px;font-size: 16px;background-color: #57d600;color: #fff;float: left;border: 0" onclick="hideElement('ActiveProductsDiv');hideElement('ProductEditInfoDiv');hideElement('ProductSettingsDiv');hideElement('ProductCustomFieldsDiv');showElement('ProductPricingDiv');"><b>מחירון</b></button>
+            <button style="padding: 2px;margin: 2px;font-size: 16px;background-color: #ff6a00;color: #fff;float: right;border: 0" onclick="hideElement('ProductSettingsDiv');hideElement('ProductEditInfoDiv');hideElement('ProductPricingDiv');hideElement('ProductCustomFieldsDiv');showElement('ActiveProductsDiv');"><b>מוצרים פעילים</b></button>
+
+        </div>
+        <div style="overflow: auto;" id="ProductImagesContainer">
+            @NewAppHelpers.ProductImages(product_id)
+        </div>
+
+
+        <form id="UpdateProduct">
+            <div id="ProductEditInfoDiv">
+                <div style="background-color: #e3e3e3;overflow: auto">
+                    <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold">
+                        <div style="overflow: auto;font-size: 14px;">כותרת עברית<br><input type="text" id="title" name="title" style="width: 90%;padding: 5px;margin: 5px;;font-size: 16px;" value="@product.title"></div>
+                        <div style="overflow: auto;font-size: 14px;">English title<br><input type="text" id="e_title" name="e_title" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;" value="@product.e_title"></div>
+                        <div style="overflow: auto;font-size: 14px;">תאור המוצר<br><textarea id="description" name="description" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;resize: none;">@product.description</textarea></div>
+                        <div style="overflow: auto;font-size: 14px;">Product Description<br><textarea id="e_desc" name="e_desc" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;resize: none;">@product.e_desc</textarea></div>
+                    </div>
+                    <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold;font-size: 18px;">
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            קוד מוצר<span style="float: left"><input type="text" id="prod_code" name="prod_code" style="width: 40px;padding: 5px;font-size: 16px;margin: 5px;" value="@product.prod_code"> </span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מחיר מחירון<span style="float: left"><input type="text" id="price" name="price" style="width: 40px;padding: 5px;font-size: 16px;margin: 5px;" value="@Convert.ToInt32(product.price)"> (₪/<span id="itemunit1">@itemunit</span>)</span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מחיר עלות <span style="float: left"><input type="text" id="cost" name="cost" style="width: 40px;padding: 5px;font-size: 16px;margin: 5px;" value="@Convert.ToInt32(product.cost)"> (₪/<span id="itemunit2">@itemunit</span>)</span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+
+                            <div style="overflow: auto">
+                                עמלת מערכת
+                                <span style="float: left">
+                                    <input type="text" id="commision_rate" name="commision_rate" style="width: 40px;padding: 5px;font-size: 16px;margin: 5px;float: right" @if (product.commision_rate > 0) { <text> value="@String.Format("{0:0.00}",product.commision_rate)" </text> }>
+                                    <select style="padding: 5px;font-size: 16px;margin: 5px;float: right" id="commision_type" name="commision_type">
+                                        <option value="1" @if (product.commision_type == 1) { <text> selected</text>}>₪</option>
+                                        <option value="2" @if (product.commision_type == 2) { <text> selected</text>}>%</option>
+                                    </select>
+                                    /<span id="itemunit6">@itemunit</span>
+                                </span>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+                <div style="overflow: auto;text-align: center">
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProduct', '@product_id','', '0');">מחיקת מוצר</button>
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateCatalogProduct', '@product_id','','UpdateProduct');">שמירת שינויים</button>
+                </div>
+
+            </div>
+
+            <div style="overflow: auto;display: none" id="ProductSettingsDiv">
+                <div style="overflow: auto;color: #000">
+                    <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000;padding: 5px;" id="selectItemUnitDiv">
+                        <span>
+                            יח מידה
+                            <span style="float: left;font-weight: bold">
+                                <input type="hidden" id="itemunit_type" name="itemunit_type" value="@itemunit_type">
+                                <span style="color: #000">@itemunit</span>
+                            </span>
+                        </span>
+                    </div>
+
+
+                    <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000">
+                        <div style="overflow: auto">
+                            <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                                קטגוריה ראשית
+                                <input type="hidden" id="main_cat_id" name="main_cat_id" value="@product.maincat_id">
+                                <span style="float: left;padding-left: 5px;font-weight: bold">@NewAppFunctions.GetTitleById("Cat", product.maincat_id)</span>
+
+                            </div>
+
+                            <div class="spinner" style="text-align: center;display: none;float: left" id="SubCatLoader">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                            </div>
+                        </div>
+                        <div style="overflow: auto">
+                            <div style="overflow: auto;border-bottom: 1px dotted #000;" id="SubCatContainer">
+                                @if (product.maincat_id != 0)
+                                {
+                                    <div>@NewAppHelpers.LoadSubCatSelector(product.maincat_id, product.p_id)</div>
+                                }
+                            </div>
+                        </div>
+
+
+                        <div style="overflow: auto">
+                            <div style="float: right;border-bottom: 1px dotted #000" id="CatTagsContainer">
+                                @if (product.maincat_id != 0)
+                                {
+                                    <div>@NewAppHelpers.LoadCatTagsSelector(product.maincat_id, product.p_id)</div>
+                                }
+                            </div>
+                        </div>
+
+
+
+                    </div>
+                </div>
+                <div style="overflow: auto;font-size: 18px;padding: 5px;background-color: #fff">
+
+
+                    <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                        הנחות <span style="float: left"><input type="checkbox" id="is_discountable" name="is_discountable" style="width: 20px;height: 20px;margin: 5px;" @if (product.is_discountable) { <text> checked </text> }></span>
+                    </div>
+                    <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                        קהילה <span style="float: left"><input type="checkbox" id="CharityOffersOk" name="CharityOffersOk" style="width: 20px;height: 20px;margin: 5px;" @if (product.CharityOffersOk) { <text> checked </text> }></span>
+                    </div>
+                    <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                        מקס יח בהזמנה <span style="float: left"><input type="text" id="maxInCart" name="maxInCart" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;" value="@product.max_in_cart"> <span id="itemunit5">@itemunit</span></span>
+                    </div>
+                    <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                        <div style="overflow: auto;color: #000;font-size: 18px;display: @sell_1s_display_state;" id="sell_all_div">
+                            <input type="checkbox" id="sell_1s" name="sell_1s" style="height: 25px;width: 25px;" onclick="hideElement('sell_all_div');showElement('sell_pre_pack');document.getElementById('sell_1s_ph').checked=false;" checked>
+                            נמכר במכפלות של 1 <span id="itemunit3">@itemunit</span>
+                        </div>
+
+                        <div style="overflow: auto;color: #000;font-size: 18px;display: @sell_Xs_display_state;" id="sell_pre_pack">
+                            מכירה במכפלות של<br>
+                            <input type="checkbox" style="height: 20px;width: 20px;" id="sell_1s_ph" onclick="hideElement('sell_pre_pack');showElement('sell_all_div');document.getElementById('sell_1s').checked=true;"> 1
+                            <input type="checkbox" id="sell_3s" name="sell_3s" style="height: 25px;width: 25px;" @if (sell_3s) { <text> checked </text> }> 3
+                            <input type="checkbox" id="sell_5s" name="sell_5s" style="height: 25px;width: 25px;" @if (sell_5s) { <text> checked </text> }> 5
+                            /
+                            <input type="text" style="width: 30px;padding: 5px;font-size: 18px;text-align: center" onfocus="this.value='';" placeholder="x" id="sell_inXs" name="sell_inXs" @if (sell_inXs > 0) { <text> value="@sell_inXs" </text> }>
+                            <span id="itemunit4">@itemunit</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div style="overflow: auto;text-align: center">
+                    @if (!product.is_active)
+                    {
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProduct', '@product_id','', '0');">מחיקת מוצר</button>
+                    }
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateCatalogProduct', '@product_id','','UpdateProduct');">שמירת שינויים</button>
+                </div>
+
+
+            </div>
+        </form>
+
+        <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold;font-size: 18px;display: none" id="ProductCustomFieldsDiv">
+            @NewAppHelpers.EditProductCustomFields(product_id)
+        </div>
+
+
+        <div style="overflow: auto;display: none" id="ProductPricingDiv">
+            <div style="overflow: auto;font-size: 18px;color: #000;padding: 5px;margin: 5px;border: 1px dashed #000">
+                <div style="overflow: auto;padding: 5px;">
+                    מחירון
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;float:left" onclick="Accordionize('AddPricingOptionAcc');">הוספת אפשרות</button>
+                    <div class="spinner" style="text-align: center;display: none;float: left" id="AddProductLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+                <button style="display: none;" id="AddPricingOptionAcc"></button>
+                <div class="panel" style="padding: 0;margin: 0;text-align: center">
+
+                    <div id="AddPricingOptionsContainer">
+                        @NewAppHelpers.AddProductPricingOption(product_id)
+                    </div>
+
+                </div>
+                <div id="PricingOptionsContainer">
+                    @NewAppHelpers.ProductPricingOptions(product_id)
+                </div>
+
+            </div>
+        </div>
+
+        <div style="overflow: auto;display: none" id="ActiveProductsDiv">
+            <div style="overflow: auto;">
+                <div style="overflow: auto;padding: 5px;">
+                    <div style="overflow: auto;">מוצרים פעילים תחת המוצר הקטלוגי <b>@product.title</b></div>
+
+                    <div class="spinner" style="text-align: center;display: none;float: left" id="ActiveProductsLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+                <div id="SubProductsCreationContainer">
+                    @NewAppHelpers.CreateSubProductForVendors(product_id)
+                </div>
+
+                <div id="SubProductsContainer">
+                    @NewAppHelpers.SubProductsForCatalogProduct(product_id)
+                </div>
+
+
+            </div>
+        </div>
+
+
+        <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+    </div>
+    db.Close();
+}
+
+@helper ProductSettings(dynamic field) { 
+    
+    
+    }
+
+@helper SubProductsForCatalogProduct(int p_id = 0)
+{
+<div>@Products.SubProductsForCatalogProduct(p_id)</div>
+}
+
+
+@helper SubProductsForCatalogProduct_bck(int p_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = " SELECT * FROM products WHERE is_Catalog=0 AND Catalog_p_id=@0 order by v_id,p_id desc";
+    var subProducts = db.Query(sqlSelect, p_id);
+    sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+    var catProduct = db.QuerySingle(sqlSelect, p_id);
+
+    if (subProducts.Count() > 0 && catProduct != null)
+    {
+
+        <div style="overflow: auto;">
+
+            <div style="overflow: auto;border-bottom: 1px dotted #000">
+                <div style="overflow: auto">
+                    @foreach (var product in subProducts)
+                    {
+                        string vendor_name = "";
+                        try { vendor_name = AppFunctions.GetVendorTitleById(product.v_id); } catch { }
+                        <div style="overflow: auto;border-bottom:1px dotted #808080;font-size: 18px;color: #000;background-color: #fff">
+                            <div style="overflow: auto;">
+                                <button style="float: left;background:transparent;border:0;font-size: 16px;margin-left:10px;" onclick="sbload('SubMenuLeft','Caller?p1=ProductEdit&p2=@product.p_id');">⚙️</button>
+                                <div style="overflow:auto">
+                                    <div style="float: right; padding: 5px; margin: 5px; font-size: 12px; color: #808080">#@product.p_id </div>
+                                    <div style="overflow:auto;">
+                                        <span style="font-size:14px;color:#000"><b>@product.title</b></span>
+                                        <div style="overflow:auto;padding: 2px;margin:2px;font-size:12px;color:#b200ff">@vendor_name</div>
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+                        </div>
+
+                    }
+
+                </div>
+            </div>
+
+
+        </div>
+
+    }
+    else
+    {
+        <div>
+            <div style="overflow: auto;font-size: 14px;color:#808080">אין מוצרים פעילים למוצר הקטלוגי <b>@catProduct.title</b></div>
+
+        </div>
+    }
+    db.Close();
+}
+
+@helper CreateSubProductForVendors(int p_id)
+{
+<div>@Products.CreateSubProductForVendors(p_id)</div>
+}
+
+
+@helper CreateSubProductForVendors_bck(int p_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = " SELECT * FROM vendors WHERE is_active=1 order by vendor_id";
+    var vendors = db.Query(sqlSelect);
+
+    <div style="overflow: auto;">
+
+        <div style="overflow: auto;border-bottom: 1px dotted #000">
+            <form id="ProductSetupForm">
+                <input type="hidden" name="p_id" value="@p_id" />
+                <div style="overflow: auto">
+                    <div style="overflow: auto;border-bottom:1px dotted #808080;font-size: 18px;color: #000;background-color: #fff">
+                        <div style="overflow: auto;padding:4px;">
+                            <div style="overflow:auto">
+                                <div style="float: right; padding: 5px; margin: 1px; font-size: 12px; color: #808080">יצירת מוצר עבור </div>
+                                <div style="float:right;">
+
+                                    <div style="overflow:auto;">
+                                        <select style="padding:5px;font-size:16px;" name="vendor_id" id="vendor_id_select">
+                                            <option value="">נא לבחור..</option>
+                                            <option value="-2">העתקה לקטלוג</option>
+                                            <option value="-1">כל הספקים</option>
+                                            @foreach (var vendor in vendors)
+                                            {
+                                                <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                            }
+
+
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="float: right;padding:5px;">
+                                    <div style="float: right;">
+                                        <input type="checkbox" style="padding:5px;margin:5px" name="is_pictures" checked /> תמונות
+                                    </div>
+                                    <div style="float: right;">
+                                        <input type="checkbox" style="padding:5px;margin:5px" name="is_pricing" checked /> מחירון
+                                    </div>
+                                </div>
+                                <button type="button" style="float: left; padding: 2px; margin: 2px; font-size: 12px; color: #808080" onclick="AjaxActions('CreateVendorProductFromCatalog', '@p_id', '', 'ProductSetupForm');">יצירה</button>
+
+
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                </div>
+            </form>
+        </div>
+
+
+    </div>
+    db.Close();
+}
+
+
+@helper ProductImages(int p_id, bool is_RoundMenuItem = false)
+{
+<div>@Products.ProductImages(p_id,is_RoundMenuItem)</div>
+}
+
+
+@helper ProductImages_bck(int p_id, bool is_RoundMenuItem = false)
+{
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND product_id = @0 ORDER BY is_primary DESC,timestamp DESC";
+    var files = db.Query(sqlSelect, p_id);
+
+    db.Close();
+
+
+    <div style="background-color: #fff;color: #808080;padding: 5px;">
+        <input type="hidden" name="upload_p_id" id="upload_p_id" value="@p_id">
+        @if (!is_RoundMenuItem)
+        {
+            <div>
+                <form id="picupload" name="picupload" enctype="multipart/form-data">
+                    <input style="float: left;font-size: 12px;padding: 5px;margin: 5px;" type="button" value="הוספה" id="ImgUploadBtn" onclick="document.getElementById('picfilebox').click();" />
+                    <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
+                </form>
+                <div style="overflow: auto;padding: 0;margin: 0;background-color: #fff;text-align: center;" id="pbContainer">
+                    <div style="overflow: auto;background-color: #b200ff;color: #fff;float: right;width: 0%;height: 10px" id="pbar_bar">
+                        <span style="color:#b200ff;height: 10px;"></span>
+                    </div>
+                </div>
+            </div>
+        }
+
+
+
+        @if (files.Count() > 0)
+        {
+
+            foreach (var item in files)
+            {
+                if (item.MimeType.StartsWith("image"))
+                {
+                    <span style="padding: 2px;">
+                        @if (item.is_primary)
+                        {
+                            <small style="color: #808080;font-size: 11px;left: 0px;">תמונה ראשית</small><br>
+                        }
+                        @if (is_RoundMenuItem)
+                        {
+                            <img style="height: 50px;max-width: 50px;border-radius: 10px;margin: 3px;padding: 3px;" src="ImgViewer?size=tn&Id=@item.file_id" alt="אלט" onclick="sbload('SubMenuLeft','Caller?p1=ImgInfo&p2=@p_id&p3=@item.file_id&p4=1');" />
+                        }
+                        else
+                        {
+                            <img style="height: 50px;max-width: 50px;border-radius: 10px;margin: 3px;padding: 3px;" src="ImgViewer?size=tn&Id=@item.file_id" alt="אלט" onclick="sbload('SubMenuLeft','Caller?p1=ImgInfo&p2=@p_id&p3=@item.file_id');" />
+                        }
+
+
+                    </span>
+                }
+            }
+        }
+        else
+        {
+            <span style="padding: 5px;font-size: 14px;color: #808080;">אין תמונות למוצר</span>
+        }
+        <div class="spinner" style="text-align: center;float: left;display: none" id="ImgUploadLoader">
+            <div class="bounce1"></div>
+            <div class="bounce2"></div>
+            <div class="bounce3"></div>
+        </div>
+
+    </div>
+
+
+    db.Close();
+}
+
+
+@helper LoadSubCatSelector(int main_cat_id, int product_id = 0)
+{
+<div>@Products.LoadSubCatSelector(main_cat_id,product_id)</div>
+}
+
+
+@helper LoadSubCatSelector_bck(int main_cat_id, int product_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM categories WHERE is_subcat=1 AND maincat_id=@0";
+    var SubCategories = db.Query(sqlSelect, main_cat_id);
+    sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1 AND (maincat_id=@0 OR maincat_id=0)";
+    var spOfferCategries = db.Query(sqlSelect, main_cat_id);
+    sqlSelect = "SELECT p_id,spOfferCatId,sub_cat_id FROM products WHERE p_id=@0";
+    var product = db.QuerySingle(sqlSelect, product_id);
+    int sub_cat_id = 0; try { sub_cat_id = product.sub_cat_id; } catch { }
+    int spOfferCatId = 0; try { spOfferCatId = product.spOfferCatId; } catch { }
+
+
+    if (SubCategories.Count() > 0)
+    {
+        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+            תת קטגוריה
+            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="sub_cat_id" name="sub_cat_id">
+                <option>נא לבחור </option>
+                @foreach (var cat in SubCategories)
+                {
+                    <option value="@cat.id" @if (cat.id == sub_cat_id) { <text> selected</text>}>@cat.title</option>
+                }
+            </select>
+        </div>
+
+    }
+    else
+    {
+        <div></div>
+    }
+
+    if (spOfferCategries.Count() > 0)
+    {
+        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+            קטגורית מבצעים
+            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="spOfferCatId" name="spOfferCatId">
+                <option>נא לבחור </option>
+                @foreach (var cat in spOfferCategries)
+                {
+                    <option value="@cat.id" @if (cat.id == spOfferCatId) { <text> selected</text>}>@cat.title</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <div></div>
+    }
+
+
+    db.Close();
+}
+
+@helper LoadCatTagsSelector(int main_cat_id, int p_id = 0)
+{
+  <div>@Products.LoadCatTagsSelector(main_cat_id,p_id)</div>
+}
+
+
+@helper LoadCatTagsSelector_bck(int main_cat_id, int p_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
+    var CatTags = db.Query(sqlSelect, main_cat_id);
+    sqlSelect = "SELECT title FROM categories WHERE id=@0";
+    var MainCat = db.QuerySingle(sqlSelect, main_cat_id);
+    string SelectedCat = "";
+    if (CatTags.Count() > 0)
+    {
+
+        <div style="overflow: auto;">
+
+            @if (CatTags.Count() > 0)
+            {
+                <div style="overflow: auto;border-bottom: 1px dotted #000">
+                    <div style="overflow: auto;font-weight: bold">תגיות לקטגוריה @MainCat.title</div>
+                    <div style="overflow: auto">
+                        @foreach (var cat in CatTags)
+                        {
+                            bool is_selected = false;
+                            sqlSelect = "SELECT cat_id FROM productTags WHERE cat_id=@0 AND p_id=@1";
+                            var rs = db.QuerySingle(sqlSelect, cat.id, p_id);
+                            if (rs != null)
+                            {
+                                SelectedCat = SelectedCat + "##" + cat.id + "##";
+                                is_selected = true;
+                            }
+
+                            if (is_selected)
+                            {
+                                <input type="hidden" name="is_cat_@cat.id" id="is_cat_@cat.id" value="">
+                                <button type="button" id="cat_btn_@cat.id" onclick="ProductCatSelector(@cat.id);" style="background-color: #57d600;padding: 2px;margin: 5px;font-weight: bold;font-size: 16px;color: #000;border: 0;float: right;">@cat.title</button>
+                            }
+                            else
+                            {
+                                <input type="hidden" name="is_cat_@cat.id" id="is_cat_@cat.id" value="no">
+                                <button type="button" id="cat_btn_@cat.id" onclick="ProductCatSelector(@cat.id);" style="background-color: #e3e3e3;padding: 2px;margin: 5px;font-weight: bold;font-size: 16px;color: #000;border: 0;float: right;">@cat.title</button>
+                            }
+                        }
+
+                    </div>
+                </div>
+            }
+
+
+            <input type="hidden" name="SelectedCat" id="SelectedCat" value="@SelectedCat">
+        </div>
+
+    }
+    else
+    {
+        <div></div>
+    }
+
+    db.Close();
+}
+
+
+
+
+@helper EditProductCustomFields(int p_id)
+{
+<div>@Products.EditProductCustomFields(p_id)</div>
+}
+
+
+@helper EditProductCustomFields_bck(int p_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM  ProductsCustomFields WHERE p_id=@0 AND is_activated=1 ORDER BY listindex";
+    var customFields = db.Query(sqlSelect, p_id);
+    sqlSelect = "SELECT * FROM  ProductsCustomFields WHERE p_id=@0 AND is_activated=0";
+    var unUsedCustomFields = db.Query(sqlSelect, p_id);
+    sqlSelect = "SELECT * FROM CustomProductFieldsType";
+    var customProductFieldTypes = db.Query(sqlSelect);
+
+    bool is_catalog = false;
+    sqlSelect = "SELECT is_catalog FROM products WHERE p_id=@0";
+    var prodRs = db.QuerySingle(sqlSelect, p_id);
+    try { is_catalog = prodRs.is_catalog; } catch { }
+
+    <div>
+
+        <div style="overflow: auto;text-align: center">
+            <select style="width: 70%;padding: 5px;margin: 5px;font-size: 16px;float: right" id="field_id" name="field_id" onchange="if (this.value == '-1') { Accordionize('AddProdFieldAcc'); } else { if (IsAccordion('AddProdFieldAcc')) { Accordionize('AddProdFieldAcc'); } AjaxActions('ActivateProductCustomField','@p_id','', document.getElementById('field_id').value); }">
+                <option value="">נא לבחור שדה להוספה</option>
+                @foreach (var field in unUsedCustomFields)
+                {
+                    <option value="@field.id">@field.title</option>
+                }
+                <option value="-1">שדה חדש..</option>
+
+            </select>
+            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: left;border: 0;display: none" onclick="AjaxActions('ActivateProductCustomField','@p_id','', document.getElementById('field_id').value);">הוספה</button>
+            <div class="spinner" style="text-align: center;display: none;float: left" id="CustomFieldLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+
+        </div>
+        <button class="Accordion" style="display: none" id="AddProdFieldAcc"></button>
+        <div class="panel" style="padding: 0;margin: 0">
+            <form id="Add_Product_Field">
+                <input type="hidden" name="p_id" id="p_id" value="@p_id">
+                <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                    הוספת שדה מידע
+                </div>
+                <div style="overflow: auto;">
+                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="custom_field_title" id="custom_field_title" placeholder="שם השדה">
+                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title">
+                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="custom_fieldName" id="custom_fieldName" placeholder="Field Name">
+                    <select style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" name="fieldType" id="fieldType">
+                        <option value="">נא לבחור סוג שדה</option>
+                        @foreach (var item in customProductFieldTypes)
+                        {
+                            <option value="@item.id">@item.title</option>
+                        }
+                    </select>
+                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px">
+                        <span style="float: right"><input type="checkbox" id="is_required" name="is_required" style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px"> שדה חובה</span>
+                        <input type="hidden" value="is_editable" name="is_editable">
+                    </div>
+                </div>
+                <div style="overflow: auto;text-align: center;padding: 5px;">
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');document.getElementById('Add_Product_Field').reset();">ביטול</button>
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddCustomProductField', '@p_id','', 'Add_Product_Field'); document.getElementById('Add_Product_Field').reset(); Accordionize('AddProdFieldAcc');">הוספת שדה</button>
+                </div>
+            </form>
+        </div>
+        <div style="overflow: auto;">
+            <div style="overflow: auto;background-color: #fff"><h3>שדות מידע</h3></div>
+            @foreach (var field in customFields)
+            {
+                <div style="overflow: auto;" id=customFieldDiv_@field.id>
+                    @NewAppHelpers.ProductCustomFieldEntry(field, is_catalog)
+                </div>
+            }
+
+        </div>
+    </div>
+    db.Close();
+}
+
+@helper ProductCustomFieldEntry(dynamic field, bool is_catalog)
+{
+
+   <div>@Products.ProductCustomFieldEntry(field,is_catalog) </div>
+
+}
+
+
+@helper ProductCustomFieldEntry_bck(dynamic field, bool is_catalog)
+{
+
+    string fieldType = field.fieldType;
+    string tmpFieldName = field.fieldName;
+    string tmpFieldName_e = tmpFieldName + "_e";
+    bool tmpBoolValue = false; try { tmpBoolValue = field.boolvalue; } catch { }
+    DateTime tmpDateValue = Convert.ToDateTime("1/1/1970"); try { tmpDateValue = field.DateValue; } catch { }
+    int tmpIntValue = 0; try { tmpIntValue = field.IntValue; } catch { }
+    decimal tmpDecimalValue = 0; try { tmpDecimalValue = field.DecimalValue; } catch { }
+    string bgColor = "#ffffcc";
+    string headerColor = "#000";
+    bool manually_created = false;
+    if (field.manually_created)
+    {
+        manually_created = true;
+        headerColor = "blue";
+    }
+    bool is_disabled = false;
+    string disabler = "";
+    bool is_editable = false; try { is_editable = field.is_editable; } catch { }
+    if (!is_editable && !is_catalog)
+    {
+        disabler = "disabled";
+        is_disabled = true;
+        bgColor = "#e3e3e3";
+    }
+    <div style="overflow: auto;font-size: 16px;font-weight: normal;padding: 5px;background-color: @bgColor;margin: 5px;">
+        <form id="ProductFieldsForm_@field.id">
+            <div style="overflow: auto;font-size: 16px;font-weight: normal;padding: 5px;margin: 5px;display: none" id="fld_edit_@field.id">
+                <div style="overflow: auto">
+                    <span style="color: @headerColor">
+
+                        <b>@field.title</b>
+                    </span> @if (field.is_required)
+                    {<span style="font-size: 14px;color: #f00"> <b>*</b> </span>}
+
+                    @if (!is_disabled)
+                    {
+                        <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent;" onclick="AjaxActions('UpdateProductCustomField', '@field.p_id','', 'ProductFieldsForm_@field.id',@field.id,@is_catalog);"> ✔️ </button>
+                    }
+                    else
+                    {
+                        <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent;" onclick="hideElement('fld_edit_@field.id');showElement('fld_info_@field.id');"> 🔒 </button>
+                    }
+                    <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent;" onclick="hideElement('fld_edit_@field.id');showElement('fld_info_@field.id');"> ❌ </button>
+                    <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent" onclick="AjaxActions('ProdCustomFieldMoveUp','@field.p_id','','@field.id');">⬆️</button>
+                    <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent" onclick="AjaxActions('ProdCustomFieldMoveDown','@field.p_id','','@field.id');">⬇️</button>
+                    <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent" onclick="AjaxActions('DeActivateProductCustomField','@field.p_id','','@field.id');">❎</button>
+
+                    @if (manually_created)
+                    {
+                        <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent" onclick="AjaxActions('DeleteCustomProductField', '@field.id','','@field.p_id', 'PROD');">מחיקה</button>
+                    }
+
+                </div>
+
+                @if (is_catalog)
+                {
+                    <div style="overflow: auto;">
+                        <span style="float: right;padding: 1px;margin: 1px;font-size: 16px;">
+                            <input type="checkbox" style="float: right;padding: 5px;margin: 5px;font-size: 16px;" @if(field.is_editable){<text> checked </text>} onclick="if(this.checked){ AjaxActions('ProdCustomFieldEditableOn','@field.p_id','','@field.id');}else{AjaxActions('ProdCustomFieldEditableOff','@field.p_id','','@field.id');}"> ניתן לעריכה
+                        </span>
+
+                        @if (field.is_cat_required)
+                        {
+                            <span style="float: right;padding: 1px;margin: 1px;font-size: 16px;">
+                                <input type="checkbox" style="float: right;padding: 5px;margin: 5px;font-size: 16px;" checked disabled> שדה נדרש
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="float: right;padding: 1px;margin: 1px;font-size: 16px;">
+                                <input type="checkbox" style="float: right;padding: 5px;margin: 5px;font-size: 16px;" @if(field.is_required){<text> checked </text>} onclick="if(this.checked){AjaxActions('ProdCustomFieldRequiredOn','@field.p_id','','@field.id');}else{AjaxActions('ProdCustomFieldRequiredOff','@field.p_id','','@field.id');}"> שדה נדרש
+                            </span>
+                        }
+
+                    </div>
+                }
+                else
+                {
+                    if (!is_disabled && field.is_protected)
+                    {
+                        <div style="overflow: auto;">
+                            <span style="float: right;padding: 1px;margin: 1px;font-size: 16px;">
+                                <input type="checkbox" style="float: right;padding: 5px;margin: 5px;font-size: 16px;" checked onclick="AjaxActions('ProdCustomFieldProtectionOff','@field.p_id','','@field.id',@field.id,@is_catalog);"> שדה מוגן
+                            </span>
+
+                        </div>
+                    }
+                }
+
+                @switch (fieldType)
+                {
+                    case "SHORTTEXT":
+                        <div style="overflow: auto">
+                            <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%" name="@tmpFieldName" value="@field.shortStringValue" placeholder="@field.title" @disabler>
+                            <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%" name="@tmpFieldName_e" value="@field.shortStringValue_e" placeholder="@field.title_e" @disabler>
+                        </div>
+                        break;
+                    case "LONGTEXT":
+                        <div style="overflow: auto">
+                            <textarea style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;resize: none" name="@tmpFieldName" placeholder="@field.title" @disabler>@field.LongStringValue</textarea>
+                            <textarea style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;resize: none" name="@tmpFieldName_e" placeholder="@field.title_e" @disabler>@field.LongStringValue</textarea>
+                        </div>
+                        break;
+                    case "DATE":
+                        <div style="overflow: auto">
+                            <input type="date" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%" name="@tmpFieldName" value="@field.strDateValue" placeholder="@field.title" @disabler>
+                        </div>
+                        break;
+
+                    case "PERCENT":
+                    case "AMOUNT":
+                        <div style="overflow: auto">
+                            <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 50%" name="@tmpFieldName" @if (tmpDecimalValue>0){<TEXT></TEXT>}>
+@if (fieldType == "AMOUNT")
+{<span> ₪ </span>}
+else
+{<span> % </span>}
+</div>
+break;
+
+case "YESNO":
+<div style="overflow: auto">
+    <span style="float: right">
+        <input type="radio" style="padding: 5px;margin: 5px;width: 15px;height: 15px;" name="@tmpFieldName" value="yes" @if(tmpBoolValue){<TEXT> checked </TEXT>}  @disabler /> כן
+    </span>
+    <span style="float: right">
+        <input type="radio" style="padding: 5px;margin: 5px;width: 15px;height: 15px;" name="@tmpFieldName" value="no" @if(!tmpBoolValue){<TEXT> checked </TEXT>}  @disabler /> לא
+    </span>
+</div>
+break;
+case "INT":
+<div style="overflow: auto">
+    <input type="text" style="padding: 5px;margin: 5px;font-size: 16px;width: 50%" name="@tmpFieldName" @if(tmpIntValue>0){<TEXT></TEXT>}/><span></span>
+</div>
+break;
+
+
+default:
+<div></div>
+break;
+}
+            </div>
+        </form>
+        <div style="overflow: auto;font-size: 16px;font-weight: normal;padding: 5px;background-color: @bgColor;margin: 5px;" id="fld_info_@field.id">
+            <div style="overflow: auto">
+                <span style="color: @headerColor"><b>@field.title</b></span> @if (field.is_required)
+                {<span style="font-size: 14px;color: #f00"> <b>*</b> </span>}
+                <button type="button" style="float: left;padding: 1px;margin: 1px;font-size: 14px;border: 0;margin-left: 5px;background: transparent;" onclick="hideElement('fld_info_@field.id');showElement('fld_edit_@field.id');"> ⚙️ </button>
+            </div>
+            @switch (fieldType)
+            {
+                case "SHORTTEXT":
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">@field.shortStringValue</div>
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">@field.shortStringValue_e</div>
+                    </div>
+                    break;
+                case "LONGTEXT":
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">@field.LongStringValue</div>
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">@field.LongStringValue</div>
+                    </div>
+                    break;
+                case "DATE":
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">@field.strDateValue</div>
+                    </div>
+                    break;
+
+                case "PERCENT":
+                case "AMOUNT":
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">
+                            @String.Format("{0:0.00}", tmpDecimalValue) @if (fieldType == "AMOUNT")
+                            {<span> ₪ </span>}
+                            else
+                            {<span> % </span>}
+                        </div>
+                    </div>
+                    break;
+                case "YESNO":
+                    <div style="overflow: auto">
+
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">
+                            @if (tmpBoolValue)
+                            {<span> כן </span>}
+                            else
+                            {<span> לא </span>}
+                        </div>
+                    </div>
+                    break;
+                case "INT":
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 16px;width: 90%">@tmpIntValue</div>
+                    </div>
+                    break;
+
+
+                default:
+                    <div></div>
+                    break;
+            }
+        </div>
+
+
+    </div>
+
+
+
+}
+
+@helper AddProductPricingOption(int product_id, int round_id = 0)
+{
+<div>@Products.AddProductPricingOption(product_id,round_id)</div>
+}
+
+
+@helper AddProductPricingOption_bck(int product_id, int round_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM roundMenuItems WHERE p_id=@0";
+    var AvailableInMenus = db.Query(sqlSelect, product_id);
+    string itemunit = "";
+    bool is_catalog = false;
+    sqlSelect = "SELECT itemunit_type,is_catalog FROM products WHERE p_id=@0";
+    var rs = db.QuerySingle(sqlSelect, product_id);
+    if (rs != null)
+    {
+        try { itemunit = NewAppFunctions.GetTitleById("ItemType", rs.itemunit_type); } catch { }
+        try { is_catalog = rs.is_catalog; } catch { }
+    }
+    <form id="AddPricingOption">
+        <div>
+            <div style="overflow: auto;font-size: 18px;background-color: #e3e3e3;margin: 5px">
+                <div style="overflow: auto;text-align: right">
+                    <div style="overflow: auto">
+                        <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;">כמות (@itemunit)<br><input type="text" id="optionQuan" name="optionQuan" style="width: 40px;padding: 5px;font-size: 16px;"></div>
+                        <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;">מחיר <br><input type="text" id="optionPrice" name="optionPrice" style="width: 40px;padding: 5px;font-size: 16px;"> ₪ </div>
+                        <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;">יח נוספת <br><input type="text" id="AdditionalUnitPrice" name="AdditionalUnitPrice" style="width: 40px;padding: 5px;font-size: 16px;"> ₪ / @itemunit</div>
+                    </div>
+                    <div style="background-color: #fff;overflow: auto">
+                        <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;">עמלת מערכת <br><input type="text" id="optionCommision" name="optionCommision" style="width: 40px;padding: 5px;font-size: 16px;"> ₪ / כמות</div>
+                        <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;">עמלה יח נוספת <br><input type="text" id="AdditionalUnitCommision" name="AdditionalUnitCommision" style="width: 40px;padding: 5px;font-size: 16px;"> ₪ / @itemunit</div>
+                        <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;text-align: center">מבצע? <br><input type="checkbox" id="is_spOffer" name="is_spOffer" style="width: 20px;height: 20px;;padding: 5px;margin: 5px;font-size: 16px;"  ></div>
+                        @if (is_catalog)
+                        {
+                            <input type="hidden" name="is_catalog" value="is_catalog">
+                            <div style="padding: 5px;margin: 5px;float: right;overflow: auto;font-size: 12px;color: #b200ff;text-align: center">מחיר מחייב? <br><input type="checkbox" id="isPriceBinding" name="isPriceBinding" style="width: 20px;height: 20px;;padding: 5px;margin: 5px;;font-size: 16px;" checked onclick="if(this.checked){showElement('PriceBindWarning');}else{hideElement('PriceBindWarning');}"></div>
+
+                            <div style="overflow: auto;padding: 5px;margin: 5px;border: 2px dotted #f00;background-color: #ffffcc;color: #000;clear: both" id="PriceBindWarning">
+                                ⚠️ אפשרות מחיר זו תחייב את כל המוצרים שיווצרו בהתבסס על מוצר קטלוגי זה
+                            </div>
+                        }
+                    </div>
+
+
+
+                </div>
+
+                @if (!is_catalog)
+                {
+                    if (round_id == 0)
+                    {
+                        <div style="overflow: auto">
+                            <span style="padding: 5px;margin: 5px;float: right;;font-size: 12px;color: #b200ff;">
+                                הוספת אפשרות ל
+                                <select style="padding: 5px;margin: 5px;font-size: 16px;" id="AddToMenu" name="AddToMenu">
+                                    <option value="99999">כל התפריטים</option>
+                                    @foreach (var menu in AvailableInMenus)
+                                    {
+                                        string roundTitle = ""; try { roundTitle = NewAppFunctions.GetTitleById("Round", menu.round_id); } catch { }
+                                        if (roundTitle != "")
+                                        {
+                                            <option value="@menu.round_id">@NewAppFunctions.GetTitleById("Round", menu.round_id)</option>
+
+                                        }
+
+                                    }
+
+                                </select>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="overflow: auto">
+                            <span style="padding: 5px;margin: 5px;float: right;;font-size: 12px;color: #b200ff;">
+                                הוספת אפשרות ל<span>@NewAppFunctions.GetTitleById("Round", round_id)</span>
+                                <input type="hidden" id="AddToMenu" name="AddToMenu" value="@round_id">
+                            </span>
+                        </div>
+                    }
+
+                }
+                else
+                {
+                    <div style="padding: 5px;margin: 5px;float: right;font-size: 16px;text-align: center;color: #000"><input type="checkbox" name="isUpdateProducts" style="width: 15px;height: 15px;;padding: 5px;margin: 5px;;font-size: 16px;" checked> עדכון מוצרים פעילים</div>
+                }
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: left" onclick="AjaxActions('AddPricingOption', '@product_id','', 'AddPricingOption',@product_id,@round_id);">הוספה</button>
+
+            </div>
+        </div>
+
+    </form>
+
+    db.Close();
+}
+
+@helper ProductPricingOptions(int product_id, int round_id = 0)
+{
+<div>@Products.ProductPricingOptions(product_id,round_id)</div>
+}
+
+
+
+@helper EditProduct(int product_id)
+{
+   <div>@Products.EditProduct(product_id)</div>
+}
+
+
+@helper CatalogProductSetup(int product_id)
+{
+<div>@Products.CatalogProductSetup(product_id)</div>
+}
+
+
+@helper CatalogProductSetup_bck(int product_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+    var product = db.QuerySingle(sqlSelect, product_id);
+    bool is_catalog = false;
+    try { is_catalog = product.is_catalog; } catch { }
+    bool is_setup = false;
+    try { is_setup = product.is_setup; } catch { }
+    int itemunit_type = 0;
+    try { itemunit_type = product.itemunit_type; } catch { }
+    sqlSelect = "SELECT * from ItemUnitTypes";
+    var itemUnitTypes = db.Query(sqlSelect);
+    string itemunit = "";
+    itemunit = product.itemunit;
+
+    sqlSelect = "SELECT * FROM categories WHERE is_maincat=1";
+    var MainCategories = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1";
+    var spOfferCategries = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM vendors WHERE is_active=1";
+    var Vendors = db.Query(sqlSelect);
+
+    bool sell_1s = false; try { sell_1s = product.sell_1s; } catch { }
+    bool sell_3s = false; try { sell_3s = product.sell_3s; } catch { }
+    bool sell_5s = false; try { sell_5s = product.sell_5s; } catch { }
+    int sell_inXs = 0; try { sell_inXs = product.sell_inXs; } catch { }
+
+    string sell_1s_display_state = "none";
+    string sell_Xs_display_state = "block";
+
+    if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"; }
+
+    <div style="overflow: auto;text-align: right;background-color: #fff">
+        <div style="overflow: auto;font-size: 24px;color: #000;">
+            <div style="overflow: auto">
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרת @product.title <span style="font-size: 12px; color: yellow; margin-right: 10px;">מוצר #@product.p_id </span></div>
+                <div style="color: #000;background-color: #ffffcc;overflow: auto;padding: 5px;border: 2px solid #b200ff">
+                    הגדרה ראשונית למוצר קטלוגי
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold;float: left" onclick="AjaxActions('DeleteProduct', '@product_id','', '0');">מחיקת מוצר</button>
+
+                </div>
+            </div>
+            <div style="overflow: auto">
+            </div>
+
+
+        </div>
+        <form id="UpdateProduct">
+            <button style="display: none" class="Accordion" id="EditProductAcc"></button>
+            <div style="overflow: auto;color: #000">
+                <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000">
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                            קטגוריה ראשית
+                            @if (product.maincat_id == 0)
+                            {
+                                <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="main_cat_id" name="main_cat_id" onchange="RepAjaxUpdate('LoadSubCat', 'SubCatContainer', 'SubCatLoader', this.value); RepAjaxUpdate('LoadTags', 'CatTagsContainer', 'SubCatLoader', this.value,@product_id)">
+                                    <option>נא לבחור </option>
+                                    @foreach (var cat in MainCategories)
+                                    {
+                                        <option value="@cat.id" @if(cat.id==product.maincat_id){ <text>selected</text>}>@cat.title</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="hidden" id="main_cat_id" name="main_cat_id" value="@product.maincat_id">
+                                <span style="float: left;padding-left: 5px;font-weight: bold">@NewAppFunctions.GetTitleById("Cat", product.maincat_id)</span>
+                            }
+
+                        </div>
+
+                        <div class="spinner" style="text-align: center;display: none;float: left" id="SubCatLoader">
+                            <div class="bounce1"></div>
+                            <div class="bounce2"></div>
+                            <div class="bounce3"></div>
+                        </div>
+                    </div>
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;" id="SubCatContainer">
+                            @if (product.maincat_id != 0)
+                            {
+                                <div>@NewAppHelpers.LoadSubCatSelector(product.maincat_id, product.p_id)</div>
+                            }
+                        </div>
+                    </div>
+
+
+                    <div style="overflow: auto">
+                        <div style="float: right;border-bottom: 1px dotted #000" id="CatTagsContainer">
+                            @if (product.maincat_id != 0)
+                            {
+                                <div>@NewAppHelpers.LoadCatTagsSelector(product.maincat_id, product.p_id)</div>
+                            }
+                        </div>
+                    </div>
+
+
+                    <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000;" id="selectItemUnitDiv">
+                        <span>
+                            יח מידה
+                            <span style="float: left;font-weight: bold">
+                                @if (itemunit_type == 0)
+                                {
+                                    <select style="padding: 5px;margin: 5px;font-size: 16px;" id="itemunit_type" name="itemunit_type" onchange="if(this.value==''){hideElement('ProductEditInfoDiv');}else{showElement('ProductEditInfoDiv');var itemunittitle=this.options[this.selectedIndex].text;for(var i = 1; i <= 5; i++) { document.getElementById('itemunit' + i).innerHTML = itemunittitle;}}">
+                                        <option value="">נא לבחור</option>
+                                        @foreach (var item in itemUnitTypes)
+                                        {
+                                            <option value="@item.id">@item.title</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input type="hidden" id="itemunit_type" name="itemunit_type" value="@itemunit_type">
+                                    <span style="color: #000">@itemunit</span>
+                                }
+                            </span>
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="ProductEditInfoDiv" style="display: none;">
+                <div style="background-color: #e3e3e3;overflow: auto">
+                    <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold">
+                        <div style="overflow: auto;font-size: 14px;">כותרת עברית<br><input type="text" id="title" name="title" style="width: 90%;padding: 5px;margin: 5px;;font-size: 16px;" value="@product.title"></div>
+                        <div style="overflow: auto;font-size: 14px;">English title<br><input type="text" id="e_title" name="e_title" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;" value="@product.e_title"></div>
+                        <div style="overflow: auto;font-size: 14px;">תאור המוצר<br><textarea id="description" name="description" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;resize: none;">@product.description</textarea></div>
+                        <div style="overflow: auto;font-size: 14px;">Product Description<br><textarea id="e_desc" name="e_desc" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;resize: none;">@product.e_desc</textarea></div>
+                    </div>
+                    <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold;font-size: 18px;">
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מחיר מחירון<span style="float: left"><input type="text" id="price" name="price" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;" value="@Convert.ToInt32(product.price)"> (₪/<span id="itemunit1">@itemunit</span>)</span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מחיר עלות <span style="float: left"><input type="text" id="cost" name="cost" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;" value="@Convert.ToInt32(product.cost)"> (₪/<span id="itemunit2">@itemunit</span>)</span>
+                        </div>
+                    </div>
+
+                    <div style="overflow: auto;font-size: 18px;padding: 5px;background-color: #fff">
+
+
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            הנחות <span style="float: left"><input type="checkbox" id="is_discountable" name="is_discountable" style="width: 20px;height: 20px;margin: 5px;" @if(product.is_discountable){<text>checked </text>} ></span>
+</div>
+<div style="overflow: auto;border-bottom: 1px dotted #000;">
+    קהילה <span style="float: left"><input type="checkbox" id="CharityOffersOk" name="CharityOffersOk" style="width: 20px;height: 20px;margin: 5px;" @if(product.CharityOffersOk){<text>checked </text>} ></span>
+</div>
+<div style="overflow: auto;border-bottom: 1px dotted #000;">
+    מקס יח בהזמנה <span style="float: left"><input type="text" id="max_in_cart" name="max_in_cart" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;" value="@product.max_in_cart"> <span id="itemunit5">@itemunit</span></span>
+</div>
+<div style="overflow: auto;border-bottom: 1px dotted #000;">
+    <div style="overflow: auto;color: #000;font-size: 18px;display: @sell_1s_display_state;" id="sell_all_div">
+        <input type="checkbox" id="sell_1s" name="sell_1s" style="height: 25px;width: 25px;" onclick="hideElement('sell_all_div');showElement('sell_pre_pack');document.getElementById('sell_1s_ph').checked=false;" checked>
+        נמכר במכפלות של 1 <span id="itemunit3">@itemunit</span>
+    </div>
+
+    <div style="overflow: auto;color: #000;font-size: 18px;display: @sell_Xs_display_state;" id="sell_pre_pack">
+        מכירה במכפלות של<br>
+        <input type="checkbox" style="height: 20px;width: 20px;" id="sell_1s_ph" onclick="hideElement('sell_pre_pack');showElement('sell_all_div');document.getElementById('sell_1s').checked=true;"> 1
+        <input type="checkbox" id="sell_3s" name="sell_3s" style="height: 25px;width: 25px;" @if(sell_3s){<text> checked </text>} > 3
+<input type="checkbox" id="sell_5s" name="sell_5s" style="height: 25px;width: 25px;" @if(sell_5s){<text> checked </text>} > 5
+    /
+<input type="text" style="width: 30px;padding: 5px;font-size: 18px;text-align: center" onfocus="this.value='';" placeholder="x" id="sell_inXs" name="sell_inXs" @if (sell_inXs>0){<TEXT></TEXT>} >
+<span id="itemunit4">@itemunit</span>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="overflow: auto;text-align: center">
+    @if (!product.is_active)
+    {
+        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProduct', '@product_id','', '0');">מחיקת מוצר</button>
+    }
+    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('SetupCatalogProduct', '@product_id','','UpdateProduct');">שמירת שינויים</button>
+</div>
+</div>
+</form>
+
+
+<div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+</div>
+db.Close();
+}
+
+@helper ProductSetup(int product_id)
+{
+  <div>@Products.ProductSetup(product_id)</div>
+}
+
+
+@helper ProductSetup_bck(int product_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+    var product = db.QuerySingle(sqlSelect, product_id);
+    bool is_catalog = false;
+    try { is_catalog = product.is_catalog; } catch { }
+    bool is_setup = false;
+    try { is_setup = product.is_setup; } catch { }
+    int itemunit_type = 0;
+    try { itemunit_type = product.itemunit_type; } catch { }
+    sqlSelect = "SELECT * from ItemUnitTypes";
+    var itemUnitTypes = db.Query(sqlSelect);
+    string itemunit = "";
+    itemunit = product.itemunit;
+
+    sqlSelect = "SELECT * FROM categories WHERE is_maincat=1";
+    var MainCategories = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1";
+    var spOfferCategries = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM vendors WHERE is_active=1";
+    var Vendors = db.Query(sqlSelect);
+
+    bool sell_1s = false; try { sell_1s = product.sell_1s; } catch { }
+    bool sell_3s = false; try { sell_3s = product.sell_3s; } catch { }
+    bool sell_5s = false; try { sell_5s = product.sell_5s; } catch { }
+    int sell_inXs = 0; try { sell_inXs = product.sell_inXs; } catch { }
+
+    string sell_1s_display_state = "none";
+    string sell_Xs_display_state = "block";
+
+    if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"; }
+
+    <div style="overflow: auto;text-align: right;background-color: #fff">
+        <div style="overflow: auto;font-size: 24px;color: #000;">
+            <div style="overflow: auto">
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרת @product.title <span style="font-size: 12px; color: yellow; margin-right: 10px;">מוצר #@product.p_id </span></div>
+                <div style="color: #000;background-color: #ffffcc;overflow: auto;padding: 5px;border: 2px solid #b200ff">
+                    הגדרה ראשונית למוצר
+                    <div class="spinner" style="text-align: center;display: none;float: left" id="ProdLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="overflow: auto">
+            </div>
+        </div>
+        <form id="SelectCatalogProduct">
+            <div style="overflow: auto;color: #000">
+                <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000">
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                            בחירת ספק
+                            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="vendor_id" name="vendor_id" onchange="RepAjaxUpdate('LoadVendorInvEntities', 'vendorInventoryEntitiesDiv', 'ProdLoader', this.value);">
+                                <option>נא לבחור </option>
+                                @foreach (var vendor in Vendors)
+                                {
+                                    <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                }
+                            </select>
+
+                        </div>
+
+                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                            קטגוריה ראשית
+                            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="main_cat_id" name="main_cat_id" onchange="RepAjaxUpdate('LoadProductCatalog','CatalogProductsDiv','ProdLoader',this.value);">
+                                <option>נא לבחור </option>
+                                @foreach (var cat in MainCategories)
+                                {
+                                    <option value="@cat.id" @if(cat.id==product.maincat_id){ <text>selected</text>} > @cat.title </option>
+                                }
+                            </select>
+
+                        </div>
+                        <div style="overflow: auto;" id="CatalogProductsDiv">
+                        </div>
+                        <div style="overflow: auto;display: none;background-color: #e3e3e3" id="setupConfirmDiv">
+                            <div style="overflow: auto;border-bottom: 1px dotted #000">
+                                <div style="overflow:auto;padding:5px;"><input type="checkbox" style="padding:5px;margin:5px;height:15px;width:15px;" id="is_inventory_add" name="is_inventory_add" onclick="if(this.checked){showElement('AddToInventoryDiv');}else{hideElement('AddToInventoryDiv');}"> קליטת מלאי</div>
+                                <div style="overflow:auto;display:none;padding:5px;background-color:#fff" id="AddToInventoryDiv">
+                                    <div style="overflow: auto;">
+                                        מחיר עלות (₪/<span id="itemunitspan2"> </span>) <span style="float: left"><input type="text" name="cost" style="padding: 5px;margin: 5px;font-size: 16px;width: 40px;"> </span>
+                                    </div>
+
+                                    <div style="overflow: auto;">
+                                        כמות לקליטה (<span id="itemunitspan1"> </span>)<span style="float: left"><input type="text" name="available_quan" style="padding: 5px;margin: 5px;font-size: 16px;width: 40px;"></span>
+                                    </div>
+                                    <div style="overflow: auto;" id="vendorInventoryEntitiesDiv">
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="overflow: auto;text-align: center;padding: 5px;">
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProduct', '@product_id','', '0');">מחיקת מוצר</button>
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('SetupProductFromCatalog', @product_id,'', 'SelectCatalogProduct');">הפעלת מוצר</button>
+
+                            </div>
+
+
+
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
+        </form>
+
+
+        <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+    </div>
+    db.Close();
+}
+
+@helper VendorInventoryEntitiesSelector(int v_id, bool allow_create_new = true)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    sqlSelect = "SELECT * FROM inv_entities WHERE is_active=1 AND v_id=@0";
+    var entities = db.Query(sqlSelect, v_id);
+    sqlSelect = "SELECT * from inv_entity_type";
+    var entity_types = db.Query(sqlSelect);
+    string vendor_name = "";
+    vendor_name = AppFunctions.GetVendorTitleById(v_id);
+
+    <div style="overflow: auto;">
+        <div style="overflow: auto;border-bottom: 1px dotted #e3e3e3;" id="SelectEntityDiv">
+            ישות קולטת לספק <span><b>@vendor_name</b></span>
+            <span style="float: left">
+
+                <select style="float: left;padding: 5px;font-size: 16px;margin: 5px;" id="dest_entity_id" name="dest_entity_id" onchange="if(this.value=='-1'){showElement('AddNewEntityDiv');hideElement('SelectEntityDiv');if(document.getElementById('AccInventoryActions')){FixAccordion('AccInventoryActions');}}">
+                    <option value="">נא לבחור</option>
+                    @if (allow_create_new)
+                    {
+                        <option value="-1">ישות חדשה..</option>
+                    }
+
+
+                    @foreach (var enti in entities)
+                    {
+                        string source_entity_type_title = "";
+                        source_entity_type_title = InventoryFunctions.GetEntityTypeByCode(enti.entity_type);
+
+                        <option value="@enti.serial">@enti.entity_name (@source_entity_type_title)</option>
+                    }
+                </select>
+
+            </span>
+
+        </div>
+        @if (allow_create_new)
+        {
+            <div style="overflow: auto;display: none" id="AddNewEntityDiv">
+                <div style="overflow: auto;border-bottom: 1px dotted #e3e3e3;">
+                    שם ישות חדשה <button style="padding: 1px;margin: 1px;font-size: 12px;background-color: #fff;color: #fff;" type="button" onclick="hideElement('AddNewEntityDiv');showElement('SelectEntityDiv');document.getElementById('new_entity_name').value='';">❌</button>
+                    <span style="float: left">
+
+                        <input type="text" style="padding: 5px;font-size: 16px;width: 80px;margin: 5px;" placeholder="שם ישות" name="new_entity_name" id="new_entity_name">
+
+                    </span>
+
+                </div>
+                <div style="overflow: auto;border-bottom: 1px dotted #e3e3e3;">
+                    סוג ישות חדשה
+                    <span style="float: left">
+
+                        <select style="padding: 5px;font-size: 16px;margin: 5px;" name="new_entity_type" id="new_entity_type">
+                            <option value="">נא לבחור</option>
+                            @foreach (var ent_type in entity_types)
+                            {
+                                <option value="@ent_type.serial">@ent_type.entity_title</option>
+                            }
+                        </select>
+
+                    </span>
+
+                </div>
+                <div style="overflow: auto;border-bottom: 1px dotted #e3e3e3;">
+                    הערות
+                    <textarea style="float: left;padding: 5px;font-size: 16px;margin: 5px;resize: none;" id="new_entity_notes" name="new_entity_notes"></textarea>
+
+                </div>
+            </div>
+        }
+
+
+    </div>
+
+
+    db.Close();
+}
+
+@helper SelectCatalogProduct(int cat_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM products WHERE maincat_id=@0 AND is_catalog=1 AND is_setup=1";
+    var products = db.Query(sqlSelect, cat_id);
+
+
+    <div style="overflow: auto;text-align: right;background-color: #fff">
+        @if (products.Count() > 0)
+        {
+
+
+            <div style="overflow: auto;font-size: 18px">👈 <b>נא לבחור מוצר להוספה מקטגורית @NewAppFunctions.GetTitleById("Cat", cat_id)</b></div>
+            foreach (var product in products)
+            {
+                <div style="overflow: auto;padding: 5px;margin: 5px;;color: #000;border-bottom: 1px dotted #000">
+
+
+                    <div style="overflow: auto;font-size: 16px;">
+                        <input type="radio" name="catalog_product" value="@product.p_id" style="float: right;margin: 5px;padding: 5px;" onclick="var x=document.getElementById('itemunit_@product.p_id').value;document.getElementById('itemunitspan1').innerHTML=x;document.getElementById('itemunitspan2').innerHTML=x;showElement('setupConfirmDiv');">
+                        <input type="hidden" id="itemunit_@product.p_id" value="@product.itemunit">
+                        <div style="float: right;overflow: auto">
+                            @product.title<br><span style="font-size: 12px;color: #b200ff">@NewAppFunctions.GetTitleById("Cat", product.sub_cat_id)</span>
+                        </div>
+                    </div>
+                </div>
+
+            }
+
+        }
+        else
+        {
+            <div style="overflow: auto;font-size: 18px">❌ <b>לא קיימים מוצרים להוספה בקטגורית @NewAppFunctions.GetTitleById("Cat", cat_id)</b></div>
+        }
+
+
+
+    </div>
+    db.Close();
+}
+
+@helper CatEditRow(int cat_id, string title, string e_title, bool is_main = false)
+{
+    string isMain = ""; if (is_main) { isMain = "MAIN"; }
+
+    <div style="overflow: auto;font-size: 18px;color: #000" id="cat_info_@cat_id">
+        @title | @e_title
+        <button style="float: right;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">עריכה</button>
+    </div>
+    <div style="overflow: auto; font-size: 18px; color: #000; display: none; border: 1px dashed #000; text-align: center; direction: rtl" id="cat_edit_@cat_id">
+        <form id="EditCat_@cat_id">
+
+            <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                עריכת פרטים לקטגוריה @title
+            </div>
+            <div style="overflow: auto;">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" placeholder="שם הקטגוריה" name="cat_title" id="cat_title_@cat_id" value="@title">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" placeholder="Title" name="cat_e_title" id="cat_e_title_@cat_id" value="@e_title">
+            </div>
+            <div style="overflow: auto;text-align: center;padding: 5px;">
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="hideElement('cat_edit_@cat_id');showElement('cat_info_@cat_id');">ביטול</button>
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateCatInfo', @cat_id,'', 'EditCat_@cat_id');">שמירת שינוים</button>
+
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteCat', @cat_id,'','@isMain');">מחיקת קטגוריה</button>
+            </div>
+        </form>
+    </div>
+}
+
+@helper SubCatList(int main_cat_id, string SubCatType = "")
+{
+    int cat_id = 0;
+    string title = "";
+    string e_title = "";
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    string emptyTxt = "";
+    switch (SubCatType)
+    {
+        case "SUBCAT":
+            sqlSelect = "SELECT * FROM categories WHERE is_subcat=1 AND mainCat_id=@0";
+            emptyTxt = "אין תתי קטגוריה";
+            break;
+        case "SPOFFER":
+            sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1 AND mainCat_id=@0";
+            emptyTxt = "אין קטגוריות מבצעים";
+            break;
+        case "TAG":
+            sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND mainCat_id=@0";
+            emptyTxt = "אין תגיות";
+            break;
+    }
+
+    var catList = db.Query(sqlSelect, main_cat_id);
+    if (catList.Count() > 0)
+    {
+        <div>
+            @foreach (var Category in catList)
+            {
+                <div style="; direction: rtl" id="catDiv_@Category.id">@NewAppHelpers.CatEditRow(Category.id, Category.title, Category.e_title)</div>
+            }
+
+        </div>
+    }
+    else
+    {
+        <div style="overflow: auto;font-size: 14px;color: #ff6a00;">@emptyTxt</div>
+    }
+
+
+}
+
+@helper CustomProductFieldsList(int rec_id, string fieldScope = "PROD")
+{
+    string title = "";
+    string e_title = "";
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    string emptyTxt = "אין שדות מיוחדים";
+
+    int curr_cat = 0;
+
+    sqlSelect = "SELECT ProductsCustomFields.*,CustomProductFieldsType.title AS TypeTitle,CustomProductFieldsType.max_length FROM ProductsCustomFields JOIN CustomProductFieldsType ON CustomProductFieldsType.id=ProductsCustomFields.fieldType_id WHERE cat_id<>0 AND p_id=0 AND (cat_id=@0 or maincat_id=@0) order by maincat_id,cat_id,listindex";
+    var fieldsList = db.Query(sqlSelect, rec_id);
+
+    if (fieldsList.Count() > 0)
+    {
+        <div>
+            @foreach (var customField in fieldsList)
+            {
+                if (curr_cat != customField.cat_id)
+                {
+                    curr_cat = customField.cat_id;
+                    <div style="overflow: auto;background-color: #e3e3e3;color: #000;font-size: 16px;padding: 5px">
+                        <b>
+                            שדות מידע לקטגוריה #@curr_cat @NewAppFunctions.GetTitleById("Cat", curr_cat)
+                        </b>
+                    </div>
+                }
+                <div id="fieldDiv_@customField.id">@NewAppHelpers.CustomProductField(customField)</div>
+            }
+
+        </div>
+    }
+    else
+    {
+        <div style="overflow: auto;font-size: 14px;color: #ff6a00;">@emptyTxt</div>
+    }
+
+
+}
+@helper CustomProductField(dynamic ProductField)
+{
+    <div style="overflow: auto;font-size: 18px;color: #000" id="field_info_@ProductField.id">
+        <span style="float: left">
+            @if (ProductField.is_required)
+            {
+                <span style="color: #f00"><b>*</b></span>
+            }
+            @if (ProductField.is_activated)
+            {
+                <span style="color: #4800ff"><b>!</b></span>
+            }
+        </span>
+        @ProductField.title | @ProductField.title_e
+
+        <button style="float: right;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="showElement('field_edit_@ProductField.id');hideElement('field_info_@ProductField.id');">עריכה</button>
+    </div>
+    <div style="overflow: auto;font-size: 18px;color: #000;display:none;border: 1px dashed #000;text-align: center" id="field_edit_@ProductField.id">
+        <form id="EditField_@ProductField.id">
+            <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                עריכת פרטים לשדה @ProductField.title
+            </div>
+            <div style="overflow: auto;padding: 5px;">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="custom_field_title" id="custom_field_title" placeholder="שם השדה" value="@ProductField.title">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title" value="@ProductField.title_e">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="custom_fieldName" id="custom_fieldName" placeholder="Field Name" value="@ProductField.fieldname">
+
+                <div style="float: right;">
+                    <span style="float: right;padding: 5px;">
+                        <input type="checkbox" id="is_required" name="is_required" @if(ProductField.is_required){<text>checked</text>}> שדה חובה
+</span>
+<span style="float: right;padding: 5px;">
+    <input type="checkbox" id="is_required" name="is_activated" @if(ProductField.is_activated){<text>checked</text>}> מופעל כברירת מחדל
+</span>
+</div>
+<div style="float: left;;padding: 5px;">
+    @ProductField.TypeTitle (@ProductField.max_length)
+</div>
+
+</div>
+<div style="overflow: auto;text-align: center;padding: 5px;">
+    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="hideElement('field_edit_@ProductField.id');showElement('field_info_@ProductField.id');">ביטול</button>
+    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateProductField', @ProductField.id,'', 'EditField_@ProductField.id', 'CAT');">שמירת שינוים</button>
+    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProductField', @ProductField.id,'','','CAT');">מחיקת שדה</button>
+    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #e3e3e3;color: #fff;font-weight: bold;float: right" onclick="AjaxActions('CatCustomFieldMoveUp',@ProductField.cat_id,'',@ProductField.id);">⬆️</button>
+    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #e3e3e3;color: #fff;font-weight: bold;float: right" onclick="AjaxActions('CatCustomFieldMoveDown',@ProductField.cat_id,'',@ProductField.id);">⬇️</button>
+
+
+</div>
+</form>
+</div>
+}
+
+
+@helper RoundMenu(int round_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from roundMenuItems WHERE  is_deleted=0 AND round_id=@0 ORDER BY p_id";
+    var roundMenuItems = db.Query(sqlSelect, round_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int vendor_id = 0;
+    sqlSelect = "SELECT vendor_id FROM rounds where id=@0";
+    var roundInfo = db.QuerySingle(sqlSelect, round_id);
+    vendor_id = roundInfo.vendor_id;
+    sqlSelect = "SELECT * FROM products where is_active=1 AND v_id=@0";
+    var vendorsProducts = db.Query(sqlSelect, vendor_id);
+    <div style="overflow: auto;">
+        <div style="overflow: auto">
+            <select style="font-size: 16px;padding: 5px;margin: 5px;" onchange="AjaxActions('AddProductToRound', @round_id,'', this.value);">
+                <option>נא לבחור מוצר להוספה ממוצרי הספק..</option>
+                <option value="-1">הוספת כל מוצרי הספק לתפריט</option>
+                @foreach (var product in vendorsProducts)
+                {
+                    sqlSelect = "SELECT id FROM roundMenuItems WHERE p_id=@0 AND round_id=@1";
+                    var isInMenuCheck = db.QuerySingle(sqlSelect, product.p_id, round_id);
+                    if (isInMenuCheck == null)
+                    {
+                        <option value="@product.p_id">@product.title</option>
+                    }
+                }
+            </select>
+        </div>
+
+        @foreach (var item in roundMenuItems)
+        {
+            sqlSelect = "SELECT * FROM roundMenuItemsPricingOptions WHERE p_id=@0 AND (round_id=@1 OR round_id=99999) ORDER BY quan";
+            var PricingOptions = db.Query(sqlSelect, item.p_id, item.round_id);
+            <div style="overflow: auto;padding: 3px;border-bottom: 1px dotted #000;margin: 3px">
+                <div style="overflow: auto;color: #000 ">
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">⚙️</button>
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="Accordionize('menuItemAcc_@item.id');toggle_visibility('delItem_@item.id');">💡</button>
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left;display: none" id="delItem_@item.id" onclick="AjaxActions('RemoveMenuItemFromRound', @round_id,'',@item.id);">🗑️</button>
+                    <img style="max-height: 50px;width: 50px;border-radius: 10px;margin: 5px;float: right;" src="ImgViewer?size=tn&p_id=@item.p_id&theTime=@DateTime.Now" alt="אלט" />
+                    <div style="padding: 5px;margin: 5px;font-size: 18px;color: #000;float: right">
+                        @item.Title<br>
+                    <div style="overflow: auto;font-size: 14px;color: #808080">
+                        <div style="float: right">
+                            <span> @item.price.ToString("C", culture) ל<span>@item.itemunit</span></span><br>
+                            <span style="color: #57d600">
+                                @item.available_quan @item.itemunit במלאי <span>@item.ordered_quan @item.itemunit מוזמן</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="overflow: auto;color: #000">
+                <button style="display: none" class="Accordion" id="menuItemAcc_@item.id"></button>
+                <div class="panel" style="padding: 0;margin: 0">
+                    <h2>מחירון מוצר</h2>
+                    <div style="overflow: auto;font-size: 16px;;margin: 5px;text-align: right;border-bottom: 1px dotted #e3e3e3">
+                        <div style="overflow: auto;">
+                            <div style="font-size: 14px;;overflow: auto">
+                                <span style="padding: 5px;float: right;width: 100px;font-size: 16px;"><b>1 @item.itemunit</b></span>
+                                <span style="padding: 5px;float: right"><b>@item.price.ToString("C", culture)</b> </span>
+                                <span style="padding: 5px;font-size: 12px;color: #b200ff;float: left;display: none">
+                                    עמלה item.optionCommision.ToString("C",culture)<br>+ priceOption.AdditionalUnitCommision.ToString("C",culture) ל<span>@item.itemunit</span>
+                                </span>
+
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    @foreach (var priceOption in PricingOptions)
+                    {
+                        string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", item.itemtype_id); } catch { }
+                        <div style="overflow: auto;font-size: 16px;;margin: 5px;text-align: right;;border-bottom: 1px dotted #e3e3e3">
+                            <div style="overflow: auto;">
+                                <div style="font-size: 14px;;overflow: auto">
+                                    <span style="padding: 5px;float: right;width: 100px;font-size: 16px;"><b>@Convert.ToInt32(priceOption.quan) @item.itemunit</b></span>
+                                    <span style="padding: 5px;float: right"><b>@priceOption.price.ToString("C", culture)</b><br><span style="font-size: 12px;color: #808080;">+ @priceOption.each_additional.ToString("C", culture) ל<span>@item.itemunit</span></span></span>
+
+                                    <span style="padding: 5px;font-size: 12px;color: #b200ff;float: left">עמלה @priceOption.optionCommision.ToString("C", culture)<br>+ @priceOption.AdditionalUnitCommision.ToString("C", culture) ל<span>@item.itemunit</span></span>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    }
+    </div>
+
+    db.Close();
+}
+
+@helper RoundSpecials(int round_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT specialOffers.title,specialOffers.price,specialOffers.id FROM specialOffers INNER JOIN SpOfferRoundsAvailability ON specialOffers.id=SpOfferRoundsAvailability.specialOfferId WHERE SpOfferRoundsAvailability.round_id=@0 AND specialOffers.is_deleted<>1 ORDER BY specialOffers.spOfferType DESC";
+    var specials = db.Query(sqlSelect, round_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    <div style="overflow: auto;">
+
+        @if (specials.Count() > 0)
+        {
+            foreach (var spOffer in specials)
+            {
+                sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0 order by main_cat_id";
+                var spItemsIncluded = db.Query(sqlSelect, spOffer.id);
+                <div style="overflow: auto;color: #000" id="spOfferItemsList" onclick="Accordionize('sp_@spOffer.id');">
+                    <div style="overflow: auto;font-size: 18px;font-weight: bold;padding: 5px;margin: 5px;border-bottom: 1px dotted #000">#@spOffer.id @spOffer.title <span style="float: left">@spOffer.price.ToString("C", culture)</span></div>
+                    <button class="Accordion" style="display: none" id="sp_@spOffer.id"></button>
+                    <div class="panel1" style="padding: 0;margin: 0;overflow:auto">
+                        <div style="overflow: auto;padding: 5px;border-bottom: 1px dashed #e3e3e3;">
+                            <div style="overflow: auto">
+                                <button style="float: left;margin: 5px;font-size: 16px;;background-color: #fff;border: 0" onclick="sbRefresh = 'RoundSpecials';callerSidebar='genSb';sbload('GenSbSubMenu','AdminCaller?p1=SpecialEdit&p2=@spOffer.id');">עריכה</button>
+                                @if (spItemsIncluded.Count > 0)
+                                {
+                                    <div style="color: #4800ff;">כולל  </div>
+                                }
+                                else
+                                {
+                                    <div style="color: #ff6a00;">אין עדיין פריטים במבצע  </div>
+                                }
+                            </div>
+                            <div style="overflow: auto">
+                                @foreach (var item in spItemsIncluded)
+                                {
+                                    string cat_title = "";
+                                    try { cat_title = NewAppFunctions.GetTitleById("Cat", item.main_cat_id); } catch { }
+                                    <div>
+                                        @if (item.SpItemType == 1)
+                                        {
+                                            <div style="overflow: auto;font-size: 18px;color: #ff6a00">@item.quan @item.itemunit @item.title <span style="font-size: 11px;color: #808080">(#@item.p_id)</span> <span style="float: left;font-size: 14px">@cat_title</span></div>
+                                        }
+                                        else
+                                        {
+                                            <div style="overflow: auto;font-size: 18px;">@item.quan @item.itemunit @item.title <span style="font-size: 11px;color: #808080">(#@item.spOfferCatId)</span> <span style="float: left;font-size: 14px">@cat_title</span></div>
+                                        }
+                                    </div>
+
+
+                                }
+
+                            </div>
+
+
+                            <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                            </div>
+
+
+
+                        </div>
+                    </div>
+
+
+                </div>
+            }
+
+        }
+        else
+        {
+            <div style="padding: 5px;margin: 5px;font-size: 16px;color: #808080;"> אין מבצעים בסיבוב </div>
+
+        }
+
+
+
+    </div>
+    <div style="overflow: auto;height:150px;">&nbsp;</div>
+    db.Close();
+}
+
+@helper SpecialOfferInfo(int specialOfferId)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+var db = Database.Open("op_data");
+var sqlSelect="SELECT * from specialOffers WHERE id=@0";
+var spOffer = db.QuerySingle(sqlSelect,specialOfferId);
+sqlSelect="SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0 order by main_cat_id";
+var spItemsIncluded=db.Query(sqlSelect,specialOfferId);
+sqlSelect="SELECT id,title FROM rounds WHERE is_active=1 ";
+var rounds=db.Query(sqlSelect,specialOfferId);
+                <div style="overflow: auto;" >
+                    <div style="overflow: auto;padding: 5px;">
+                        <div style="overflow: auto;font-size: 18px;font-weight: bold">@spOffer.title 
+                        <div style="float: left">
+                            <div style="overflow:auto">@spOffer.price.ToString("C", culture)</div>
+                            <div style="overflow: auto; font-size: 12px; color: #b200ff; overflow: auto">עמלת מערכת @spOffer.special_commision.ToString("C", culture)</div>
+                         </div>
+                        </div>
+                        <div style="overflow: auto;font-size: 18px;">@spOffer.description</div>
+                        <div style="overflow: auto;font-size: 18px;">@spOffer.desc_e</div>
+                    </div>
+
+                    <div style="overflow: auto;" id="spOfferItemsList">
+
+                           <div style="overflow: auto;padding: 5px;border-bottom: 1px dashed #e3e3e3" >
+                           @if(spItemsIncluded.Count()>0){
+                            <div style="color: #4800ff;overflow: auto">כולל  </div>    
+                            }
+                            else{
+                             <div style="color: #ff6a00;overflow: auto">אין עדיין פריטים במבצע  </div>    
+                            }
+
+                        <div style="overflow: auto">
+                        @foreach(var item in spItemsIncluded){
+                            string cat_title=""; 
+                            try{cat_title=NewAppFunctions.GetTitleById("Cat",item.main_cat_id);}catch{}    
+                            if(item.SpItemType==1){
+                              <div style="overflow: auto;font-size: 18px;color: #ff6a00">@item.quan @item.itemunit <span style="float: left;font-size: 14px">@cat_title</span> @item.title</div>
+                            }
+                            else{
+                                <div style="overflow: auto;font-size: 18px;">@item.quan @item.itemunit <span style="float: left;font-size: 14px">@cat_title</span> @item.title</div>            
+                            }
+                        
+                        }
+                            
+                       </div>
+                         
+                            
+                        <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
+                            <div class="bounce1"></div>
+                            <div class="bounce2"></div>
+                            <div class="bounce3"></div>
+                        </div>
+
+                        
+
+                    </div>
+
+
+                    </div>
+                    <div style="overflow: auto;">
+                        <div style="overflow: auto;font-size: 18px;">
+
+                            <button style="padding:5px;margin:5px;font-size:16px;float:left" onclick="AjaxActions('AddOfferToAllRounds', @specialOfferId,'','1');">✅ הפעלת הכל</button>
+                            <button style="padding:5px;margin:5px;font-size:16px;float:left" onclick="AjaxActions('AddOfferToAllRounds', @specialOfferId,'','0');">❌ כיבוי הכל</button>
+                            <div style="overflow: auto;font-size: 18px;font-weight: bold">
+
+                                זמינות
+                            </div>
+                            @foreach (var round in rounds)
+                            {
+                                sqlSelect = "SELECT * FROM SpOfferRoundsAvailability WHERE round_id=@0 AND specialOfferId=@1";
+                                var isSpOfferAvaialbleInRound = db.QuerySingle(sqlSelect, round.id, specialOfferId);
+                                bool isInRound = false;
+                                if (isSpOfferAvaialbleInRound != null)
+                                {
+                                    isInRound = true;
+                                }
+                                <div style="overflow: auto;">
+                                    <input type="checkbox" style="height: 20px;width: 20px;padding: 5px;margin: 5px" @if (isInRound) { <text> checked</text>} onclick="if(this.checked){AjaxActions('AddOfferToRound', @specialOfferId,'',@round.id,'1');}else{AjaxActions('AddOfferToRound', @specialOfferId,'',@round.id,'');} "> @round.title
+                                </div>
+                            }
+
+
+
+                        </div>
+                    </div>
+                </div>
+db.Close();
+}
+
+@helper AddSpecialItem(int specialOfferId)
+{
+var db = Database.Open("op_data");
+var sqlSelect="SELECT * from ItemUnitTypes ";
+var itemTypes = db.Query(sqlSelect);
+sqlSelect="SELECT * from categories WHERE is_spOffersCat=1 ";
+var OfferCategories = db.Query(sqlSelect);
+sqlSelect="SELECT * from categories WHERE is_maincat=1 ";
+var mainCats = db.Query(sqlSelect);
+
+sqlSelect="SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0 order by main_cat_id";
+var spItemsIncluded=db.Query(sqlSelect,specialOfferId);
+sqlSelect="SELECT * FROM SpecialOffers WHERE id=@0";
+var spOffer=db.QuerySingle(sqlSelect,specialOfferId);
+
+              <div style="overflow: auto">
+                  <div style="overflow: auto;background-color: #ffffcc;padding: 5px;border: 1px dotted #000">
+                      <div style="overflow: auto;border-bottom: 1px dotted #000">
+                          <div style="overflow: auto;font-size: 14px;font-weight: bold">הוספה למבצע..</div>
+                          <form id="AddSpecialItemToOffer">
+                            <div style="overflow: auto;padding: 5px;">
+                         <input type="text" style="padding: 5px;font-size: 16px;margin-right: 5px;width: 40px"  name="QuanToAdd" id="QuanToAdd" placeholder="x">
+                          <select style="padding: 5px;font-size: 16px;margin-right: 5px;" name="itemunit_type" id="itemunit_type">
+                              @foreach(var itemType in itemTypes){
+                              <option value="@itemType.id">@itemType.title</option>
+                              }
+
+                          </select>
+                             <select style="padding: 5px;font-size: 16px;margin-right: 5px;"  name="MainOfferCatId" id="MainOfferCatId" onchange="RepAjaxUpdate('LoadSpOfferCatList', 'SpOfferSubCatDiv', 'spOfferSubCatLoader', this.value,@specialOfferId);">
+                                  <option value="">נא לבחור..</option>
+                                 <option value="-1">מוצר ספציפי</option>
+                                  @foreach(var cat in mainCats){
+                                  <option value="@cat.id">@cat.title</option>
+                                  }
+
+                              </select>
+                                <div style="overflow: auto">
+                                     <div class="spinner" style="text-align: center;display: none;" id="spOfferSubCatLoader">
+                                        <div class="bounce1"></div>
+                                        <div class="bounce2"></div>
+                                        <div class="bounce3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                         <div style="overflow: auto;padding: 5px;" id="SpOfferSubCatDiv">
+                                
+                            </div>
+                          </form>
+                      </div>
+
+                      <div style="overflow: auto">
+                          @if(spItemsIncluded.Count()>0){
+                        foreach(var item in spItemsIncluded){
+                            string cat_title=""; 
+                            try{cat_title=NewAppFunctions.GetTitleById("Cat",item.main_cat_id);}catch{}
+                            if(item.spItemType==1){
+                                <div style="overflow: auto;font-size: 18px;padding: 5px;border-bottom: 1px dotted #000;color: #ff6a00">
+                                <span style="padding: 5px;margin: 5px;">@item.quan @item.itemunit @item.title <span style="font-size: 12px;color: #b200ff;float: left">@cat_title</span></span>
+                                <button style="padding: 5px;margin: 5px;background-color: #f00;color: #fff;border: 0;font-size: 12px;float: right" onclick="AjaxActions('RemoveSpecialItemFromOffer', @specialOfferId,'',@item.id);">הסרה</button>
+                                </div>            
+                            }
+                            else{
+                                <div style="overflow: auto;font-size: 18px;padding: 5px;border-bottom: 1px dotted #000">
+                                <span style="padding: 5px;margin: 5px;">@item.quan @item.itemunit @item.title <span style="font-size: 12px;color: #b200ff;float: left">@cat_title</span></span>
+                                <button style="padding: 5px;margin: 5px;background-color: #f00;color: #fff;border: 0;font-size: 12px;float: right" onclick="AjaxActions('RemoveSpecialItemFromOffer', @specialOfferId,'',@item.id);">הסרה</button>
+                                </div>            
+                            }
+                        
+                        }
+
+
+                          }
+                          else{
+                        <div style="overflow: auto;font-size: 14px;color: #ff6a00">אין עדיין מוצרים במבצע
+                        </div>    
+                          }
+                      </div>
+
+                        
+                      <div style="overflow: auto;text-align: center">
+                      <div class="spinner" style="text-align: center;display: none;" id="spOfferAddItemsLoader">
+                            <div class="bounce1"></div>
+                            <div class="bounce2"></div>
+                            <div class="bounce3"></div>
+                        </div>
+                      </div>
+                  </div>
+              </div>
+
+
+db.Close();
+}
+
+@helper LoadSpOfferCatSelector(int main_cat_id,int specialOfferId)
+{
+var db = Database.Open("op_data");
+var sqlSelect= "";
+
+switch(main_cat_id){
+    case 0:
+    break;
+    case -1:
+        sqlSelect= "SELECT * FROM products WHERE is_active=1";
+        var products = db.Query(sqlSelect);
+        if(products.Count()>0){
+        <div style="overflow: auto;width: 100%;">
+            מוצר 
+            <select style="padding: 5px;margin: 5px;font-size: 16px;"  id="item_p_id" name="item_p_id" >
+            <option>נא לבחור </option>
+                @foreach(var product in products){
+                    <option value="@product.p_id" >@product.title</option>
+                }
+            </select> 
+             <button type="button" style="margin: 5px;padding: 5px;font-size: 16px;border: 0;background-color: #57d600;color: #fff;float: left" onclick="AjaxActions('AddSpecialItemToOffer', @specialOfferId,'','AddSpecialItemToOffer');document.getElementById('AddSpecialItemToOffer').reset()">הוספה</button>
+        </div>
+        }
+        else{
+            <div>אין מוצרים</div>
+        }
+
+    break;
+    default:
+        sqlSelect= "SELECT * FROM categories WHERE is_spOffersCat=1 AND (maincat_id=@0)";
+        var spOfferCategries = db.Query(sqlSelect,main_cat_id);
+        if(spOfferCategries.Count()>0){
+        <div style="overflow: auto;width: 100%;">
+            <input type="hidden" value="0" id="item_p_id" name="item_p_id" >
+            קטגורית מבצעים 
+            <select style="padding: 5px;margin: 5px;font-size: 16px;"  id="spOfferCatId" name="spOfferCatId" >
+
+            <option value="-1">נא לבחור </option>
+                @foreach(var cat in spOfferCategries){
+                    <option value="@cat.id" >@cat.title</option>
+                }
+            </select> 
+             <button type="button" style="margin: 5px;padding: 5px;font-size: 16px;border: 0;background-color: #57d600;color: #fff;float: left" onclick="AjaxActions('AddSpecialItemToOffer', @specialOfferId,'','AddSpecialItemToOffer');document.getElementById('AddSpecialItemToOffer').reset()">הוספה</button>
+        </div>
+        }
+        else{
+            <div>אין קטגורית מבצעים</div>
+        }
+
+    break;
+
+}
+
+
+db.Close();
+}
+
+@helper AddRoundSpecial(int round_id,int specialOfferId)
+{
+var db = Database.Open("op_data");
+var sqlSelect="SELECT * from roundMenuItems WHERE round_id=@0 ORDER BY p_id";
+var roundMenuItems = db.Query(sqlSelect,round_id);
+sqlSelect = "SELECT title FROM rounds WHERE id=@0";
+var theRound=db.QuerySingle(sqlSelect,round_id);
+sqlSelect="SELECT * from SpecialOffers WHERE id=@0 ";
+var spOffer = db.QuerySingle(sqlSelect,specialOfferId);
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+decimal price=0; try{price=spOffer.price;}catch{}
+        <div style="overflow: auto;color: #000;padding: 5px;;background-color: #fff">
+            <form id="RoundSpOffer">
+                <div style="overflow: auto;">
+                <div style="overflow: auto;padding: 5px;border: 2px dashed #808080;background-color: #ffffcc">
+                @foreach(var item in roundMenuItems){
+                    <div style="font-size:20px;overflow: auto;padding: 5px;text-align: right;border-bottom: 2px dashed #e3e3e3;" >
+                        <span style="float: left">
+                                <input type="text" style="font-size: 16px;padding: 5px;margin-right: 5px;width: 40px;"  id="sp_item_@item.p_id" name="sp_item_@item.p_id"><br><span style="font-size: 12px;float: left">@item.itemunit </span></span>
+                        <img style="width:40px;float: right;margin: 5px;padding: 5px;" src="imgViewer?size=tn&p_id=@item.p_id&id=0&time=@DateTime.Now" alt="@item.title">
+                        
+                        <div>
+                            <div> @item.title<br>
+                                <span style="font-size: 12px">@item.price.ToString("C",culture) / @item.cost.ToString("C",culture) </span>
+                            </div>
+                        </div>
+
+                    </div>
+                }
+                    <div style="overflow: auto;margin: 5px;font-size: 30px;font-weight: bold">
+                         מחיר למבצע  
+                        <span style="float: left">
+                            <span id="spPriceContainer" onclick="showElement('EditSpecialPriceContainer');hideElement('spPriceContainer');">@spOffer.price.ToString("C",culture)<span style="font-size: 12px;color: #b200ff">שינוי</span></span>
+                            <span style="display: none" id="EditSpecialPriceContainer"><input type="text" style="font-size: 16px;padding: 5px;margin-right: 5px;width: 40px;" name="special_price" id="special_price" ><br><span style="font-size: 12px;float: left">₪ </span></span>
+                            
+                        </span>
+                        
+                    </div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;">
+                    <button type="button" style="font-size: 16px;padding: 5px;margin: 5px;background-color: #e3e3e3;width: 90%;" id="RoundSpOfferBtn" onclick="AjaxActions('AddRoundSpecial', @round_id,'', 'RoundSpOffer',@specialOfferId);">✅ אישור</button>
+                     <div class="spinner" style="text-align: center;display: none;color: #000;float: left" id="RoundSpOfferBtnLoader">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                        </div>
+
+                    </div>
+                </div>
+                    <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+                </div>
+            </form>
+        </div>
+
+
+db.Close();
+}
+
+
+@helper AddSpecialToRound(int spOfferId)
+{
+var db = Database.Open("op_data");
+var sqlSelect="SELECT * from specialOffers WHERE id=@0 ";
+var spOffer = db.QuerySingle(sqlSelect,spOfferId);
+sqlSelect="SELECT id,title from rounds WHERE is_catalog=1 ORDER BY vendor_id";
+var CatalogRounds = db.Query(sqlSelect);
+
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+                <div style="overflow: auto">
+                <div style="overflow: auto;">
+                    <button style="float: left;background-color: #e3e3e3;color: #000;font-size: 12px;padding: 5px;margin: 5px" onclick="Accordionize('AccAddSpecial');">הוספה</button>
+                    <span style="font-size: 24px;">זמינות</span> 
+                </div>
+                <div style="overflow: auto;">
+                    <button class="accordion" style="display: none;" id="AccAddSpecial"></button>
+                    <div class="panel" style="padding: 0;margin: 0">
+                        <div style="overflow: auto;font-size: 16px;padding: 5px;background-color: #e3e3e3;border: 2px solid #808080;">
+
+
+                        הוספת <b>@spOffer.title</b><br> ל
+                            <select style="font-size: 16px;" onchange="RepAjaxUpdate('RoundSpOfferCreator', 'RoundSpOfferCreatorDiv', 'RoundSpOfferCreatorLoader', this.value,@spOffer.id);">
+                                <option value="">נא לבחור..</option>
+                            @foreach(var round in CatalogRounds){
+                                sqlSelect = "SELECT id,title FROM RoundSpecials WHERE specialOfferId=@0 AND round_id=@1";
+                                var isInRound=db.QuerySingle(sqlSelect,spOfferId,round.id);
+                                if(isInRound==null){
+                                    <option value="@round.id">@round.title</option>    
+                                }
+                                
+
+                            }
+                            
+                            </select>
+                           <div class="spinner" style="text-align: center;display: none;color: #000;float: left" id="RoundSpOfferCreatorLoader">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                        </div>
+                        <div style="overflow: auto;" id="RoundSpOfferCreatorDiv"></div>
+                        </div>
+                    </div>
+                </div>
+                 </div>
+
+
+db.Close();
+}
+
+@helper RoundsListForSpOffer(int spOfferId)
+{
+var db = Database.Open("op_data");
+var sqlSelect="SELECT rounds.id,rounds.title FROM rounds INNER JOIN RoundSpecials ON rounds.id=RoundSpecials.round_id WHERE RoundSpecials.specialOfferId=@0";
+var SpOfferInRounds=db.Query(sqlSelect,spOfferId);
+
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+                <div style="overflow: auto;">
+                @foreach(var round in SpOfferInRounds){
+                    sqlSelect = "SELECT * FROM RoundSpecials WHERE SpecialOfferId=@0 AND round_id=@1 ORDER BY is_setup_complete";
+                    var RoundSpecial = db.QuerySingle(sqlSelect,spOfferId,round.id);
+                    if(RoundSpecial!=null){
+                        sqlSelect = "SELECT * FROM RoundSpecialsItems WHERE bundle_id=@0";
+                        var ItemsIncluded = db.Query(sqlSelect,RoundSpecial.id);
+                        string tmpIcon="";
+                        string offerColor="";
+                        if(RoundSpecial.is_setup_complete){
+                            tmpIcon="✅";
+                            offerColor="#57d600";
+                            }
+                        else{
+                             tmpIcon="❌";
+                            offerColor="#ffcccc";
+                        }
+                        <div style="overflow: auto;" id="RoundSpOffer_@RoundSpecial.id">
+                            <div style="overflow: auto;font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;border: 1px dotted @offerColor">
+                                <div style="overflow: auto" onclick="toggle_visibility('ItemsInfo_@round.id');">
+                                    <span>@tmpIcon</span> @round.id - @round.title
+                                </div> 
+                             <div style="display: none" id="ItemsInfo_@round.id">
+                             <span style="font-size: 12px;float: left" onclick="sbload('SideMenuSubDialog','AdminCaller?p1=EditRoundSpecial&p2=@RoundSpecial.id&p3=@round.id&p4=@RoundSpecial.specialOfferId');"><button style="font-size: 12px;">עריכה</button></span>
+                            @foreach(var item in ItemsIncluded){
+                                <div style="overflow: auto;margin-right: 20px">@item.quan @item.itemunit @item.title</div>
+                            }
+                                  <span style="font-size: 18px;float: left" >@RoundSpecial.price.ToString("C",culture)</span>
+                        <div class="spinner" style="text-align: center;display: none;color: #000;float: right"  id="RoundSpOfferLoader_@RoundSpecial.id">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                        </div>
+                             <span style="font-size: 12px;float: right" onclick="sbload('SideMenuSubDialog','AdminCaller?p1=CopyRoundSpecial&p2=@RoundSpecial.id&p3=@round.id&p4=@RoundSpecial.specialOfferId');"><button style="font-size: 12px;">העתקה</button></span>
+
+                               </div>
+
+                            </div>    
+                        </div>
+                    }
+                }
+
+
+
+                </div>
+
+
+db.Close();
+}
+
+
+@helper RoundStats()
+{
+DateTime local_time = AppFunctions.LocalTime();
+int u_id = WebSecurity.CurrentUserId;
+var op_data = Database.Open("op_data");
+
+
+var sqlSelect = "SELECT id,short_title,title  FROM ROUNDS WHERE is_active=1 ORDER BY round_type,sort_order";
+var rounds = op_data.Query(sqlSelect);
+
+
+
+
+    <div style="overflow:auto" >
+        <div style="position: fixed;display: none;z-index: 500000;width: 100%;height: 100%;background-color: #e3e3e3;opacity: 0.5;text-align: center;" id="RoundsStatsLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        <div class="Tinyloader" style="float:left;margin:5px;display:none" id="RoundsStatsLoader12"></div>
+
+        @foreach (var round in rounds)
+        {
+            int order_count = 0;
+            int new_order_count = 0;
+            int vendor_cancelled_order_count = 0;
+            int transferred_order_count = 0;
+            string bgcolor = "#fff";
+            string forecolor = "#000";
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM MainOrders WHERE z_id=0 AND is_cancelled=0 AND is_deleted=0 AND order_status<1 AND order_status>=-3 AND round_id=@0";
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM MainOrders WHERE z_id=0 AND is_cancelled=0 AND is_deleted=0 AND order_status<1 AND order_status>=-3 AND round_id=@0 AND CAST(timestamp AS date) = CAST(@1 AS date)";
+            var order = op_data.QuerySingle(sqlSelect, round.id,local_time);
+            try { new_order_count = order.the_cnt; } catch { }
+
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM MainOrders WHERE z_id=0 AND is_cancelled=0 AND is_deleted=0 AND round_id=@0";
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM MainOrders WHERE z_id=0 AND is_cancelled=0 AND is_deleted=0 AND round_id=@0 AND CAST(timestamp AS date) = CAST(@1 AS date)";
+            order = op_data.QuerySingle(sqlSelect, round.id,local_time);
+            try{ order_count = order.the_cnt;} catch{}
+            string RoundDivClass = "EmptyRound";
+            string RoundOrdersAlertClass = "RoundNoOrdersAlert";
+            if (order_count > 0)
+            {
+                RoundDivClass = "ActiveRound";
+                RoundOrdersAlertClass = "RoundOrdersCounterAlert";
+            }
+            if (new_order_count > 0)
+            {
+                RoundDivClass = "AttnRound";
+                RoundOrdersAlertClass = "RoundNewOrdersAlert";
+            }
+
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM MainOrders WHERE z_id=0 AND order_status=-6 AND round_id=@0 AND CAST(timestamp AS date) = CAST(@1 AS date)";
+            order = op_data.QuerySingle(sqlSelect, round.id,local_time);
+            try { vendor_cancelled_order_count = order.the_cnt; } catch { }
+
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM MainOrders WHERE z_id=0 AND order_status=-2 AND round_id=@0 AND CAST(timestamp AS date) = CAST(@1 AS date)";
+            order = op_data.QuerySingle(sqlSelect, round.id,local_time);
+            try { transferred_order_count = order.the_cnt; } catch { }
+
+
+            <div class="@RoundDivClass" onclick="PageNavigator('ROUNDBOARD',@round.id,false,'MAIN');" id="round_alert_@round.id" >
+
+               @round.short_title
+
+               @if (order_count > 0)
+               {
+                   if (new_order_count > 0)
+                   {
+                       <span class="@RoundOrdersAlertClass">@new_order_count</span>
+                   }
+                   else
+                   {
+                       <span class="@RoundOrdersAlertClass">@order_count</span>
+                   }
+
+                   if (vendor_cancelled_order_count > 0)
+                   {
+                       <span class="VendorCancelledOrdersCounterAlert">@vendor_cancelled_order_count</span>
+                   }
+
+                   if (transferred_order_count > 0)
+                   {
+                       <span class="TransferredOrdersCounterAlert">@transferred_order_count</span>
+                   }
+
+
+
+               }
+               else
+               {
+                   <span class="@RoundOrdersAlertClass">@order_count</span>
+
+               }
+
+
+
+
+           </div>
+
+            <div class="A" style="display:none;" onclick="PageNavigator('ROUNDBOARD',@round.id,false,'MAIN');" id="round_tooltip_@round.id" >
+                <div class="A">@round.title</div>
+
+
+                @if (new_order_count > 0)
+                {
+                <div class="A">@new_order_count</div>
+                }
+                else
+                {
+                <div class="A">@order_count</div>
+                }
+
+                @if (vendor_cancelled_order_count > 0)
+                {
+                <div class="A">@vendor_cancelled_order_count</div>
+                }
+
+                @if (transferred_order_count > 0)
+                {
+                <div class="A">@transferred_order_count</div>
+                }
+
+
+
+
+            </div>
+ 
+        }
+
+        <span class="WhiteMiniTag" style="padding:2px;margin:2px;margin-left:20px;float:left;font-size:12px;"><span>בָּ֤ר֣וּךְ אֲדֹנָי֮ י֤וֹם | י֥וֹם יַֽעֲמָס-לָ֗נוּ הָ֘אֵ֤ל יְֽשׁוּעָתֵ֬נוּ סֶֽלָה: </span></span>
+    </div>
+
+
+
+    op_data.Close();
+
+}
+
+
+@helper DevForm()
+{
+    var db = Database.Open("op_data");
+            var sqlSelect = "SELECT * FROM rounds order by id";
+            var rounds = db.Query(sqlSelect);
+            db.Close();
+    <h2>DEVFORM</h2>
+
+    <div>
+
+        <button onclick=" AjaxActions('SyncCLientSites'); ">העתקת מידע סבבים לאתר חברים</button>
+
+
+    </div>
+
+    <div style="padding:5px;margin:5px;overflow:auto">
+        <textarea style="padding: 5px; margin: 5px;font-size:16px" placeholder="Insert Sql" id="sqlTxt"></textarea>
+        <button style="padding: 5px; margin: 5px; font-size: 16px" onclick="RepAjaxUpdate('DevFormResults','DevFormReturnDiv','MainLoader',document.getElementById('sqlTxt').value);">ביצוע</button>
+        <button style="padding: 5px; margin: 5px; font-size: 16px" onclick="RepAjaxUpdate('DevFormResults2','DevFormReturnDiv','MainLoader',document.getElementById('sqlTxt').value);">2ביצוע</button>
+    </div>
+    <div style="padding:5px;margin:5px;overflow:auto" id="DevFormReturnDiv">
+
+    </div>
+
+    <div style="overflow:auto;">
+        <h3>Rounds id changer</h3>
+        <div style="overflow:auto">
+            @foreach (var round in rounds)
+            {
+                <div style="overflow: auto; padding: 5px; margin: 5px; border-bottom: 1px dotted #808080; font-size: 18px;">
+                    @round.id @round.title
+                    <div style="float:left">
+
+                        <button onclick=" AjaxActions('ROUNDIDUPDATE', '@round.id'); ">עדכון</button>
+                    </div>
+                </div>
+            }
+            <!-- <input type="text" style="width:50px;" id="txt_round.id" /><button onclick=" AjaxActions('ROUNDIDCHANGE', 'round.id', '', document.getElementById('txt_round.id').value); ">שינוי</button>-->
+        </div>
+        <div style="overflow:auto;height:200px;">&nbsp;</div>
+    </div>
+}

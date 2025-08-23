@@ -1,0 +1,1258 @@
+﻿@{
+
+    int u_id = WebSecurity.CurrentUserId;
+    string theAction = "";
+    theAction = Request["theAction"];
+
+    string theHtmlOutput = "";
+
+    switch (theAction)
+    {
+
+        case "LOBBY":
+            if (true)
+            {
+                <div>@MainPages.Lobby()</div>
+
+
+            }
+            break;
+        case "AppSettings":
+            if (true)
+            {
+                <div>@AppSettings.SettingsMain()</div>
+
+
+            }
+            break;
+        case "RepListSettings":
+            if (true)
+            {
+                string repListType = Request["param1"];
+
+                switch (repListType)
+                {
+                    case "PRESERVE":
+                        <div>@AppHelpers.LoadPreserveListSettings()</div>
+                        break;
+                    default:
+                        <div>@repListType</div>
+                        break;
+                }
+
+
+            }
+            break;
+
+        case "RepMembersList":
+            if (true)
+            {
+                int list_id = 0;
+                try { list_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string sortBy = Request["param2"];
+                string sortDir = Request["param3"];
+                string showWhat = Request["param4"];
+                <div>@AppHelpers.RepMembersList(list_id, sortBy, sortDir, showWhat)</div>
+
+
+            }
+            break;
+        case "MembersBirthdayList":
+            if (true)
+            {
+                int list_id = 0;
+                try { list_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string sortBy = Request["param2"];
+                string sortDir = Request["param3"];
+                string showWhat = Request["param4"];
+                <div>@AppHelpers.MembersBirthdayList(sortBy, sortDir, showWhat)</div>
+
+
+            }
+            break;
+        case "ProspectsList":
+            if (true)
+            {
+                string sortBy = Request["param2"];
+                string sortDir = Request["param3"];
+                string showWhat = Request["param4"];
+                <div>@AppHelpers.ProspectsList(sortBy, sortDir, showWhat)</div>
+                //
+
+
+            }
+            break;
+
+        case "CalcNewList":
+            if (true)
+            {
+                int min_order_count = 0;
+                DateTime emptyDate = Convert.ToDateTime("1/1/1900");
+                DateTime max_order_date = emptyDate;
+                DateTime min_order_date = emptyDate.AddYears(100);
+                bool unassigned_only = true;
+
+                if (Request["unassigned_only"].IsEmpty())
+                {
+                    unassigned_only = false;
+                }
+
+                try { min_order_count = Convert.ToInt32(Request["min_order_count"]); } catch { }
+                try { max_order_date = Convert.ToDateTime(Request["max_order_date"]); } catch { }
+                try { min_order_date = Convert.ToDateTime(Request["min_order_date"]); } catch { }
+                var db = Database.Open("op_data");
+                var sqlSelect = "select COUNT(u_stats.serial) AS the_cnt from u_stats JOIN pb ON u_stats.serial = pb.m_id WHERE u_stats.order_count>=@0 AND u_stats.last_order_ts<@1 AND u_stats.last_order_ts>@2";
+                string strStartsWith = Request["StartsWith"];
+                string tmp = sqlSelect;
+
+                if (!strStartsWith.IsEmpty())
+                {
+                    try { strStartsWith = strStartsWith.Replace(",", "##"); } catch { }
+                    string[] StartsWithArr;
+                    string sep = "##";
+                    StartsWithArr = strStartsWith.Split(sep.ToCharArray());
+                    string curOpertor = " AND (";
+
+                    foreach (var searchterm in StartsWithArr)
+                    {
+                        if (!searchterm.IsEmpty())
+                        {
+                            tmp = tmp + curOpertor + " pb.member_name LIKE N'" + searchterm + "%'";
+                            curOpertor = " OR ";
+                        }
+
+                    }
+                    tmp = tmp + " )";
+
+                }
+                if (unassigned_only)
+                {
+                    tmp = tmp + " AND preserve_rep=0";
+                }
+
+
+                sqlSelect = tmp;
+
+                if (max_order_date == emptyDate)
+                {
+                    max_order_date = Convert.ToDateTime("1/1/2199");
+                }
+
+                var rs = db.QuerySingle(sqlSelect, min_order_count, max_order_date, min_order_date);
+                int counter = 0;
+                try { counter = rs.the_cnt; } catch { counter = -1; }
+
+                if (counter <= 0)
+                {
+                    <div style="color: #f00">
+                        לא נמצאו משתמשים
+                    </div>
+                }
+                else
+                {
+                    <div style="color: #b200ff">
+                        @counter משתמשים ברשימה
+                        <form id="ListPreviewForm">
+                            <button type="button" style="padding: 2px;margin: 2px;font-size: 12px;float: right;border: 0" onclick="callerSidebar='MainSb';sbload('SubMenu','Caller?p1=MembersListPreview','','ListPreviewForm');">🔍</button>
+                            <input type="hidden" name="min_order_count" value="@Request["min_order_count"]">
+                            <input type="hidden" name="max_order_date" value="@Request["max_order_date"]">
+                            <input type="hidden" name="min_order_date" value="@Request["min_order_date"]">
+                            <input type="hidden" name="StartsWith" value="@Request["StartsWith"]">
+                            <input type="hidden" name="unassigned_only" value="@Request["unassigned_only"]">
+                        </form>
+
+                    </div>
+                }
+                db.Close();
+            }
+            break;
+
+
+
+        case "LoadReachOutTemplate":
+            if (true)
+            {
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["param2"]); } catch { }
+                string reachout_type = ""; reachout_type = Request["param3"];
+                int list_id = 0; try { list_id = Convert.ToInt32(Request["param4"]); } catch { }
+
+                <div style="overflow: auto;">
+
+                    @AppHelpers.LoadReachoutTemplate(member_id, template_id, reachout_type, list_id)
+                </div>
+            }
+            break;
+
+        ////////////////////////////////
+        ///
+
+        case "syncPhoneBook":
+            if (true)
+            {
+                @AppHelpers.syncPhoneBook(Request["param1"])
+            }
+            break;
+
+        case "LoadOrdersView":
+            if (true)
+            {
+
+                string showWhat = Request["showWhat"];
+                string sortDir = Request["sortDir"];
+                string sortBy = Request["sortBy"];
+                string nextSortDir = Request["nextSortDir"];
+                string param2 = Request["param2"];
+
+                if (!param2.IsEmpty())
+                {
+
+                    switch (param2)
+                    {
+                        case "PROC":
+                        case "NEW":
+                        case "FUTURE":
+
+                            showWhat = param2;
+                            break;
+                        default:
+                            sortBy = param2;
+                            break;
+                    }
+
+
+                }
+
+                bool switch_dir = false;
+                if (!Request["param3"].IsEmpty())
+                {
+                    switch_dir = true;
+                }
+                <div style="overflow:auto;background-color:aquamarine;display:none">
+                    @showWhat, @sortBy, @sortDir, @nextSortDir, @switch_dir
+                </div>
+                @AppHelpers.WebOrders(showWhat, sortBy, sortDir, nextSortDir, switch_dir);
+            }
+            break;
+
+
+        case "ZCLOSE":
+            if (true)
+            {
+                <div>@AppPages.zClose() </div>
+            }
+            break;
+
+        case "ClientProspects":
+            if (true)
+            {
+                string showWhat = "NEW";
+                try { showWhat = Request["param1"]; } catch { }
+                if (showWhat.IsEmpty()) { showWhat = "NEW"; }
+                <div>@ClientApp.Prospects(showWhat) </div>
+            }
+            break;
+        case "WebProspects":
+            if (true)
+            {
+                string showWhat = "NEW";
+                try { showWhat = Request["param1"]; } catch { }
+                if (showWhat.IsEmpty()) { showWhat = "NEW"; }
+                <div>@AppPages.WebProspects(showWhat) </div>
+            }
+            break;
+
+        case "WebProspect":
+            if (true)
+            {
+                int prospect_id = 0;
+                try { prospect_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@AppPages.WebProspect(prospect_id) </div>
+            }
+
+            break;
+
+        case "RefreshLiveStats":
+            if (true)
+            {
+                <div> @AppHelpers.LiveStats() </div>
+            }
+            break;
+
+        case "ProspectsApproval":
+            if (true)
+            {
+                <div>@AppPages.ProspectsApproval() </div>
+            }
+            break;
+
+
+        case "NEWMEMBERS":
+            if (true)
+            {
+                <div>@AppPages.NewMembers() </div>
+            }
+            break;
+        case "MEMBERS":
+            if (true)
+            {
+                <div>@AppPages.Members() </div>
+            }
+            break;
+        case "ContactForm":
+            if (true)
+            {
+                string showWhat = "NEW";
+                try { showWhat = Request["param1"]; } catch { }
+                if (showWhat.IsEmpty()) { showWhat = "NEW"; }
+                <div>@AppPages.ContactForm(showWhat) </div>
+            }
+            break;
+        case "FeedbackManager":
+            if (true)
+            {
+                string showWhat = "NEW";
+                try { showWhat = Request["param1"]; } catch { }
+                if (showWhat.IsEmpty()) { showWhat = "NEW"; }
+
+                <div>@NewAppPages.FeedBackManager(showWhat) </div>
+            }
+            break;
+
+
+        case "LoadMessageTemplate":
+            if (true)
+            {
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["member_id"]); } catch { }
+                int entry_id = 0; try { entry_id = Convert.ToInt32(Request["entry_id"]); } catch { }
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["template_id"]); } catch { }
+                string reachout_type = ""; reachout_type = Request["reachout_type"];
+                int list_id = 0; try { list_id = Convert.ToInt32(Request["list_id"]); } catch { }
+                int prospect_id = 0; try { prospect_id = Convert.ToInt32(Request["prospect_id"]); } catch { }
+
+                <div style="overflow: auto;">
+                    @ContactCenter.MessageSender(member_id, template_id, entry_id, prospect_id, reachout_type, list_id)
+                </div>
+            }
+            break;
+
+
+        case "RevWanum":
+            if (true)
+            {
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="overflow: auto;">
+                    @AppHelpers.RevealWanum(member_id)
+                </div>
+            }
+            break;
+
+        case "SelectOrderMember":
+            if (true)
+            {
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["param1"]); } catch { }
+
+                <div style="overflow: auto;">
+                    @AppHelpers.SelectOrderMember(member_id)
+                </div>
+            }
+            break;
+
+        case "SelectCreditMember":
+            if (true)
+            {
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int startAction = 0; try { startAction = Convert.ToInt32(Request["param2"]); } catch { }
+                <div style="overflow: auto;">
+                    @AppHelpers.SelectCreditMember(member_id, startAction)
+                </div>
+            }
+            break;
+
+        case "VerifyWanum":
+            if (true)
+            {
+                string wanum = ""; try { wanum = Request["param1"]; } catch { }
+                string member_name = ""; try { member_name = Request["param2"]; } catch { }
+                bool is_register = false; try { is_register = Convert.ToBoolean(Request["param3"]); } catch { }
+                <div style="overflow: auto;">
+                    @AppHelpers.SelectOrderMember(0, wanum, member_name, is_register)
+                </div>
+            }
+            break;
+
+        case "CreditManager":
+            if (true)
+            {
+                <div>@NewAppPages.CreditManager() </div>
+            }
+            break;
+        case "CreditHistory":
+            if (true)
+            {
+                <div>@NewAppPages.CreditHistory() </div>
+            }
+            break;
+
+
+        case "DebtsStatus":
+            if (true)
+            {
+                string showWhat = Request["param1"];
+                if (showWhat == "") { showWhat = "ALL"; }
+                <div> @AppHelpers.DebtsStatus(showWhat) </div>
+            }
+            break;
+
+
+
+        case "CreditStatus":
+            if (true)
+            {
+                <div> @AppHelpers.CreditStatus() </div>
+            }
+            break;
+
+
+        case "CreditEntryInfoRow":
+            if (true)
+            {
+                int transaction_id = 0; try { transaction_id = Convert.ToInt32(Request["param1"]); } catch { }
+                var op_data = Database.Open("op_data");
+                var sqlSelect = "select * FROM chargebook WHERE serial=@0";
+                var charge = op_data.QuerySingle(sqlSelect, transaction_id);
+                if (charge != null)
+                {
+
+                    @AppHelpers.CreditEntryInfoRow(charge)
+
+                }
+                op_data.Close();
+            }
+            break;
+
+        case "CreditEntryRow":
+            if (true)
+            {
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["param1"]); } catch { }
+                var op_data = Database.Open("op_data");
+                var sqlSelect = "SELECT serial,m_id,member_name,debt,due_date FROM pb WHERE m_id=@0";
+                var Debtee = op_data.QuerySingle(sqlSelect, member_id);
+
+                if (Debtee != null)
+                {
+
+                    @AppHelpers.CreditEntryRow(Debtee)
+
+                }
+                op_data.Close();
+            }
+            break;
+
+        case "JOBAPPS":
+            if (true)
+            {
+                @NewAppPages.JOBAPPS()
+
+            }
+            break;
+
+        case "ROUNDS":
+            if (true)
+            {
+                <div style="overflow:auto"> @AdminPages2.MainPanel() </div>
+                <div style="overflow:auto;height:250px;">&nbsp;</div>
+
+            }
+            break;
+
+
+
+        case "ROUNDSADMIN":
+        case "RoundsAdmin":
+            if (true)
+            {
+                string showWhat = ""; showWhat = Request["param1"];
+                int v_id = 0; try { v_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@AdminPages2.RoundsAdmin(showWhat, v_id)</div>
+
+            }
+            break;
+
+
+        case "RoundSettingsView":
+            if (true)
+            {
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string viewMode = Request["param2"];
+                <div>@Rounds.RoundControlPanel(round_id, viewMode)</div>
+            }
+            break;
+
+        case "PRODUCTS":
+            if (true)
+            {
+                string showWhat = ""; showWhat = Request["param1"];
+                int v_id = 0; try { v_id = Convert.ToInt32(Request["param2"]); } catch { }
+                if (showWhat == "") { showWhat = "CATALOG"; }
+                <div style="direction:rtl;display:none">AdminPages2.AllProducts(showWhat)</div>
+                <div style="direction:rtl">@Products.AllProducts(showWhat)</div>
+
+            }
+            break;
+
+        case "LoadSubCat":
+            if (true)
+            {
+                int main_cat_id = 0;
+                try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.LoadSubCatSelector(main_cat_id)</div>
+            }
+            break;
+        case "LoadTags":
+            if (true)
+            {
+                int main_cat_id = 0;
+                int p_id = 0;
+                try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                try { p_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@NewAppHelpers.LoadCatTagsSelector(main_cat_id, p_id)</div>
+            }
+            break;
+
+
+        case "ActivateProductCustomField":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.EditProductCustomFields(p_id)</div>
+            }
+            break;
+
+        case "UpdateProductCustomField":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int field_id = 0; try { field_id = Convert.ToInt32(Request["param2"]); } catch { }
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT * FROM ProductsCustomFields WHERE id=@0";
+                var theField = db.QuerySingle(sqlSelect, field_id);
+                if (theField != null)
+                {
+                    bool is_catalog = false;
+                    try { is_catalog = theField.is_catalog; } catch { }
+                    <div>@NewAppHelpers.ProductCustomFieldEntry(theField, is_catalog)</div>
+                }
+                db.Close();
+            }
+            break;
+
+        case "AddPricingOption":
+            if (true)
+            {
+                int product_id = 0;
+                int round_id = 0;
+                try { product_id = Convert.ToInt32(Request["param1"]); } catch { }
+                try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@Products.AddProductPricingOption(product_id, round_id)</div>
+            }
+            break;
+
+        case "DeletePricingOption":
+            if (true)
+            {
+                int product_id = 0;
+                int round_id = 0;
+                try { product_id = Convert.ToInt32(Request["param1"]); } catch { }
+                try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@Products.ProductPricingOptions(product_id, round_id)</div>
+            }
+            break;
+
+        case "LoadProductsList":
+            if (true)
+            {
+                string listType = ""; listType = Request["param1"];
+                <div style="direction:rtl">@Products.AllProducts(listType)</div>
+            }
+            break;
+
+        case "LoadVendorInvEntities":
+            if (true)
+            {
+                int v_id = 0; try { v_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.VendorInventoryEntitiesSelector(v_id)</div>
+            }
+            break;
+
+        case "LoadProductCatalog":
+            if (true)
+            {
+                int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.SelectCatalogProduct(cat_id)</div>
+            }
+            break;
+
+        case "CATMANAGER":
+            if (true)
+            {
+                int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="direction:rtl">@AdminPages2.CatManager()</div>
+            }
+            break;
+
+        case "CatList":
+            if (true)
+            {
+                int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string sub_cat_type = Request["param2"];
+                <div>@NewAppHelpers.SubCatList(cat_id, sub_cat_type)</div>
+            }
+            break;
+
+        case "FieldsList":
+            if (true)
+            {
+                int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string fieldScope = Request["param2"];
+                <div>@NewAppHelpers.CustomProductFieldsList(cat_id, fieldScope)</div>
+            }
+            break;
+
+        case "ProductFieldEntry":
+            if (true)
+            {
+                int field_id = 0; try { field_id = Convert.ToInt32(Request["param1"]); } catch { }
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT ProductsCustomFields.*,CustomProductFieldsType.title AS TypeTitle,CustomProductFieldsType.max_length FROM ProductsCustomFields JOIN CustomProductFieldsType ON CustomProductFieldsType.id=ProductsCustomFields.fieldType_id WHERE ProductsCustomFields.id=@0";
+                var theField = db.QuerySingle(sqlSelect, field_id);
+                if (theField != null)
+                {
+                    <div>@NewAppHelpers.CustomProductField(theField)</div>
+                }
+                db.Close();
+            }
+            break;
+
+
+        case "PRODUCTIMAGES":
+            if (true)
+            {
+                int product_id = 0;
+                try { product_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.ProductImages(product_id)</div>
+            }
+            break;
+
+        case "CreateVendorProductFromCatalog":
+            if (true)
+            {
+                int product_id = 0;
+                try { product_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.SubProductsForCatalogProduct(product_id)</div>
+            }
+            break;
+
+        case "RoundMenu":
+            if (true)
+            {
+                int round_id = 0;
+                try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.RoundMenu(round_id)</div>
+            }
+            break;
+
+        case "RoundBoard":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+                int roundId = 0; try { roundId = Convert.ToInt32(Request["param1"]); } catch { }
+                int z_id = 0; try { z_id = Convert.ToInt32(Request["param3"]); } catch { }
+                int delivery_id = 0; try { delivery_id = Convert.ToInt32(Request["param4"]); } catch { }
+                string showWhat = Request["param2"];
+                //   if (showWhat == "") { showWhat = "NEW"; }
+                // showWhat = "";
+                <div style="direction:rtl;display:none">AdminPages2.RoundBoard(roundId, showWhat, z_id) </div>
+                <div style="direction:rtl">@tmpit2.RoundBoard(roundId, showWhat, z_id, delivery_id) </div>
+            }
+
+            break;
+
+
+
+        case "OrderEditBar":
+            if (true)
+            {
+                int order_id = 0;
+                try { order_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@Order.OrderEditBar(order_id)</div>
+            }
+            break;
+
+        case "UpdateCartView":
+            if (true)
+            {
+                int order_id = 0;
+                try { order_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@Order.UpdateCartView(order_id)</div>
+            }
+            break;
+
+        case "RoundMenuItemRow":
+            if (true)
+            {
+                int order_id = 0;
+                try { order_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int item_id = 0;
+                try { item_id = Convert.ToInt32(Request["param3"]); } catch { }
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT id,p_id,price,title,itemunit,product_type,item_user_comment,max_quan_per_order,moq,sell_1s,sell_3s,sell_5s,sell_inXs,maincat_id,sub_cat_id,curLowestUnitPrice,is_discountable FROM roundMenuItems where id=@0";
+                var item = db.QuerySingle(sqlSelect, item_id);
+
+
+
+                if (item != null)
+                {
+                    sqlSelect = "SELECT round_id,u_id,rep_id FROM MainOrders WHERE order_id=@0";
+                    var order_info = db.QuerySingle(sqlSelect, order_id);
+                    int round_id = 0;
+                    try { round_id = order_info.round_id; } catch { }
+                    int rep_id = 0; int member_id = 0;
+                    try { rep_id = order_info.rep_id; } catch { }
+                    try { member_id = order_info.u_id; } catch { }
+                    rep_id = u_id;
+                    <div>@Order.RoundMenuItemEntry(item, round_id, order_id, rep_id, member_id)</div>
+
+                }
+                db.Close();
+            }
+            break;
+
+        case "UpdateBoardOrder":
+            if (true)
+            {
+                int order_id = 0;
+                try { order_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string order_mode = ""; order_mode = Request["param2"];
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT * FROM mainOrders WHERE order_id=@0";
+                var theOrder = db.QuerySingle(sqlSelect, order_id);
+                db.Close();
+                if (order_mode == "") { order_mode = "NEW"; }
+                @Order.RoundBoardEntry(theOrder, order_mode)
+
+            }
+            break;
+        case "RepstatusBar":
+            <div>RepHelpers2.RepStatusBar()</div>
+            break;
+
+        case "RefreshRoundsStats":
+            <div style="display:none">NewAppHelpers.RoundStats()</div>
+            <div>@tmpit.RoundStats()</div>
+            break;
+        case "CloseRoundZReport":
+            if (true)
+            {
+                int round_id = 0;
+                try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@tmpit.CloseRoundZReport(round_id)</div>
+            }
+
+            break;
+
+        case "ZAdmin":
+            int main_z_id = 0;
+            try { main_z_id = Convert.ToInt32(Request["param1"]); } catch { }
+            <div>@tmpit.ZAdmin(main_z_id)</div>
+            break;
+
+
+        case "SPOFFERSADMIN":
+            <div style="direction:rtl">@AdminPages2.SpecialOffersAdmin()</div>
+            break;
+
+        case "LoadSpOfferCatList":
+            if (true)
+            {
+                int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int specialOfferId = 0; try { specialOfferId = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@NewAppHelpers.LoadSpOfferCatSelector(main_cat_id, specialOfferId)</div>
+            }
+            break;
+
+        case "RoundSpOfferCreator":
+            if (true)
+            {
+                int round_id = 0;
+                try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int specialOfferId = 0;
+                try { specialOfferId = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@NewAppHelpers.AddRoundSpecial(round_id, specialOfferId)</div>
+            }
+            break;
+
+
+        case "RoundsListForSpOffer":
+            if (true)
+            {
+                int specialOfferId = 0;
+                try { specialOfferId = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.RoundsListForSpOffer(specialOfferId)</div>
+            }
+            break;
+
+        case "AddSpecialToRound":
+            if (true)
+            {
+                int specialOfferId = 0;
+                try { specialOfferId = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.AddSpecialToRound(specialOfferId)</div>
+            }
+            break;
+
+
+        case "RemoveSpecialItemFromOffer":
+            if (true)
+            {
+                int specialOfferId = 0;
+                try { specialOfferId = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.AddSpecialItem(specialOfferId)</div>
+            }
+            break;
+
+        case "UpdateSpecialOfferInfo":
+            if (true)
+            {
+                int specialOfferId = 0;
+                try { specialOfferId = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@NewAppHelpers.SpecialOfferInfo(specialOfferId)</div>
+            }
+            break;
+
+
+
+        /////////////////////////////////////////////////////
+
+
+        case "SUPPORT":
+            if (true)
+            {
+                <div style="direction:rtl"> @Support.SupportMain() </div>
+            }
+            break;
+
+
+        case "DEVFORM":
+            if (true)
+            {
+                <div style="direction:rtl"> @NewAppHelpers.DevForm() </div>
+            }
+            break;
+
+        case "DevFormResults":
+            if (true)
+            {
+                string sqlTxt = Request["param1"];
+
+                string[] FieldsArr;
+                string sep = ",";
+                FieldsArr = sqlTxt.Split(sep.ToCharArray());
+                string sqlInsertTxt = "INSERT INTO TABLE (";
+                int itemIndex = 0;
+                string recName = "rec";
+
+                foreach (var item in FieldsArr)
+                {
+                    sqlInsertTxt += item + ",";
+
+                }
+                sqlInsertTxt = sqlInsertTxt.Remove(sqlInsertTxt.Length - 1, 1);
+                sqlInsertTxt += ") VALUES(";
+                foreach (var item in FieldsArr)
+                {
+                    sqlInsertTxt += "@" + itemIndex + ",";
+                    itemIndex++;
+                }
+                sqlInsertTxt = sqlInsertTxt.Remove(sqlInsertTxt.Length - 1, 1);
+                sqlInsertTxt += ") ";
+                sqlInsertTxt += Environment.NewLine;
+                sqlInsertTxt += " op_data.Execute(sqlSelect,";
+                foreach (var item in FieldsArr)
+                {
+                    sqlInsertTxt += recName + "." + item + ",";
+                    itemIndex++;
+                }
+                sqlInsertTxt = sqlInsertTxt.Remove(sqlInsertTxt.Length - 1, 1);
+                sqlInsertTxt += ") ";
+
+                <div style="overflow:auto;font-size:12px;padding:5px;margin:5px;">@sqlTxt</div>
+                <textarea style="overflow:auto;font-size:16px;padding:5px;margin:5px;">@sqlInsertTxt</textarea>
+
+            }
+            break;
+
+        case "DevFormResults2":
+            if (true)
+            {
+                string sqlTxt = Request["param1"];
+
+                string[] FieldsArr;
+                string sep = ",";
+                FieldsArr = sqlTxt.Split(sep.ToCharArray());
+                string sqlInsertTxt = "UPDATE TABLE SET ";
+                int itemIndex = 0;
+                string recName = "rec";
+
+                foreach (var item in FieldsArr)
+                {
+                    sqlInsertTxt += item + "=@" + itemIndex + ",";
+                    itemIndex++;
+
+
+                }
+                sqlInsertTxt = sqlInsertTxt.Remove(sqlInsertTxt.Length - 1, 1);
+                /*   sqlInsertTxt += ") VALUES(";
+                   foreach (var item in FieldsArr)
+                   {
+                       sqlInsertTxt += "@" + itemIndex + ",";
+                   }
+
+                   sqlInsertTxt = sqlInsertTxt.Remove(sqlInsertTxt.Length - 1, 1);
+                   sqlInsertTxt += ") ";
+                */
+                sqlInsertTxt += Environment.NewLine;
+                sqlInsertTxt += " op_data.Execute(sqlSelect,";
+                foreach (var item in FieldsArr)
+                {
+                    sqlInsertTxt += recName + "." + item + ",";
+                    itemIndex++;
+                }
+                sqlInsertTxt = sqlInsertTxt.Remove(sqlInsertTxt.Length - 1, 1);
+                sqlInsertTxt += ") ";
+
+                <div style="overflow:auto;font-size:12px;padding:5px;margin:5px;">@sqlTxt</div>
+                <textarea style="overflow:auto;font-size:16px;padding:5px;margin:5px;">@sqlInsertTxt</textarea>
+
+            }
+            break;
+
+        case "PopulateSpOffer":
+            if (true)
+            {
+                int spOffer_id = 0;
+                int round_id = 0;
+                int order_id = 0;
+                int selected_id = 0;
+                string offer_type = "NONE";
+                try { spOffer_id = Convert.ToInt32(Request["param1"]); } catch { }
+                try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+                offer_type = Request["param3"];
+                try { order_id = Convert.ToInt32(Request["param4"]); } catch { }
+                <div>@Order.PopulateSpecialOffer(spOffer_id, round_id, order_id, selected_id, offer_type)</div>
+
+            }
+            break;
+
+        case "RoundSpOfferEntry":
+            if (true)
+            {
+                int order_id = 0; try { order_id = Convert.ToInt32(Request["param4"]); } catch { }
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int spOffer_id = 0;
+                try { spOffer_id = Convert.ToInt32(Request["param2"]); } catch { }
+                string offer_type = Request["param3"];
+                var db = Database.Open("op_data");
+
+                var sqlSelect = "SELECT * FROM SpecialOffers JOIN SpOfferRoundsAvailability ON SpecialOffers.id=SpOfferRoundsAvailability.specialOfferId WHERE SpOfferRoundsAvailability.round_id=@0  AND SpecialOffers.is_deleted=0 AND SpecialOffers.id=@1";
+                var item = db.QuerySingle(sqlSelect, round_id, spOffer_id);
+                if (item != null)
+                {
+                    <div>@Order.RoundSpecialOfferEntry(item, round_id, order_id, offer_type)</div>
+                }
+                db.Close();
+            }
+            break;
+
+
+        case "ZREPORT":
+            if (true)
+            {
+
+                int z_serial = 0;
+                try { z_serial = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="direction:rtl"> @AdminPages2.ZReport(z_serial) </div>
+            }
+
+            break;
+
+        case "MemberDiscount":
+            if (true)
+            {
+
+                int member_id = 0;
+                try { member_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="direction:rtl"> @AppHelpers.MemberDiscounts(member_id) </div>
+            }
+
+            break;
+
+
+        case "COUPONS":
+            if (true)
+            {
+
+                string coupon_type = "";
+                coupon_type = Request["param1"];
+                <div style="direction:rtl"> @Coupons.CouponsAdmin(coupon_type) </div>
+            }
+            break;
+
+        case "CouponOfferSetup":
+            if (true)
+            {
+
+                string offer_type = "";
+                offer_type = Request["param1"];
+                bool is_voucher = false; if (Request["param2"] == "true") { is_voucher = true; }
+                <div style="direction:rtl"> @Coupons.CouponOfferSetup(offer_type, 0, is_voucher) </div>
+            }
+
+            break;
+
+        case "CouponCategorySelector":
+            if (true)
+            {
+
+                int cat_id = 0;
+                try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int coupon_id = 0;
+                try { coupon_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+                <div style="direction:rtl"> @Coupons.CouponCategorySelector(cat_id, coupon_id) </div>
+            }
+
+            break;
+        case "CouponProductSelector":
+            if (true)
+            {
+
+                int p_id = 0;
+                try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int coupon_id = 0;
+                try { coupon_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+                <div style="direction:rtl"> @Coupons.CouponProductSelector(p_id, coupon_id) </div>
+            }
+
+            break;
+
+        case "InvokingProductSelector":
+            if (true)
+            {
+
+                int p_id = 0;
+                try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int coupon_id = 0;
+                try { coupon_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+                <div style="direction:rtl"> @Coupons.InvokingProductSelector(p_id, coupon_id) </div>
+            }
+
+            break;
+        case "CouponTerms":
+            if (true)
+            {
+
+                <div style="direction:rtl"> @Coupons.CouponTerms() </div>
+            }
+
+            break;
+
+        case "CouponTermSelector":
+            if (true)
+            {
+                string selected_term = "";
+                selected_term = Request["param1"];
+                <div style="direction:rtl"> @Coupons.CouponTermsSelector(selected_term) </div>
+            }
+
+            break;
+
+
+        case "CouponRestrictions":
+            if (true)
+            {
+
+                <div style="direction:rtl"> @Coupons.CouponRestrictions() </div>
+            }
+
+
+
+            break;
+        case "OrderCouponsList":
+            if (true)
+            {
+                int order_id = 0; try { order_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="direction:rtl"> @Order.GetCouponsForOrder(order_id) </div>
+            }
+
+            break;
+        case "SpOfferAdmin":
+            if (true)
+            {
+                int spOfferType = 0; try { spOfferType = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@AdminPages2.SpecialOffersAdmin(spOfferType)</div>
+            }
+            break;
+
+
+        case "IssuedCoupons":
+            if (true)
+            {
+                int coupon_id = 0; try { coupon_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div> @Coupons.IssuedCoupons(coupon_id) </div>
+            }
+            break;
+
+        case "REPS":
+            if (true)
+            {
+                <div style="direction:rtl"> @Reps.RepsAdmin() </div>
+            }
+            break;
+
+        case "VENDORS":
+            if (true)
+            {
+                <div> @Vendors.VendorsAdmin() </div>
+            }
+            break;
+
+        case "VendorSummary":
+            if (true)
+            {
+                int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string summaryOf = ""; summaryOf = Request["param2"];
+                <div>@AdminVendors.VendorSummary(vendor_id, summaryOf)</div>
+            }
+            break;
+
+        case "PAYMENTS":
+            if (true)
+            {
+                int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int dep_id = 0; try { dep_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@Payments.PaymentsAdmin(vendor_id, dep_id)</div>
+            }
+            break;
+        case "LoadAreaSelector":
+            if (true)
+            {
+                <div style="color:#000">@Order.AreaSelector()</div>
+            }
+            break;
+
+        case "VerifyShippingAddress":
+            if (true)
+            {
+                string city = Request["param1"];
+                <div style="color:#000">@Order.VerifyShippingCity(city)</div>
+            }
+            break;
+        case "ROUNDLOG":
+            if (true)
+            {
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="color:#000">@Rounds.RoundLog(round_id)</div>
+            }
+            break;
+
+        case "Deliveries":
+            if (true)
+            {
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int delivery_id = 0; try { delivery_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div style="color:#000;display:none">Rounds.Deliveries(round_id, delivery_id)</div>
+                <div style="color:#000;">@tmpit.DeliveryInfo(delivery_id)</div>
+            }
+            break;
+
+        case "PasteRoutes":
+            if (true)
+            {
+
+                int delivery_id = 0; try { delivery_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string PastedText = ""; PastedText = Request["param2"];
+                <div style="color:#000;">@Rounds.AutoParsedRoutes(delivery_id, PastedText)</div>
+            }
+            break;
+
+        case "RoundFullfilmentMethod":
+            if (true)
+            {
+
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int order_id = 0; try { order_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+                <div style="color:#000;">@Rounds.RoundFullfilmentMethod(round_id, order_id)</div>
+            }
+            break;
+
+        case "LoadOrderItemsForReturn":
+            if (true)
+            {
+
+                int order_id = 0; try { order_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int loading_order_id = 0; try { loading_order_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+                <div style="color:#000;">@tmpit2.LoadOrderItemsForReturn(order_id, loading_order_id)</div>
+            }
+            break;
+
+        case "GetReplacementProducts":
+            if (true)
+            {
+
+                <div style="color:#000;">@tmpit2.GetReplacementProducts()</div>
+            }
+            break;
+
+        case "ReviewReplacementOrder":
+            if (true)
+            {
+                <div style="color:#000;">@tmpit2.ReviewReplacementOrder()</div>
+            }
+            break;
+
+
+        ///////////////////////////client data releated page calls
+
+        case "REGAPREAPPROVAL":
+            <div style="color:#000;">@ClientApp.RegistrationPreApproval()</div>
+            break;
+
+
+
+        case "PreApprovals":
+            <div style="color:#000;">@ClientApp.PreApprovalList()</div>
+            break;
+
+
+
+        case "ONLINEUSERS":
+            <div style="color:#000;">@ClientApp.ClientUsers()</div>
+            break;
+
+
+
+        ////////////////////////////////////
+
+        default:
+            break;
+    }
+
+
+
+}
+

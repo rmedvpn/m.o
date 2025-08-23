@@ -1,0 +1,29 @@
+﻿@{
+    if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+
+
+    int u_id=WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    Layout = "~/Shared/Layouts/_Rep.cshtml";
+
+
+
+
+
+}
+
+    <div style="overflow: auto;" id="MainDataContainer">
+
+        <div style="overflow: auto;padding-top:0;direction:ltr" id="MainBoardContainer">
+            @MainPages.Lobby()
+        </div>
+        <div class="hide">
+            AppHelpers.WebOrders()
+        </div>
+
+
+        <div style="overflow: auto;height: 150px;">&nbsp;</div>
+
+    </div>
+
+

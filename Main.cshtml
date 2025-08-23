@@ -1,0 +1,78 @@
+﻿@{
+    if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+
+
+    int u_id=WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    Layout = "~/Shared/Layouts/_Members.cshtml";
+    string PageTitle="";
+    bool is_admin = AppFunctions.isPermission(u_id, "is_admin");
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+<iframe id="download_iframe" style="display:none;"></iframe>
+
+
+  <div style="overflow: auto;-webkit-overflow-scrolling: touch;width: 100%;" id="MainDataContainer">
+    <div style="overflow: auto;display:none">
+
+            <input type="text" id="SearchText" style="padding: 5px;margin: 0;font-size: 20px;font-family: 'font';width: 45%;float: right;border: 0;border-radius: 0;" placeholder="חיפוש" oninput="SearchMember(this.value);"  >
+              <div class="spinner" style="text-align: center;font-size: 20px;float: right;display: none;" id="SearchLoaderxvc">
+                                      <div class="bounce1"></div>
+                                      <div class="bounce2"></div>
+                                      <div class="bounce3"></div>
+    </div>
+<button style="font-size: 14px;float: left;margin: 5px;display: none" onclick="Accordionize('InfoAcc');showElement('ReportResultsContainer');hideElement('MainDataContainer');" id="ReoprtsBtn">דוחות</button>
+
+        <button style="font-size: 24px;float: left;border: 0;background: transparent;margin-left: 5px;display: none;" onclick="SearchMember('');" id="CloseSearchBtn">❎</button>
+    </div>
+
+
+
+
+
+    <div style="overflow: auto;" id="MainInfoDiv">
+      
+        <div style="overflow: auto;">
+            <h1>תפריט</h1>
+            <div style="float:right;padding:5px;margin:5px;border: 2px solid #000;border-radius:5px;overflow:auto;width:90%">
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold; border-bottom: 2px dashed #808080"><a href="Main_new">לוח הזמנות</a></div>
+
+                <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;border-bottom:2px dashed #808080" onclick="sbload('MainSb','Caller?p1=PreserveMembers');">שימור לקוחות</div>
+                <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;color: #000;font-size: 24px;font-weight: bold;border-bottom:2px dashed #808080" onclick="sbload('MainSb', 'Caller?p1=ListManager&p2=-2');">ימי הולדת</div>
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold; border-bottom: 2px dashed #808080" onclick="sbload('MainSb','Caller?p1=JoinAdmin');">צירופים</div>
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold; border-bottom: 2px dashed #808080" onclick="sbload('MainSb','Caller?p1=WebProspects');">אימותים</div>
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold;; border-bottom: 2px dashed #808080" onclick="sbload('MainSb','Caller?p1=MembersAdmin');">ניהול לקוחות</div>
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold; border-bottom: 2px dashed #808080" onclick="sbload('MainSb','Caller?p1=msgTemplates');">עריכת תבניות הודעה</div>
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold; border-bottom: 2px dashed #808080" onclick="sbload('JoinAdmin','ChangePw');">שינוי סיסמא</div>
+                @if (is_admin)
+                {
+
+
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold;; border-bottom: 2px dashed #808080" onclick="sbload('JoinAdmin','Caller?p1=UsersAdmin');">ניהול משתמשים</div>
+
+                <div style="overflow: auto; padding: 5px; margin: 5px; background-color: #e3e3e3; color: #000; font-size: 24px; font-weight: bold;; border-bottom: 2px dashed #808080" onclick="sbload('JoinAdmin','Caller?p1=SysLog');">יומן מערכת</div>
+
+                }
+
+            </div>
+
+
+
+        </div>
+<div style="overflow: auto;height: 150px;">&nbsp;</div>
+    </div>
+
+</div>
+
+
+
+</body>
+</html>

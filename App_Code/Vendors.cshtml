@@ -1,0 +1,164 @@
+﻿@helper VendorsAdmin()
+{
+    var op_data = Database.Open("op_data");
+    var m_ven = Database.Open("m_ven");
+    var sqlSelect = "";
+
+
+
+    sqlSelect = "SELECT * FROM Vendors  order by vendor_id";
+
+    var vendors = op_data.Query(sqlSelect);
+
+
+    <div style="overflow:auto">
+        <div style="overflow: auto;background-color: #fff;min-height: 500px;">
+            <div style="overflow: auto;padding: 5px;">
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="AjaxActions('NewCoupon', '','MainLoader');">חדש</button>
+                <div style="font-size: 20px;float: right;color: #000">
+                    ניהול ספקים
+
+
+
+                </div>
+                <div class="spinner" style="text-align: center;display: none;float: left" id="SpOfferAdminLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+
+            </div>
+
+            <div style="overflow: auto;clear: both;">
+                @foreach (var vendor in vendors)
+                {
+                    string rowBgColor = "#e3e3e3";
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowBgColor;direction:rtl;">
+
+                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=VendorEdit&p2=@vendor.vendor_id'); AdjustMainView();">פרטים</button>
+                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=VendorInventory&p2=@vendor.vendor_id'); AdjustMainView();">מלאי</button>
+
+
+                        <div style="overflow: auto;">
+                            @vendor.vendor_id - @vendor.vendor_name
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div style="overflow: auto;height:300px;background-color: #e3e3e3">&nbsp;</div>
+
+    op_data.Close();
+    m_ven.Close();
+}
+
+@helper VendorInfo(int vendor_id)
+{
+    var op_data = Database.Open("op_data");
+    var m_ven = Database.Open("m_ven");
+    var sqlSelect = "";
+
+
+
+    sqlSelect = "SELECT * FROM Vendors  WHERE vendor_id=@0";
+    var vendor = op_data.QuerySingle(sqlSelect, vendor_id);
+
+
+    <div style="overflow:auto">
+        <div style="overflow: auto;background-color: #fff;min-height: 500px;">
+            <div style="overflow: auto;padding: 5px;">
+                <div style="font-size: 20px;float: right;color: #000">
+                    <div style="overflow: auto;">
+                        @vendor.vendor_id - @vendor.vendor_name
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <div style="overflow: auto;height:300px;background-color: #e3e3e3">&nbsp;</div>
+
+    op_data.Close();
+    m_ven.Close();
+}
+
+
+@helper VendorEdit(int vendor_id, string summaryOf = "")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    string sqlSelect = "";
+    string vendor_name = "";
+    string vendor_name_e = "";
+    string vendor_desc_e = "";
+    string vendor_desc = "";
+    int admin_u_id = 0;
+    string admin_username = "";
+
+    sqlSelect = "SELECT * FROM vendors WHERE vendor_id=@0 ";
+    var Vendor = db.QuerySingle(sqlSelect, vendor_id);
+    vendor_name = Vendor.vendor_name;
+    vendor_name_e = Vendor.vendor_name_e;
+    vendor_desc_e = Vendor.vendor_desc_e;
+    vendor_desc = Vendor.vendor_desc;
+    admin_u_id = Vendor.admin_u_id;
+    admin_username = AppFunctions.GetRepName(admin_u_id);
+
+
+
+    sqlSelect = "SELECT COUNT(serial) as the_cnt from TeamMembersInRounds WHERE round_id=0 AND permission_id=0 AND vendor_id=@0";
+    var cnt_rs = db.QuerySingle(sqlSelect, vendor_id);
+    int teamCount = 0; try { teamCount = cnt_rs.the_cnt; } catch { }
+    sqlSelect = "SELECT COUNT(p_id) as the_cnt from products WHERE is_active=1 AND v_id=@0";
+    cnt_rs = db.QuerySingle(sqlSelect, vendor_id);
+    int productCount = 0; try { productCount = cnt_rs.the_cnt; } catch { }
+    sqlSelect = "SELECT COUNT(id) as the_cnt from rounds WHERE is_catalog=1 AND vendor_id=@0";
+    cnt_rs = db.QuerySingle(sqlSelect, vendor_id);
+    int roundsCount = 0; try { roundsCount = cnt_rs.the_cnt; } catch { }
+
+    decimal inventoryValue = 0;
+    sqlSelect = "SELECT * FROM tlg_App_ServiceArea ";
+    //  var Areas = db.Query(sqlSelect);
+
+
+
+    <input type="hidden" name="vendor_id" id="vendor_id" value="@vendor_id">
+
+    <div style="text-align: right;padding: 5px;background-color: #000;color: #ddd;">
+        <h1>@vendor_name - הגדרות</h1>
+    </div>
+
+    <div style="overflow: auto;color: #000;background-color: white;min-height: 1000px;">
+        <div style="overflow: auto;background-color: #000;color: #fff;">
+            <div style="overflow: auto;">
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: left">הזמנות<br>1450</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: left">דירוג<br>4.11</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="RepAjaxUpdate('VendorSummary', 'vendorContentDiv', 'VendorSettingsLoader',@vendor_id, '');">מידע<br>?</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="RepAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'TEAM');">צוות<br>@teamCount</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="RepAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'PRODUCTS');">מוצרים<br>@productCount</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="RepAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'ROUNDS');">ערוצים<br>@roundsCount</div>
+                <div style="padding: 5px;margin: 5px;background-color: #fff;color: #000;border-radius: 5px;float: right" onclick="RepAjaxUpdate('VendorSummary','vendorContentDiv','VendorSettingsLoader',@vendor_id,'INVENTORY');">מלאי<br>@inventoryValue.ToString("C", culture)</div>
+                <div id="VendorSettingsLoader" style="display: none;float: left">
+                    <div class="spinner">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="overflow: auto" id="vendorContentDiv">
+            @AdminVendors.VendorGeneralSettings(vendor_id)
+        </div>
+
+    </div>
+    db.Close();
+}
+
+
+

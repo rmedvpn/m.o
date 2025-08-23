@@ -1,0 +1,508 @@
+﻿@helper MainInfoBar(){
+<div style="overflow: auto;width: 100%;background-color: #808080;">
+
+</div>
+
+}
+
+@helper ImportSettingsAvaliableRounds(){
+var db = Database.Open("irgoon");
+var sqlSelect="SELECT * FROM irgoon.rounds";;
+var rounds = db.Query(sqlSelect);
+
+        <div style="overflow: auto">
+            @foreach(var round in rounds){
+                sqlSelect = "SELECT * FROM irgoon.RoundsLinkedText WHERE round_id=@0";
+                var linkedTexts = db.Query(sqlSelect,round.id);
+                int order_count=0;
+                sqlSelect = "SELECT COUNT(serial) as theCnt FROM irgoon.masterWebOrders Where round_id=@0";
+                var tmpRs = db.QuerySingle(sqlSelect,round.id);
+                try{order_count=tmpRs.theCnt;}catch{}
+                <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;"  id="round_@round.id">
+                <div style="overflow: auto">
+                <button style="font-size: 12px;margin: 5px;float: left;"  onclick="Accordionize('roundInfo_@round.id')">טקסטים מקושרים</button>
+                    <span style="float: left">@order_count הזמנות</span>
+                <span style="font-size: 16px;font-weight: bold;"> @round.title </span>
+                </div>
+                 <button  class="accordion" style="display: none" id="roundInfo_@round.id"></button>
+                <div class="panel">
+                @if(linkedTexts.Count>0){
+                    foreach(var linkedText in linkedTexts){
+                        <div style="overflow: auto;">@linkedText.linkedText</div>
+                    }
+                }
+                else{
+                    <div style="overflow: auto;color: #f00">אין טקסטים מקושרים</div>
+                }
+                </div>
+        
+                </div>
+            }
+        </div>
+
+db.Close();
+}
+
+@helper ImportSettingsUnlinkedTexts(){
+var db = Database.Open("irgoon");
+var sqlSelect = "SELECT DISTINCT delivery_option FROM irgoon.masterWebOrders WHERE round_id=0";
+var unLinkedRoundTexts = db.Query(sqlSelect);
+ sqlSelect="SELECT * FROM irgoon.rounds";;
+var rounds = db.Query(sqlSelect);
+
+int loopCnt=0;
+
+        <div style="overflow: auto">
+            @if(unLinkedRoundTexts.Count()>0){
+                <h1>טקסטים לא מקושרים</h1>
+                 foreach(var unlinkedText in unLinkedRoundTexts){
+                    int order_count=0;
+                    sqlSelect = "SELECT COUNT(serial) as theCnt FROM irgoon.masterWebOrders Where delivery_option=@0";
+                    var tmpRs = db.QuerySingle(sqlSelect,unlinkedText.delivery_option);
+                    try{order_count=tmpRs.theCnt;}catch{}
+
+                     loopCnt++;
+                        <form id="RoundLinkForm_@loopCnt">
+                            <input type="hidden" name="LinkingText" value="@unlinkedText.delivery_option">
+                        <div style="overflow: auto;border-bottom: 1px dotted #f00;color: #000;padding: 5px;font-size: 14px;"><b>@unlinkedText.delivery_option</b>
+                        <span style="float: left"> 
+                            @order_count הזמנות
+                        <select name="LinkingRound" id="LinkingRound_@loopCnt">
+                            <option value="">נא לבחור סבב לקישור</option>
+                            @foreach(var round in rounds){
+                                <option value="@round.id">@round.title</option>
+                            }
+                        </select>
+                
+                        <button type="button" onclick="MainAjaxAction('LinkRoundText','','RoundLinkForm_@loopCnt');">אישור</button>
+
+                        </span>
+                
+                
+                        </div>
+                        </form>
+                 }
+
+            
+                }
+        </div>
+
+db.Close();
+}
+
+
+@helper UploadOrdersTsv(){
+
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("irgoon");
+var sqlSelect="";
+var uploadedFile = Request.Files[0];
+var fileSavePath = Server.MapPath("~/App_Data/Uploads/orders.tsv");
+var fileName = "";
+fileName = Path.GetFileName(uploadedFile.FileName);
+uploadedFile.SaveAs(fileSavePath);
+
+var dataFile =fileSavePath;
+Array userData = File.ReadAllLines(dataFile);
+string[] userRec;
+
+bool is_ok=true;
+
+string aLine, aParagraph = null;
+
+string last_sync="";
+last_sync=MainFunctions.GetAppProperty("LastOrdersFileSync");
+decimal default_order_total=0;
+default_order_total=Convert.ToDecimal(MainFunctions.GetAppProperty("DefaultOrderValue"));
+int MemberOrderPlacingRankingCredit=0;
+MemberOrderPlacingRankingCredit=Convert.ToInt32(MainFunctions.GetAppProperty("MemberOrderPlacingRankingCredit"));
+
+DateTime lastFileSync=Convert.ToDateTime("1/1/1970");
+if(!last_sync.IsEmpty()){
+    lastFileSync=Convert.ToDateTime(last_sync);
+}
+
+string test_str="";
+test_str=File.ReadAllText(dataFile);
+bool is_show = false;
+StringReader strReader=null;
+if (!test_str.IsEmpty()){
+    strReader = new StringReader(test_str);
+
+    is_show = true;
+}
+
+int counter=0;
+int ok_counter=0;
+int totalCount=0;
+bool is_ok_to_insert=false;
+
+        string userName="";
+        string wanum="";
+        string delivery_option="";
+        string shipping_address="";
+        string shipping_city="";
+        string orderBody="";
+        string orderpw="";
+        string str_date="";
+        string tmpDate="";
+        string tmptime="";
+        string fail_field="";
+        DateTime order_date=Convert.ToDateTime("1/1/1900");
+        int cur_user_id=0;
+        int lang=1;
+string actionLog="";
+
+int detected_round_id=0;
+string round_title="";
+string display_wanum="";
+bool is_existing_order=false;
+string raw_bg_color="#fff";
+
+DateTime currRawDate=Convert.ToDateTime("1/1/1970");
+string existingOrdersDataStr="";
+int existingOrdersCounter=0;
+int newOrdersCounter=0;
+int newUsersCounter=0;
+string newUsersDataStr="";
+
+<div style="background-color:  #000; overflow: auto; font-size: 24px; color: #fff;">
+    <span style="float: left;color: #57d600;font-size: 12px;padding: 5px"> סנכרון אחרון:<br>@lastFileSync.ToShortDateString() @lastFileSync.ToString("H:mm")</span> סנכרון היסטוריית הזמנות
+</div>
+
+    <div style="overflow: auto;padding: 0;margin: 0;">
+     <form id="OrdersToAdd">
+        <table style="width: 100%;border: 1px solid #000;border-collapse: collapse">
+    @while(is_show)
+    {
+    totalCount++;
+    counter++;
+    detected_round_id=0;
+    display_wanum="";
+    is_existing_order=false;
+
+
+    aLine = strReader.ReadLine();
+    
+    if(aLine != null)
+    {
+      order_date=Convert.ToDateTime("1/1/1900",culture);
+      userName="";
+      wanum="";
+      delivery_option="";
+      shipping_address="";
+      shipping_city="";
+      orderBody="";
+      orderpw="";
+      lang=1;
+      cur_user_id = 0;
+      fail_field="";
+
+      string sep = "\t";
+      is_ok_to_insert=true;
+      userRec=aLine.Split(sep.ToCharArray());
+
+        str_date=userRec[0];
+        str_date=str_date.Replace("GMT‎+3","");
+        str_date=str_date.Replace("אחה״צ","");
+        str_date=str_date.Replace("לפנה״צ","");
+        str_date=str_date.Replace("\"","");
+        str_date=str_date.Trim();
+        string[] tmpRec;
+        tmpRec = str_date.Split(' ');
+         tmpDate="";
+         tmptime="";
+         string tmptmp="";
+        try{tmpDate=tmpRec[0];}catch{}
+        try{tmptime=tmpRec[1];}catch{}
+         tmptmp = tmpDate + " " + tmptime;
+         bool is_pm=false;
+         if(userRec[0].Contains("PM") || userRec[0].Contains("אחה")){
+             is_pm=true;
+         }
+
+        try{order_date=Convert.ToDateTime(tmptmp);}catch{is_ok_to_insert=false;order_date=Convert.ToDateTime("1/1/1910",culture);}
+        try{userName=Convert.ToString(userRec[1]);userName=userName.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="userName";}
+        try{wanum=Convert.ToString(userRec[2]);wanum=wanum.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="wanum";}
+        try{delivery_option=Convert.ToString(userRec[3]);delivery_option=delivery_option.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="delivery_option";}
+        try{shipping_address=Convert.ToString(userRec[4]);shipping_address=shipping_address.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="shipping_address";}
+        try{shipping_city=Convert.ToString(userRec[5]);shipping_city=shipping_city.Replace("\"","");}catch{is_ok_to_insert=false;fail_field="shipping_city";}
+        try{orderBody=Convert.ToString(userRec[6]);orderBody=orderBody.Replace("\"","");}catch{}
+        try{orderpw=Convert.ToString(userRec[8]);orderpw=orderpw.Replace("\"","");}catch{}
+        if(is_pm){
+            order_date=order_date.AddHours(12);
+        }
+        if(delivery_option.Contains("e")){
+            lang=2;
+        }
+    }
+    else
+    {
+        aParagraph = aParagraph + "\n";
+        break;
+    }
+
+
+if(is_ok_to_insert){
+    ok_counter++;
+    userName=userName.Replace("\"","");
+    wanum=wanum.Replace("\"","");
+    wanum=MainFunctions.wanumize(wanum);
+    display_wanum=wanum.Substring(wanum.Length -3) + "***";
+
+    if(delivery_option!=""){
+    sqlSelect = "SELECT round_id FROM RoundsLinkedText WHERE linkedText=@0";
+    var tmprs = db.QuerySingle(sqlSelect,delivery_option);
+    try{detected_round_id=tmprs.round_id;}catch{}    
+    if(detected_round_id!=0){
+        round_title=AppFunctions.GetRoundTitleById(detected_round_id);
+    }
+    }
+    
+
+
+
+    sqlSelect="SELECT serial FROM irgoon.MasterWebOrders WHERE ts=@0 AND wanum=@1";
+    var existing_order=db.QuerySingle(sqlSelect,order_date,wanum);
+    if(existing_order==null)
+    {
+    is_existing_order=false;
+    newOrdersCounter++;
+    raw_bg_color="#fff";
+    }
+    else{
+        is_existing_order=true;
+        existingOrdersDataStr= existingOrdersDataStr + "<TR><td>" + userName + "</td><td>" + round_title  + "</td><td>" + order_date  + "</td><td>הזמנה #" + existing_order.serial  + "</td><td>שורה #" + counter  + "</td></TR>";
+        existingOrdersCounter++;
+        raw_bg_color="#ffffcc";
+    }
+
+sqlSelect = "SELECT userId FROM irgoon.irgUsers WHERE wanum=@0";
+       var existing_user=db.QuerySingle(sqlSelect,wanum);
+       if(existing_user!=null){
+           cur_user_id=existing_user.userid;
+       }
+       else{
+           cur_user_id=-1;
+           newUsersCounter++;
+            newUsersDataStr= newUsersDataStr + "<TR><td>" + userName + "</td><td>שורה #" + counter  + "</td></TR>";
+
+       }
+
+       if(!is_existing_order){
+            <tr style="display: none">
+                <td colspan="999">
+                    <input type="hidden" name="order_date_@newOrdersCounter" value="@order_date">
+                    <input type="hidden" name="round_id_@newOrdersCounter" value="@detected_round_id">
+                    <input type="hidden" name="user_id_@newOrdersCounter" value="@cur_user_id">
+                    <input type="hidden" name="userName_@newOrdersCounter" value="@userName">
+                    <input type="hidden" name="orderBody_@newOrdersCounter" value="@orderBody">
+                    <input type="hidden" name="wanum_@newOrdersCounter" value="@wanum">
+                    <input type="hidden" name="shipping_address_@newOrdersCounter" value="@shipping_address">
+                    <input type="hidden" name="shipping_city_@newOrdersCounter" value="@shipping_city">
+                    <input type="hidden" name="orderpw_@newOrdersCounter" value="@orderpw">
+                    <input type="hidden" name="delivery_option_@newOrdersCounter" value="@delivery_option">
+                    <input type="hidden" name="lang_@newOrdersCounter" value="@lang">
+                    <input type="hidden" name="lineNumber_@newOrdersCounter" value="@counter">
+                </td>
+            </tr>
+            <tr style="overflow: auto;color: #000;padding: 5px;margin: 5px;border-bottom: 1px solid #808080;background-color: @raw_bg_color">
+                
+                <td style="overflow: auto;">@order_date.ToShortDateString() @order_date.ToString("HH:mm")</td>          
+                <td style="overflow: auto;">@round_title</td>          
+
+                @if(cur_user_id!=-1){
+                    <td style="overflow: auto;color: #57d600;font-weight:bold">✅ @userName</td>              
+                }
+                else{
+                    <td style="overflow: auto;color: #f00;font-weight:bold">💡 @userName </td>              
+                }
+                
+
+                <td style="overflow: auto;">@orderBody</td>
+                <td style="overflow: auto;">@fail_field</td>
+                
+            </tr>
+       }
+
+    }
+}
+
+
+
+
+</table>
+                    <input type="hidden" name="NewOrdersCounter" value="@newOrdersCounter">
+                    <input type="hidden" name="lineCount" value="@counter">
+        </form>
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+        <div style="float: left;"><button onclick="MainAjaxAction('ImportUploadedOrders','','OrdersToAdd');" style="float: left;font-size: 16px;padding: 5px;margin: 5px;"><b>ביצוע עדכון</b></button></div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">👍 @counter שורות נקראו מהקובץ </div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">✔️ @ok_counter רשומות תקינות זוהו בקובץ</div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">☝️ @newOrdersCounter הזמנות חדשות תקלטנה לבסיס הנתונים </div>
+        @if(newUsersCounter>0){
+            <div style="color: #000;font-size: 18px;overflow: auto;color: #b200ff" onclick="Accordionize('accNewUsers')">💡 @newUsersCounter חברים חדשים יצורפו למערכת <button >פירוט</button></div>
+        <button style="display: none" class="Accordion" id="accNewUsers"></button>
+        <div class="panel">
+            <div style="margin: 5px;padding: 5px;background-color: #ffffcc;color: #000">
+                <h2>⚠️ המשתמשים הבאים יצורפו למערכת (@newUsersCounter רשומות)</h2>
+            <table style="border-collapse: collapse;padding: 5px;margin: 5px;width: 50%">
+                @Html.Raw(newUsersDataStr)
+            </table>
+            </div>
+        </div>
+
+        }
+
+
+        @if(existingOrdersDataStr!=""){
+
+            <div style="color: #000;font-size: 18px;overflow: auto;color: #f00" onclick="Accordionize('accExistingOrders')">👇 @existingOrdersCounter הזמנות קיימות כבר בבסיס הנתונים <button >פירוט</button></div>
+            <button style="display: none" class="Accordion" id="accExistingOrders"></button>
+            <div class="panel">
+                <div style="margin: 5px;padding: 5px;background-color: #ffcccc">
+                    <h2>⚠️ הזמנות קיימות זוהו באצוות הסנכרון</h2>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #fff;color: #000;"><b>👈 אין מה להלחץ כלום לא יקרה עם ההזמנות האלו והן בסך הכל לא תתעדכנה</b></div>
+                <table style="border-collapse: collapse;padding: 5px;margin: 5px;width: 50%">
+                    @Html.Raw(existingOrdersDataStr)
+                </table>
+                </div>
+            </div>
+
+        }
+        </div>
+
+</div>
+
+  FileInfo fi = new FileInfo(fileSavePath);
+  fi.Delete();
+  db.Close();  
+  
+}
+
+@helper ProcessPhoneBookTsv(){
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("irgoon");
+var sqlSelect="";
+var fileSavePath = Server.MapPath("~/App_Data/Uploads/pb.tsv");
+var dataFile =fileSavePath;
+Array userData = File.ReadAllLines(dataFile);
+string[] userRec;
+
+bool is_ok=true;
+
+string aLine, aParagraph = null;
+
+string last_sync="";
+//last_sync=MainFunctions.GetAppProperty("LastOrdersFileSync");
+DateTime lastFileSync=Convert.ToDateTime("1/1/1970");
+if(!last_sync.IsEmpty()){
+//    lastFileSync=Convert.ToDateTime(last_sync);
+}
+
+string test_str="";
+test_str=File.ReadAllText(dataFile);
+bool is_show = false;
+StringReader strReader=null;
+if (!test_str.IsEmpty()){
+    strReader = new StringReader(test_str);
+    is_show = true;
+}
+
+int counter=0;
+int ok_counter=0;
+int totalCount=0;
+bool is_ok_to_insert=false;
+int cur_user_id=0;
+        string userName="";
+        string wanum="";
+string bgcolor="#e3e3e3";
+int existingUsersCount=0;
+int newUsersCounter=0;
+<div style="background-color:  #000; overflow: auto; font-size: 24px; color: #fff;">
+    <span style="float: left;color: #57d600;font-size: 12px;padding: 5px"> סנכרון אחרון:<br>@lastFileSync.ToShortDateString() @lastFileSync.ToString("H:mm")</span> סנכרון ספר טלפונים
+</div>
+
+    <div style="overflow: auto;padding: 0;margin: 0;">
+     <form id="ContactsToAdd">
+        <div style="width: 100%;border: 1px solid #000;border-collapse: collapse">
+    @while(is_show)
+    {
+    cur_user_id=0;
+    totalCount++;
+    counter++;
+    aLine = strReader.ReadLine();
+    string display_wanum="";
+    if(aLine != null)
+    {
+      userName="";
+      wanum="";
+      string sep = "\t";
+      is_ok_to_insert=true;
+      userRec=aLine.Split(sep.ToCharArray());
+
+
+        try{userName=Convert.ToString(userRec[0]);}catch{}
+        try{wanum=Convert.ToString(userRec[7]);}catch{}
+        if(wanum==""){
+        try{wanum=Convert.ToString(userRec[12]);}catch{}
+        }
+    }
+    else{
+        break;
+    }
+
+  //  userName=userName.Replace("\"","");
+  //  wanum=wanum.Replace("\"","");
+    wanum=MainFunctions.wanumize(wanum);
+    userName = userName.Replace(" ","");
+   // display_wanum=wanum.Substring(wanum.Length -3) + "***";
+
+    //sqlSelect = "SELECT userId FROM irgoon.irgUsers WHERE wanum=@0";
+    sqlSelect = "SELECT user_id as userId FROM irgoon.phonebook WHERE wanum=@0";
+       var existing_user=db.QuerySingle(sqlSelect,wanum);
+       if(existing_user!=null){
+           cur_user_id=existing_user.userid;
+           bgcolor="#57d600";
+           existingUsersCount++;
+       }
+       else{
+           cur_user_id=-1;
+           newUsersCounter++;
+           bgcolor="#e3e3e3";
+           sqlSelect = "INSERT INTO irgoon.phonebook(pb_name,wanum,ts) VALUES(@0,@1,@2)";
+           db.Execute(sqlSelect,userName,wanum,DateTime.Now);
+        }
+        
+            <div style="overflow: auto;background-color: @bgcolor">
+            @userName @wanum
+            </div>
+
+}
+
+
+
+
+</div>
+                    <input type="hidden" name="lineCount" value="@counter">
+        </form>
+        <div style="overflow: auto;padding: 5px;margin: 5px">
+        <div style="float: left;"><button onclick="MainAjaxAction('ImportUploadedOrders','','OrdersToAdd');" style="float: left;font-size: 16px;padding: 5px;margin: 5px;"><b>ביצוע עדכון</b></button></div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">👍 @counter שורות נקראו מהקובץ </div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">👍 @existingUsersCount חברים קיימים </div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">👍 @newUsersCounter חברים חדשים </div>
+            <div style="color: #000;font-size: 18px;overflow: auto;">✔️ @ok_counter רשומות תקינות זוהו בקובץ</div>
+            
+        </div>
+
+</div>
+
+  //FileInfo fi = new FileInfo(fileSavePath);
+  //fi.Delete();
+  db.Close();  
+  
+}

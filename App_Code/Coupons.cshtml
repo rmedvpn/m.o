@@ -1,0 +1,4229 @@
+﻿@helper zzz()
+{}
+
+
+@helper CouponsAdmin(string coupon_type = "")
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+
+
+
+    sqlSelect = "SELECT * FROM coupons where is_deleted=0 AND coupon_type=@0 order by is_setup,is_active DESC, coupon_id DESC";
+    if (coupon_type == "")
+    {
+        sqlSelect = "SELECT * FROM coupons where is_deleted=0 order by  is_setup,is_active DESC,coupon_id DESC";
+    }
+    var coupons = db.Query(sqlSelect, coupon_type);
+
+
+    <div style="overflow:auto" id="CouponsAdminDiv">
+        <div style="overflow: auto;background-color: #fff;min-height: 500px;">
+            <div style="overflow: auto;padding: 5px;">
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="AjaxActions('NewCoupon', '','MainLoader');">חדש</button>
+                <div style="font-size: 20px;float: right;color: #000">
+                    ניהול הטבות וקופונים
+
+
+
+                </div>
+                <div class="spinner" style="text-align: center;display: none;float: left" id="SpOfferAdminLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+
+            </div>
+
+            <div style="overflow: auto;clear: both;" id="spOfferDiv">
+                @foreach (var coupon in coupons)
+                {
+                    string ActiveTxt = "פעיל";
+                    string rowBgColor = "#e3e3e3";
+                    if (!coupon.is_setup)
+                    {
+                        rowBgColor = "#ffffcc";
+                        ActiveTxt = "לא מוגדר";
+                    }
+                    if (!coupon.is_active)
+                    {
+                        rowBgColor = "#ffcccc";
+                        ActiveTxt = "לא פעיל";
+                    }
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowBgColor">
+
+                        @if (coupon.is_setup)
+                        {
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=CouponInfo&p2=@coupon.coupon_id'); AdjustMainView();">פרטים</button>
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=IssueCoupon&p2=@coupon.coupon_id'); AdjustMainView();">הנפקה</button>
+
+                        }
+                        else
+                        {
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=CouponSetup&p2=@coupon.coupon_id'); AdjustMainView();">הגדרה ראשונית</button>
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=VoucherSetup&p2=@coupon.coupon_id'); AdjustMainView();">הגדרת וואצר לקוח</button>
+                        }
+
+
+
+                        <div style="overflow: auto;">
+                            @coupon.coupon_id - @coupon.coupon_title
+                            <div class="B"><span class="MiniTitle">@ActiveTxt</span></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div style="overflow: auto;height:300px;background-color: #e3e3e3">&nbsp;</div>
+
+    db.Close();
+}
+@helper CouponEdit(int coupon_id)
+{
+    var db = Database.Open("op_data");
+
+    var sqlSelect = "SELECT * from coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+
+    string offer_type = coupon.offer_type;
+
+    bool is_comission_discount = coupon.is_comission_discount;
+    decimal comission_discount = coupon.comission_discount;
+    string comission_discount_type = coupon.comission_discount_type;
+    string comission_discount_div_display_state = "none;";
+    if (is_comission_discount)
+    {
+        comission_discount_div_display_state = "block;";
+    }
+    <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff">
+
+        <div>
+            <div style="overflow: auto;font-size: 20px;">
+                <div class="B">
+                    @if (!coupon.is_active)
+                    {
+                        <span class="A" style=" margin-left: 30px; padding: 5px; border-radius: 5px; background-color: #f00; color: #fff; float: left " onclick="AjaxActions('CouponDelete', '@coupon_id', 'MainLoader');">מחיקת קופון</span>
+                    }
+                    <div style="overflow: auto; font-size: 14px; font-weight: bold; float: right; text-align: right;margin-left:10px; ">
+                        פעיל?<br><input type="checkbox" class="A" style="height:20px;width:20px" id="is_active" name="is_active" @if (coupon.is_active) { <text> checked</text> } onclick="AjaxActions('SetCouponActiveState', '@coupon_id', 'MainLoader', this.checked);">
+                    </div>
+
+                    <div class="B">
+                        <div class="B">@coupon.coupon_title - הגדרות</div>
+                        <div class="B"><span class="PrplMiniTag">קופון #@coupon.coupon_id</span></div>
+                    </div>
+                </div>
+            </div>
+            <div style="overflow: auto;">
+            </div>
+
+        </div>
+
+        <form id="CreateCouponForm">
+            <input type="hidden" name="coupon_id" value="@coupon_id" />
+
+            <div style="overflow: auto;background-color: #e3e3e3;">
+                <div class="A">
+                    <div style="overflow: auto;">
+                        <div style="overflow: auto;">
+
+                        </div>
+
+
+                        <div style="overflow: auto; font-size: 14px; font-weight: bold; float: right; text-align: right; ">
+                            קוד קופון<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;" id="coupon_code" name="coupon_code" value="@coupon.coupon_code" maxlength="15">
+                        </div>
+                        <div style="overflow: auto; font-size: 14px; font-weight: bold; float: right; text-align: right;">
+                            Code Coupon<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;" id="coupon_code_e" name="coupon_code_e" value="@coupon.coupon_code_e" maxlength="15">
+                        </div>
+
+                    </div>
+                    <div style="overflow: auto;">
+                        <div style="overflow: auto;font-size: 14px;font-weight: bold">כותרת למבצע<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" id="coupon_title" name="coupon_title" value="@coupon.coupon_title"></div>
+                        <div style="overflow: auto;font-size: 14px;font-weight: bold">Offer Title<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" id="coupon_title_e" name="coupon_title_e" value="@coupon.coupon_title_e"></div>
+                    </div>
+                    <div style="overflow: auto;">
+                        <div style="overflow: auto;font-size: 14px;font-weight: bold">פירוט<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="coupon_notes" name="coupon_notes">@coupon.coupon_notes</textarea></div>
+                        <div style="overflow: auto;font-size: 14px;font-weight: bold">Specification<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="coupon_notes_e" name="coupon_notes_e">@coupon.coupon_notes_e</textarea></div>
+                    </div>
+                    <div class="B">
+                        <div style="overflow: auto;font-size: 14px;font-weight: bold">
+                            <input type="checkbox" name="is_comission_discount" class="A" @if (is_comission_discount) { <text> checked</text> } onclick="if (this.checked) { showElement('comission_discount_div'); } else {hideElement('comission_discount_div'); }" /> הנחת עמלה?
+                        </div>
+                        <div style="overflow: auto;font-size: 14px;font-weight: bold;display:@comission_discount_div_display_state" id="comission_discount_div">
+                            <input class="A30" style="float:right" name="comission_discount" value="@Convert.ToInt32(comission_discount)" />
+                            <select class="A" style="float:right" name="comission_discount_type">
+                                <option value="FIXED" @if (comission_discount_type == "FIXED") { <text> selected</text>}>₪ הנחה מהעמלה הכללית להזמנה</option>
+                                <option value="PERCENT" @if (comission_discount_type == "PERCENT") { <text> selected</text>}>% הנחה מהעמלה הכללית להזמנה</option>
+                                <option value="COUPON" @if (comission_discount_type == "COUPON") { <text> selected</text>}>% הנחה משווי הקופון</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="overflow: auto;font-size: 20px;font-weight: bold">
+                    <div class="A">
+                        סוג קופון
+
+                        <div style="float: left">
+                            <input type="hidden" name="offer_type" value="@offer_type" />
+                            @switch (offer_type)
+                            {
+                                case "ITEM":
+                                    <span>מוצר בחינם / בהנחה / במחיר</span>
+                                    break;
+                                case "VOUCHER":
+                                    <span>שובר מתנה / הנחה</span>
+                                    break;
+                                case "SHIPPING":
+                                    <span>משלוח חינם / מוזל</span>
+                                    break;
+                                case "CREDIT":
+                                    <span>זיכוי</span>
+                                    break;
+
+                            }
+                        </div>
+                        <div class="B" id="OfferTypeLoader">
+                            <div style="direction:rtl"> @Coupons.CouponOfferSetup(coupon.offer_type, coupon_id) </div>
+
+                        </div>
+                    </div>
+
+
+
+                    <div style="overflow:auto;" id="OfferTypeResults">
+
+                    </div>
+
+
+                </div>
+            </div>
+        </form>
+
+
+
+
+    </div>
+    <div style="overflow: auto;height: 200px;">&nbsp;</div>
+
+
+    db.Close();
+}
+@helper CouponInfo(int coupon_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+
+    if (coupon != null)
+    {
+        string offer_type = coupon.offer_type;
+        string coupon_item_type = coupon.coupon_item_type;
+        string voucher_type = coupon.voucher_type;
+        string shipping_cost_type = coupon.shipping_cost_type;
+        string coupon_terms = coupon.coupon_terms;
+        string free_product_scope = coupon.free_product_scope;
+        bool is_comission_discount = coupon.is_comission_discount;
+        decimal comission_discount = coupon.comission_discount;
+        string comission_discount_type = coupon.comission_discount_type;
+        int maincat_id = 0;
+
+        <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff">
+
+            <div style="overflow: auto;font-size: 20px;">
+                <button class="A" style="float: right;" onclick="sbload('GenSb', 'Caller?p1=CouponEdit&p2=@coupon.coupon_id'); AdjustMainView();">⚙️</button>
+                <div class="B" style="float:right">
+
+                    <div class="B">
+                        <div class="B">@coupon.coupon_title</div>
+                        <div class="B"><span class="PrplMiniTag">קופון #@coupon.coupon_id</span></div>
+                    </div>
+                </div>
+                <div class="B" style="float:left;">
+                    @if (coupon.is_active)
+                    {
+                        <span class="A" style="margin-left: 30px; padding: 5px; border-radius: 5px;background-color: #57d600;color:#fff;float:left ">פעיל</span>
+                    }
+                    else
+                    {
+                        <span class="A" style=" margin-left: 30px; padding: 5px; border-radius: 5px; background-color: #f00; color: #fff; float: left ">לא פעיל</span>
+                    }
+
+                </div>
+
+
+            </div>
+
+            <form id="CreateCouponForm">
+                <div style="overflow: auto;background-color: #e3e3e3;border-radius:5px;">
+                    <div class="A">
+                        <div style="overflow: auto;">
+                            <div class="A" style="float: right; text-align: right; ">
+                                <div class="MiniTitle">
+                                    קוד קופון
+                                </div>
+                                <div class="B">
+                                    @coupon.coupon_code
+                                </div>
+                            </div>
+
+                            <div class="A" style="float: right; text-align: right; ">
+                                <div class="MiniTitle">
+                                    Code Coupon
+                                </div>
+                                <div class="B">
+                                    @coupon.coupon_code_e
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <div class="A" style=" text-align: right; ">
+                            <div class="MiniTitle">
+                                כותרת קופון
+                            </div>
+                            <div class="B">
+                                @coupon.coupon_title
+                            </div>
+                        </div>
+                        <div class="A" style=" text-align: right; ">
+                            <div class="MiniTitle">
+                                Offer Title
+                            </div>
+                            <div class="B">
+                                @coupon.coupon_title_e
+                            </div>
+                        </div>
+
+                        @if (coupon.coupon_notes != "")
+                        {
+                            <div class="A" style="text-align: right; ">
+                                <div class="MiniTitle">
+                                    תיאור
+                                </div>
+                                <div class="B">
+                                    @coupon.coupon_notes
+                                </div>
+                            </div>
+                        }
+                        @if (coupon.coupon_notes_e != "")
+                        {
+                            <div class="A" style="text-align: right; ">
+                                <div class="MiniTitle">
+                                    Specification
+                                </div>
+                                <div class="B">
+                                    @coupon.coupon_notes_e
+                                </div>
+                            </div>
+                        }
+
+
+                        <div class="A" style=" text-align: right; ">
+                            <div class="MiniTitle">
+                                הנחת עמלה
+                            </div>
+                            @if (is_comission_discount)
+                            {
+                                switch (comission_discount_type)
+                                {
+                                    case "FIXED":
+                                        <div class="B">
+                                            @Convert.ToInt32(comission_discount)₪ הנחה מהעמלה הכוללת של ההזמנה
+                                        </div>
+
+                                        break;
+                                    case "PERCENT":
+                                        <div class="B">
+                                            @Convert.ToInt32(comission_discount)% הנחה מהעמלה הכוללת של ההזמנה
+                                        </div>
+                                        break;
+                                    case "COUPON":
+                                        <div class="B">
+                                            @Convert.ToInt32(comission_discount)% הנחה משווי הקופון
+                                        </div>
+
+                                        break;
+                                }
+
+
+
+                            }
+                            else
+                            {
+                                <div class="B">
+                                    ללא
+                                </div>
+
+                            }
+                        </div>
+
+                    </div>
+                    <div style="overflow:auto">
+                        @switch (offer_type)
+                        {
+                            case "ITEM":
+                                if (true)
+                                {
+                                    int itemunit_type = 0;
+                                    int rec_item_id = 0;
+                                    string itemunit = "";
+                                    string item_title = "";
+                                    string cat_title = "";
+                                    string maincat_title = "";
+                                    if (free_product_scope == "PROD")
+                                    {
+                                        sqlSelect = "SELECT title,itemunit,p_id FROM products WHERE p_id=@0";
+                                        var prod = db.QuerySingle(sqlSelect, coupon.free_product_id);
+                                        if (prod != null)
+                                        {
+                                            item_title = prod.title;
+                                            itemunit = prod.itemunit;
+                                            rec_item_id = prod.p_id;
+                                        }
+
+                                    }
+                                    if (free_product_scope == "CAT")
+                                    {
+                                        sqlSelect = "SELECT id,title,maincat_id FROM categories WHERE id=@0";
+                                        var cat = db.QuerySingle(sqlSelect, coupon.free_product_cat_id);
+                                        if (cat != null)
+                                        {
+                                            maincat_id = cat.maincat_id;
+                                            cat_title = cat.title;
+                                            rec_item_id = cat.id;
+                                            try { itemunit_type = coupon.free_product_itemunit; } catch { }
+                                            try { itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type); } catch { }
+                                            if (maincat_id > 0)
+                                            {
+                                                try { maincat_title = NewAppFunctions.GetTitleById("Cat", maincat_id); } catch { }
+                                            }
+
+
+
+                                        }
+
+
+                                    }
+
+                                    <div class="B">
+                                        <div class="A">
+                                            סוג קופון
+                                            <div style="float: left">
+                                                <span class="B">
+                                                    @switch (coupon_item_type)
+                                                    {
+                                                        case "FREE":
+                                                            if (true)
+                                                            {<span>מוצר במתנה</span>
+
+                                                            }
+                                                            break;
+                                                        case "DISC":
+                                                            if (true)
+                                                            {
+                                                                <span>מוצר בהנחה @String.Format("{0:0.00}", coupon.item_discount_rate)%</span>
+                                                            }
+                                                            break;
+                                                        case "PRICE":
+                                                            if (true)
+                                                            {
+                                                                <span>מוצר במחיר @coupon.offer_price.ToString("C", culture)</span>
+                                                            }
+                                                            break;
+                                                    }
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div><div class="B">
+
+                                        @if (free_product_scope == "PROD")
+                                        {
+                                            <div class="A">
+                                                מוצר בהטבה
+                                                <div style="float: left">
+                                                    <span class="B">@coupon.free_product_quan @itemunit @item_title <span class="PrplMiniTag">(#@coupon.free_product_id)</span></span>
+                                                </div>
+                                            </div>
+
+                                        }
+                                        @if (free_product_scope == "CAT")
+                                        {
+
+
+                                            <div class="A">
+                                                מוצר בהטבה
+                                                @if (maincat_id > 0)
+                                                {
+                                                    <div style="float: left">
+                                                        <span class="B">@coupon.free_product_quan @itemunit מקטגוריית @maincat_title >> @cat_title <span class="PrplMiniTag">(#@coupon.free_product_cat_id)</span></span>
+                                                    </div>
+
+                                                }
+                                                else
+                                                {
+                                                    <div style="float: left">
+                                                        <span class="B">@coupon.free_product_quan @itemunit מקטגוריית @cat_title <span class="PrplMiniTag">(#@coupon.free_product_cat_id)</span></span>
+                                                    </div>
+
+                                                }
+                                            </div>
+
+                                        }
+                                    </div>
+
+                                }
+
+                                break;
+                            case "VOUCHER":
+                                <div class="B">
+                                    @switch (voucher_type)
+                                    {
+                                        case "GIFT":
+                                            <div class="C">
+                                                סוג קופון
+                                                <div style="float: left">
+
+                                                    <span class="B">שובר מתנה @coupon.order_discount_amount.ToString("C", culture)</span>
+
+                                                </div>
+                                            </div>
+                                            break;
+                                        case "DISC":
+                                            <div class="C">
+                                                סוג קופון
+                                                <div style="float: left">
+
+
+                                                    <span class="B">שובר הנחה @String.Format("{0:0.00}", coupon.order_discount_percantage)%</span>
+
+                                                </div>
+                                            </div>
+                                            break;
+
+
+                                    }
+
+                                    <div class="C">
+                                        תקף גם במבצעים
+                                        <div style="float: left">
+                                            @if (coupon.does_discount_includes_spItems)
+                                            {<span class="B">✅</span>}
+                                            else
+                                            {<span class="B">❌</span>}
+                                        </div>
+                                    </div>
+                                    <div class="C">
+                                        תקף גם בדמי משלוח
+                                        <div style="float: left">
+                                            @if (coupon.does_discount_includes_sh)
+                                            {<span class="B">✅</span>}
+                                            else
+                                            {<span class="B">❌</span>}
+                                        </div>
+                                    </div>
+
+                                </div>
+                                break;
+                            case "CREDIT":
+                                <div class="B">
+                                    <div class="C">
+                                        סוג קופון
+                                        <div style="float: left">
+
+                                            <span class="B">שובר זיכוי @coupon.credit_amount.ToString("C", culture)</span>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                break;
+                            case "SHIPPING":
+
+
+                                <div class="B">
+
+                                    @switch (shipping_cost_type)
+                                    {
+                                        case "FREE":
+                                            <div class="B">
+                                                <div class="C">
+                                                    סוג קופון
+                                                    <div style="float: left">
+
+                                                        <span class="B">משלוח חינם</span>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            break;
+                                        case "PRICE":
+                                            <div class="B">
+                                                <div class="C">
+                                                    סוג קופון
+                                                    <div style="float: left">
+
+                                                        <span class="B">משלוח במחיר @coupon.shipping_price.ToString("C", culture)</span>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            break;
+                                    }
+                                </div>
+                                break;
+
+                        }
+                    </div>
+                    <div style="overflow:auto">
+                        @switch (coupon_terms)
+                        {
+                            case "BYPRODUCT":
+                                if (true)
+                                {
+                                    sqlSelect = "SELECT title,itemunit FROM products WHERE p_id=@0";
+                                    var prod = db.QuerySingle(sqlSelect, coupon.invoking_product_id);
+                                    string product_title = "";
+                                    product_title = prod.title;
+                                    string itemunit = "";
+                                    itemunit = prod.itemunit;
+
+                                    <div class="B">
+                                        <div class="A">
+                                            מוצר מזכה
+                                            <div style="float: left">
+                                                <span class="B">@coupon.invoking_product_quan @itemunit @product_title <span class="PrplMiniTag">(#@coupon.invoking_product_id)</span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+
+                                break;
+
+                            case "OVERAMOUNT":
+                                <div class="B">
+                                    <div class="C">
+                                        תקף בהזמנות מעל
+                                        <div style="float: left">
+
+                                            <span class="B">@coupon.activation_order_total.ToString("C", culture)</span>
+
+                                        </div>
+                                    </div>
+
+                                    <div class="C">
+                                        סכום ההזמנה כולל מבצעים והטבות אחרות
+                                        <div style="float: left">
+                                            @if (coupon.does_min_order_total_includes_spItems)
+                                            {<span class="B">✅</span>}
+                                            else
+                                            {<span class="B">❌</span>}
+                                        </div>
+                                    </div>
+                                    <div class="C">
+                                        סכום הזמנה כולל דמי משלוח
+                                        <div style="float: left">
+                                            @if (coupon.does_min_order_total_includes_sh)
+                                            {<span class="B">✅</span>}
+                                            else
+                                            {<span class="B">❌</span>}
+                                        </div>
+                                    </div>
+
+                                </div>
+                                break;
+
+
+                            case "PRODBYCAT":
+                                if (true)
+                                {
+                                    sqlSelect = "SELECT id,title,is_maincat,maincat_id FROM categories WHERE id=@0";
+                                    var invoking_cat = db.QuerySingle(sqlSelect, coupon.invoking_cat_Id);
+                                    int invoking_cat_Id = 0; invoking_cat_Id = invoking_cat.id;
+                                    maincat_id = 0; maincat_id = invoking_cat.maincat_id;
+                                    string main_cat_title = "";
+
+                                    if (!invoking_cat.is_maincat)
+                                    {
+                                        sqlSelect = "SELECT id,title,is_maincat,maincat_id FROM categories WHERE id=@0";
+                                        var main_cat = db.QuerySingle(sqlSelect, maincat_id);
+                                        if (main_cat != null)
+                                        {
+                                            main_cat_title = main_cat.title;
+                                        }
+                                    }
+
+
+                                    <div class="C">
+                                        בקניה מקטגוריה
+                                        <div style="float: left">
+                                            @if (invoking_cat.is_maincat)
+                                            {
+                                                <span class="B">@invoking_cat.title <span class="PrplMiniTag">(#@invoking_cat_Id)</span></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="B">@main_cat_title <span class="PrplMiniTag">(#@maincat_id)</span> >></span>
+                                                <span class="B">@invoking_cat.title <span class="PrplMiniTag">(#@invoking_cat_Id)</span></span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="C">
+                                        מינימום לרכישה מהקטגוריה
+                                        <div style="float: left">
+
+                                            <span class="B">@coupon.cat_invoking_amount.ToString("C", culture)</span>
+
+                                        </div>
+                                    </div>
+                                    <div class="C">
+                                        מינימום כמות פריטים לרכישה מהקטגוריה
+                                        <div style="float: left">
+
+                                            <span class="B">@coupon.cat_invoking_items_count</span>
+
+                                        </div>
+                                    </div>
+
+                                }
+                                break;
+
+
+
+
+                            case "NONE":
+                                <div class="C">
+                                    ללא תנאים
+                                </div>
+                                break;
+
+                            default:
+                                @coupon_terms
+                                break;
+                        }
+
+                    </div>
+
+                    <div style="overflow:auto">
+                        <div class="A" style="background-color:#fff">
+                            <b style="color:#f00">הגבלות</b>
+
+                            <div class="C">
+                                <span class="B-Right" style="margin-right: 0; padding-right: 0">תקף בימים</span>
+
+                                <b>
+                                    @if (coupon.is_sun)
+                                    {<span class="B-Right">א</span>}
+                                    @if (coupon.is_mon)
+                                    {<span class="B-Right">ב</span>}
+                                    @if (coupon.is_tue)
+                                    {<span class="B-Right">ג</span>}
+                                    @if (coupon.is_wed)
+                                    {<span class="B-Right">ד</span>}
+                                    @if (coupon.is_thu)
+                                    {<span class="B-Right">ה</span>}
+                                    @if (coupon.is_fri)
+                                    {<span class="B-Right">ו</span>}
+                                    @if (coupon.is_sat)
+                                    {<span class="B-Right">שבת</span>}
+
+                                </b>
+                                <span class="B-Right"> <b>@coupon.validity_start_hour - @coupon.validity_end_hour</b></span>
+
+                            </div>
+
+
+
+                            @if (!coupon.allow_multi_discount)
+                            {
+                                <div class="C">ללא כפל מבצעים</div>
+                            }
+                            @if (!coupon.allow_multi_coupon)
+                            {
+                                <div class="C">ללא כפל קופונים</div>
+                            }
+                            @if (coupon.max_discount_rate_validity > 0)
+                            {
+                                <div class="C">אחוז הנחה מקסימלי <b><span>@coupon.max_discount_rate_validity</span>%</b></div>
+                            }
+                            @if (coupon.days_to_expire > 0)
+                            {
+                                <div class="C">בתוקף למשך <b>@coupon.days_to_expire ימים</b> מההנפקה</div>
+                            }
+                            @if (coupon.min_order_total > 0)
+                            {
+                                <div class="C">תקף בהזמנות מעל <b>@coupon.min_order_total.ToString("C", culture)</b> </div>
+                            }
+                            @if (coupon.max_order_total > 0)
+                            {
+                                <div class="C">תקף בהזמנות מתחת <b>@coupon.max_order_total.ToString("C", culture)</b>  </div>
+                            }
+                            @if (coupon.max_coupon_value > 0)
+                            {
+                                <div class="C">ערך קופון מקסימלי <b>@coupon.max_coupon_value.ToString("C", culture)</b> </div>
+                            }
+
+                            @if (coupon.invoking_orders_count > 0)
+                            {
+                                <div class="C">תקף רק עבור משתמשים שביצעו יותר מ <b>@coupon.invoking_orders_count הזמנות</b> </div>
+                            }
+
+                            @if (coupon.membership_duration_months > 0)
+                            {
+                                <div class="C">תקף רק עבור משתמשים בעלי ותק של לפחות <b>@coupon.membership_duration_months חודשים</b> </div>
+                            }
+
+                            @if (coupon.terms != "")
+                            {
+                                <div class="C"><b>תנאים נוספים</b><br />@coupon.terms</div>
+                            }
+
+                            @if (coupon.terms_e != "")
+                            {
+                                <div class="C"><b>Additional Terms</b><br />@coupon.terms_e</div>
+                            }
+
+                            <div class="C"><b>תאריך תפוגה</b><br />@coupon.expiration_date.ToShortDateString()</div>
+                        </div>
+
+                    </div>
+
+
+                </div>
+            </form>
+
+
+
+
+        </div>
+
+    }
+
+
+    <div style="overflow: auto;height: 200px;">&nbsp;</div>
+
+
+    db.Close();
+}
+@helper CouponSetup(int coupon_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff">
+
+        <div class="B" style="font-size: 20px;">
+            <span>@coupon.coupon_title</span> - הגדרה ראשונית
+
+        </div>
+
+        <form id="CreateCouponForm">
+            <input type="hidden" name="coupon_id" value="@coupon_id" />
+            <div style="overflow: auto;background-color: #e3e3e3;">
+                <div style="overflow: auto;">
+                    <div style="overflow: auto; font-size: 14px; font-weight: bold; float: right; text-align: right; ">
+                        קוד קופון<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;" id="coupon_code" name="coupon_code" value="@coupon.coupon_code" maxlength="15">
+                    </div>
+                    <div style="overflow: auto; font-size: 14px; font-weight: bold; float: right; text-align: right;">
+                        Code Coupon<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;" id="coupon_code_e" name="coupon_code_e" value="@coupon.coupon_code" maxlength="15">
+                    </div>
+                </div>
+                <div style="overflow: auto;">
+                    <div style="overflow: auto;font-size: 14px;font-weight: bold">כותרת למבצע<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" id="coupon_title" name="coupon_title" value="@coupon.coupon_title"></div>
+                    <div style="overflow: auto;font-size: 14px;font-weight: bold">Offer Title<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" id="coupon_title_e" name="coupon_title_e" value="@coupon.coupon_title_e"></div>
+                </div>
+                <div style="overflow: auto;">
+                    <div style="overflow: auto;font-size: 14px;font-weight: bold">פירוט<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="coupon_notes" name="coupon_notes">@coupon.coupon_notes</textarea></div>
+                    <div style="overflow: auto;font-size: 14px;font-weight: bold">Specification<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="coupon_notes_e" name="coupon_notes_e">@coupon.coupon_notes_e</textarea></div>
+                </div>
+                <div style="overflow: auto;font-size: 20px;font-weight: bold">
+                    <div style="overflow:auto;">
+                        סוג קופון
+
+                        <div style="float: left">
+                            <select class="A" name="offer_type" onchange="if (this.value != '') { RepAjaxUpdate('CouponOfferSetup', 'OfferTypeResults', 'OfferTypeLoader', this.value); }">
+                                <option value="">נא לבחור סוג קופון</option>
+                                <option value="ITEM">מוצר במתנה / הנחה / במחיר</option>
+                                <option value="VOUCHER">שובר מתנה / הנחה</option>
+                                <option value="SHIPPING">משלוח חינם / מוזל</option>
+                                <option value="CREDIT">זיכוי</option>
+
+                            </select>
+                        </div>
+                        <div style="float:left;display:none" id="OfferTypeLoader">
+                            <center>
+                                <div class="Tinyloader"></div>
+                            </center>
+                        </div>
+                    </div>
+
+
+
+                    <div style="overflow:auto;" id="OfferTypeResults">
+
+                    </div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;display:none">
+                        <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #f00;width: 45%;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteSpOffer','' ,'','');">מחיקה</button>
+                        <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;width: 45%;color: #000;font-weight: bold" onclick="AjaxActions('UpdateSpecialOfferDetails', '','','UpdateSpecialOfferDetails');">✅ שמירת שינוים</button>
+
+                    </div>
+
+
+                </div>
+            </div>
+        </form>
+
+
+
+
+    </div>
+    <div style="overflow: auto;height: 200px;">&nbsp;</div>
+
+
+    db.Close();
+}
+
+@helper VoucherSetup(int coupon_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff">
+
+        <div class="B" style="font-size: 20px;">
+            הגדרת וואצר לקוח
+        </div>
+
+        <form id="CreateCouponForm">
+            <input type="hidden" name="coupon_id" value="@coupon_id" />
+            <div style="overflow: auto;background-color: #e3e3e3;">
+                <div style="overflow: auto;">
+                    <div style="overflow: auto;font-size: 14px;font-weight: bold">פירוט<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="coupon_notes" name="coupon_notes">@coupon.coupon_notes</textarea></div>
+                    <div style="overflow: auto;font-size: 14px;font-weight: bold">Specification<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="coupon_notes_e" name="coupon_notes_e">@coupon.coupon_notes_e</textarea></div>
+                </div>
+                <div style="overflow: auto;font-size: 20px;font-weight: bold">
+                    <div style="overflow:auto;">
+                        סוג קופון
+
+                        <div style="float: left">
+                            <select class="A" name="offer_type" onchange="if (this.value != '') { RepAjaxUpdate('CouponOfferSetup', 'OfferTypeResults', 'OfferTypeLoader', this.value); }">
+                                <option value="">נא לבחור סוג קופון</option>
+                                <option value="ITEM">מוצר במתנה / הנחה / במחיר</option>
+                                <option value="VOUCHER">שובר מתנה / הנחה</option>
+                                <option value="SHIPPING">משלוח חינם / מוזל</option>
+                                <option value="CREDIT">זיכוי</option>
+
+                            </select>
+                        </div>
+                        <div style="float:left;display:none" id="OfferTypeLoader">
+                            <center>
+                                <div class="Tinyloader"></div>
+                            </center>
+                        </div>
+                    </div>
+
+
+
+                    <div style="overflow:auto;" id="OfferTypeResults">
+
+                    </div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;display:none">
+                        <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #f00;width: 45%;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteSpOffer','' ,'','');">מחיקה</button>
+                        <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;width: 45%;color: #000;font-weight: bold" onclick="AjaxActions('UpdateSpecialOfferDetails', '','','UpdateSpecialOfferDetails');">✅ שמירת שינוים</button>
+
+                    </div>
+
+
+                </div>
+            </div>
+        </form>
+
+
+
+
+    </div>
+    <div style="overflow: auto;height: 200px;">&nbsp;</div>
+
+
+    db.Close();
+}
+
+
+
+@helper CouponOfferSetup(string offer_type = "", int coupon_id = 0, bool is_voucher = false)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+DateTime local_time = AppFunctions.LocalTime();
+
+string coupon_code = "";
+string coupon_code_e = "";
+string coupon_title = "";
+string coupon_title_e = "";
+string coupon_notes = "";
+string coupon_notes_e = "";
+string coupon_terms = "";
+string coupon_item_type = "";
+string validity_start_hour = "";
+string validity_end_hour = "";
+string shipping_cost_type = "";
+string terms = "";
+string terms_e = "";
+string voucher_type = "";
+
+int free_product_id = 0;
+int free_product_cat_id = 0;
+int free_product_itemunit = 0;
+string free_product_scope = "";
+int free_product_quan = 0;
+int invoking_product_id = 0;
+int invoking_product_quan = 0;
+int days_to_expire = 0;
+int invoking_cat_Id = 0;
+int cat_invoking_items_count = 0;
+int invoking_orders_count = 0;
+int membership_duration_months = 0;
+int max_in_cart = 0;
+
+bool allow_multi_discount = false;
+bool allow_multi_coupon = false;
+bool does_min_order_total_includes_spItems = false;
+bool does_min_order_total_includes_sh = false;
+bool is_min_cat_purchase = false;
+bool is_cat_invoking_items_count = false;
+bool is_sun = true;
+bool is_mon = true;
+bool is_tue = true;
+bool is_wed = true;
+bool is_thu = true;
+bool is_fri = true;
+bool is_sat = true;
+bool does_discount_includes_spItems = false;
+bool does_discount_includes_sh = false;
+
+decimal max_discount_rate_validity = 0;
+decimal min_order_total = 0;
+decimal max_order_total = 0;
+decimal max_coupon_value = 0;
+decimal item_discount_rate = 0;
+decimal offer_price = 0;
+decimal activation_order_total = 0;
+decimal cat_invoking_amount = 0;
+decimal order_discount_amount = 0;
+decimal order_discount_percantage = 0;
+decimal credit_amount = 0;
+decimal shipping_price = 0;
+
+DateTime expiration_date = local_time.AddYears(1);
+
+
+
+if (coupon_id > 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+
+    try { coupon_code = coupon.coupon_code; } catch { }
+    try { coupon_code_e = coupon.coupon_code_e; } catch { }
+    try { coupon_title = coupon.coupon_title; } catch { }
+    try { coupon_title_e = coupon.coupon_title_e; } catch { }
+    try { coupon_notes = coupon.coupon_notes; } catch { }
+    try { coupon_notes_e = coupon.coupon_notes_e; } catch { }
+    try { offer_type = coupon.offer_type; } catch { }
+    try { free_product_cat_id = coupon.free_product_cat_id; } catch { }
+    try { free_product_itemunit = coupon.free_product_itemunit; } catch { }
+    try { free_product_scope = coupon.free_product_scope; } catch { }
+    try { free_product_id = coupon.free_product_id; } catch { }
+    try { free_product_quan = coupon.free_product_quan; } catch { }
+    try { invoking_product_id = coupon.invoking_product_id; } catch { }
+    try { invoking_product_quan = coupon.invoking_product_quan; } catch { }
+    try { allow_multi_discount = coupon.allow_multi_discount; } catch { }
+    try { allow_multi_coupon = coupon.allow_multi_coupon; } catch { }
+    try { max_discount_rate_validity = coupon.max_discount_rate_validity; } catch { }
+    try { days_to_expire = coupon.days_to_expire; } catch { }
+    try { min_order_total = coupon.min_order_total; } catch { }
+    try { max_order_total = coupon.max_order_total; } catch { }
+    try { max_coupon_value = coupon.max_coupon_value; } catch { }
+    try { coupon_terms = coupon.coupon_terms; } catch { }
+    try { coupon_item_type = coupon.coupon_item_type; } catch { }
+    try { item_discount_rate = coupon.item_discount_rate; } catch { }
+    try { offer_price = coupon.offer_price; } catch { }
+    try { activation_order_total = coupon.activation_order_total; } catch { }
+    try { does_min_order_total_includes_spItems = coupon.does_min_order_total_includes_spItems; } catch { }
+    try { does_min_order_total_includes_sh = coupon.does_min_order_total_includes_sh; } catch { }
+    try { is_min_cat_purchase = coupon.is_min_cat_purchase; } catch { }
+    try { cat_invoking_amount = coupon.cat_invoking_amount; } catch { }
+    try { invoking_cat_Id = coupon.invoking_cat_Id; } catch { }
+    try { is_cat_invoking_items_count = coupon.is_cat_invoking_items_count; } catch { }
+    try { cat_invoking_items_count = coupon.cat_invoking_items_count; } catch { }
+    try { is_sun = coupon.is_sun; } catch { }
+    try { is_mon = coupon.is_mon; } catch { }
+    try { is_tue = coupon.is_tue; } catch { }
+    try { is_wed = coupon.is_wed; } catch { }
+    try { is_thu = coupon.is_thu; } catch { }
+    try { is_fri = coupon.is_fri; } catch { }
+    try { is_sat = coupon.is_sat; } catch { }
+    try { validity_start_hour = coupon.validity_start_hour; } catch { }
+    try { validity_end_hour = coupon.validity_end_hour; } catch { }
+    try { order_discount_amount = coupon.order_discount_amount; } catch { }
+    try { order_discount_percantage = coupon.order_discount_percantage; } catch { }
+    try { voucher_type = coupon.voucher_type; } catch { }
+    try { credit_amount = coupon.credit_amount; } catch { }
+    try { shipping_price = coupon.shipping_price; } catch { }
+    try { shipping_cost_type = coupon.shipping_cost_type; } catch { }
+    try { terms = coupon.terms; } catch { }
+    try { terms_e = coupon.terms_e; } catch { }
+    try { expiration_date = coupon.expiration_date; } catch { }
+    try { does_discount_includes_spItems = coupon.does_discount_includes_spItems; } catch { }
+    try { does_discount_includes_sh = coupon.does_discount_includes_sh; } catch { }
+    try { invoking_orders_count = coupon.invoking_orders_count; } catch { }
+    try { membership_duration_months = coupon.membership_duration_months; } catch { }
+    try { max_in_cart = coupon.max_in_cart; } catch { }
+    try { coupon_item_type = coupon.coupon_item_type; } catch { }
+
+    
+
+    db.Close();
+}
+
+
+
+
+    <div class="A" style="background-color: #fff; border: 2px solid #808080; border-radius: 5px">
+        <div style="position: absolute;z-index: 50000;width: 100%;height:100%;background-color: #808080;opacity: 0.5;text-align: center;display:none" id="CouponEditorLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        @switch (offer_type)
+        {
+            case "ITEM":
+                if (true)
+                {
+                    string item_discount_rate_span_display_state = "none;";
+                    string offer_price_span_display_state = "none;";
+                    string itemByProdDivDisplayState = "none;";
+                    string itemByCatDivDisplayState = "none;";
+                    
+                    if (free_product_scope == "") { free_product_scope = "PROD"; }
+                   
+                    if (free_product_scope == "PROD")
+                    {
+                        itemByProdDivDisplayState = "block;";
+                        itemByCatDivDisplayState = "none;";
+                        free_product_cat_id = 0;
+                    }
+                    if (free_product_scope == "CAT")
+                    {
+                        itemByProdDivDisplayState = "none;";
+                        itemByCatDivDisplayState = "block;";
+                        free_product_id = 0;
+                    }
+
+                    switch (coupon_item_type)
+                    {
+                        case "PRICE":
+                            offer_price_span_display_state = "BLOCK;";
+                            break;
+                        case "DISC":
+                            item_discount_rate_span_display_state = "BLOCK;";
+                            break;
+                    }
+
+
+                    <div class="A">
+
+
+                        הגדרת קופון ל   <span>
+                            <select class="A" name="free_product_scope" onchange="if (this.value == 'PROD') { hideElement('CatScopeItemsDiv'); showElement('ProdScopeItemsDiv'); setElementValue('free_product_cat_id', ''); } else { hideElement('ProdScopeItemsDiv'); showElement('CatScopeItemsDiv'); } clearContent('CouponProductSelectorResults'); setElementValue('free_product_id', ''); ">
+                                <option value="PROD" @if (free_product_scope == "PROD") { <text> selected</text>}>מוצר ספציפי</option>
+                                <option value="CAT" @if (free_product_scope == "CAT") { <text> selected</text>}>מוצר מקטגוריה</option>
+                            </select>
+
+                        </span>
+                        <div class="B">
+                            <span class="A-Right">
+                                <input type="radio" class="A" name="coupon_item_type" value="FREE" checked onclick="hideElement('item_discount_rate_span');hideElement('offer_price_span');" /> בחינם
+                            </span>
+                            <span class="A-Right">
+                                <input type="radio" class="A" name="coupon_item_type" value="DISC" @if (coupon_item_type == "DISC") { <text> checked</text>} onclick="hideElement('offer_price_span'); showElement('item_discount_rate_span'); " /> בהנחה
+                            </span>
+                            <span class="A-Right" style="display:@item_discount_rate_span_display_state;background-color:#e3e3e3" id="item_discount_rate_span">
+                                <select class="A" name="item_discount_type">
+                                    <option value="EFCT"> אפקטיבי</option>
+                                    <option value="LIST"> מחירון</option>
+                                </select>
+                                <input type="text" class="A" style="width:30px" name="item_discount_rate" @if (item_discount_rate > 0) { <text> value="@Convert.ToInt32(item_discount_rate)" </text> } placeholder="%" />%
+                            </span>
+                            <span class="A-Right">
+                                <input type="radio" class="A" name="coupon_item_type" value="PRICE" @if (coupon_item_type == "PRICE") { <text> checked</text>} onclick="hideElement('item_discount_rate_span');showElement('offer_price_span');" /> במחיר
+                            </span>
+                            <span class="A-Right" style="display: @offer_price_span_display_state; background-color: #e3e3e3" id="offer_price_span">
+                                <input type="text" class="A" style="width:30px" name="offer_price" @if (offer_price > 0) { <text> value="@Convert.ToInt32(offer_price)" </text> } placeholder="₪" />₪
+                            </span>
+
+
+
+                        </div>
+                        <div class="B">
+                            <div class="B" id="ProdScopeItemsDiv" style="display:@itemByProdDivDisplayState">
+                                מוצר הטבה
+                                <div class="B" style="float:left">
+                                    @Coupons.ProductSelector("free_product_id", "free_item", free_product_id, coupon_id)
+                                </div>
+                            </div>
+                            <div class="B" style="display:@itemByCatDivDisplayState" id="CatScopeItemsDiv">
+                                מהקטגוריה
+                                <div class="B" style="float:left">
+                                    @Coupons.CatSelector("free_product_cat_id", "free_item", free_product_cat_id, coupon_id)
+                                </div>
+                            </div>
+
+
+                            <div class="B" style="text-align: center; display: none" id="CouponProductSelectorLoader">
+                                <center>
+                                    <div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>
+                                </center>
+                            </div>
+
+                        </div>
+                        <div class="B" id="CouponProductSelectorResults">
+                            @if (free_product_scope == "PROD")
+                            {
+                                <div>@Coupons.CouponProductSelector(free_product_id, coupon_id)</div>
+                            }
+                            @if (free_product_scope == "CAT")
+                            {
+                                <div>@Coupons.CouponCategorySelector(free_product_cat_id, coupon_id)</div>
+                            }
+
+
+                        </div>
+
+
+                    </div>
+                }
+
+                break;
+
+            case "VOUCHER":
+                if (true)
+                {
+
+
+                    <div class="A">
+                        הגדרת קופון מתנה / הנחה
+                        <div class="C">
+                            <input type="radio" style="width:30px;" name="voucher_type" value="GIFT" @if (voucher_type == "GIFT") { <text> checked</text>} /> שובר מתנה בסך
+
+                            <div style="float:left"><input type="text" class="A" style="width:30px;" name="order_discount_amount" placeholder="₪" @if (order_discount_amount > 0) { <text> value="@Convert.ToInt32(order_discount_amount)" </text> } />₪</div>
+
+                        </div>
+                        <div class="C">
+                            <div class="B">
+                                <input type="radio" style="width:30px;" name="voucher_type" value="DISC" @if (voucher_type == "DISC") { <text> checked</text>} /> שובר הנחה בשיעור
+                                <div style="float:left"><input type="text" class="A" style="width:30px;" name="order_discount_percantage" placeholder="%" @if (order_discount_percantage > 0) { <text> value="@String.Format("{0:0.0}", order_discount_percantage)" </text> } />%</div>
+
+                            </div>
+
+                        </div>
+                        @if (!is_voucher)
+                        {
+                            <div class="C">
+                                <div class="A">
+                                    הנחה גם על מבצעים?
+                                    <div style="float:left"><input type="checkbox" class="A" name="does_discount_includes_spItems" @if (does_discount_includes_spItems) { <text> checked</text>} /></div>
+
+                                </div>
+                                <div class="A">
+                                    הנחה גם על דמי המשלוח?
+                                    <div style="float:left"><input type="checkbox" class="A" name="does_discount_includes_sh" @if (does_discount_includes_sh) { <text> checked</text>} /></div>
+
+                                </div>
+                            </div>
+                        }
+
+
+                    </div>
+
+                }
+                break;
+
+            case "CREDIT":
+                if (true && !is_voucher)
+                {
+                    <div class="A">
+                        הגדרת קופון שובר זיכוי
+                        <div class="C">
+                            שובר זיכוי בסך
+
+                            <div style="float:left"><input type="text" class="A" style="width:40px;" name="credit_amount" placeholder="₪" @if (credit_amount > 0) { <text> value="@Convert.ToInt32(credit_amount)" </text> } />₪</div>
+
+                        </div>
+
+                    </div>
+                }
+                break;
+
+            case "SHIPPING":
+                if (true)
+                {
+                    string shipping_price_div_display_state = "none;";
+                    if (shipping_price > 0)
+                    {
+                        shipping_price_div_display_state = "block;";
+                    }
+
+                    <div class="A">
+                        הגדרת קופון משלוח חינם / מוזל
+                        <div class="C">
+                            <input type="radio" style="width:30px;" name="shipping_cost_type" value="FREE" @if (shipping_cost_type == "FREE") { <text> checked</text>} onclick="if (this.checked) { hideElement('shipping_price_div'); }" /> משלוח חינם
+                        </div>
+                        <div class="C">
+                            <input type="radio" style="width:30px;" name="shipping_cost_type" value="PRICE" @if (shipping_cost_type == "PRICE") { <text> checked</text>} onclick="if (this.checked) { showElement('shipping_price_div'); }" /> משלוח מוזל
+
+                            <div style="float:left;display:@shipping_price_div_display_state;" id="shipping_price_div"><input type="text" class="A" style="width:30px;" name="shipping_price" @if (shipping_price > 0) { <text> value="@Convert.ToInt32(shipping_price)" </text> } placeholder="₪" />₪</div>
+                        </div>
+                    </div>
+                }
+                break;
+
+
+            case "":
+                <div class="A">@offer_type</div>
+                break;
+            default:
+                <div class="A">@offer_type</div>
+                break;
+        }
+
+
+        <div class="B" style="text-align: center; display: none" id="CouponTermsLoader">
+            <center>
+                <div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>
+            </center>
+        </div>
+        <div class="B" id="CouponTermsResults">
+            @if (!is_voucher)
+            {
+                <div>
+                    @Coupons.CouponTerms(coupon_id)
+                </div>
+            }
+
+        </div>
+
+
+        <div class="B" id="CouponRestrictions">
+            @if (!is_voucher)
+            {
+                <div>
+                    @Coupons.CouponRestrictions(coupon_id)
+                </div>
+            }
+
+
+        </div>
+
+
+    </div>
+
+
+
+
+
+}
+@helper CouponCategorySelector(int cat_id, int coupon_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM categories WHERE id=@0";
+    var cat = db.QuerySingle(sqlSelect, cat_id);
+    if (cat != null)
+    {
+        string maincat_title = "";
+        string subcat_title = ""; subcat_title = cat.title;
+
+        int free_product_quan = 0;
+        int free_product_cat_id = 0;
+        int free_product_itemunit = 0;
+        int maincat_id = cat.maincat_id;
+
+        sqlSelect = "select * from ItemUnitTypes ORDER BY id";
+        var ItemUnitTypes = db.Query(sqlSelect);
+
+        string cat_title = ""; cat_title = NewAppFunctions.GetTitleById("Cat", cat_id);
+        if (maincat_id > 0)
+        {
+            maincat_title = NewAppFunctions.GetTitleById("Cat", maincat_id);
+        }
+
+
+        if (coupon_id > 0)
+        {
+            sqlSelect = "SELECT free_product_quan,free_product_cat_id FROM coupons WHERE coupon_id=@0";
+            var coupon = db.QuerySingle(sqlSelect, coupon_id);
+            try { free_product_quan = coupon.free_product_quan; } catch { }
+            try { free_product_cat_id = coupon.free_product_cat_id; } catch { }
+            try { free_product_itemunit = coupon.free_product_itemunit; } catch { }
+        }
+
+        <div style="overflow:auto">
+            <div class="B" style="float:right;font-size:14px;">
+                כמות <input type="text" class="A" style="width:30px" name="free_product_quan" @if (free_product_quan > 0) { <text> value="@Convert.ToInt32(free_product_quan)" </text> } />
+
+            </div>
+            <select class="A" style="float:right;" name="free_product_itemunit">
+                @foreach (var itemUnit in ItemUnitTypes)
+                {
+                    <option value="@itemUnit.id" @if (itemUnit.id == free_product_itemunit) { <text> selected </text> }>@itemUnit.title</option>
+                }
+            </select>
+
+        </div>
+        <div class="A">
+
+
+            @if (maincat_id > 0)
+            {
+                <div class="A" style="background-color: #ffffcc; font-size: 14px;; font-weight: bold">
+                    ⚠️ קופון זה יהיה בתוקף עבור כל המוצרים מקטגורית @maincat_title>>@cat_title <span class="GrayMiniTag">(#@cat_id)</span>
+                </div>
+            }
+            else
+            {
+                <div class="A" style="background-color: #ffffcc; font-size: 14px;; font-weight: bold">
+                    ⚠️ קופון זה יהיה בתוקף עבור כל המוצרים מהקטגוריה <u>הראשית</u> @cat_title <span class="GrayMiniTag">(#@cat_id)</span>
+                </div>
+            }
+
+
+
+        </div>
+    }
+    db.Close();
+}
+
+@helper CouponProductSelector(int p_id, int coupon_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT itemunit,maincat_id,sub_cat_id,title FROM products WHERE p_id=@0";
+    var prod = db.QuerySingle(sqlSelect, p_id);
+    if (prod != null)
+    {
+        int free_product_quan = 0;
+        if (coupon_id > 0)
+        {
+            sqlSelect = "SELECT free_product_quan FROM coupons WHERE coupon_id=@0";
+            var coupon = db.QuerySingle(sqlSelect, coupon_id);
+            try { free_product_quan = coupon.free_product_quan; } catch { }
+        }
+
+
+
+        <div style="overflow:auto">
+            <div class="B" style="float:right;font-size:14px;">
+                כמות <input type="text" class="A" style="width:30px" name="free_product_quan" @if (free_product_quan > 0) { <text> value="@Convert.ToInt32(free_product_quan)" </text> } /> @prod.itemunit
+
+            </div>
+
+        </div>
+        <div class="A">
+            <div class="A" style="background-color:#ffffcc;font-size:14px;font-weight:bold">
+                ⚠️ קופון זה יהיה בתוקף רק עבור המוצר @prod.title <span class="GrayMiniTag">(מוצר #@p_id)</span>
+            </div>
+
+        </div>
+    }
+    db.Close();
+}
+
+
+
+@helper CouponTerms(int coupon_id = 0)
+{
+    string selected_term = "";
+    if (coupon_id > 0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id);
+        if (coupon != null)
+        {
+            selected_term = coupon.coupon_terms;
+        }
+        db.Close();
+    }
+
+
+    <div class="A">
+        <div class="B">
+            תנאי למימוש הקופון
+            <select class="A" style="float:left" name="coupon_terms" onchange="if (this.value != '') { RepAjaxUpdate('CouponTermSelector', 'CouponTermSelectorResults', 'CouponEditorLoader', this.value); }">
+                <option value="">נא לבחור..</option>
+                <option value="OVERAMOUNT" @if (selected_term == "OVERAMOUNT") { <text> selected</text>}>תקף מעל סכום הזמנה ספציפי..</option>
+                <option value="BYPRODUCT" @if (selected_term == "BYPRODUCT") { <text> selected</text>}>תקף בקניית מוצר מסויים..</option>
+                <option value="PRODBYCAT" @if (selected_term == "PRODBYCAT") { <text> selected</text>}>תקף בקנייה מקטגוריה מסויימת..</option>
+                <option value="NONE" @if (selected_term == "NONE") { <text> selected</text>}>ללא תנאי</option>
+            </select>
+        </div>
+        <div class="B" id="CouponTermSelectorResults">
+            @if (coupon_id > 0)
+            {
+                <div>@CouponTermsSelector(selected_term, coupon_id)</div>
+            }
+
+        </div>
+
+
+    </div>
+
+
+}
+@helper CouponTermsSelector(string selected_term, int coupon_id = 0)
+{
+    int invoking_product_id = 0;
+    decimal activation_order_total = 0;
+    bool does_min_order_total_includes_spItems = true;
+    bool does_min_order_total_includes_sh = true;
+    int invoking_cat_Id = 0;
+    bool is_min_cat_purchase = false;
+    decimal cat_invoking_amount = 0;
+    bool is_cat_invoking_items_count = false;
+    int cat_invoking_items_count = 0;
+    string min_cat_purchase_span_display_state = "none;";
+    string cat_invoking_items_count_span_display_state = "none;";
+    if (coupon_id > 0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id);
+        if (coupon != null)
+        {
+            invoking_product_id = coupon.invoking_product_id;
+            activation_order_total = coupon.activation_order_total;
+            does_min_order_total_includes_spItems = coupon.does_min_order_total_includes_spItems;
+            does_min_order_total_includes_sh = coupon.does_min_order_total_includes_sh;
+            invoking_cat_Id = coupon.invoking_cat_Id;
+            is_min_cat_purchase = coupon.is_min_cat_purchase;
+            cat_invoking_amount = coupon.cat_invoking_amount;
+            is_cat_invoking_items_count = coupon.is_cat_invoking_items_count;
+            cat_invoking_items_count = coupon.cat_invoking_items_count;
+        }
+        db.Close();
+    }
+    if (is_min_cat_purchase)
+    {
+        min_cat_purchase_span_display_state = "block;";
+    }
+    if (is_cat_invoking_items_count)
+    {
+        cat_invoking_items_count_span_display_state = "block;";
+    }
+
+    switch (selected_term)
+    {
+        case "BYPRODUCT":
+            <div class="B">
+                <div class="B">
+                    <div class="B" style="float:right">
+                        מוצר מזכה
+                    </div>
+                    <div class="B" style="float:left">
+                        @Coupons.ProductSelector("invoking_product_id", "invoking_product", invoking_product_id, coupon_id)
+
+                    </div>
+
+                </div>
+
+                <div class="B" id="InvokingProductResults">
+                    @if (coupon_id > 0)
+                    {
+                        <div>@Coupons.InvokingProductSelector(invoking_product_id, coupon_id)</div>
+                    }
+                </div>
+            </div>
+
+            break;
+
+        case "OVERAMOUNT":
+
+
+            <div class="B">
+                <div class="B">
+                    <div class="B">
+                        <span class="A-Right">
+                            <input type="checkbox" style="width:30px;" checked disabled />
+                            תקף בהזמנות מעל
+                            <input type="text" class="A" style="width:30px;" name="activation_order_total" @if (activation_order_total > 0) { <text> value="@Convert.ToInt32(activation_order_total)" </text> } /> ₪
+                        </span>
+                    </div>
+                    <div class="B">
+                        <span class="A-Right">
+
+                            <input type="checkbox" style="width:30px;" name="does_min_order_total_includes_spItems" @if (does_min_order_total_includes_spItems) { <text> checked</text> } /> סכום הזמנה כולל מבצעים והטבות אחרות
+                        </span>
+                    </div>
+                    <div class="B">
+                        <span class="A-Right">
+                            <input type="checkbox" style="width:30px;" name="does_min_order_total_includes_sh" @if (does_min_order_total_includes_sh) { <text> checked</text> } /> סכום הזמנה כולל דמי משלוח
+                        </span>
+                    </div>
+
+
+                </div>
+
+
+            </div>
+            break;
+
+        case "PRODBYCAT":
+            if (true)
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT id,title FROM categories WHERE is_maincat=1 AND is_active=1 ORDER BY id";
+                var maincategories = db.Query(sqlSelect);
+                int curMainCat = 0;
+
+                <div class="B">
+                    <div class="B">
+                        בקניה מקטגוריה
+                        <select class="A" style="float:left" name="invoking_cat_Id">
+                            <option value="">נא לבחור..</option>
+                            @foreach (var cat in maincategories)
+                            {
+                                if (curMainCat != cat.id)
+                                {
+                                    curMainCat = cat.id;
+                                    <option value="">-----------------------</option>
+                                }
+
+                                <option value="@cat.id" @if (invoking_cat_Id == cat.id) { <text> selected</text> }>@cat.title</option>
+                                sqlSelect = "SELECT id,title FROM categories WHERE is_spOffersCat=1 AND is_active=1 AND mainCat_id=@0 ORDER BY id";
+                                var subCategories = db.Query(sqlSelect, cat.id);
+                                foreach (var subcat in subCategories)
+                                {
+                                    <option value="@subcat.id" @if (invoking_cat_Id == subcat.id) { <text> selected</text>}>  @cat.title --> @subcat.title</option>
+                                }
+
+                            }
+                        </select>
+                    </div>
+
+                </div>
+                <div class="A">
+
+                    <div class="B">
+                        <span style="float:right">
+                            <input type="checkbox" class="A" name="is_min_cat_purchase" @if (is_min_cat_purchase) { <text> checked</text>} onclick="if (this.checked) { showElement('min_cat_purchase_span'); } else { hideElement('min_cat_purchase_span'); }" />  מינימום לרכישה מהקטגוריה
+                        </span>
+                        <span style="display: @min_cat_purchase_span_display_state; float: left" id="min_cat_purchase_span"><input type="text" class="A" style="width:30px" name="cat_invoking_amount" placeholder="₪" @if (cat_invoking_amount > 0) { <text> value="@Convert.ToInt32(cat_invoking_amount)" </text> } />₪</span>
+                    </div>
+                    <div class="B">
+                        <span style="float:right">
+                            <input type="checkbox" class="A" name="is_cat_invoking_items_count" @if (is_cat_invoking_items_count) { <text> checked</text>} onclick="if (this.checked) { showElement('cat_invoking_items_count_span'); } else { hideElement('cat_invoking_items_count_span'); }" />  מינימום כמות פריטים לרכישה מהקטגוריה
+                        </span>
+                        <span style="display: @cat_invoking_items_count_span_display_state; float: left" id="cat_invoking_items_count_span"><input type="text" class="A" style="width:30px" name="cat_invoking_items_count" @if (cat_invoking_items_count > 0) { <text> value="@cat_invoking_items_count" </text> } /> </span>
+                    </div>
+                </div>
+
+                db.Close();
+            }
+            break;
+
+        case "NONE":
+            break;
+
+        default:
+            @selected_term
+            break;
+    }
+}
+@helper ProductSelector(string field_name, string field_type = "", int selected_p_id = 0, int coupon_id = 0)
+{
+    string requestedAction = "";
+    string return_container = "";
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    sqlSelect = "SELECT p_id,title FROM products WHERE is_catalog=1 AND is_active=1 ORDER BY maincat_id,sub_cat_id";
+    var products = db.Query(sqlSelect);
+    sqlSelect = "SELECT id,title,is_maincat FROM categories WHERE is_active=1 AND is_maincat=1 ORDER BY maincat_id";
+    var main_categories = db.Query(sqlSelect);
+
+    switch (field_type)
+    {
+        case "free_item":
+            requestedAction = "CouponProductSelector";
+            return_container = "CouponProductSelectorResults";
+            break;
+        case "invoking_product":
+            requestedAction = "InvokingProductSelector";
+            return_container = "InvokingProductResults";
+
+            break;
+    }
+    <select class="A" style="float:left" name="@field_name" id="@field_name" onchange="if (this.value != '') { RepAjaxUpdate('@requestedAction', '@return_container', 'MainLoader', this.value,@coupon_id); }">
+        <option value="">נא לבחור..</option>
+        @foreach (var product in products)
+        {
+            string prod_title = product.title;
+            if (prod_title.Length > 35)
+            {
+                prod_title = prod_title.Substring(0, 35);
+            }
+
+            <option value="@product.p_id" @if (product.p_id == selected_p_id) { <text> selected</text>}>מוצר #@product.p_id - @prod_title</option>
+        }
+    </select>
+
+
+
+
+    db.Close();
+}
+@helper CatSelector(string field_name, string field_type = "", int selected_p_id = 0, int coupon_id = 0)
+{
+    string requestedAction = "";
+    string return_container = "";
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    sqlSelect = "SELECT p_id,title FROM products WHERE is_catalog=1 AND is_active=1 ORDER BY maincat_id,sub_cat_id";
+    var products = db.Query(sqlSelect);
+    sqlSelect = "SELECT id,title,is_maincat FROM categories WHERE is_active=1 AND is_maincat=1 ORDER BY maincat_id";
+    var main_categories = db.Query(sqlSelect);
+
+    switch (field_type)
+    {
+        case "free_item":
+            requestedAction = "CouponCategorySelector";
+            return_container = "CouponProductSelectorResults";
+            break;
+        case "invoking_product":
+            requestedAction = "InvokingProductSelector";
+            return_container = "InvokingProductResults";
+
+            break;
+    }
+
+
+    <select class="A" style="float:left;" name="@field_name" id="@field_name" onchange="if (this.value != '') { RepAjaxUpdate('@requestedAction', '@return_container', 'MainLoader', this.value,@coupon_id); }">
+        <option value="">נא לבחור..</option>
+        @foreach (var main_cat in main_categories)
+        {
+            string main_cat_title = main_cat.title;
+            if (main_cat_title.Length > 35)
+            {
+                main_cat_title = main_cat_title.Substring(0, 35);
+            }
+            sqlSelect = "SELECT id,title,is_maincat FROM categories WHERE is_active=1 AND maincat_id=@0 ORDER BY id";
+            var sub_categories = db.Query(sqlSelect, main_cat.id);
+
+            <option value="@main_cat.id" @if (main_cat.id == selected_p_id) { <text> selected</text>}>@main_cat_title</option>
+
+            foreach (var sub_cat in sub_categories)
+            {
+                string sub_cat_title = sub_cat.title;
+                if (sub_cat_title.Length > 35)
+                {
+                    sub_cat_title = sub_cat_title.Substring(0, 35);
+                }
+                <option value="@sub_cat.id" @if (sub_cat.id == selected_p_id) { <text> selected</text>}>@main_cat_title >> @sub_cat_title</option>
+
+            }
+
+
+        }
+    </select>
+
+
+
+    db.Close();
+}
+
+@helper InvokingProductSelector(int p_id, int coupon_id = 0)
+{
+
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT itemunit FROM products WHERE p_id=@0";
+    var prod = db.QuerySingle(sqlSelect, p_id);
+    if (prod != null)
+    {
+        int invoking_product_quan = 0;
+        if (coupon_id > 0)
+        {
+            sqlSelect = "SELECT invoking_product_quan FROM coupons WHERE coupon_id=@0";
+            var coupon = db.QuerySingle(sqlSelect, coupon_id);
+            try { invoking_product_quan = coupon.invoking_product_quan; } catch { }
+        }
+
+        <div style="overflow:auto">
+            <button type="button" class="A" style="float: left;display:none" onclick="RepAjaxUpdate('CouponRestrictions', 'CouponRestrictions', 'CouponEditorLoader');">המשך>></button>
+            כמות <input type="text" class="A" style="width:30px" name="invoking_product_quan" @if (invoking_product_quan > 0) { <text> value="@Convert.ToInt32(invoking_product_quan)" </text> } /> @prod.itemunit
+        </div>
+    }
+    db.Close();
+}
+@helper CouponRestrictions(int coupon_id = 0)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+
+    string coupon_code = "";
+    string coupon_code_e = "";
+    string coupon_title = "";
+    string coupon_title_e = "";
+    string coupon_notes = "";
+    string coupon_notes_e = "";
+    string coupon_terms = "";
+    string coupon_item_type = "";
+    string validity_start_hour = "00:00";
+    string validity_end_hour = "23:59";
+    string shipping_cost_type = "";
+    string terms = "";
+    string terms_e = "";
+    string voucher_type = "";
+
+    int free_product_id = 0;
+    int free_product_quan = 0;
+    int invoking_product_id = 0;
+    int invoking_product_quan = 0;
+    int days_to_expire = 0;
+    int invoking_cat_Id = 0;
+    int cat_invoking_items_count = 0;
+    int invoking_orders_count = 0;
+    int membership_duration_months = 0;
+    int max_in_cart = 0;
+
+    bool allow_multi_discount = false;
+    bool allow_multi_coupon = false;
+    bool does_min_order_total_includes_spItems = false;
+    bool does_min_order_total_includes_sh = false;
+    bool is_min_cat_purchase = false;
+    bool is_cat_invoking_items_count = false;
+    bool is_sun = true;
+    bool is_mon = true;
+    bool is_tue = true;
+    bool is_wed = true;
+    bool is_thu = true;
+    bool is_fri = true;
+    bool is_sat = true;
+    bool does_discount_includes_spItems = false;
+    bool does_discount_includes_sh = false;
+
+    decimal max_discount_rate_validity = 0;
+    decimal min_order_total = 0;
+    decimal max_order_total = 0;
+    decimal max_coupon_value = 0;
+    decimal item_discount_rate = 0;
+    decimal offer_price = 0;
+    decimal activation_order_total = 0;
+    decimal cat_invoking_amount = 0;
+    decimal order_discount_amount = 0;
+    decimal order_discount_percantage = 0;
+    decimal credit_amount = 0;
+    decimal shipping_price = 0;
+    DateTime expiration_date = local_time;
+    expiration_date = expiration_date.AddYears(1);
+
+    if (coupon_id > 0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id);
+        if (coupon != null)
+        {
+            coupon_code = coupon.coupon_code;
+            coupon_code_e = coupon.coupon_code_e;
+            coupon_title = coupon.coupon_title;
+            coupon_title_e = coupon.coupon_title_e;
+            coupon_notes = coupon.coupon_notes;
+            coupon_notes_e = coupon.coupon_notes_e;
+            free_product_id = coupon.free_product_id;
+            free_product_quan = coupon.free_product_quan;
+            invoking_product_id = coupon.invoking_product_id;
+            invoking_product_quan = coupon.invoking_product_quan;
+            allow_multi_discount = coupon.allow_multi_discount;
+            allow_multi_coupon = coupon.allow_multi_coupon;
+            max_discount_rate_validity = coupon.max_discount_rate_validity;
+            days_to_expire = coupon.days_to_expire;
+            min_order_total = coupon.min_order_total;
+            max_order_total = coupon.max_order_total;
+            max_coupon_value = coupon.max_coupon_value;
+            coupon_terms = coupon.coupon_terms;
+            coupon_item_type = coupon.coupon_item_type;
+            item_discount_rate = coupon.item_discount_rate;
+            offer_price = coupon.offer_price;
+            activation_order_total = coupon.activation_order_total;
+            does_min_order_total_includes_spItems = coupon.does_min_order_total_includes_spItems;
+            does_min_order_total_includes_sh = coupon.does_min_order_total_includes_sh;
+            is_min_cat_purchase = coupon.is_min_cat_purchase;
+            cat_invoking_amount = coupon.cat_invoking_amount;
+            invoking_cat_Id = coupon.invoking_cat_Id;
+            is_cat_invoking_items_count = coupon.is_cat_invoking_items_count;
+            cat_invoking_items_count = coupon.cat_invoking_items_count;
+            is_sun = coupon.is_sun;
+            is_mon = coupon.is_mon;
+            is_tue = coupon.is_tue;
+            is_wed = coupon.is_wed;
+            is_thu = coupon.is_thu;
+            is_fri = coupon.is_fri;
+            is_sat = coupon.is_sat;
+            validity_start_hour = coupon.validity_start_hour;
+            validity_end_hour = coupon.validity_end_hour;
+            order_discount_amount = coupon.order_discount_amount;
+            order_discount_percantage = coupon.order_discount_percantage;
+            voucher_type = coupon.voucher_type;
+            credit_amount = coupon.credit_amount;
+            shipping_price = coupon.shipping_price;
+            shipping_cost_type = coupon.shipping_cost_type;
+            terms = coupon.terms;
+            terms_e = coupon.terms_e;
+            expiration_date = coupon.expiration_date;
+            does_discount_includes_spItems = coupon.does_discount_includes_spItems;
+            does_discount_includes_sh = coupon.does_discount_includes_sh;
+            invoking_orders_count = coupon.invoking_orders_count;
+            membership_duration_months = coupon.membership_duration_months;
+            max_in_cart = coupon.max_in_cart;
+            coupon_item_type = coupon.coupon_item_type;
+        }
+
+        db.Close();
+    }
+
+
+
+    <div class="A">
+        <h2 style="color:#f00">הגבלות</h2>
+
+        <div class="C">
+            <input type="checkbox" class="A" name="allow_multi_discount" style="float:left" @if (allow_multi_discount) { <text> checked</text> } />  כפל מבצעים
+        </div>
+
+        <div class="C">
+            <input type="checkbox" class="A" name="allow_multi_coupon" style="float:left" @if (allow_multi_coupon) { <text> checked</text>} />  כפל קופונים
+        </div>
+        <div class="C">
+            <div style="float:left"><input type="text" class="A" style="width:30px;" name="max_in_cart" @if (max_in_cart > 0) { <text> value="@Convert.ToInt32(max_in_cart)" </text> } placeholder="?" value="1" /> </div>
+            מקסימום קופונים מסוג זה בהזמנה
+            <div class="B"><span class="RedMiniTag">ברירת המחדל היא 1, לשימוש ללא הגבלה יש להזין 0</span></div>
+        </div>
+        <div class="C">
+            <div style="float:left"><input type="text" class="A" style="width:30px;" name="max_discount_rate_validity" @if (max_discount_rate_validity > 0) { <text> value="@Convert.ToInt32(max_discount_rate_validity)" </text> } placeholder="%" /> </div>
+            לשימוש בהזמנות ש% ההנחה בהן אינו עולה על
+
+        </div>
+        <div class="C">
+            <div style="float:left">
+                <input type="text" class="A" style="width:30px;" name="days_to_expire" @if (days_to_expire > 0) { <text> value="@Convert.ToInt32(days_to_expire)" </text> } placeholder="ימים" />
+            </div>
+            ימים לשימוש מרגע ההנפקה
+
+        </div>
+        <div class="C">
+            <div style="float:left"><input type="text" class="A" style="width:30px;" name="min_order_total" @if (min_order_total > 0) { <text> value="@Convert.ToInt32(min_order_total)" </text> } placeholder="₪" /> </div>
+            תקף בהזמנות מעל
+        </div>
+        <div class="C">
+            <div style="float:left"><input type="text" class="A" style="width:30px;" name="max_order_total" @if (max_order_total > 0) { <text> value="@Convert.ToInt32(max_order_total)" </text> } placeholder="₪" /> </div>
+            תקף בהזמנות מתחת
+        </div>
+        <div class="C">
+            <div style="float:left"><input type="text" class="A" style="width:30px;" name="max_coupon_value" @if (max_coupon_value > 0) { <text> value="@Convert.ToInt32(max_coupon_value)" </text> } placeholder="₪" /> </div>
+            הגבלת שווי קופון לסך
+        </div>
+        <div class="C">
+            תקף ב
+            <span style="float:left">
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_sun" @if (is_sun) { <text> checked</text>} /><br />ראשון
+                </span>
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_mon" @if (is_mon) { <text> checked</text>} /><br />שני
+                </span>
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_tue" @if (is_tue) { <text> checked</text>} /><br />שלישי
+                </span>
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_wed" @if (is_wed) { <text> checked</text>} /><br />רביעי
+                </span>
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_thu" @if (is_thu) { <text> checked</text>} /><br />חמישי
+                </span>
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_fri" @if (is_fri) { <text> checked</text>} /><br />שישי
+                </span>
+                <span class="B-Right-Centered">
+                    <input type="checkbox" name="is_sat" @if (is_sat) { <text> checked</text>} /><br />שבת
+                </span>
+            </span>
+
+        </div>
+
+        <div class="C">
+            <div class="B">
+                בין השעות
+                <span style="float:left">
+                    <input type="time" class="A" name="validity_start_hour" value="@validity_start_hour" /> --     <input type="time" name="validity_end_hour" class="A" value="@validity_end_hour" />
+                </span>
+
+            </div>
+
+
+
+        </div>
+
+
+
+        <div class="C">
+            <div class="B">
+                תקף רק עבור משתמשים שביצעו יותר מ
+                <span style="float:left">
+                    <input type="text" class="A" style="width:30px;" name="invoking_orders_count" @if (invoking_orders_count > 0) { <text> value="@Convert.ToInt32(invoking_orders_count)" </text> } /> הזמנות
+                </span>
+
+            </div>
+        </div>
+
+        <div class="C">
+            <div class="B">
+                תקף רק עבור משתמשים בעלי ותק של לפחות
+                <span style="float:left">
+                    <input type="text" class="A" style="width:30px;" name="membership_duration_months" @if (membership_duration_months > 0) { <text> value="@Convert.ToInt32(membership_duration_months)" </text> } /> חודשים
+                </span>
+
+            </div>
+        </div>
+
+        <div class="C">
+            <div class="B">
+                תנאים נוספים
+                <span style="float:left">
+                    <textarea class="A-Left" name="terms">@terms</textarea>
+                </span>
+            </div>
+        </div>
+        <div class="C">
+            <div class="B">
+                ADDITIONAL TERMS
+                <span style="float:left">
+                    <textarea class="A-Left" name="terms_e">@terms_e</textarea>
+                </span>
+            </div>
+        </div>
+
+        <div class="C">
+            <div class="B">
+                בתוקף עד
+                <span style="float:left">
+                    <input type="date" class="A" name="expiration_date" value="@expiration_date.ToString("yyyy-MM-dd")" />
+                </span>
+
+            </div>
+        </div>
+
+        <div class="A" style="text-align:center">
+            <button type="button" class="A" onclick="sbload('SubMenuLeft','Caller?p1=VerifyCouponCreation','','CreateCouponForm');">המשך>></button>
+        </div>
+    </div>
+
+}
+@helper VerifyCouponCreation()
+{
+
+    string errTxt = ""; try { errTxt = Coupons.ValidateCouponCreation(); } catch { }
+
+    if (errTxt == "")
+    {
+        <div>@Coupons.ReviewCouponCreation()</div>
+    }
+    else
+    {
+        <div class="A">
+            <div class="A">
+                <h2>⚠️ יצירת קופון - יש בעיה!</h2>
+            </div>
+            <div class="A" style="color:#f00">
+                <div>@Html.Raw(errTxt)</div>
+            </div>
+            <div class="A" style="text-align:center">
+                <button type="button" class="A" onclick="clearContent('SubMenuLeftContent');controller.open('GenSb');">תיקון</button>
+            </div>
+        </div>
+    }
+
+
+
+
+}
+@helper ReviewCouponCreation()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+    int coupon_id = 0; try { coupon_id = Convert.ToInt32(Request["coupon_id"]); } catch { }
+
+    string coupon_code = Request["coupon_code"];
+    string coupon_code_e = Request["coupon_code_e"];
+    string coupon_title = Request["coupon_title"];
+    string coupon_title_e = Request["coupon_title_e"];
+    string coupon_notes = Request["coupon_notes"];
+    string coupon_notes_e = Request["coupon_notes_e"];
+    string offer_type = Request["offer_type"];
+    string free_product_scope = Request["free_product_scope"];
+    int free_product_id = 0; try { free_product_id = Convert.ToInt32(Request["free_product_id"]); } catch { }
+    int free_product_quan = 0; try { free_product_quan = Convert.ToInt32(Request["free_product_quan"]); } catch { }
+    int free_product_cat_id = 0; try { free_product_cat_id = Convert.ToInt32(Request["free_product_cat_id"]); } catch { }
+    int free_product_itemunit = 0; try { free_product_itemunit = Convert.ToInt32(Request["free_product_itemunit"]); } catch { }
+
+    int invoking_product_id = 0; try { invoking_product_id = Convert.ToInt32(Request["invoking_product_id"]); } catch { }
+    int invoking_product_quan = 0; try { invoking_product_quan = Convert.ToInt32(Request["invoking_product_quan"]); } catch { }
+    bool allow_multi_discount = false; if (!Request["allow_multi_discount"].IsEmpty()) { allow_multi_discount = true; }
+    bool allow_multi_coupon = false; if (!Request["allow_multi_coupon"].IsEmpty()) { allow_multi_coupon = true; }
+    decimal max_discount_rate_validity = 0; try { max_discount_rate_validity = Convert.ToDecimal(Request["max_discount_rate_validity"]); } catch { }
+    int days_to_expire = 0; try { days_to_expire = Convert.ToInt32(Request["days_to_expire"]); } catch { }
+    decimal min_order_total = 0; try { min_order_total = Convert.ToDecimal(Request["min_order_total"]); } catch { }
+    decimal max_order_total = 0; try { max_order_total = Convert.ToDecimal(Request["max_order_total"]); } catch { }
+    decimal max_coupon_value = 0; try { max_coupon_value = Convert.ToDecimal(Request["max_coupon_value"]); } catch { }
+    string coupon_terms = Request["coupon_terms"];
+    string coupon_item_type = Request["coupon_item_type"];
+    decimal item_discount_rate = 0; try { item_discount_rate = Convert.ToDecimal(Request["item_discount_rate"]); } catch { }
+    decimal offer_price = 0; try { offer_price = Convert.ToDecimal(Request["offer_price"]); } catch { }
+    decimal activation_order_total = 0; try { activation_order_total = Convert.ToDecimal(Request["activation_order_total"]); } catch { }
+    bool does_min_order_total_includes_spItems = false; if (!Request["does_min_order_total_includes_spItems"].IsEmpty()) { does_min_order_total_includes_spItems = true; }
+    bool does_min_order_total_includes_sh = false; if (!Request["does_min_order_total_includes_sh"].IsEmpty()) { does_min_order_total_includes_sh = true; }
+    bool is_min_cat_purchase = false; if (!Request["is_min_cat_purchase"].IsEmpty()) { is_min_cat_purchase = true; }
+    decimal cat_invoking_amount = 0; try { cat_invoking_amount = Convert.ToDecimal(Request["cat_invoking_amount"]); } catch { }
+    int invoking_cat_Id = 0; try { invoking_cat_Id = Convert.ToInt32(Request["invoking_cat_Id"]); } catch { }
+    bool is_cat_invoking_items_count = false; if (!Request["is_cat_invoking_items_count"].IsEmpty()) { is_cat_invoking_items_count = true; }
+    int cat_invoking_items_count = 0; try { cat_invoking_items_count = Convert.ToInt32(Request["cat_invoking_items_count"]); } catch { }
+    bool is_sun = false; if (!Request["is_sun"].IsEmpty()) { is_sun = true; }
+    bool is_mon = false; if (!Request["is_mon"].IsEmpty()) { is_mon = true; }
+    bool is_tue = false; if (!Request["is_tue"].IsEmpty()) { is_tue = true; }
+    bool is_wed = false; if (!Request["is_wed"].IsEmpty()) { is_wed = true; }
+    bool is_thu = false; if (!Request["is_thu"].IsEmpty()) { is_thu = true; }
+    bool is_fri = false; if (!Request["is_fri"].IsEmpty()) { is_fri = true; }
+    bool is_sat = false; if (!Request["is_sat"].IsEmpty()) { is_sat = true; }
+    string validity_start_hour = Request["validity_start_hour"];
+    string validity_end_hour = Request["validity_end_hour"];
+    decimal order_discount_amount = 0; try { order_discount_amount = Convert.ToDecimal(Request["order_discount_amount"]); } catch { }
+    decimal order_discount_percantage = 0; try { order_discount_percantage = Convert.ToDecimal(Request["order_discount_percantage"]); } catch { }
+    string voucher_type = Request["voucher_type"];
+    decimal credit_amount = 0; try { credit_amount = Convert.ToDecimal(Request["credit_amount"]); } catch { }
+    decimal shipping_price = 0; try { shipping_price = Convert.ToDecimal(Request["shipping_price"]); } catch { }
+    string shipping_cost_type = Request["shipping_cost_type"];
+    string terms = Request["terms"];
+    string terms_e = Request["terms_e"];
+    DateTime expiration_date = local_time.AddYears(1); try { expiration_date = Convert.ToDateTime(Request["expiration_date"]); } catch { }
+    bool does_discount_includes_spItems = false; if (!Request["does_discount_includes_spItems"].IsEmpty()) { does_discount_includes_spItems = true; }
+    bool does_discount_includes_sh = false; if (!Request["does_discount_includes_sh"].IsEmpty()) { does_discount_includes_sh = true; }
+    int invoking_orders_count = 0; try { invoking_orders_count = Convert.ToInt32(Request["invoking_orders_count"]); } catch { }
+    int membership_duration_months = 0; try { membership_duration_months = Convert.ToInt32(Request["membership_duration_months"]); } catch { }
+    string item_discount_type = Request["item_discount_type"];
+    int max_in_cart = 0;
+    bool is_comission_discount = false; if (!Request["is_comission_discount"].IsEmpty()) { is_comission_discount = true; }
+    decimal comission_discount = 0; try { comission_discount = Convert.ToDecimal(Request["comission_discount"]); } catch { }
+    string comission_discount_type = Request["comission_discount_type"];
+
+    if (!is_comission_discount)
+    {
+        comission_discount = 0;
+        comission_discount_type = "";
+    }
+
+    try { max_in_cart = Convert.ToInt32(Request["max_in_cart"]); } catch { }
+    if (max_in_cart == 0 && Request["max_in_cart"].IsEmpty()) { max_in_cart = 1; }
+
+
+
+    <div class="A">
+        <h2>עדכון הגדרות קופון - אישור</h2>
+    </div>
+    <div class="C">
+        <div class="B">
+            <b>קוד קופון</b>
+            <div class="A">@coupon_code / @coupon_code_e</div>
+        </div>
+        <div class="B">
+            <b>כותרת</b>
+            <div class="A">@coupon_title</div>
+            <div class="A" style="direction:ltr;float:right">@coupon_title_e</div>
+        </div>
+    </div>
+    <div class="C">
+        <div class="B">
+            <b>הנחת עמלה</b>
+            @if (is_comission_discount)
+            {
+                switch (comission_discount_type)
+                {
+                    case "FIXED":
+                        <div class="A">
+                            @comission_discount₪ הנחה מהעמלה הכוללת של ההזמנה
+                        </div>
+
+                        break;
+                    case "PERCENT":
+                        <div class="A">
+                            @comission_discount% הנחה מהעמלה הכוללת של ההזמנה
+                        </div>
+                        break;
+                    case "COUPON":
+                        <div class="A">
+                            @comission_discount% הנחה משווי הקופון
+                        </div>
+
+                        break;
+                }
+
+
+
+            }
+            else
+            {
+                <div class="A">
+                    ללא
+                </div>
+
+            }
+        </div>
+
+    </div>
+    switch (offer_type)
+    {
+        case "ITEM":
+            if (true)
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "";
+                string itemunit = "";
+                int itemunit_type = 0;
+
+                string product_title = "";
+                string offer_type_title = "";
+                string maincat_title = "";
+                string cat_title = "";
+                int maincat_id = 0;
+                int cat_id = 0;
+                if (free_product_scope == "PROD")
+                {
+                    sqlSelect = "SELECT itemunit,title,maincat_id,sub_cat_id FROM products WHERE p_id=@0";
+                    var prod = db.QuerySingle(sqlSelect, free_product_id);
+
+                    if (prod != null)
+                    {
+                        itemunit = prod.itemunit;
+                        product_title = prod.title;
+                        maincat_id = prod.maincat_id;
+                        cat_id = prod.sub_cat_id;
+
+                    }
+                }
+                if (free_product_scope == "CAT")
+                {
+                    sqlSelect = "SELECT * FROM categories WHERE id=@0";
+                    var cat = db.QuerySingle(sqlSelect, free_product_cat_id);
+
+                    if (cat != null)
+                    {
+                        itemunit = NewAppFunctions.GetTitleById("ItemType", free_product_itemunit);
+                        product_title = cat.title;
+                        maincat_id = cat.maincat_id;
+                        cat_id = cat.id;
+                        cat_title = NewAppFunctions.GetTitleById("Cat", cat_id);
+
+                        if (maincat_id > 0)
+                        {
+                            maincat_title = NewAppFunctions.GetTitleById("Cat", maincat_id);
+                        }
+                    }
+                }
+
+                switch (coupon_item_type)
+                {
+                    case "FREE":
+                        offer_type_title = "מוצר בחינם";
+                        break;
+                    case "DISC":
+                        offer_type_title = "מוצר בהנחה";
+                        break;
+                    case "PRICE":
+                        offer_type_title = "מוצר במחיר";
+                        break;
+                }
+                db.Close();
+
+                <div class="C">
+                    <b>סוג הקופון</b>
+                    <div class="A">@offer_type_title</div>
+                </div><div class="C">
+                    <b>ההטבה</b>
+                    <div class="A">
+
+                        @switch (free_product_scope)
+                        {
+                            case "PROD":
+                                <span>@free_product_quan @itemunit מהמוצר @product_title <span class="PrplMiniTag">(#@free_product_id)</span></span>
+                                break;
+
+                            case "CAT":
+                                if (maincat_id > 0)
+                                {
+                                    <span>@free_product_quan @itemunit מקטגורית @maincat_title >> @cat_title <span class="PrplMiniTag">(#@cat_id)</span></span>
+
+                                }
+                                else
+                                {
+                                    <span>@free_product_quan @itemunit מקטגורית @cat_title <span class="PrplMiniTag">(#@cat_id)</span></span>
+                                }
+
+                                break;
+
+
+
+                            default:
+                                <span>@free_product_scope</span>
+                                break;
+
+                        }
+
+
+
+                        @if (coupon_item_type == "FREE")
+                        {<span> <b>בחינם</b></span>}
+                        @if (coupon_item_type == "DISC")
+                        {<span> בהנחה של <b>@item_discount_rate%</b></span>}
+                        @if (coupon_item_type == "PRICE")
+                        {<span> במחיר מיוחד של <b>@offer_price.ToString("C", culture)</b></span>}
+                    </div>
+                </div>
+
+            }
+
+            break;
+
+        case "VOUCHER":
+            if (true)
+            {
+                string offer_type_title = "";
+
+                switch (voucher_type)
+                {
+                    case "DISC":
+                        offer_type_title = "שובר הנחה";
+                        break;
+                    case "GIFT":
+                        offer_type_title = "שובר מתנה";
+                        break;
+                }
+
+                <div class="C">
+                    <b>סוג הקופון</b>
+                    <div class="A">@offer_type_title</div>
+                </div>
+
+                <div class="C">
+                    <b>ההטבה</b>
+                    <div class="A">
+
+                        @if (voucher_type == "DISC")
+                        {
+                            <span> שובר הנחה בשיעור <b>@order_discount_percantage%</b></span>
+                            if (does_discount_includes_sh)
+                            {
+                                <span class="PrplMiniTag">* הנחה גם על דמי משלוח</span>
+                            }
+                            else
+                            {
+                                <span class="RedMiniTag">* ללא הנחה על דמי משלוח</span>
+                            }
+                            if (does_discount_includes_spItems)
+                            {
+                                <span class="PrplMiniTag">* הנחה גם על מבצעים</span>
+                            }
+                            else
+                            {
+                                <span class="RedMiniTag">* הנחה לא תקפה על מבצעים</span>
+                            }
+                        }
+                        @if (voucher_type == "GIFT")
+                        {<span> שובר מתנה בסך <b>@order_discount_amount.ToString("C", culture)</b></span>}
+                    </div>
+                </div>
+
+            }
+
+            break;
+
+        case "CREDIT":
+            if (true)
+            {
+
+
+                <div class="C">
+                    <b>סוג הקופון</b>
+                    <div class="A">שובר זיכוי</div>
+                </div>
+
+                <div class="C">
+                    <b>ההטבה</b>
+                    <div class="A">
+                        <span> שובר זיכוי בסך <b>@credit_amount.ToString("C", culture)</b></span>
+                    </div>
+                </div>
+
+            }
+
+            break;
+
+        case "SHIPPING":
+            if (true)
+            {
+                string offer_type_title = "";
+
+                switch (shipping_cost_type)
+                {
+                    case "FREE":
+                        offer_type_title = "משלוח <b>חינם</b>";
+                        break;
+                    case "PRICE":
+                        offer_type_title = "משלוח בעלות <b>" + shipping_price.ToString("C", culture) + "</b>";
+                        break;
+                }
+
+                <div class="C">
+                    <b>סוג הקופון</b>
+                    <div class="A">הטבת @Html.Raw(offer_type_title)</div>
+                </div>
+
+            }
+
+            break;
+
+
+        default:
+            break;
+    }
+
+    switch (coupon_terms)
+    {
+        case "BYPRODUCT":
+            if (true)
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT itemunit,title FROM products WHERE p_id=@0";
+                var prod = db.QuerySingle(sqlSelect, invoking_product_id);
+                string itemunit = "";
+                string product_title = "";
+                if (prod != null)
+                {
+                    itemunit = prod.itemunit;
+                    product_title = prod.title;
+                }
+                db.Close();
+
+                <div class="C">
+                    <b>התנאי</b>
+                    <div class="A">בקניה של @invoking_product_quan @itemunit מהמוצר @product_title <span class="PrplMiniTag">(#@invoking_product_id)</span></div>
+                </div>
+            }
+            break;
+
+        case "OVERAMOUNT":
+            <div class="C">
+                <b>התנאי</b>
+                <div class="A">
+                    בביצוע הזמנה מעל <b>@activation_order_total ₪</b>
+
+                    @if (does_min_order_total_includes_spItems)
+                    {
+                        <span class="A"><span class="PrplMiniTag">כולל מבצעים והטבות נוספות</span></span>
+                    }
+
+                    @if (does_min_order_total_includes_sh)
+                    {
+                        <span class="A"><span class="PrplMiniTag">כולל דמי משלוח</span></span>
+                    }
+                </div>
+            </div>
+            break;
+
+        case "PRODBYCAT":
+            if (true)
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "SELECT * FROM categories WHERE id=@0";
+                var cat = db.QuerySingle(sqlSelect, invoking_cat_Id);
+                string cat_title = "";
+                if (cat != null)
+                {
+                    cat_title = cat.title;
+                    if (!cat.is_mainCat)
+                    {
+                        sqlSelect = "SELECT title FROM categories WHERE id=@0";
+                        var mainCat = db.QuerySingle(sqlSelect, cat.mainCat_id);
+                        if (mainCat != null)
+                        {
+                            cat_title = mainCat.title + "-" + cat_title;
+                        }
+                    }
+                    cat_title = "<B> " + cat_title + "</B>";
+                }
+
+                string term_title = "בקניה של ";
+
+                string term_title_b = "מוצר כלשהו ";
+                if (is_cat_invoking_items_count)
+                {
+                    if (cat_invoking_items_count > 1)
+                    {
+                        term_title_b = cat_invoking_items_count + " מוצרים כלשהם ";
+                    }
+                }
+
+                string term_title_c = "מהקטגוריה " + cat_title + "<span class=\"PrplMiniTag\"> (#" + invoking_cat_Id + ")</span>";
+                string term_title_d = " בכל סכום שהוא";
+
+                if (is_min_cat_purchase)
+                {
+                    if (cat_invoking_amount > 0)
+                    {
+                        term_title_d = " בסכום של לפחות " + cat_invoking_amount.ToString("C", culture);
+                    }
+                }
+
+                term_title = term_title + term_title_b + term_title_c + term_title_d;
+
+                db.Close();
+
+                <div class="C">
+                    <b>התנאי</b>
+                    <div class="A">@Html.Raw(term_title)</div>
+                </div>
+            }
+            break;
+
+        case "NONE":
+            <div class="C">
+                <b>התנאי</b>
+                <div class="A">
+                    ללא תנאים
+
+
+                </div>
+            </div>
+
+            break;
+        default:
+            break;
+    }
+
+    <div class="A">
+        <b style="color:#f00">הגבלות</b>
+
+        <div class="C">
+            <span class="B-Right" style="margin-right: 0; padding-right: 0">תקף בימים</span>
+
+            <b>
+                @if (is_sun)
+                {<span class="B-Right">א</span>}
+                @if (is_mon)
+                {<span class="B-Right">ב</span>}
+                @if (is_tue)
+                {<span class="B-Right">ג</span>}
+                @if (is_wed)
+                {<span class="B-Right">ד</span>}
+                @if (is_thu)
+                {<span class="B-Right">ה</span>}
+                @if (is_fri)
+                {<span class="B-Right">ו</span>}
+                @if (is_sat)
+                {<span class="B-Right">שבת</span>}
+
+            </b>
+            <span class="B-Right"> <b>@validity_start_hour - @validity_end_hour</b></span>
+
+        </div>
+
+
+
+        @if (!allow_multi_discount)
+        {
+            <div class="C">ללא כפל מבצעים</div>
+        }
+        @if (!allow_multi_coupon)
+        {
+            <div class="C">ללא כפל קופונים</div>
+        }
+        <div class="C">
+            מקסימום קופונים מסוג זה בהזמנה
+            @if (max_in_cart > 0)
+            {
+                <b><span>@max_in_cart</span></b>
+            }
+            else
+            {
+                <b><span>ללא הגבלה</span></b>
+            }
+
+        </div>
+
+        @if (max_discount_rate_validity > 0)
+        {
+            <div class="C">אחוז הנחה מקסימלי <b><span>@max_discount_rate_validity</span>%</b></div>
+        }
+        @if (days_to_expire > 0)
+        {
+            <div class="C">בתוקף למשך <b>@days_to_expire ימים</b> מההנפקה</div>
+        }
+        @if (min_order_total > 0)
+        {
+            <div class="C">תקף בהזמנות מעל <b>@min_order_total.ToString("C", culture)</b> </div>
+        }
+        @if (max_order_total > 0)
+        {
+            <div class="C">תקף בהזמנות מתחת <b>@max_order_total.ToString("C", culture)</b>  </div>
+        }
+        @if (max_coupon_value > 0)
+        {
+            <div class="C">ערך קופון מקסימלי <b>@max_coupon_value.ToString("C", culture)</b> </div>
+        }
+
+        @if (invoking_orders_count > 0)
+        {
+            <div class="C">תקף רק עבור משתמשים שביצעו יותר מ <b>@invoking_orders_count הזמנות</b> </div>
+        }
+
+        @if (membership_duration_months > 0)
+        {
+            <div class="C">תקף רק עבור משתמשים בעלי ותק של לפחות <b>@membership_duration_months חודשים</b> </div>
+        }
+
+        @if (!terms.IsEmpty())
+        {
+            <div class="C"><b>תנאים נוספים</b><br />@terms</div>
+        }
+
+        @if (!terms_e.IsEmpty())
+        {
+            <div class="C"><b>Additional Terms</b><br />@terms_e</div>
+        }
+
+        <div class="C"><b>תאריך תפוגה</b><br />@expiration_date.ToShortDateString()</div>
+    </div>
+
+
+
+    <div class="A" style="text-align:center">
+        <button type="button" class="A" onclick="clearContent('SubMenuLeftContent');controller.open('GenSb');">ביטול</button>
+        <button type="button" class="A" onclick="AjaxActions('SaveCouponSettings', '@coupon_id','', 'CreateCouponInfo',@coupon_id);">שמירת שינויים </button>
+    </div>
+
+    <form id="CreateCouponInfo">
+
+
+        <input type="hidden" value="@coupon_id" name="coupon_id">
+        <input type="hidden" value="@coupon_code" name="coupon_code">
+        <input type="hidden" value="@coupon_code_e" name="coupon_code_e">
+        <input type="hidden" value="@coupon_title" name="coupon_title">
+        <input type="hidden" value="@coupon_title_e" name="coupon_title_e">
+        <input type="hidden" value="@coupon_notes" name="coupon_notes">
+        <input type="hidden" value="@coupon_notes_e" name="coupon_notes_e">
+        <input type="hidden" value="@offer_type" name="offer_type">
+        <input type="hidden" value="@free_product_id" name="free_product_id">
+        <input type="hidden" value="@free_product_quan" name="free_product_quan">
+        <input type="hidden" value="@free_product_cat_id" name="free_product_cat_id">
+        <input type="hidden" value="@free_product_itemunit" name="free_product_itemunit">
+        <input type="hidden" value="@free_product_scope" name="free_product_scope">
+        <input type="hidden" value="@coupon_terms" name="coupon_terms">
+        <input type="hidden" value="@invoking_product_id" name="invoking_product_id">
+        <input type="hidden" value="@invoking_product_quan" name="invoking_product_quan">
+        <input type="hidden" value="@max_discount_rate_validity" name="max_discount_rate_validity">
+        <input type="hidden" value="@days_to_expire" name="days_to_expire">
+        <input type="hidden" value="@min_order_total" name="min_order_total">
+        <input type="hidden" value="@max_order_total" name="max_order_total">
+        <input type="hidden" value="@max_coupon_value" name="max_coupon_value">
+        <input type="hidden" value="@coupon_item_type" name="coupon_item_type">
+        <input type="hidden" value="@item_discount_rate" name="item_discount_rate">
+        <input type="hidden" value="@offer_price" name="offer_price">
+        <input type="hidden" value="@activation_order_total" name="activation_order_total">
+        <input type="hidden" value="@cat_invoking_amount" name="cat_invoking_amount">
+        <input type="hidden" value="@invoking_cat_Id" name="invoking_cat_Id">
+        <input type="hidden" value="@cat_invoking_items_count" name="cat_invoking_items_count">
+        <input type="hidden" value="@validity_start_hour" name="validity_start_hour">
+        <input type="hidden" value="@validity_end_hour" name="validity_end_hour">
+        <input type="hidden" value="@order_discount_amount" name="order_discount_amount">
+        <input type="hidden" value="@order_discount_percantage" name="order_discount_percantage">
+        <input type="hidden" value="@voucher_type" name="voucher_type">
+        <input type="hidden" value="@credit_amount" name="credit_amount">
+        <input type="hidden" value="@shipping_price" name="shipping_price">
+        <input type="hidden" value="@shipping_cost_type" name="shipping_cost_type">
+
+        <input type="hidden" value="@terms" name="terms">
+        <input type="hidden" value="@terms_e" name="terms_e">
+        <input type="hidden" value="@expiration_date" name="expiration_date">
+        <input type="hidden" value="@membership_duration_months" name="membership_duration_months">
+        <input type="hidden" value="@invoking_orders_count" name="invoking_orders_count">
+
+        @if (does_min_order_total_includes_spItems)
+        {<input type="hidden" value="@does_min_order_total_includes_spItems" name="does_min_order_total_includes_spItems">}
+        @if (does_min_order_total_includes_sh)
+        {<input type="hidden" value="@does_min_order_total_includes_sh" name="does_min_order_total_includes_sh">}
+        @if (is_cat_invoking_items_count)
+        {<input type="hidden" value="@is_cat_invoking_items_count" name="is_cat_invoking_items_count">}
+        @if (is_min_cat_purchase)
+        {<input type="hidden" value="@is_min_cat_purchase" name="is_min_cat_purchase">}
+        @if (allow_multi_discount)
+        {<input type="hidden" value="@allow_multi_discount" name="allow_multi_discount">}
+        @if (allow_multi_coupon)
+        {<input type="hidden" value="@allow_multi_coupon" name="allow_multi_coupon">}
+        @if (is_sun)
+        {<input type="hidden" value="@is_sun" name="is_sun">}
+        @if (is_mon)
+        {<input type="hidden" value="@is_mon" name="is_mon">}
+        @if (is_tue)
+        {<input type="hidden" value="@is_tue" name="is_tue">}
+        @if (is_wed)
+        {<input type="hidden" value="@is_wed" name="is_wed">}
+        @if (is_thu)
+        {<input type="hidden" value="@is_thu" name="is_thu">}
+        @if (is_fri)
+        {<input type="hidden" value="@is_fri" name="is_fri">}
+        @if (is_sat)
+        {<input type="hidden" value="@is_sat" name="is_sat">}
+
+        @if (does_discount_includes_spItems)
+        {<input type="hidden" value="@does_discount_includes_spItems" name="does_discount_includes_spItems">}
+        @if (does_discount_includes_sh)
+        {<input type="hidden" value="@does_discount_includes_sh" name="does_discount_includes_sh">}
+
+        <input type="hidden" value="@item_discount_type" name="item_discount_type">
+        <input type="hidden" value="@max_in_cart" name="max_in_cart">
+
+        @if (is_comission_discount)
+        {<input type="hidden" value="@is_comission_discount" name="is_comission_discount">}
+
+        <input type="hidden" value="@comission_discount" name="comission_discount">
+        <input type="hidden" value="@comission_discount_type" name="comission_discount_type">
+
+
+    </form>
+}
+
+@helper CouponSelectCatProduct(int coupon_id, int round_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+    int free_product_cat_id = 0;
+    int free_product_itemunit = 0;
+    string itemunit = "";
+    int free_product_quan = 0;
+    if (coupon != null)
+    {
+        free_product_cat_id = coupon.free_product_cat_id;
+        free_product_itemunit = coupon.free_product_itemunit;
+        free_product_quan = coupon.free_product_quan;
+        itemunit = NewAppFunctions.GetTitleById("ItemType", free_product_itemunit);
+        sqlSelect = "SELECT * FROM roundmenuitems WHERE is_active=1 AND (maincat_id=@0 OR sub_cat_id=@0) AND round_id=@1 AND itemunit_type=@2";
+        var RelevantProducts = db.Query(sqlSelect, free_product_cat_id, round_id, free_product_itemunit);
+        string checker = "";
+        string selectedRowClass = "ProdCatSelector";
+        if (RelevantProducts.Count() == 1)
+        {
+            checker = "Checked";
+            selectedRowClass = "ProdCatSelector_selected";
+        }
+
+        if (RelevantProducts.Count() > 0)
+        {
+            <div class="B">
+                <div class="B" style="font-size:16px;margin-right:5px"><B>נא לבחור את המוצר הרלוונטי </B> <span class="PrplMiniTag" style="color:#b200ff">(@free_product_quan @itemunit)</span></div>
+                <input type="hidden" name="selected_prod" id="selected_prod" value="" />
+                @foreach (var item in RelevantProducts)
+                {
+                    <div class="B">
+
+                        <div class="@selectedRowClass" style="border-bottom: 1px dashed #808080;" id="IR_@item.id">
+
+                            <div style="overflow: auto;">
+                                <div class="B" style="float: right">
+                                    <input class="A" type="radio" name="selected_prod" @checker value="@item.id" onclick="setElementClass('IR_' + document.getElementById('selected_prod').value, 'ProdCatSelector'); document.getElementById('selected_prod').value = this.value;setElementClass('IR_' + document.getElementById('selected_prod').value,'ProdCatSelector_selected');" />
+                                </div>
+
+                                <div class="B" style="float:right;margin-right:10px;">
+                                    <div class="B" style="font-size:14px">
+                                        @item.title
+                                    </div>
+                                </div>
+                                <div class="B" style="float:left;margin-left:5px;">
+
+                                    <div class="B">
+                                        <span class="MiniTag"> מוצר #@item.p_id</span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                }
+                <div class="B" style="font-size:16px;text-align:center">
+                    <button type="button" class="A" style="width:95%;background-color:#000;color:#fff" onclick="AjaxActions('APPLYCOUPONTOORDER', document.getElementById('target_order_id').value, 'MainLoader', '@coupon.coupon_id', document.getElementById('selected_prod').value);"><b>בחירת מוצר>></b></button>
+                </div>
+
+            </div>
+
+        }
+        else
+        {
+            <div class="B">
+
+                <span style="color:#f00">אין מוצרים רלוונטים בתפריט</span>
+
+            </div>
+
+        }
+
+
+
+
+    }
+
+    db.Close();
+
+}
+
+
+
+
+@helper CouponSummary(int coupon_id, bool is_selector = false)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    DateTime local_time = AppFunctions.LocalTime();
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+
+    string coupon_code = coupon.coupon_code;
+    string coupon_code_e = coupon.coupon_code_e;
+    string coupon_title = coupon.coupon_title;
+    string coupon_title_e = coupon.coupon_title_e;
+    string coupon_notes = coupon.coupon_notes;
+    string coupon_notes_e = coupon.coupon_notes_e;
+    string offer_type = coupon.offer_type;
+    int free_product_id = coupon.free_product_id;
+    int free_product_quan = coupon.free_product_quan;
+    string free_product_scope = coupon.free_product_scope;
+    int invoking_product_id = coupon.invoking_product_id;
+    int invoking_product_quan = coupon.invoking_product_quan;
+    bool allow_multi_discount = coupon.allow_multi_discount;
+    bool allow_multi_coupon = coupon.allow_multi_coupon;
+    decimal max_discount_rate_validity = coupon.max_discount_rate_validity;
+    int days_to_expire = coupon.days_to_expire;
+    decimal min_order_total = coupon.min_order_total;
+    decimal max_order_total = coupon.max_order_total;
+    decimal max_coupon_value = coupon.max_coupon_value;
+    string coupon_terms = coupon.coupon_terms;
+    string coupon_item_type = coupon.coupon_item_type;
+    decimal item_discount_rate = coupon.item_discount_rate;
+    decimal offer_price = coupon.offer_price;
+    decimal activation_order_total = coupon.activation_order_total;
+    bool does_min_order_total_includes_spItems = coupon.does_min_order_total_includes_spItems;
+    bool does_min_order_total_includes_sh = coupon.does_min_order_total_includes_sh;
+    bool is_min_cat_purchase = coupon.is_min_cat_purchase;
+    decimal cat_invoking_amount = coupon.cat_invoking_amount;
+    int invoking_cat_Id = coupon.invoking_cat_Id;
+    bool is_cat_invoking_items_count = coupon.is_cat_invoking_items_count;
+    int cat_invoking_items_count = coupon.cat_invoking_items_count;
+    bool is_sun = coupon.is_sun;
+    bool is_mon = coupon.is_mon;
+    bool is_tue = coupon.is_tue;
+    bool is_wed = coupon.is_wed;
+    bool is_thu = coupon.is_thu;
+    bool is_fri = coupon.is_fri;
+    bool is_sat = coupon.is_sat;
+    string validity_start_hour = coupon.validity_start_hour;
+    string validity_end_hour = coupon.validity_end_hour;
+    decimal order_discount_amount = coupon.order_discount_amount;
+    decimal order_discount_percantage = coupon.order_discount_percantage;
+    string voucher_type = coupon.voucher_type;
+    decimal credit_amount = coupon.credit_amount;
+    decimal shipping_price = coupon.shipping_price;
+    string shipping_cost_type = coupon.shipping_cost_type;
+    string terms = coupon.terms;
+    string terms_e = coupon.terms_e;
+    DateTime expiration_date = coupon.expiration_date;
+    bool does_discount_includes_spItems = coupon.does_discount_includes_spItems;
+    bool does_discount_includes_sh = coupon.does_discount_includes_sh;
+    int invoking_orders_count = coupon.invoking_orders_count;
+    int membership_duration_months = coupon.membership_duration_months;
+    int max_in_cart = coupon.max_in_cart;
+
+
+    <div class="B" id="CouponInfoDiv_@coupon_id">
+        @switch (offer_type)
+        {
+            case "ITEM":
+                if (true)
+                {
+                    if (free_product_scope == "PROD")
+                    {
+                        sqlSelect = "SELECT itemunit,title FROM products WHERE p_id=@0";
+                        var prod = db.QuerySingle(sqlSelect, free_product_id);
+                        string itemunit = "";
+                        string product_title = "";
+
+                        if (prod != null)
+                        {
+                            itemunit = prod.itemunit;
+                            product_title = prod.title;
+                        }
+                        <div class="B">
+                            @free_product_quan @itemunit @product_title <span class="PrplMiniTag">(#@free_product_id)</span>
+                            @if (coupon_item_type == "FREE")
+                            {<span><b>בחינם</b></span>}
+                            @if (coupon_item_type == "DISC")
+                            {<span>בהנחה של <b>@String.Format("{0:0.00}", item_discount_rate)%</b></span>}
+
+                            @if (coupon_item_type == "PRICE")
+                            {<span>במחיר <b>@offer_price.ToString("C", culture)</b></span>}
+                        </div>
+
+                    }
+
+                    if (free_product_scope == "CAT")
+                    {
+                        int free_product_cat_id = coupon.free_product_cat_id;
+                        int free_product_itemunit = coupon.free_product_itemunit;
+                        sqlSelect = "SELECT title FROM Categories WHERE id=@0";
+                        var cat = db.QuerySingle(sqlSelect, free_product_cat_id);
+
+                        if (cat != null)
+                        {
+
+                            string itemunit = "";
+                            string cat_title = "";
+                            cat_title = cat.title;
+                            itemunit = NewAppFunctions.GetTitleById("ItemType", free_product_itemunit);
+
+                            <div class="B">
+                                @free_product_quan @itemunit מקטגורית @cat_title <span class="PrplMiniTag">(#@free_product_cat_id)</span>
+                                @if (coupon_item_type == "FREE")
+                                {<span><b>בחינם</b></span>}
+                                @if (coupon_item_type == "DISC")
+                                {<span>בהנחה של <b>@String.Format("{0:0.00}", item_discount_rate)%</b></span>}
+
+                                @if (coupon_item_type == "PRICE")
+                                {<span>במחיר <b>@offer_price.ToString("C", culture)</b></span>}
+                            </div>
+
+                        }
+                    }
+
+
+                }
+
+                break;
+
+            case "VOUCHER":
+                if (true)
+                {
+                    string offer_type_title = "";
+
+                    switch (voucher_type)
+                    {
+                        case "DISC":
+                            offer_type_title = "שובר הנחה";
+                            break;
+                        case "GIFT":
+                            offer_type_title = "שובר מתנה";
+                            break;
+                    }
+
+                    <div class="B">
+
+                        @if (voucher_type == "DISC")
+                        {
+                            <span> שובר הנחה בשיעור <b>@String.Format("{0:0.00}", coupon.order_discount_percantage)%</b></span>
+                            <div class="B"></div>
+                            if (does_discount_includes_sh)
+                            {
+                                <span class="PrplMiniTag">* הנחה גם על דמי משלוח</span>
+                            }
+                            else
+                            {
+                                <span class="RedMiniTag">* ללא הנחה על דמי משלוח</span>
+                            }
+                            if (does_discount_includes_spItems)
+                            {
+                                <span class="PrplMiniTag">* הנחה גם על מבצעים</span>
+                            }
+                            else
+                            {
+                                <span class="RedMiniTag">* הנחה לא תקפה על מבצעים</span>
+                            }
+                        }
+                        @if (voucher_type == "GIFT")
+                        {<span> שובר מתנה בסך <b>@order_discount_amount.ToString("C", culture)</b></span>}
+                    </div>
+
+                }
+
+                break;
+
+            case "CREDIT":
+                if (true)
+                {
+
+
+                    <div class="B">
+                        <span> שובר זיכוי בסך <b>@credit_amount.ToString("C", culture)</b></span>
+                    </div>
+
+                }
+
+                break;
+
+            case "SHIPPING":
+                if (true)
+                {
+                    string offer_type_title = "";
+
+                    switch (shipping_cost_type)
+                    {
+                        case "FREE":
+                            offer_type_title = "משלוח <b>חינם</b>";
+                            break;
+                        case "PRICE":
+                            offer_type_title = "משלוח בעלות <b>" + shipping_price.ToString("C", culture) + "</b>";
+                            break;
+                    }
+
+                    <div class="B">הטבת @Html.Raw(offer_type_title)</div>
+
+                }
+
+                break;
+
+
+            default:
+                break;
+        }
+
+        @switch (coupon_terms)
+        {
+            case "BYPRODUCT":
+                if (true)
+                {
+                    sqlSelect = "SELECT itemunit,title FROM products WHERE p_id=@0";
+                    var prod = db.QuerySingle(sqlSelect, invoking_product_id);
+                    string itemunit = "";
+                    string product_title = "";
+                    if (prod != null)
+                    {
+                        itemunit = prod.itemunit;
+                        product_title = prod.title;
+                    }
+
+                    <div class="B">בקניה של @invoking_product_quan @itemunit מהמוצר @product_title <span class="PrplMiniTag">(#@invoking_product_id)</span></div>
+                }
+                break;
+
+            case "OVERAMOUNT":
+                <div class="B">
+                    בביצוע הזמנה מעל <b>@activation_order_total.ToString("C", culture)</b>
+                    <div class="B">
+                        @if (does_min_order_total_includes_spItems)
+                        {
+                            <span class="PrplMiniTag">👈 כולל מבצעים והטבות נוספות</span>
+                        }
+
+                        @if (does_min_order_total_includes_sh)
+                        {
+                            <span class="PrplMiniTag">👈 כולל דמי משלוח</span>
+                        }
+                    </div>
+                </div>
+                break;
+
+            case "PRODBYCAT":
+                if (true)
+                {
+                    sqlSelect = "SELECT * FROM categories WHERE id=@0";
+                    var cat = db.QuerySingle(sqlSelect, invoking_cat_Id);
+                    string cat_title = "";
+                    if (cat != null)
+                    {
+                        cat_title = cat.title;
+                        if (!cat.is_mainCat)
+                        {
+                            sqlSelect = "SELECT title FROM categories WHERE id=@0";
+                            var mainCat = db.QuerySingle(sqlSelect, cat.mainCat_id);
+                            if (mainCat != null)
+                            {
+                                cat_title = mainCat.title + "-" + cat_title;
+                            }
+                        }
+                        cat_title = "<B> " + cat_title + "</B>";
+                    }
+
+                    string term_title = "בקניה של ";
+
+                    string term_title_b = "מוצר כלשהו ";
+                    if (is_cat_invoking_items_count)
+                    {
+                        if (cat_invoking_items_count > 1)
+                        {
+                            term_title_b = cat_invoking_items_count + " מוצרים כלשהם ";
+                        }
+                    }
+
+                    string term_title_c = "מהקטגוריה " + cat_title + "<span class=\"PrplMiniTag\"> (#" + invoking_cat_Id + ")</span>";
+                    string term_title_d = " בכל סכום שהוא";
+
+                    if (is_min_cat_purchase)
+                    {
+                        if (cat_invoking_amount > 0)
+                        {
+                            term_title_d = " בסכום של לפחות " + cat_invoking_amount.ToString("C", culture);
+                        }
+                    }
+
+                    term_title = term_title + term_title_b + term_title_c + term_title_d;
+
+
+                    <div class="B">@Html.Raw(term_title)</div>
+                }
+                break;
+
+            case "NONE":
+                <div class="B">
+                    ללא תנאים
+
+
+                </div>
+                break;
+            default:
+                break;
+        }
+    </div>
+
+    <div class="B" id="CouponRestrictionsDiv_@coupon_id">
+        <div class="B">
+            <span class="MiniTag" style="margin-right: 0; padding-right: 0"><b>תקף בימים</b></span>
+            @if (is_sun)
+            {<span class="MiniTag">א</span>}
+            @if (is_mon)
+            {<span class="MiniTag">ב</span>}
+            @if (is_tue)
+            {<span class="MiniTag">ג</span>}
+            @if (is_wed)
+            {<span class="MiniTag">ד</span>}
+            @if (is_thu)
+            {<span class="MiniTag">ה</span>}
+            @if (is_fri)
+            {<span class="MiniTag">ו</span>}
+            @if (is_sat)
+            {<span class="MiniTag">שבת</span>}
+
+            <span class="MiniTag"> <b>@validity_start_hour - @validity_end_hour</b></span>
+
+        </div>
+
+        <div class="B">
+
+            @if (!allow_multi_discount)
+            {
+                <span class="RedMiniTag">ללא כפל מבצעים</span>
+            }
+            @if (!allow_multi_coupon)
+            {
+                <span class="RedMiniTag">ללא כפל קופונים</span>
+            }
+            @if (max_discount_rate_validity > 0)
+            {
+                <span class="MiniTag">אחוז הנחה מקסימלי <b><span>@max_discount_rate_validity</span>%</b></span>
+            }
+            @if (days_to_expire > 0)
+            {
+                <span class="MiniTag">בתוקף למשך <b>@days_to_expire ימים</b> מההנפקה</span>
+            }
+            @if (min_order_total > 0)
+            {
+                <span class="RedMiniTag">תקף בהזמנות מעל <b>@min_order_total.ToString("C", culture)</b> </span>
+            }
+            @if (max_order_total > 0)
+            {
+                <span class="MiniTag">תקף בהזמנות מתחת <b>@max_order_total.ToString("C", culture)</b>  </span>
+            }
+            @if (max_coupon_value > 0)
+            {
+                <span class="RedMiniTag">ערך קופון מקסימלי <b>@max_coupon_value.ToString("C", culture)</b> </span>
+            }
+
+            @if (invoking_orders_count > 0)
+            {
+                <span class="MiniTag">תקף רק עבור משתמשים שביצעו יותר מ <b>@invoking_orders_count הזמנות</b> </span>
+            }
+
+            @if (membership_duration_months > 0)
+            {
+                <span class="MiniTag">תקף רק עבור משתמשים בעלי ותק של לפחות <b>@membership_duration_months חודשים</b> </span>
+            }
+            @if (max_in_cart > 0)
+            {
+                <span class="MiniTag">מספר מקסימלי של קופונים מסוג זה לשימוש בהזמנה אחת <b>@max_in_cart</b> </span>
+            }
+            @if (!terms.IsEmpty())
+            {
+                <div class="B">
+                    <span class="MiniTag"><b>תנאים נוספים</b><br />@terms</span>
+                </div>
+            }
+
+            @if (!terms_e.IsEmpty())
+            {
+                <div class="B">
+                    <span class="MiniTag"><b>Additional Terms</b><br />@terms_e</span>
+                </div>
+            }
+        </div>
+        <div class="B">
+            <span class="RedMiniTag">
+                <b>בתוקף עד </b>@expiration_date.ToShortDateString()
+            </span>
+        </div>
+    </div>
+
+
+
+    db.Close();
+
+}
+
+
+
+@helper IssueCoupon(int coupon_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from coupons WHERE coupon_id=@0";
+    var coupon = db.QuerySingle(sqlSelect, coupon_id);
+    sqlSelect = "SELECT * from MemberCoupons WHERE coupon_id=@0";
+    var MemberCoupons = db.Query(sqlSelect, coupon_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+
+    if (coupon != null)
+    {
+        string offer_type = coupon.offer_type;
+        string coupon_item_type = coupon.coupon_item_type;
+        string voucher_type = coupon.voucher_type;
+        string shipping_cost_type = coupon.shipping_cost_type;
+        string coupon_terms = coupon.coupon_terms;
+        sqlSelect = "SELECT id,title FROM rounds WHERE is_active=1 order by sort_order";
+        var rounds = db.Query(sqlSelect);
+
+        <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff">
+
+            <div style="overflow: auto;font-size: 20px;">
+                <div class="B" style="float:right">
+
+                    <div class="B">
+                        <div class="B"><b>הנפקת קופון</b> @coupon.coupon_title</div>
+                        <div class="B"><span class="PrplMiniTag">קופון #@coupon.coupon_id</span></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="A">
+                <div style="overflow: auto;">
+
+                    <div class="A">
+                        <form id="IssueCouponForm">
+                            <input type="hidden" name="coupon_id" id="coupon_id_to_issue" value="@coupon_id" />
+                            <div class="B">
+                                <div class="B"> הנפקה ל</div>
+                                <div class="B">
+                                    <div class="B">
+                                        <select id="coupon_round_id" name="round_id" style="padding: 5px; font-size: 16px;  direction: ltr; text-align: right;width: 300px;margin-bottom:5px;">
+                                            <option value="-1">כל הסבבים</option>
+                                            @foreach (var round in rounds)
+                                            {
+                                                <option value="@round.id">@round.title</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="B">
+                                        <div class="B" style="float:right">
+                                            בתוקף עד<br />
+                                            <input type="date" name="exp_date" class="A" />
+                                        </div>
+                                        <div class="B" style="float:right">
+                                            <div class="B">
+                                                <input type="checkbox" name="is_usage_limit" class="A" onclick="if (this.checked) { showElement('usage_limit_div'); } else { hideElement('usage_limit_div');}" /> הגבלת שימוש
+                                            </div>
+                                            <div class="B" id="usage_limit_div" style="display:none">
+                                                <input type="text" class="A30" name="usage_limit" placeholder="x" /> שימושים
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="B">
+                                        <input type="text" style="float:right;padding: 5px; font-size: 16px;  direction: ltr; text-align: right;width: 300px;" placeholder="חיפוש כינוי / #ווטסאפ.." id="CouponIssueSearchBox" oninput="SearchMember(this.value, 'CouponsIssue','CouponsResultsData');" onblur="setTimeout(function () { ResetSearch(); }, 1000);" />
+                                        <div class="Tinyloader" id="CouponsMemberLoader" style="float:right;display:none"></div>
+                                        <div class="B" style="float:left">
+                                            <button type="button" style="padding:5px;" onclick="AjaxActions('IssueCoupon', '0', 'MainLoader', 'IssueCouponForm', '@coupon_id');">👥</button>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+                        </form>
+                        <div class="A">
+                            <div class="A" style="vertical-align: middle; padding: 5px; margin: 0;; color: #fff; max-height: 200px; overflow: auto; overflow-y: hidden;" id="CouponsResultsDiv">
+                                <div id="CouponsResultsData"></div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div id="MemberCouponsDiv">
+                        @Coupons.IssuedCoupons(coupon_id)
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+
+
+        </div>
+
+    }
+
+
+    <div style="overflow: auto;height: 200px;">&nbsp;</div>
+
+
+    db.Close();
+}
+
+@helper IssuedCoupons(int coupon_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from MemberCoupons WHERE coupon_id=@0 ORDER BY member_id";
+    var MemberCoupons = db.Query(sqlSelect, coupon_id);
+    <div class="A">
+
+        @if (MemberCoupons.Count() > 0)
+        {
+            <div class="B">
+                הקופון מונפק כרגע ל
+            </div>
+
+            <div class="B">
+                <table>
+                    @foreach (var mCoupon in MemberCoupons)
+                    {
+                        <tr class="C">
+                            <td>
+                                <span onclick="AjaxActions('CouponRevoke', '@mCoupon.serial','MainLoader','','@mCoupon.coupon_id');">🗑️</span>
+
+                            </td>
+                            @if (mCoupon.member_id > 0)
+                            {
+                                <td><span class="A-Right">@AppFunctions.GetMemberNameById(mCoupon.member_id)</span></td>
+                            }
+                            else
+                            {
+                                <td><span class="A-Right"><b>כל המשתמשים </b></span></td>
+                            }
+
+                            @if (mCoupon.round_id > 0)
+                            {
+                                <td><span class="A-Right">@AppFunctions.GetRoundTitleById(mCoupon.round_id)</span></td>
+                            }
+                            else
+                            {
+                                <td><span class="A-Right"><b>כל הסבבים </b></span></td>
+                            }
+
+
+                            <td><span class="A-Right">@mCoupon.exp_date.ToShortDateString()</span></td>
+                        </tr>
+                    }
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="B" style="color:#f00">
+                הקופון אינו מונפק לאף אחד
+            </div>
+        }
+
+    </div>
+
+    db.Close();
+
+}
+
+@functions {
+    public static string ValidateCouponCreation()
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string errTxt = "";
+        string coupon_code = Request["coupon_code"];
+        string coupon_code_e = Request["coupon_code_e"];
+        string coupon_title = Request["coupon_title"];
+        string coupon_title_e = Request["coupon_title_e"];
+        string coupon_notes = Request["coupon_notes"];
+        string coupon_notes_e = Request["coupon_notes_e"];
+        string offer_type = Request["offer_type"];
+        int free_product_id = 0; try { free_product_id = Convert.ToInt32(Request["free_product_id"]); } catch { }
+
+        int free_product_cat_id = 0; try { free_product_cat_id = Convert.ToInt32(Request["free_product_cat_id"]); } catch { }
+        int free_product_itemunit = 0; try { free_product_itemunit = Convert.ToInt32(Request["free_product_itemunit"]); } catch { }
+        string free_product_scope = Request["free_product_scope"];
+
+        int free_product_quan = 0; try { free_product_quan = Convert.ToInt32(Request["free_product_quan"]); } catch { }
+        int invoking_product_id = 0; try { invoking_product_id = Convert.ToInt32(Request["invoking_product_id"]); } catch { }
+        int invoking_product_quan = 0; try { invoking_product_quan = Convert.ToInt32(Request["invoking_product_quan"]); } catch { }
+        bool allow_multi_discount = false; if (!Request["allow_multi_discount"].IsEmpty()) { allow_multi_discount = true; }
+        bool allow_multi_coupon = false; if (!Request["allow_multi_coupon"].IsEmpty()) { allow_multi_coupon = true; }
+        decimal max_discount_rate_validity = 0; try { max_discount_rate_validity = Convert.ToDecimal(Request["max_discount_rate_validity"]); } catch { }
+        int days_to_expire = 0; try { days_to_expire = Convert.ToInt32(Request["days_to_expire"]); } catch { }
+        decimal min_order_total = 0; try { min_order_total = Convert.ToDecimal(Request["min_order_total"]); } catch { }
+        decimal max_order_total = 0; try { max_order_total = Convert.ToDecimal(Request["max_order_total"]); } catch { }
+        decimal max_coupon_value = 0; try { max_coupon_value = Convert.ToDecimal(Request["max_coupon_value"]); } catch { }
+        string coupon_terms = Request["coupon_terms"];
+        string coupon_item_type = Request["coupon_item_type"];
+        decimal item_discount_rate = 0; try { item_discount_rate = Convert.ToDecimal(Request["item_discount_rate"]); } catch { }
+        decimal offer_price = 0; try { offer_price = Convert.ToDecimal(Request["offer_price"]); } catch { }
+        decimal activation_order_total = 0; try { activation_order_total = Convert.ToDecimal(Request["activation_order_total"]); } catch { }
+        bool does_min_order_total_includes_spItems = false; if (!Request["does_min_order_total_includes_spItems"].IsEmpty()) { does_min_order_total_includes_spItems = true; }
+        bool does_min_order_total_includes_sh = false; if (!Request["does_min_order_total_includes_sh"].IsEmpty()) { does_min_order_total_includes_sh = true; }
+        bool is_min_cat_purchase = false; if (!Request["is_min_cat_purchase"].IsEmpty()) { is_min_cat_purchase = true; }
+        decimal cat_invoking_amount = 0; try { cat_invoking_amount = Convert.ToDecimal(Request["cat_invoking_amount"]); } catch { }
+        int invoking_cat_Id = 0; try { invoking_cat_Id = Convert.ToInt32(Request["invoking_cat_Id"]); } catch { }
+        bool is_cat_invoking_items_count = false; if (!Request["is_cat_invoking_items_count"].IsEmpty()) { is_cat_invoking_items_count = true; }
+        int cat_invoking_items_count = 0; try { cat_invoking_items_count = Convert.ToInt32(Request["cat_invoking_items_count"]); } catch { }
+        bool is_sun = false; if (!Request["is_sun"].IsEmpty()) { is_sun = true; }
+        bool is_mon = false; if (!Request["is_mon"].IsEmpty()) { is_mon = true; }
+        bool is_tue = false; if (!Request["is_tue"].IsEmpty()) { is_tue = true; }
+        bool is_wed = false; if (!Request["is_wed"].IsEmpty()) { is_wed = true; }
+        bool is_thu = false; if (!Request["is_thu"].IsEmpty()) { is_thu = true; }
+        bool is_fri = false; if (!Request["is_fri"].IsEmpty()) { is_fri = true; }
+        bool is_sat = false; if (!Request["is_sat"].IsEmpty()) { is_sat = true; }
+        string validity_start_hour = Request["validity_start_hour"];
+        string validity_end_hour = Request["validity_end_hour"];
+        decimal order_discount_amount = 0; try { order_discount_amount = Convert.ToDecimal(Request["order_discount_amount"]); } catch { }
+        decimal order_discount_percantage = 0; try { order_discount_percantage = Convert.ToDecimal(Request["order_discount_percantage"]); } catch { }
+        string voucher_type = Request["voucher_type"];
+        decimal credit_amount = 0; try { credit_amount = Convert.ToDecimal(Request["credit_amount"]); } catch { }
+        decimal shipping_price = 0; try { shipping_price = Convert.ToDecimal(Request["shipping_price"]); } catch { }
+        string shipping_cost_type = Request["shipping_cost_type"];
+        string terms = Request["terms"];
+        string terms_e = Request["terms_e"];
+        DateTime expiration_date = local_time.AddYears(1); try { expiration_date = Convert.ToDateTime(Request["expiration_date"]); } catch { }
+        bool does_discount_includes_spItems = false; if (!Request["does_discount_includes_spItems"].IsEmpty()) { does_discount_includes_spItems = true; }
+        bool does_discount_includes_sh = false; if (!Request["does_discount_includes_sh"].IsEmpty()) { does_discount_includes_sh = true; }
+        int invoking_orders_count = 0; try { invoking_orders_count = Convert.ToInt32(Request["invoking_orders_count"]); } catch { }
+        int membership_duration_months = 0; try { membership_duration_months = Convert.ToInt32(Request["membership_duration_months"]); } catch { }
+
+        bool is_comission_discount = false; if (!Request["is_comission_discount"].IsEmpty()) { is_comission_discount = true; }
+        decimal comission_discount = 0; try { comission_discount = Convert.ToDecimal(Request["comission_discount"]); } catch { }
+        string comission_discount_type = Request["comission_discount_type"];
+
+
+        if (coupon_code.IsEmpty() || coupon_code_e.IsEmpty())
+        {
+            errTxt += "חובה להזין קודי קופון תקינים!<br>";
+        }
+        if (coupon_title.IsEmpty() || coupon_title_e.IsEmpty())
+        {
+            errTxt += "חובה להזין כותרות לקופון!<br>";
+        }
+
+        switch (offer_type)
+        {
+            case "":
+                errTxt += "חובה לבחור סוג קופון!<br>";
+                break;
+            case "ITEM":
+                if (true)
+                {
+                    switch (coupon_item_type)
+                    {
+                        case "DISC":
+                            if (item_discount_rate <= 0)
+                            {
+                                errTxt += "חובה להזין % הנחה תקין למוצר הטבה!<br>";
+                            }
+                            break;
+                        case "PRICE":
+                            if (offer_price <= 0)
+                            {
+                                errTxt += "חובה להזין מחיר תקין למוצר הטבה!<br>";
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    if (free_product_scope == "PROD")
+                    {
+                        if (free_product_cat_id == 0)
+                        {
+                            errTxt += "חובה לבחור מוצר הטבה!<br>";
+                        }
+                        else
+                        {
+                            if (free_product_quan <= 0)
+                            {
+                                errTxt += "חובה להזין כמות תקינה למוצר הטבה!<br>";
+                            }
+                        }
+                    }
+                    if (free_product_scope == "CAT")
+                    {
+                        if (free_product_cat_id == 0)
+                        {
+                            errTxt += "חובה לבחור קטגוריה להטבה!<br>";
+                        }
+                        else
+                        {
+                            if (free_product_quan <= 0)
+                            {
+                                errTxt += "חובה להזין כמות תקינה לקטגורית הטבה!<br>";
+                            }
+                        }
+                    }
+                }
+                break;
+
+            case "VOUCHER":
+                if (true)
+                {
+                    if (voucher_type == "GIFT" && order_discount_amount <= 0)
+                    {
+                        errTxt += "חובה להזין סכום תקין לשובר מתנה!<br>";
+                    }
+                    if (voucher_type == "DISC" && order_discount_percantage <= 0)
+                    {
+                        errTxt += "חובה להזין ערך תקין לשובר הנחה!<br>";
+                    }
+
+                }
+                break;
+
+            case "CREDIT":
+                if (true)
+                {
+                    if (credit_amount <= 0)
+                    {
+                        errTxt += "חובה להזין סכום תקין לשובר זיכוי!<br>";
+                    }
+
+                }
+                break;
+            case "SHIPPING":
+                if (true)
+                {
+                    if (shipping_cost_type.IsEmpty())
+                    {
+                        errTxt += "חובה לבחור משלוח חינם או משלוח מוזל!<br>";
+                    }
+                    else
+                    {
+                        if (shipping_cost_type == "PRICE" && shipping_price <= 0)
+                        {
+                            errTxt += "חובה להזין סכום תקין למחיר המשלוח!<br>";
+                        }
+                    }
+                }
+                break;
+        }
+
+        switch (coupon_terms)
+        {
+            case "BYPRODUCT":
+                if (true)
+                {
+                    if (invoking_product_id == 0)
+                    {
+                        errTxt += "חובה לבחור מוצר מזכה!<br>";
+                    }
+                    else
+                    {
+                        if (invoking_product_quan <= 0)
+                        {
+                            errTxt += "חובה להזין כמות תקינה למוצר מזכה!<br>";
+                        }
+                    }
+
+                }
+                break;
+
+            case "OVERAMOUNT":
+                if (activation_order_total <= 0)
+                {
+                    errTxt += "חובה להזין סכום הזמנה תקין עבור תנאי מימוש הקופון!<br>";
+                }
+                break;
+
+
+            case "PRODBYCAT":
+
+                if (invoking_cat_Id <= 0)
+                {
+                    errTxt += "חובה לבחור קטגוריה מזכה!<br>";
+                }
+                else
+                {
+                    if (is_min_cat_purchase && cat_invoking_amount <= 0)
+                    {
+                        errTxt += "חובה להזין מינימום סכום לרכישה מהקטגוריה באופן תקין!<br>";
+                    }
+
+                    if (is_cat_invoking_items_count && cat_invoking_items_count <= 0)
+                    {
+                        errTxt += "חובה להזין מינימום מספר פריטים לרכישה מהקטגוריה באופן תקין!<br>";
+                    }
+
+
+                }
+
+
+                break;
+
+            default:
+                break;
+        }
+
+        if (!is_sun && !is_mon && !is_tue && !is_wed && !is_thu && !is_fri && !is_sat)
+        {
+            errTxt += "חובה לבחור לפחות יום אחד בשבוע בו הקופון תקף!<br>";
+
+        }
+        if (Convert.ToDateTime(local_time.ToShortDateString() + " " + validity_start_hour) > Convert.ToDateTime(local_time.ToShortDateString() + " " + validity_end_hour))
+        {
+            errTxt += "זמן תחילת המבצע חייב להיות מוקדם מזמן סיום המבצע!<br>";
+        }
+
+        if (invoking_orders_count <= 0 && !Request["invoking_orders_count"].IsEmpty())
+        {
+            errTxt += "חובה להזין כמות הזמנות תקינה!<br>";
+        }
+        if (membership_duration_months <= 0 && !Request["membership_duration_months"].IsEmpty())
+        {
+            errTxt += "חובה להזין מספר חודשים תקין!<br>";
+        }
+        if (expiration_date <= local_time)
+        {
+            errTxt += "חובה להזין תאריך תפוגה עתידי לקופון!<br>";
+        }
+
+        if (is_comission_discount)
+        {
+            if (comission_discount <= 0)
+            {
+                errTxt += "חובה להזין ערך תקין להנחת העמלה!<br>";
+
+            }
+        }
+
+        return errTxt;
+    }
+
+    public static string SaveCouponSettings()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        int coupon_id = 0; try { coupon_id = Convert.ToInt32(Request["coupon_id"]); } catch { }
+
+        string coupon_code = Request["coupon_code"];
+        string coupon_code_e = Request["coupon_code_e"];
+        string coupon_title = Request["coupon_title"];
+        string coupon_title_e = Request["coupon_title_e"];
+        string coupon_notes = Request["coupon_notes"];
+        string coupon_notes_e = Request["coupon_notes_e"];
+        string offer_type = Request["offer_type"];
+        int free_product_id = 0; try { free_product_id = Convert.ToInt32(Request["free_product_id"]); } catch { }
+        int free_product_quan = 0; try { free_product_quan = Convert.ToInt32(Request["free_product_quan"]); } catch { }
+        int free_product_cat_id = 0; try { free_product_cat_id = Convert.ToInt32(Request["free_product_cat_id"]); } catch { }
+        int free_product_itemunit = 0; try { free_product_itemunit = Convert.ToInt32(Request["free_product_itemunit"]); } catch { }
+        string free_product_scope = Request["free_product_scope"];
+        int invoking_product_id = 0; try { invoking_product_id = Convert.ToInt32(Request["invoking_product_id"]); } catch { }
+        int invoking_product_quan = 0; try { invoking_product_quan = Convert.ToInt32(Request["invoking_product_quan"]); } catch { }
+        bool allow_multi_discount = false; if (!Request["allow_multi_discount"].IsEmpty()) { allow_multi_discount = true; }
+        bool allow_multi_coupon = false; if (!Request["allow_multi_coupon"].IsEmpty()) { allow_multi_coupon = true; }
+        decimal max_discount_rate_validity = 0; try { max_discount_rate_validity = Convert.ToDecimal(Request["max_discount_rate_validity"]); } catch { }
+        int days_to_expire = 0; try { days_to_expire = Convert.ToInt32(Request["days_to_expire"]); } catch { }
+        decimal min_order_total = 0; try { min_order_total = Convert.ToDecimal(Request["min_order_total"]); } catch { }
+        decimal max_order_total = 0; try { max_order_total = Convert.ToDecimal(Request["max_order_total"]); } catch { }
+        decimal max_coupon_value = 0; try { max_coupon_value = Convert.ToDecimal(Request["max_coupon_value"]); } catch { }
+        string coupon_terms = Request["coupon_terms"];
+        string coupon_item_type = Request["coupon_item_type"];
+        decimal item_discount_rate = 0; try { item_discount_rate = Convert.ToDecimal(Request["item_discount_rate"]); } catch { }
+        decimal offer_price = 0; try { offer_price = Convert.ToDecimal(Request["offer_price"]); } catch { }
+        decimal activation_order_total = 0; try { activation_order_total = Convert.ToDecimal(Request["activation_order_total"]); } catch { }
+        bool does_min_order_total_includes_spItems = false; if (!Request["does_min_order_total_includes_spItems"].IsEmpty()) { does_min_order_total_includes_spItems = true; }
+        bool does_min_order_total_includes_sh = false; if (!Request["does_min_order_total_includes_sh"].IsEmpty()) { does_min_order_total_includes_sh = true; }
+        bool is_min_cat_purchase = false; if (!Request["is_min_cat_purchase"].IsEmpty()) { is_min_cat_purchase = true; }
+        decimal cat_invoking_amount = 0; try { cat_invoking_amount = Convert.ToDecimal(Request["cat_invoking_amount"]); } catch { }
+        int invoking_cat_Id = 0; try { invoking_cat_Id = Convert.ToInt32(Request["invoking_cat_Id"]); } catch { }
+        bool is_cat_invoking_items_count = false; if (!Request["is_cat_invoking_items_count"].IsEmpty()) { is_cat_invoking_items_count = true; }
+        int cat_invoking_items_count = 0; try { cat_invoking_items_count = Convert.ToInt32(Request["cat_invoking_items_count"]); } catch { }
+        bool is_sun = false; if (!Request["is_sun"].IsEmpty()) { is_sun = true; }
+        bool is_mon = false; if (!Request["is_mon"].IsEmpty()) { is_mon = true; }
+        bool is_tue = false; if (!Request["is_tue"].IsEmpty()) { is_tue = true; }
+        bool is_wed = false; if (!Request["is_wed"].IsEmpty()) { is_wed = true; }
+        bool is_thu = false; if (!Request["is_thu"].IsEmpty()) { is_thu = true; }
+        bool is_fri = false; if (!Request["is_fri"].IsEmpty()) { is_fri = true; }
+        bool is_sat = false; if (!Request["is_sat"].IsEmpty()) { is_sat = true; }
+        string validity_start_hour = Request["validity_start_hour"];
+        string validity_end_hour = Request["validity_end_hour"];
+        decimal order_discount_amount = 0; try { order_discount_amount = Convert.ToDecimal(Request["order_discount_amount"]); } catch { }
+        decimal order_discount_percantage = 0; try { order_discount_percantage = Convert.ToDecimal(Request["order_discount_percantage"]); } catch { }
+        string voucher_type = Request["voucher_type"];
+        decimal credit_amount = 0; try { credit_amount = Convert.ToDecimal(Request["credit_amount"]); } catch { }
+        decimal shipping_price = 0; try { shipping_price = Convert.ToDecimal(Request["shipping_price"]); } catch { }
+        string shipping_cost_type = Request["shipping_cost_type"];
+        string terms = Request["terms"];
+        string terms_e = Request["terms_e"];
+        bool does_discount_includes_spItems = false; if (!Request["does_discount_includes_spItems"].IsEmpty()) { does_discount_includes_spItems = true; }
+        bool does_discount_includes_sh = false; if (!Request["does_discount_includes_sh"].IsEmpty()) { does_discount_includes_sh = true; }
+        DateTime expiration_date = local_time.AddYears(1); try { expiration_date = Convert.ToDateTime(Request["expiration_date"]); } catch { }
+        int invoking_orders_count = 0; try { invoking_orders_count = Convert.ToInt32(Request["invoking_orders_count"]); } catch { }
+        int membership_duration_months = 0; try { membership_duration_months = Convert.ToInt32(Request["membership_duration_months"]); } catch { }
+        int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["max_in_cart"]); } catch { }
+        bool is_comission_discount = false; if (!Request["is_comission_discount"].IsEmpty()) { is_comission_discount = true; }
+        decimal comission_discount = 0; try { comission_discount = Convert.ToDecimal(Request["comission_discount"]); } catch { }
+        string comission_discount_type = Request["comission_discount_type"];
+
+        string item_discount_type = Request["item_discount_type"];
+        DateTime create_ts = local_time;
+        int creator_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int member_id = 0;
+        int vendor_id = 0;
+        int coupon_status = 0;
+        string coupon_type = "COUPON";
+        int offer_value = 0;
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT coupon_id FROM coupons WHERE (coupon_code=@0 OR coupon_code=@1 OR coupon_code_e=@0 OR coupon_code_e=@1 ) AND coupon_id<>@2";
+        var chkDup = db.QuerySingle(sqlSelect, coupon_code, coupon_code_e, coupon_id);
+
+        if (chkDup == null)
+        {
+            DataFunctions.WriteDebugLine("coup" + coupon_id);
+            sqlSelect = "UPDATE coupons SET coupon_type=@0 ,coupon_status=@1 ,expiration_date=@2 ,creator_id=@3 ,create_ts=@4 ,member_id=@5 ,vendor_id=@6 ,offer_type=@7 ,coupon_code=@8 ,coupon_title=@9 ,coupon_title_e=@10 ,coupon_notes=@11 ,coupon_notes_e=@12 ,terms=@13 ,terms_e=@14 ,free_product_quan=@15 ,free_product_id=@16 ,item_discount_rate=@17 ,offer_price=@18 ,offer_value=@19 ,order_discount_percantage=@20 ,order_discount_amount=@21 ,allow_multi_discount=@22 ,shipping_price=@23 ,min_order_total=@24 ,invoking_product_id=@25 ,invoking_cat_Id=@26 ,cat_invoking_amount=@27 ,max_order_total=@28 ,validity_start_hour=@29 ,validity_end_hour=@30 ,allow_multi_coupon=@31 ,does_discount_includes_spItems=@32 ,does_discount_includes_sh=@33 ,max_discount_rate_validity=@34 ,days_to_expire=@35 ,max_coupon_value=@36 ,is_active=@37 ,is_expired=@38 ,add_ts=@39 ,invoking_orders_count=@40 ,is_deleted=@41 ,coupon_code_e=@42 ,does_min_order_total_includes_spItems=@43 ,does_min_order_total_includes_sh=@44 , credit_amount=@45 ,coupon_terms=@46 ,invoking_product_quan=@47 ,coupon_item_type=@48 ,activation_order_total=@49 ,is_min_cat_purchase=@50 ,is_cat_invoking_items_count=@51 ,cat_invoking_items_count=@52 ,is_sun=@53 ,is_mon=@54 ,is_tue=@55 ,is_wed=@56 ,is_thu=@57 ,is_fri=@58 ,is_sat=@59 ,voucher_type=@60 ,shipping_cost_type=@61 ,membership_duration_months=@62,item_discount_type=@63,max_in_cart=@64,is_setup=1,is_comission_discount=@65,comission_discount=@66,comission_discount_type=@67,free_product_scope=@68,free_product_cat_id=@69,free_product_itemunit=@70 WHERE coupon_id=@71";
+            db.Execute(sqlSelect, coupon_type, coupon_status, expiration_date, creator_id, create_ts, member_id, vendor_id, offer_type, coupon_code, coupon_title, coupon_title_e, coupon_notes, coupon_notes_e, terms, terms_e, free_product_quan, free_product_id, item_discount_rate, offer_price, offer_value, order_discount_percantage, order_discount_amount, allow_multi_discount, shipping_price, min_order_total, invoking_product_id, invoking_cat_Id, cat_invoking_amount, max_order_total, validity_start_hour, validity_end_hour, allow_multi_coupon, does_discount_includes_spItems, does_discount_includes_sh, max_discount_rate_validity, days_to_expire, max_coupon_value, 1, 0, local_time, invoking_orders_count, 0, coupon_code_e, does_min_order_total_includes_spItems, does_min_order_total_includes_sh, credit_amount, coupon_terms, invoking_product_quan, coupon_item_type, activation_order_total, is_min_cat_purchase, is_cat_invoking_items_count, cat_invoking_items_count, is_sun, is_mon, is_tue, is_wed, is_thu, is_fri, is_sat, voucher_type, shipping_cost_type, membership_duration_months, item_discount_type, max_in_cart, is_comission_discount, comission_discount, comission_discount_type, free_product_scope, free_product_cat_id, free_product_itemunit, coupon_id);
+            theHtmlOutput = "הגדרות הקופון נשמרו בהצלחה!";
+
+            //log
+        }
+        else
+        {
+            theHtmlOutput = "לא ניתן לצור קופון: קוד קופון קיים כבר!";
+
+        }
+        db.Close();
+        return theHtmlOutput;
+    }
+
+    public static bool isCouponValidForOrder(int order_id, int coupon_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id);
+        sqlSelect = "SELECT * FROM MainOrders WHERE order_Id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        bool isValidCoupon = true;
+
+        if (coupon != null && order != null)
+        {
+            string offer_type = coupon.offer_type;
+            string coupon_terms = coupon.coupon_terms;
+
+            switch (offer_type)
+            {
+                case "ITEM":
+                    if (true)
+                    {
+                        //check if item available for sale to the specified order
+                        //if item available: check terms
+                        sqlSelect = "";
+                        sqlSelect = "SELECT p_id FROM products WHERE p_id=@0 or catalog_p_id=@0";
+                        var free_product = db.QuerySingle(sqlSelect, coupon.free_product_id);
+                        if (free_product == null)
+                        {
+                            isValidCoupon = false;
+                        }
+                        else
+                        {
+                            switch (coupon_terms)
+                            {
+
+                                case "BYPRODUCT":
+                                    if (true)
+                                    {
+                                        //check if invoking product is in quan
+                                        sqlSelect = "SELECT p_id FROM products WHERE p_id=@0 or catalog_p_id=@0";
+                                        var invoking_product = db.QuerySingle(sqlSelect, coupon.free_product_id);
+                                        if (invoking_product == null)
+                                        {
+                                            isValidCoupon = false;
+                                        }
+
+                                    }
+                                    break;
+
+                                case "OVERAMOUNT":
+                                    break;
+
+                                case "PRODBYCAT":
+                                    break;
+
+
+
+                                case "NONE":
+                                    break;
+                            }
+                        }
+                    }
+
+                    break;
+                case "VOUCHER":
+                    if (true)
+                    {
+
+                    }
+                    break;
+                case "CREDIT":
+                    if (true)
+                    {
+
+                    }
+                    break;
+                case "SHIPPING":
+                    if (true)
+                    {
+
+                    }
+                    break;
+            }
+
+        }
+
+        db.Close();
+        return isValidCoupon;
+    }
+
+
+    public static string OrderCouponAvailability(int order_id, int coupon_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id);
+        sqlSelect = "SELECT * FROM cartsettings WHERE order_Id=@0";
+        var cart = db.QuerySingle(sqlSelect, order_id);
+        bool isValidCoupon = true;
+        string ret_string = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        int curDateOfWeek = ((int)local_time.DayOfWeek);
+        decimal grand_total = cart.grand_total;
+        int member_id = cart.u_id;
+
+
+        if (coupon != null && cart != null)
+        {
+            string offer_type = coupon.offer_type;
+            string coupon_terms = coupon.coupon_terms;
+            string free_product_scope = coupon.free_product_scope;
+
+            switch (offer_type)
+            {
+                case "ITEM":
+                    if (true)
+                    {
+
+                        if (free_product_scope == "PROD")
+                        {
+                            //check if item available for sale to the specified order
+                            //if item available: check terms
+                            sqlSelect = "";
+                            sqlSelect = "SELECT p_id FROM roundMenuItems WHERE (p_id=@0 or catalog_p_id=@0) AND round_id=@1";
+                            var free_product = db.QuerySingle(sqlSelect, coupon.free_product_id, cart.round_id);
+                            if (free_product == null)
+                            {
+                                ret_string += "מוצר ההטבה אינו קיים בתפריט";
+
+                            }
+                        }
+
+                        if (free_product_scope == "CAT")
+                        {
+                            //check if item available for sale to the specified order
+                            //if item available: check terms
+                            sqlSelect = "";
+                            sqlSelect = "SELECT p_id FROM roundMenuItems WHERE is_active=1 AND (maincat_id=@0 or sub_cat_id=@0) AND round_id=@1 AND itemunit_type=@2";
+                            var free_product = db.QuerySingle(sqlSelect, coupon.free_product_cat_id, cart.round_id, coupon.free_product_itemunit);
+                            if (free_product == null)
+                            {
+                                ret_string += "לא קיימים מוצרים מתאימים בתפריט";
+
+                            }
+                        }
+
+
+                    }
+
+                    break;
+                case "VOUCHER":
+                    if (true)
+                    {
+
+                    }
+                    break;
+                case "CREDIT":
+                    if (true)
+                    {
+
+                    }
+                    break;
+                case "SHIPPING":
+                    if (true)
+                    {
+
+                    }
+                    break;
+            }
+
+            switch (coupon_terms)
+            {
+
+                case "BYPRODUCT":
+                    if (true)
+                    {
+                        //check if invoking product is in quan
+                        sqlSelect = "SELECT p_id,quan FROM MainCart WHERE p_id=@0 or catalog_p_id=@0 AND u_id=@1 AND round_id=@2 AND rep_id=@3 AND order_id=@4";
+                        var invoking_product_in_cart = db.QuerySingle(sqlSelect, coupon.invoking_product_id, member_id, cart.round_id, cart.rep_id, order_id);
+                        if (invoking_product_in_cart == null)
+                        {
+                            ret_string += "המוצר המזכה אינו קיים בעגלה!<br>";
+                        }
+                        else
+                        {
+                            if (coupon.invoking_product_quan > invoking_product_in_cart.quan)
+                            {
+                                ret_string += "המוצר המזכה אינו קיים בעגלה בכמות הנדרשת להפעלת הקופון!<br>";
+                            }
+                        }
+
+                    }
+                    break;
+
+                case "OVERAMOUNT":
+                    if (true)
+                    {
+                        if (grand_total < coupon.activation_order_total)
+                        {
+                            ret_string += "ההזמנה אינה עומדת בסכום המינימום להפעלת הקופון בסך של " + coupon.activation_order_total.ToString("C", culture) + "!<br>";
+                        }
+                    }
+                    break;
+
+                case "PRODBYCAT":
+                    if (true)
+                    {
+                        int cat_invoking_items_count = coupon.cat_invoking_items_count;
+                        int invoking_cat_Id = coupon.invoking_cat_Id;
+                        decimal cat_invoking_amount = coupon.cat_invoking_amount;
+
+                        sqlSelect = "SELECT MainCart.p_id,MainCart.quan FROM MainCart INNER JOIN RoundMenuItems ON MainCart.item_id=roundMenuItems.id WHERE roundMenuItems.sub_cat_id=@0  or roundMenuItems.maincat_id=@0 AND MainCart.u_id=@1 AND MainCart.round_id=@2 AND MainCart.rep_id=@3 AND MainCart.order_id=@4";
+                        var invoking_cat_products_in_cart = db.Query(sqlSelect, coupon.invoking_cat_Id, member_id, cart.round_id, cart.rep_id, order_id);
+                        if (invoking_cat_products_in_cart.Count == 0)
+                        {
+                            ret_string += "אין בהזמנה מוצרים מהקטגוריה המזכה " + NewAppFunctions.GetTitleById("Cat", coupon.invoking_cat_Id) + "!<br>";
+                        }
+                        else
+                        {
+                            if (invoking_cat_products_in_cart.Count < coupon.cat_invoking_items_count)
+                            {
+                                ret_string += "אין בהזמנה מספיק מוצרים מהקטגוריה המזכה " + NewAppFunctions.GetTitleById("Cat", coupon.invoking_cat_Id) + "!<br>";
+                            }
+                            else
+                            {
+                                sqlSelect = "SELECT SUM(MainCart.calc_price) AS catItemsTotal FROM MainCart INNER JOIN RoundMenuItems ON MainCart.item_id=roundMenuItems.id WHERE roundMenuItems.sub_cat_id=@0  or roundMenuItems.maincat_id=@0 AND MainCart.u_id=@1 AND MainCart.round_id=@2 AND MainCart.rep_id=@3 AND MainCart.order_id=@4";
+                                invoking_cat_products_in_cart = db.QuerySingle(sqlSelect, coupon.invoking_cat_Id, member_id, cart.round_id, cart.rep_id, order_id);
+                                decimal catItemsTotal = 0;
+                                try { catItemsTotal = invoking_cat_products_in_cart.catItemsTotal; } catch { }
+                                if (catItemsTotal < cat_invoking_amount)
+                                {
+                                    ret_string += "אין בהזמנה מוצרים מהקטגוריה המזכה " + NewAppFunctions.GetTitleById("Cat", coupon.invoking_cat_Id) + " בשווי של " + cat_invoking_amount.ToString("C", culture) + "!<br>";
+                                }
+                            }
+
+                        }
+                    }
+                    break;
+
+
+
+                case "NONE":
+                    break;
+            }
+
+            //check day & time availablity
+            bool is_available_today = false;
+            switch (curDateOfWeek)
+            {
+                case 0: if (coupon.is_sun) { is_available_today = true; } break;
+                case 1: if (coupon.is_mon) { is_available_today = true; } break;
+                case 2: if (coupon.is_tue) { is_available_today = true; } break;
+                case 3: if (coupon.is_wed) { is_available_today = true; } break;
+                case 4: if (coupon.is_thu) { is_available_today = true; } break;
+                case 5: if (coupon.is_fri) { is_available_today = true; } break;
+                case 6: if (coupon.is_sat) { is_available_today = true; } break;
+
+            }
+            if (!is_available_today)
+            {
+                ret_string += "הקופון אינו תקף היום!<br>";
+
+            }
+            else
+            {
+                DateTime validity_start_hour = Convert.ToDateTime(local_time.ToShortDateString() + " " + coupon.validity_start_hour);
+                DateTime validity_end_hour = Convert.ToDateTime(local_time.ToShortDateString() + " " + coupon.validity_end_hour);
+
+                if (local_time > validity_start_hour && local_time < validity_end_hour) { }
+                else
+                {
+                    ret_string += "קופון זה אינו בתוקף בשעה זו. הקופון תקף בשעות " + coupon.validity_start_hour + " - " + coupon.validity_end_hour + "!<br>";
+                }
+
+
+            }
+
+            //check multi coupons restriction
+            bool allow_multi_coupon = coupon.allow_multi_coupon;
+            if (!allow_multi_coupon)
+            {
+                sqlSelect = "SELECT p_id,quan FROM MainCart WHERE item_id<>-9 AND item_id<=-5 AND item_id>-11 AND u_id=@0 AND round_id=@1 AND rep_id=@2 AND order_id=@3";
+                var coupons_in_cart = db.Query(sqlSelect, member_id, cart.round_id, cart.rep_id, order_id);
+                if (coupons_in_cart.Count > 0)
+                {
+                    ret_string += "לא ניתן להפעיל קופון זה כאשר קיים כבר קופון פעיל אחר בעגלה!<br>";
+                }
+            }
+            //check multi discounts restriction
+            bool allow_multi_discount = coupon.allow_multi_discount;
+            if (!allow_multi_discount)
+            {
+                decimal discount_total = 0;
+                sqlSelect = "SELECT discount_total FROM CartSettings WHERE u_id=@0 AND round_id=@1 AND rep_id=@2 AND order_id=@3";
+                var cartDiscount = db.QuerySingle(sqlSelect, member_id, cart.round_id, cart.rep_id, order_id);
+                try { discount_total = cartDiscount.discount_total; } catch { }
+                if (discount_total > 0)
+                {
+                    ret_string += "לא ניתן להפעיל קופון זה כאשר קיימת כבר הנחה בעגלה!<br>";
+                }
+            }
+
+            //check max in cart restriction
+            int max_in_cart = coupon.max_in_cart;
+            if (max_in_cart > 0)
+            {
+                sqlSelect = "SELECT Count(id) AS coupon_cnt FROM MainCart WHERE (item_id=-5 OR item_id<-6)  AND item_id>-11  AND rep_id=@0 AND order_id=@1 AND special_id=@2";
+                var couponCounter = db.QuerySingle(sqlSelect, cart.rep_id, order_id, coupon.coupon_id);
+                if (couponCounter != null)
+                {
+                    if (max_in_cart <= couponCounter.coupon_cnt)
+                    {
+                        ret_string += "לא ניתן להפעיל קופון זה - בכל הזמנה ניתן להשתמש בקופון זה רק " + max_in_cart + " פעמים!<br>";
+                    }
+                }
+
+            }
+
+            //check min order amount restriction
+            //check max order amount restriction
+            if (grand_total < coupon.min_order_total && coupon.min_order_total > 0)
+            {
+                ret_string += "ההזמנה אינה עומדת בסכום המינימום להפעלת הקופון בסך של " + coupon.min_order_total.ToString("C", culture) + "!<br>";
+            }
+            if (grand_total > coupon.max_order_total && coupon.max_order_total > 0)
+            {
+                ret_string += "סכום ההזמנה גבוה מסכום המקסימום להפעלת הקופון בסך של " + coupon.max_order_total.ToString("C", culture) + "!<br>";
+            }
+
+
+            //check member order count restriction
+            int invoking_orders_count = coupon.invoking_orders_count;
+            sqlSelect = "SELECT create_ts,anniversary_ts,serial,oc FROM pb WHERE m_id=@0";
+            var member = db.QuerySingle(sqlSelect, member_id);
+            if (member != null)
+            {
+                DateTime defDate = Convert.ToDateTime("1/1/1900");
+                DateTime create_ts = member.create_ts;
+                DateTime anniversary_ts = member.anniversary_ts;
+                DateTime join_date = anniversary_ts;
+                if (member.oc < invoking_orders_count)
+                {
+                    ret_string += "קופון זה בתוקף רק למשתמשים שביצעו יותר מ" + invoking_orders_count + " הזמנות!<br>";
+                }
+
+                //check member seniority restriction
+                int membership_duration_months = AppFunctions.HowManyMonthsAgoWas(join_date);
+                if (membership_duration_months < coupon.membership_duration_months)
+                {
+                    ret_string += "קופון זה בתוקף רק למשתמשים שחברים במערכת מעל ל" + membership_duration_months + " חודשים!<br>";
+                }
+            }
+
+
+            //check coupon validity date restriction
+            if (coupon.expiration_date < local_time)
+            {
+                ret_string += "תוקפו של קופון זה פג בתאריך " + coupon.expiration_date.ToShortDateString() + "!<br>";
+            }
+
+
+            //check coupon value restriction
+            //TBD if needed
+        }
+
+        db.Close();
+        return ret_string;
+    }
+    public static string SetCouponActiveState(int coupon_id, bool set_to)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "UPDATE coupons SET is_active=@0 WHERE coupon_id=@1";
+        db.Execute(sqlSelect, set_to, coupon_id);
+        db.Close();
+
+        if (set_to)
+        {
+            theHtmlOutput = "הקופון סומן כפעיל!";
+        }
+        else
+        {
+            theHtmlOutput = "הקופון סומן כלא פעיל!";
+        }
+
+
+        return theHtmlOutput;
+    }
+
+    public static string CouponDelete(int coupon_id, bool set_to = true)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "UPDATE coupons SET is_deleted=@0 WHERE coupon_id=@1";
+        db.Execute(sqlSelect, set_to, coupon_id);
+        db.Close();
+
+        if (set_to)
+        {
+            theHtmlOutput = "הקופון נמחק בהצלחה!";
+        }
+        else
+        {
+            theHtmlOutput = "הקופון שוחזר בהצלחה!";
+        }
+
+
+        return theHtmlOutput;
+    }
+
+    public static string DoCouponIssue()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime exp_date = local_time.AddYears(1);
+        int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+
+        int member_id = 0; try { member_id = Convert.ToInt32(Request["value"]); } catch { }
+        int coupon_id = 0; try { coupon_id = Convert.ToInt32(Request["coupon_id"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["round_id"]); } catch { }
+        if (round_id == -1) { round_id = 0; }
+        try { exp_date = Convert.ToDateTime(Request["exp_date"]); } catch { }
+
+        int usage_limit = -1;
+        if (!Request["is_usage_limit"].IsEmpty())
+        {
+            try { usage_limit = Convert.ToInt32(Request["usage_limit"]); } catch { }
+        }
+
+
+
+
+        int usage_count = 0;
+
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "SELECT serial FROM memberCoupons WHERE coupon_id=@0 AND member_id=@1 AND round_id=@2";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id, member_id, round_id);
+        if (coupon == null)
+        {
+
+            sqlSelect = "INSERT INTO memberCoupons(create_ts,rep_id,coupon_id,member_id,exp_date,usage_limit,usage_count,round_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+            db.Execute(sqlSelect, local_time, rep_id, coupon_id, member_id, exp_date, usage_limit, usage_count, round_id);
+            theHtmlOutput = "הקופון נופק בהצלחה!";
+        }
+        else
+        {
+            theHtmlOutput = "הקופון הזה מנופק כבר!";
+        }
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+    public static string CouponRevoke(int issued_coupon_serial)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        var db = Database.Open("op_data");
+        var sqlSelect = "DELETE FROM memberCoupons WHERE serial=@0";
+        db.Execute(sqlSelect, issued_coupon_serial);
+        db.Close();
+        theHtmlOutput = "הקופון הוסר בהצלחה!";
+
+
+
+        return theHtmlOutput;
+    }
+
+}

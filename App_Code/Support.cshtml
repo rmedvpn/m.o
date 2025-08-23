@@ -1,0 +1,40 @@
+﻿@helper SupportMain()
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM rounds order by id";
+    //var rounds = db.Query(sqlSelect);
+    db.Close();
+
+    <div class="A">
+        <h2>תמיכה טכנית</h2>
+    </div>
+
+    <div class="A">
+        <center>
+            <div class="A">
+                <div class="B">
+                    <select class="A" style="width:90%;font-size:20px;">
+                        <option>נא לבחור את סוג הדיווח..</option>
+                        <option value="BUG">דיווח תקלה</option>
+                        <option value="IMPROVEMENT">הצעת יעול /שיפור</option>
+                        <option value="FEATURE">הצעה להוספת תכונות</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="A">
+                <textarea style="padding: 5px; margin: 5px;font-size:16px;width:90%;resize:none" rows="20" placeholder="נא לרשום דיווח מפורט ככל האפשר, אבל בלי חפירות מיותרות.." id="reportTxt"></textarea>
+
+            </div>
+            <div class="A">
+                <button style="padding: 5px; margin: 5px; font-size: 16px; width: 90%;" onclick="alert('לא ללחוץ סתם על דברים זה לא משחק!');">שמירה</button>
+            </div>
+
+        </center>
+    </div>
+
+    <div style="overflow:auto;display:none">
+        <h3>Rounds id changer</h3>
+        <div style="overflow:auto;height:200px;">&nbsp;</div>
+    </div>
+}

@@ -1,0 +1,196 @@
+﻿@{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    
+string PastedText="";
+PastedText=Request["PastedText"];
+bool is_show = false;
+StringReader strReader=null;
+if (!PastedText.IsEmpty()){
+    strReader = new StringReader(PastedText);
+    is_show = true;
+}
+var u_id = WebSecurity.CurrentUserId;
+var db = Database.Open("irgoon");
+var sqlSelect = ""; 
+int curRow=0;
+bool is_commit =false;
+string DisplayState="block";
+if(!Request["is_commit"].IsEmpty()){
+    is_commit=true;
+    DisplayState="none";
+}
+int toAddCount=0;
+int duplicateCount=0;
+int pastedCount=0;
+int added_count=0;
+int existingUserCount=0;
+
+
+
+}
+
+<div style="overflow: auto;display: @DisplayState">
+<input type="hidden" id="PastedData" name="PastedData" value="@PastedText">
+
+<h2>יבוא רשומות מצטרפים</h2>
+
+<div style="overflow:auto;width: 100%;font-size: 14px;text-align: right;background-color: #fff">
+  @while(is_show)
+{   bool bad_input=false;
+    string row_bg="#fff";
+    int order_u_id=0;
+    int cur_user_id=0;
+    string cur_user_name="";
+    bool is_existing_order=false;
+    string sep = "\t";
+    string[] userRec;
+    int totalCount=0;
+    DateTime ts=Convert.ToDateTime("1/1/1900");
+    string prospect_name="";
+    string wanum="";
+    DateTime birth_date=Convert.ToDateTime("1/1/1900");
+    int gender=0;
+    string genderStr="";
+    string city="";
+    string email="";
+    string fb="";
+    string ref_txt="";
+    string occupation="";
+    string more_info="";
+    string join_reason="";
+    string involvement="";
+    string notes="";
+    string aLine = null;
+    bool isValidWanum=false;
+    bool is_registered_user=false;
+    bool is_duplicate_prospect=false;
+
+    pastedCount++;
+    totalCount++;
+    curRow++;
+    aLine = strReader.ReadLine();
+    
+    if(aLine != null)
+    {
+        userRec=aLine.Split(sep.ToCharArray());
+
+    if(userRec.GetUpperBound(0)>=15){
+  //   try{
+     try{ts = Convert.ToDateTime(userRec[0],culture);}catch{}
+     prospect_name=userRec[3];
+     wanum=userRec[4];
+     wanum = AppFunctions.wanumize(wanum);
+     try{birth_date=Convert.ToDateTime(userRec[5],culture);}catch{}
+
+     genderStr=userRec[6]; 
+     city=userRec[7];
+     email=userRec[8];;
+     fb=userRec[9];
+     ref_txt=userRec[10];
+     occupation=userRec[11];
+     more_info=userRec[12];
+     join_reason=userRec[13];
+     involvement=userRec[14];
+     notes=userRec[15];
+   //  }
+  //   catch{}
+     isValidWanum=false;
+
+     sqlSelect = "SELECT userId From org1.irgusers WHERE wanum=@0";
+     var is_existing_member = db.QuerySingle(sqlSelect,wanum);
+
+     sqlSelect = "SELECT serial From prospects WHERE wanum=@0";
+     var is_existing_prospect = db.QuerySingle(sqlSelect,wanum);
+
+     if( is_existing_prospect==null){
+         toAddCount++;
+         if(is_commit){
+            sqlSelect = "INSERT INTO prospects(ts,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,last_reachout_ts,next_reachout_ts) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@0,@0)";
+            try{db.Execute(sqlSelect,ts,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes);added_count++;}catch{}
+            
+         }
+     }
+     else{
+
+         //do something about existing prospect
+         sqlSelect = "UPDATE prospects SET is_contact=0 WHERE serial=@0";
+         db.Execute(sqlSelect,is_existing_prospect.serial);
+         duplicateCount++;
+         is_duplicate_prospect=true;
+     }
+
+     string bg_color="#e3e3e3";
+     if(is_existing_member!=null){
+         bg_color="#57d600";
+         existingUserCount++;
+         is_registered_user=true;
+     }
+
+     int prospectCurrentAge = AppFunctions.HowManyYearsAgoWas(birth_date);
+
+      string display_wanum=wanum;
+      display_wanum=display_wanum.Substring(display_wanum.Length -4) + "***";
+
+
+        <div style="overflow:auto;padding:5px;margin:5px;;background-color: @bg_color">
+            <div style="overflow: auto;">
+
+            <span style="float: right;padding: 5px;margin: 5px;font-size: 18px;font-weight: bold">@prospect_name, @city (גיל @prospectCurrentAge)</span>
+
+            </div>
+            <div style="overflow: auto;">
+            <span style="float: right;padding: 5px;margin: 5px;">בקשה הוגשה ב<span>@ts.ToShortDateString()</span></span>
+            <span style="float: right;padding: 5px;margin: 5px;">ווטסאפ #@display_wanum</span>
+            </div>
+            <div ><span style=";padding: 5px;margin: 5px;"><a href="@fb" target="_blank">@fb</a></span></div>
+            
+        </div>
+    }else{
+        <div style="overflow:auto;padding:5px;margin:5px;;background-color:  #ffd800;border-bottom: 2px solid #000">
+
+        <div style="overflow: auto;">
+       @userRec.GetUpperBound(0) -  @aLine
+        </div>
+        </div>
+    }
+   }
+    else
+    {
+        break;
+    }
+
+
+}
+         <div style="overflow: auto;padding: 5px;background-color: #fff;text-align: center">
+     <div style="overflow: auto;">
+     <h1>נא לאשר @toAddCount רשומות חדשות</h1>
+        <div style="overflow: auto;font-size: 14px;">@duplicateCount רשומות קיימות כבר<br>@existingUserCount משתמשים רשומים</div>
+         <button style="background-color: #57d600;width: 90%;padding: 5px;margin: 5px;font-size: 16px;color: #fff;font-weight: bold;" onclick="ParsePastedData(document.getElementById('WebProspects').value,'PROSPECTS',1);" id="PasteCommitBtn">קליטת @toAddCount רשומות</button>
+         <div class="spinner" style="text-align: center;font-size: 20px;display: none;" id="PasteCommitloader">
+            <div class="bounce1"></div>
+            <div class="bounce2"></div>
+            <div class="bounce3"></div>
+        </div>
+     </div>
+
+     </div>   
+
+ <div style="overflow: auto;height: 200px;">&nbsp;</div>
+</div>    
+</div>
+
+@if(is_commit){
+    AppFunctions.SetAppProperty("LastProspectsSyncDate",DateTime.Now.ToString());
+    AppFunctions.SetAppProperty("LastProspectsSyncBy",u_id.ToString());
+    AppFunctions.SetAppProperty("LastProspectsSyncCount",added_count.ToString());
+    string logMsg= "בוצעה הדבקת נתוני הצטרפות - נוצרו " + added_count + " רשומות חדשות במערכת";
+    AppFunctions.WriteLog ("SYNC", u_id,logMsg);
+
+    <span>@added_count רשומות התווספו בהצלחה!</span>
+
+}
+
+@{db.Close();}
+
+
+

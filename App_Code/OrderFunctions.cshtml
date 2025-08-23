@@ -1,0 +1,3140 @@
+﻿@functions {
+    public static decimal calcDiscountAmount(decimal discount_percantage, bool does_discount_includes_sh, bool does_discount_includes_spItems, decimal DiscountableItemsSubTotal, decimal DiscountableSpOffersSubTotal, decimal shipping_charge, decimal VouchersTotal = 0)
+    {
+        decimal discount_total = 0;
+        if (discount_percantage > 0)
+        {
+            if (does_discount_includes_sh)
+            {
+                if (does_discount_includes_spItems)
+                {
+                    discount_total = ((DiscountableItemsSubTotal + DiscountableSpOffersSubTotal + shipping_charge - VouchersTotal) * (discount_percantage / 100));
+                }
+                else
+                {
+                    discount_total = ((DiscountableItemsSubTotal + shipping_charge - VouchersTotal) * (discount_percantage / 100));
+                }
+            }
+            else
+            {
+                if (does_discount_includes_spItems)
+                {
+                    discount_total = ((DiscountableItemsSubTotal + DiscountableSpOffersSubTotal - VouchersTotal) * (discount_percantage / 100));
+                }
+                else
+                {
+                    discount_total = ((DiscountableItemsSubTotal - VouchersTotal) * (discount_percantage / 100));
+                }
+            }
+        }
+
+
+        return discount_total;
+    }
+    public static void CartOrderReset(int order_id, int rep_id)
+    {
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM OrderItems WHERE order_id=@0";
+        var orderItems = db.Query(sqlSelect, order_id);
+        sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var theOrder = db.QuerySingle(sqlSelect, order_id);
+        sqlSelect = "DELETE FROM mainCart WHERE rep_id=@0 AND order_id=@1";
+        db.Execute(sqlSelect, rep_id, order_id);
+        sqlSelect = "DELETE FROM CartSettings WHERE rep_id=@0 AND order_id=@1";
+        db.Execute(sqlSelect, rep_id, order_id);
+        foreach (var item in orderItems)
+        {
+            sqlSelect = "INSERT INTO MainCart (u_id,item_id,quan,timestamp,price,vendor_id,round_id,cost,prod_code,itemunit,product_type,item_user_comment,staff_comment,p_id,special_id,description,e_description,title,e_title,spOfferItemId,menuItemId,group_ts,isQuanByOption,QuanOptionId,OptionIdPrice,OptionIdQuan,optionIdAdditional,is_discountable,calc_price,is_charge_waived,waiver_code,is_free_charity,is_paid_charity,order_id,rep_id,is_spOffer,list_price,catalog_p_id,itemunit_type) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38)";
+            db.Execute(sqlSelect, theOrder.u_id, item.item_id, item.quan, DateTime.Now, item.price, item.vendor_id, theOrder.round_id, item.cost, item.prod_code, item.itemunit, item.product_type, item.item_user_comment, item.staff_comment, item.p_id, item.special_id, item.description, item.e_description, item.title, item.e_title, item.spOfferItemId, item.menuItemId, item.group_ts, item.isQuanByOption, item.QuanOptionId, item.OptionIdPrice, item.OptionIdQuan, item.optionIdAdditional, item.is_discountable, item.calc_price, item.is_charge_waived, item.waiver_code, item.is_free_charity, item.is_paid_charity, order_id, u_id, item.is_spOffer, item.list_price,item.catalog_p_id,item.itemunit_type);
+        }
+
+        sqlSelect = "INSERT INTO CartSettings(order_id,u_id,rep_id,round_id,ts,is_express,is_pickup,shipping_charge,is_credit,is_paying_debt,is_charity,is_donate,is_refund,credit_amount,return_amount,donate_amount,custom_total,charity_amount,refund_amount,discount_amount,discount_percantage,discount_total,does_discount_includes_sh,does_discount_includes_spItems,discount_title,discount_title_e,pd_discount,discount_id,last_edit_ts,shipping_type,charge_amount,credit_return_date,charge_account_id,charge_account_name,CreditCouponsTotal,GiftVouchersTotal,grand_total,is_coupon_discount,discount_coupon_id,shipping_coupon_id,is_cost_charge,cost_charge_markup,total_cost_charge,is_total_roundup,after_roundup_total,roundup_amount,is_donate_roundup,items_cost_charge,roundup_to  ) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48)";
+        db.Execute(sqlSelect, theOrder.order_id, theOrder.u_id, u_id, theOrder.round_id, DateTime.Now, theOrder.is_express, theOrder.is_pickup, theOrder.shipping_charge, theOrder.is_credit, theOrder.is_paying_debt, theOrder.is_charity, theOrder.is_donate, theOrder.is_refund, theOrder.credit_amount, theOrder.return_amount, theOrder.donate_amount, theOrder.custom_total, theOrder.charity_amount, theOrder.refund_amount, theOrder.discount_amount, theOrder.discount_percantage, theOrder.discount_total, theOrder.does_discount_includes_sh, theOrder.does_discount_includes_spItems, theOrder.discount_title, theOrder.discount_title_e, theOrder.pd_discount, theOrder.discount_id, DateTime.Now, theOrder.shipping_type, theOrder.charge_amount, theOrder.credit_return_date, theOrder.charge_account_id, theOrder.charge_account_name, theOrder.CreditCouponsTotal, theOrder.GiftVouchersTotal, theOrder.grand_total, theOrder.is_coupon_discount, theOrder.discount_coupon_id, theOrder.shipping_coupon_id, theOrder.is_cost_charge, theOrder.cost_charge_markup, theOrder.total_cost_charge, theOrder.is_total_roundup, theOrder.after_roundup_total, theOrder.roundup_amount, theOrder.is_donate_roundup, theOrder.items_cost_charge, theOrder.roundup_to);
+
+        OrderFunctions.ReCalculateCartOptions(order_id, u_id);
+
+        db.Close();
+    }
+    public static void ReCalculateCartOptions(int order_id, int rep_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM cartSettings WHERE order_id=@0 AND rep_id=@1";
+        var CartSettings = db.QuerySingle(sqlSelect, order_id, rep_id);
+        sqlSelect = "SELECT * FROM maincart WHERE order_id=@0 AND rep_id=@1";
+        var itemsList = db.Query(sqlSelect, order_id, rep_id);
+
+        int member_id = 0;
+        int round_id = 0;
+        decimal SubTotal = 0;
+        decimal grand_total = 0;
+        decimal menuItemsSubTotal = 0;
+        decimal unDiscountableItemsSubTotal = 0;
+        decimal DiscountableItemsSubTotal = 0;
+        decimal unDiscountableSpOffersSubTotal = 0;
+        decimal DiscountableSpOffersSubTotal = 0;
+        decimal unDiscountableSubTotal = 0;
+        decimal DiscountableSubTotal = 0;
+        decimal subTotalPlusShipping = 0;
+        decimal AfterVouchersDiscountableSubTotal = 0;
+        decimal AfterVoucherssubTotalPlusShipping = 0;
+
+        bool is_pickup = false;
+        bool is_express = false;
+        bool is_route = false;
+        decimal shipping_charge = 0;
+        decimal free_shipping_marker = 0;
+        decimal min_order = 0;
+        decimal max_order = 0;
+        int round_type = 0;
+
+        bool is_free_shipping = false;
+        bool is_custom_shipping = false;
+        bool is_order_over_sh_marker = false;
+        bool order_free_shipping = false;
+        bool is_free_charity = false;
+        string freeShippingTxt = "";
+        string ShippingTxt = "";
+        string ShippingTxt_e = "";
+        decimal MenuItemsPlusShipping = 0;
+        decimal discount_amount = 0;
+        decimal discount_total = 0;
+        decimal amount_to_be_discounted = 0;
+        decimal amount_to_be_collected = 0;
+        int pd_discount = 1;
+        bool is_personal_discount = false;
+        decimal discount_percantage = 0;
+        bool is_discount = false;
+        bool does_discount_includes_sh = false;
+        bool does_discount_includes_spItems = false;
+        bool is_pre_defined_discount = false;
+        string pre_defined_discount_title = "";
+        string pre_defined_discount_title_e = "";
+        int discount_id = 0;
+        string bundleSql = "";
+        string cartOptionsDisplayState = "none;";
+        int itemsCount = 0;
+        string shipping_type = "AUTO";
+        decimal charity_amount = 0;
+        decimal actual_pickup_amount = 0;
+        decimal donate_amount = 0;
+        decimal return_amount = 0;
+        decimal credit_amount = 0;
+        decimal charge_amount = 0;
+
+        bool is_coupon_shipping = false;
+        bool is_coupon_discount = false;
+        int coupon_shipping_cart_item_id = 0;
+        int discount_coupon_id = 0;
+        int shipping_coupon_id = 0;
+        int discount_coupon_cart_item_id = 0;
+        decimal GiftVouchersTotal = 0;
+        decimal CreditCouponsTotal = 0;
+
+        bool is_total_roundup = false;
+        decimal after_roundup_total = 0;
+        decimal roundup_amount = 0;
+        decimal roundup_to = 0;
+        bool is_donate_roundup = false;
+
+        bool is_cost_charge = false;
+        decimal cost_charge_markup = 0;
+        decimal total_cost_charge = 0;
+        decimal items_cost_charge = 0;
+
+        decimal waived_charge_sh = 0;
+        bool is_charge_waived = false;
+        string charge_waive_note = "";
+
+        try { is_total_roundup = CartSettings.is_total_roundup; } catch { }
+        try { is_donate_roundup = CartSettings.is_donate_roundup; } catch { }
+        try { roundup_to = CartSettings.roundup_to; } catch { }
+        try { is_cost_charge = CartSettings.is_cost_charge; } catch { }
+        try { cost_charge_markup = CartSettings.cost_charge_markup; } catch { }
+        try { is_charge_waived = CartSettings.is_charge_waived; } catch { }
+        try { charge_waive_note = CartSettings.charge_waive_note; } catch { }
+        try { waived_charge_sh = CartSettings.waived_charge_sh; } catch { }
+
+        try { member_id = CartSettings.u_id; } catch { }
+        try { round_id = CartSettings.round_id; } catch { }
+
+        try { pd_discount = CartSettings.pd_discount; } catch { }
+
+
+        sqlSelect = "SELECT is_free_shipping,free_shipping_marker,is_pickup,shipping_charge,min_order,max_order,round_type FROM dbo.rounds WHERE id=@0";
+        var round = db.QuerySingle(sqlSelect, round_id);
+        try { round_type = round.round_type; } catch { }
+        try { min_order = round.min_order; } catch { }
+        try { max_order = round.max_order; } catch { }
+        try { round_type = round.round_type; } catch { }
+
+
+
+
+
+        sqlSelect = "SELECT is_personal_discount,discount_percantage,does_discount_includes_sh,does_discount_includes_spItems,max_order_limit,is_free_shipping,free_charity_shipping,is_charity,single_charity_free_shipping FROM pb WHERE m_id=@0";
+        var userData = db.QuerySingle(sqlSelect, member_id);
+
+
+        //add s&h
+        try { shipping_type = CartSettings.shipping_type; } catch { }
+        if (shipping_type == null) { shipping_type = "AUTO"; }
+        sqlSelect = "SELECT Top(1) * FROM MainCart WHERE item_id=-10 AND u_id=@0 AND round_id=@1 AND rep_id=@2 ORDER BY price";
+        var ShippingCoupon = db.QuerySingle(sqlSelect, member_id, round_id, u_id);
+        if (ShippingCoupon != null)
+        {
+            shipping_type = "COUPON";
+            shipping_coupon_id = ShippingCoupon.special_id;
+        }
+
+        switch (shipping_type)
+        {
+            case "AUTO":
+                free_shipping_marker = round.free_shipping_marker;
+                if (round.is_free_shipping || (round.free_shipping_marker <= SubTotal && round.free_shipping_marker != 0) || round.is_pickup || userData.is_free_shipping || (userData.free_charity_shipping && is_free_charity) || userData.single_charity_free_shipping)
+                {
+                    is_free_shipping = true;
+                    shipping_charge = 0;
+                    if (round.is_pickup)
+                    {
+                        ShippingTxt = "הזמנת איסוף";
+                        ShippingTxt_e = "Pickup Order";
+                    }
+                    else
+                    {
+                        if (round.is_free_shipping)
+                        {
+                            ShippingTxt = "משלוח חינם";
+                            ShippingTxt_e = "Free Shipping";
+
+                        }
+                        else
+                        {
+                            if (free_shipping_marker <= SubTotal && free_shipping_marker != 0)
+                            {
+                                ShippingTxt = "משלוח חינם בהזמנות מעל " + free_shipping_marker.ToString("C", culture);
+                                ShippingTxt_e = "Free Shipping On Orders Above " + free_shipping_marker.ToString("C", culture);
+                            }
+                            if (userData.is_free_shipping)
+                            {
+                                ShippingTxt = "הטבת משלוח חינם";
+                                ShippingTxt_e = "Complimentry Free Shipping";
+                            }
+
+                            if ((userData.free_charity_shipping && is_free_charity) || (userData.single_charity_free_shipping && is_free_charity))
+                            {
+                                ShippingTxt = "משלוח חינם - קופת קהילה";
+                                ShippingTxt_e = "Free Shipping - Community Assistance";
+                            }
+                        }
+                    }
+
+                }
+                else
+                {
+                    shipping_charge = round.shipping_charge;
+                    is_free_shipping = false;
+                    ShippingTxt = "דמי משלוח ";
+                    ShippingTxt_e = "Shipping Charge ";
+                }
+
+                break;
+            case "CUSTOM":
+                shipping_charge = CartSettings.shipping_charge;
+                shipping_coupon_id = 0;
+                is_free_shipping = false;
+                ShippingTxt = "דמי משלוח מותאמים ";
+                ShippingTxt_e = "Custom Shipping Charge ";
+                break;
+            case "COUPON":
+                try { shipping_charge = ShippingCoupon.price; } catch { }
+                if (shipping_charge == 0)
+                {
+                    ShippingTxt = "קופון משלוח חינם";
+                    ShippingTxt_e = "Free Shipping Coupon!";
+
+                    is_free_shipping = true;
+                }
+                else
+                {
+                    is_free_shipping = false;
+                    ShippingTxt = "קופון משלוח במחיר מוזל";
+                    ShippingTxt_e = "Discounted Shipping Coupon!";
+                }
+                is_coupon_shipping = true;
+                try { coupon_shipping_cart_item_id = ShippingCoupon.id; } catch { }
+                break;
+
+            case "FREE":
+                shipping_coupon_id = 0;
+                ShippingTxt = "דמי משלוח בוטלו";
+                ShippingTxt_e = "Shipping Charge Waived";
+                is_free_shipping = true;
+                break;
+        }
+
+
+
+
+        foreach (var item in itemsList)
+        {
+            itemsCount++;
+            if (item.special_id == 0)
+            {
+                if (item.isQuanByOption)
+                {
+                    if (item.is_discountable)
+                    {
+                        DiscountableItemsSubTotal = DiscountableItemsSubTotal + item.calc_price;
+                    }
+                    else
+                    {
+                        unDiscountableItemsSubTotal = unDiscountableItemsSubTotal + item.calc_price;
+                    }
+                }
+                else
+                {
+                    if (item.is_discountable)
+                    {
+                        DiscountableItemsSubTotal = DiscountableItemsSubTotal + item.Quan * item.price;
+                    }
+                    else
+                    {
+                        unDiscountableItemsSubTotal = unDiscountableItemsSubTotal + +item.Quan * item.price;
+                    }
+                }
+            }
+            else
+            {
+                if (item.item_id == -1)
+                {
+                    if (!item.is_free_charity)
+                    {
+                        if (item.is_discountable)
+                        {
+                            DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal + item.Quan * item.price;
+                        }
+                        else
+                        {
+                            unDiscountableSpOffersSubTotal = unDiscountableSpOffersSubTotal + item.Quan * item.price;
+                        }
+                    }
+                    else
+                    {
+                        is_free_charity = true;
+                        charity_amount = charity_amount + (item.quan * item.price);
+                    }
+                }
+                if (item.item_id == -5)
+                {
+                    unDiscountableSpOffersSubTotal = unDiscountableSpOffersSubTotal + item.Quan * item.price;
+                }
+                if (item.item_id == -7)
+                {
+                    GiftVouchersTotal += item.price;
+                }
+                if (item.item_id == -9)
+                {
+                    CreditCouponsTotal += item.price;
+                }
+            }
+
+            if (item.p_id > 0)
+            {
+                items_cost_charge += item.cost * item.quan;
+            }
+        }
+
+        //     DiscountableSubTotal = DiscountableItemsSubTotal + DiscountableSpOffersSubTotal;
+        //     unDiscountableSubTotal = unDiscountableItemsSubTotal + unDiscountableSpOffersSubTotal;
+        //    SubTotal = DiscountableSubTotal + unDiscountableSubTotal;
+        //  DiscountableSubTotal = DiscountableSubTotal - GiftVouchersTotal;
+
+        total_cost_charge = items_cost_charge + cost_charge_markup;
+
+        DiscountableSubTotal = DiscountableItemsSubTotal + DiscountableSpOffersSubTotal;
+        unDiscountableSubTotal = unDiscountableItemsSubTotal + unDiscountableSpOffersSubTotal;
+        AfterVouchersDiscountableSubTotal = DiscountableSubTotal - GiftVouchersTotal;
+
+        if (does_discount_includes_sh)
+        {
+            AfterVouchersDiscountableSubTotal = AfterVouchersDiscountableSubTotal + shipping_charge;
+        }
+
+        SubTotal = DiscountableSubTotal + unDiscountableSubTotal;
+
+
+
+        subTotalPlusShipping = SubTotal + shipping_charge;
+        AfterVoucherssubTotalPlusShipping = subTotalPlusShipping - GiftVouchersTotal;
+        grand_total = AfterVoucherssubTotalPlusShipping;
+
+
+        try { pd_discount = CartSettings.pd_discount; } catch { }
+
+        switch (pd_discount)
+        {
+            case 2:
+                discount_amount = 0;
+                discount_percantage = 0;
+                discount_total = 0;
+                discount_coupon_id = 0;
+                break;
+            case 1:
+                //add discounts
+                decimal currentHighestDiscount = 0;
+                decimal currentDiscountTotal = 0;
+
+
+                if (max_order > userData.max_order_limit && userData.max_order_limit > 0)
+                {
+                    max_order = userData.max_order_limit;
+                }
+                if (userData.is_charity)
+                {
+                    min_order = 0;
+                }
+
+                sqlSelect = "SELECT * from discounts JOIN memberDiscounts ON discounts.discount_id=memberDiscounts.discount_id WHERE memberDiscounts.member_id=@0 AND(is_expirable=0 OR (is_expirable=1 AND valid_until>@1))";
+                var AvailableMemberDiscounts = db.Query(sqlSelect, member_id, local_time);
+                foreach (var discount in AvailableMemberDiscounts)
+                {
+                    decimal tmp_DiscountableItemsSubTotal = DiscountableItemsSubTotal;
+                    decimal tmp_DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal;
+
+                    if (discount.does_discount_includes_spItems)
+                    {
+                        tmp_DiscountableItemsSubTotal = DiscountableItemsSubTotal + unDiscountableItemsSubTotal;
+                        tmp_DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal + unDiscountableSpOffersSubTotal;
+                    }
+                    currentDiscountTotal = OrderFunctions.calcDiscountAmount(discount.discount_percantage, discount.does_discount_includes_sh, discount.does_discount_includes_spItems, tmp_DiscountableItemsSubTotal, tmp_DiscountableSpOffersSubTotal, shipping_charge, GiftVouchersTotal);
+                    if (currentDiscountTotal > currentHighestDiscount)
+                    {
+                        currentHighestDiscount = currentDiscountTotal;
+                        discount_id = discount.discount_id;
+                        discount_total = currentDiscountTotal;
+                        discount_percantage = discount.discount_percantage;
+                        does_discount_includes_sh = discount.does_discount_includes_sh;
+                        does_discount_includes_spItems = discount.does_discount_includes_spItems;
+                        pre_defined_discount_title = discount.title;
+                        pre_defined_discount_title_e = discount.title_e;
+                        pre_defined_discount_title = pre_defined_discount_title + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                        pre_defined_discount_title_e = pre_defined_discount_title_e + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+
+                    }
+                }
+
+
+                sqlSelect = "SELECT * FROM MainCart WHERE item_id=-8 AND rep_id=@0 AND order_id=@1";
+                var discountCouponItems = db.Query(sqlSelect,  u_id, order_id);
+                foreach (var discItem in discountCouponItems)
+                {
+                    sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+                    var coupon = db.QuerySingle(sqlSelect, discItem.special_id);
+                    if (coupon != null)
+                    {
+                        decimal tmp_DiscountableItemsSubTotal = DiscountableItemsSubTotal;
+                        decimal tmp_DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal;
+
+                        if (coupon.does_discount_includes_spItems)
+                        {
+                            tmp_DiscountableItemsSubTotal = DiscountableItemsSubTotal+unDiscountableItemsSubTotal;
+                            tmp_DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal+unDiscountableSpOffersSubTotal;
+                        }
+                        currentDiscountTotal = OrderFunctions.calcDiscountAmount(coupon.order_discount_percantage, coupon.does_discount_includes_sh, coupon.does_discount_includes_spItems, tmp_DiscountableItemsSubTotal, tmp_DiscountableSpOffersSubTotal, shipping_charge, GiftVouchersTotal);
+                        if (currentDiscountTotal > currentHighestDiscount)
+                        {
+                            currentHighestDiscount = currentDiscountTotal;
+                            discount_id = coupon.coupon_id;
+                            discount_total = currentDiscountTotal;
+                            discount_percantage = coupon.order_discount_percantage;
+                            does_discount_includes_sh = coupon.does_discount_includes_sh;
+                            does_discount_includes_spItems = coupon.does_discount_includes_spItems;
+                            pre_defined_discount_title = "🎟️ " + coupon.coupon_title;
+                            pre_defined_discount_title_e = "🎟️ " + coupon.coupon_title_e;
+                            pre_defined_discount_title = pre_defined_discount_title + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                            pre_defined_discount_title_e = pre_defined_discount_title_e + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                            discount_coupon_id = coupon.coupon_id;
+                            discount_coupon_cart_item_id = discItem.id;
+                            is_coupon_discount = true;
+
+                        }
+
+
+                    }
+                }
+
+
+                break;
+            case 0:
+                try { discount_amount = CartSettings.discount_amount; } catch { }
+                try { discount_percantage = CartSettings.discount_percantage; } catch { }
+                try { does_discount_includes_sh = CartSettings.does_discount_includes_sh; } catch { }
+                try { does_discount_includes_spItems = CartSettings.does_discount_includes_spItems; } catch { }
+                try { pre_defined_discount_title = CartSettings.discount_title; } catch { }
+                try { pre_defined_discount_title_e = CartSettings.discount_title_e; } catch { }
+                try { discount_id = CartSettings.discount_id; } catch { }
+                if (discount_percantage > 0)
+                {
+
+                    decimal tmp_DiscountableItemsSubTotal = DiscountableItemsSubTotal;
+                    decimal tmp_DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal;
+
+                    if (CartSettings.does_discount_includes_spItems)
+                    {
+                        tmp_DiscountableItemsSubTotal = DiscountableItemsSubTotal + unDiscountableItemsSubTotal;
+                        tmp_DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal + unDiscountableSpOffersSubTotal;
+                    }
+                    try { discount_total = OrderFunctions.calcDiscountAmount(discount_percantage, does_discount_includes_sh, does_discount_includes_spItems, tmp_DiscountableItemsSubTotal, tmp_DiscountableSpOffersSubTotal, shipping_charge, GiftVouchersTotal); } catch { }
+                }
+                else
+                {
+                    discount_total = discount_amount;
+                }
+
+                break;
+        }
+
+
+        if (discount_total > 0 || discount_amount > 0)
+        {
+            is_discount = true;
+        }
+
+
+        if (does_discount_includes_sh)
+        {
+            grand_total = AfterVoucherssubTotalPlusShipping - discount_total;
+
+        }
+        else
+        {
+            grand_total = SubTotal - GiftVouchersTotal - discount_total + shipping_charge;
+
+        }
+
+
+        // grand_total = grand_total - GiftVouchersTotal;
+
+
+
+        donate_amount = CartSettings.donate_amount;
+        return_amount = CartSettings.return_amount;
+        credit_amount = CartSettings.credit_amount;
+        charge_amount = CartSettings.charge_amount;
+
+        actual_pickup_amount = grand_total + return_amount + donate_amount - CreditCouponsTotal - credit_amount - charge_amount;
+        if (is_cost_charge)
+        {
+            amount_to_be_collected = total_cost_charge + return_amount + donate_amount - credit_amount - charge_amount - CreditCouponsTotal;
+        }
+        if (is_total_roundup)
+        {
+            roundup_amount = MoneyFunctions.RoundUpAmount(Convert.ToDouble(actual_pickup_amount), Convert.ToDouble(roundup_to));
+            after_roundup_total = actual_pickup_amount + roundup_amount;
+        }
+
+
+
+
+        if (is_charge_waived)
+        {
+            amount_to_be_collected = waived_charge_sh;
+            roundup_amount = 0;
+            after_roundup_total = 0;
+            donate_amount = 0;
+            return_amount = 0;
+            credit_amount = 0;
+            charge_amount = 0;
+        }
+
+        sqlSelect = "UPDATE cartSettings SET discount_amount=@0, discount_percantage=@1, discount_total=@2, does_discount_includes_sh=@3, does_discount_includes_spItems=@4, discount_title=@5, discount_title_e=@6,pd_discount=@7, discount_id=@8, shipping_title=@9, shipping_title_e=@10, grand_total=@11, subTotal=@12, subTotalPlusShipping=@13, DiscountableItemsSubTotal=@14, unDiscountableItemsSubTotal=@15, DiscountableSpOffersSubTotal=@16, unDiscountableSpOffersSubTotal=@17,actual_pickup_amount=@18,credit_amount=@19,donate_amount=@20,return_amount=@21,shipping_charge=@22,CreditCouponsTotal=@23,charge_amount=@24,GiftVouchersTotal=@25,shipping_type=@26,is_coupon_discount=@27,shipping_coupon_id=@28,discount_coupon_id=@29,roundup_amount=@30,after_roundup_total=@31,items_cost_charge=@32,total_cost_charge=@33 WHERE order_id=@34 AND rep_id=@35";
+        db.Execute(sqlSelect, discount_amount, discount_percantage, discount_total, does_discount_includes_sh, does_discount_includes_spItems, pre_defined_discount_title, pre_defined_discount_title_e, pd_discount, discount_id, ShippingTxt, ShippingTxt_e, grand_total, SubTotal, subTotalPlusShipping, DiscountableItemsSubTotal, unDiscountableItemsSubTotal, DiscountableSpOffersSubTotal, unDiscountableSpOffersSubTotal, actual_pickup_amount, credit_amount, donate_amount, return_amount, shipping_charge, CreditCouponsTotal, charge_amount, GiftVouchersTotal, shipping_type, is_coupon_discount, shipping_coupon_id, discount_coupon_id, roundup_amount, after_roundup_total, items_cost_charge, total_cost_charge,order_id, rep_id);
+        db.Close();
+    }
+
+
+    public static void ReCalculateCartOptions_bck(int order_id, int rep_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM cartSettings WHERE order_id=@0 AND rep_id=@1";
+        var CartSettings = db.QuerySingle(sqlSelect, order_id, rep_id);
+        sqlSelect = "SELECT * FROM maincart WHERE order_id=@0 AND rep_id=@1";
+        var itemsList = db.Query(sqlSelect, order_id, rep_id);
+
+        int member_id = 0;
+        int round_id = 0;
+        decimal SubTotal = 0;
+        decimal grand_total = 0;
+        decimal menuItemsSubTotal = 0;
+        decimal unDiscountableItemsSubTotal = 0;
+        decimal DiscountableItemsSubTotal = 0;
+        decimal unDiscountableSpOffersSubTotal = 0;
+        decimal DiscountableSpOffersSubTotal = 0;
+        decimal unDiscountableSubTotal = 0;
+        decimal DiscountableSubTotal = 0;
+        decimal subTotalPlusShipping = 0;
+        bool is_pickup = false;
+        bool is_express = false;
+        bool is_route = false;
+        decimal shipping_charge = 0;
+        decimal free_shipping_marker = 0;
+        decimal min_order = 0;
+        decimal max_order = 0;
+        int round_type = 0;
+
+        bool is_free_shipping = false;
+        bool is_custom_shipping = false;
+        bool is_order_over_sh_marker = false;
+        bool order_free_shipping = false;
+        bool is_free_charity = false;
+        string freeShippingTxt = "";
+        string ShippingTxt = "";
+        string ShippingTxt_e = "";
+        decimal MenuItemsPlusShipping = 0;
+        decimal discount_amount = 0;
+        decimal discount_total = 0;
+        decimal amount_to_be_discounted = 0;
+        decimal amount_to_be_collected = 0;
+        int pd_discount = 1;
+        bool is_personal_discount = false;
+        decimal discount_percantage = 0;
+        bool is_discount = true;
+        bool does_discount_includes_sh = false;
+        bool does_discount_includes_spItems = false;
+        bool is_pre_defined_discount = false;
+        string pre_defined_discount_title = "";
+        string pre_defined_discount_title_e = "";
+        int discount_id = 0;
+        string bundleSql = "";
+        string cartOptionsDisplayState = "none;";
+        int itemsCount = 0;
+        string shipping_type = "AUTO";
+        decimal charity_amount = 0;
+        decimal actual_pickup_amount = 0;
+        decimal donate_amount = 0;
+        decimal return_amount = 0;
+        decimal credit_amount = 0;
+        decimal charge_amount = 0;
+
+        bool is_coupon_shipping = false;
+        int coupon_shipping_cart_item_id = 0;
+        int discount_coupon_id = 0;
+        int discount_coupon_cart_item_id = 0;
+
+
+        sqlSelect = "SELECT * FROM MainCart WHERE item_id=-9 AND  rep_id=@0 AND order_id=@1";
+        var CreditCouponItems = db.Query(sqlSelect, u_id, order_id);
+
+        decimal CreditCouponsTotal = 0;
+        foreach (var CreditCoupon in CreditCouponItems)
+        {
+            CreditCouponsTotal += CreditCoupon.price;
+        }
+
+        sqlSelect = "SELECT * FROM MainCart WHERE item_id=-7 AND  rep_id=@0 AND order_id=@1";
+        var GiftVoucherCouponItems = db.Query(sqlSelect, u_id, order_id);
+
+        decimal GiftVouchersTotal = 0;
+        foreach (var GiftVoucher in GiftVoucherCouponItems)
+        {
+            GiftVouchersTotal += GiftVoucher.price;
+            //   DiscountableItemsSubTotal = DiscountableItemsSubTotal - GiftVoucher.price;
+            //  DiscountableSubTotal = DiscountableSubTotal - GiftVoucher.price;
+
+        }
+
+
+        foreach (var item in itemsList)
+        {
+            itemsCount++;
+            if (item.special_id == 0)
+            {
+                if (item.isQuanByOption)
+                {
+                    if (item.is_discountable)
+                    {
+                        DiscountableItemsSubTotal = DiscountableItemsSubTotal + item.calc_price;
+                    }
+                    else
+                    {
+                        unDiscountableItemsSubTotal = unDiscountableItemsSubTotal + item.calc_price;
+                    }
+                }
+                else
+                {
+                    if (item.is_discountable)
+                    {
+                        DiscountableItemsSubTotal = DiscountableItemsSubTotal + item.Quan * item.price;
+                    }
+                    else
+                    {
+                        unDiscountableItemsSubTotal = unDiscountableItemsSubTotal + +item.Quan * item.price;
+                    }
+                }
+            }
+            else
+            {
+                if (item.item_id == -1)
+                {
+                    if (!item.is_free_charity)
+                    {
+                        if (item.is_discountable)
+                        {
+                            DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal + item.Quan * item.price;
+                        }
+                        else
+                        {
+                            unDiscountableSpOffersSubTotal = unDiscountableSpOffersSubTotal + item.Quan * item.price;
+                        }
+                    }
+                    else
+                    {
+                        is_free_charity = true;
+                        charity_amount = charity_amount + (item.quan * item.price);
+                    }
+                }
+                if (item.item_id == -5)
+                {
+                    unDiscountableSpOffersSubTotal = unDiscountableSpOffersSubTotal + item.Quan * item.price;
+                }
+                if (item.item_id == -7)
+                {
+                    unDiscountableSpOffersSubTotal = unDiscountableSpOffersSubTotal - item.Quan * item.price;
+                }
+            }
+
+        }
+
+        DiscountableSubTotal = DiscountableItemsSubTotal + DiscountableSpOffersSubTotal;
+        unDiscountableSubTotal = unDiscountableItemsSubTotal + unDiscountableSpOffersSubTotal;
+        SubTotal = DiscountableSubTotal + unDiscountableSubTotal;
+        subTotalPlusShipping = SubTotal;
+
+        try { member_id = CartSettings.u_id; } catch { }
+        try { round_id = CartSettings.round_id; } catch { }
+        sqlSelect = "SELECT is_free_shipping,free_shipping_marker,is_pickup,shipping_charge,min_order,max_order,round_type FROM dbo.rounds WHERE id=@0";
+        var round = db.QuerySingle(sqlSelect, round_id);
+        sqlSelect = "SELECT is_personal_discount,discount_percantage,does_discount_includes_sh,does_discount_includes_spItems,max_order_limit,is_free_shipping,free_charity_shipping,is_charity,single_charity_free_shipping FROM pb WHERE m_id=@0";
+        var userData = db.QuerySingle(sqlSelect, member_id);
+        //add s&h
+        try { shipping_type = CartSettings.shipping_type; } catch { }
+        if (shipping_type == null) { shipping_type = "AUTO"; }
+        sqlSelect = "SELECT Top(1) * FROM MainCart WHERE item_id=-10 AND u_id=@0 AND round_id=@1 AND rep_id=@2 ORDER BY price";
+        var ShippingCoupon = db.QuerySingle(sqlSelect, member_id, round_id, u_id);
+        if (ShippingCoupon != null)
+        {
+            shipping_type = "COUPON";
+        }
+
+
+
+        switch (shipping_type)
+        {
+            case "AUTO":
+                free_shipping_marker = round.free_shipping_marker;
+                if (round.is_free_shipping || (round.free_shipping_marker <= SubTotal && round.free_shipping_marker != 0) || round.is_pickup || userData.is_free_shipping || (userData.free_charity_shipping && is_free_charity) || userData.single_charity_free_shipping)
+                {
+                    is_free_shipping = true;
+                    shipping_charge = 0;
+                    if (round.is_pickup)
+                    {
+                        ShippingTxt = "הזמנת איסוף";
+                        ShippingTxt_e = "Pickup Order";
+                    }
+                    else
+                    {
+                        if (round.is_free_shipping)
+                        {
+                            ShippingTxt = "משלוח חינם";
+                            ShippingTxt_e = "Free Shipping";
+
+                        }
+                        else
+                        {
+                            if (free_shipping_marker <= SubTotal && free_shipping_marker != 0)
+                            {
+                                ShippingTxt = "משלוח חינם בהזמנות מעל " + free_shipping_marker.ToString("C", culture);
+                                ShippingTxt_e = "Free Shipping On Orders Above " + free_shipping_marker.ToString("C", culture);
+                            }
+                            if (userData.is_free_shipping)
+                            {
+                                ShippingTxt = "הטבת משלוח חינם";
+                                ShippingTxt_e = "Complimentry Free Shipping";
+                            }
+
+                            if ((userData.free_charity_shipping && is_free_charity) || (userData.single_charity_free_shipping && is_free_charity))
+                            {
+                                ShippingTxt = "משלוח חינם - קופת קהילה";
+                                ShippingTxt_e = "Free Shipping - Community Assistance";
+                            }
+                        }
+                    }
+
+                }
+                else
+                {
+                    shipping_charge = round.shipping_charge;
+                    is_free_shipping = false;
+                    ShippingTxt = "דמי משלוח " + shipping_charge.ToString("C", culture);
+                    ShippingTxt_e = "Shipping Charge " + shipping_charge.ToString("C", culture);
+                }
+
+                break;
+            case "CUSTOM":
+                shipping_charge = CartSettings.shipping_charge;
+                is_free_shipping = false;
+                ShippingTxt = "דמי משלוח " + shipping_charge.ToString("C", culture);
+                ShippingTxt_e = "Shipping Charge " + shipping_charge.ToString("C", culture);
+                break;
+            case "COUPON":
+                try { shipping_charge = ShippingCoupon.price; } catch { }
+                if (shipping_charge == 0)
+                {
+                    ShippingTxt = "🎟️ קופון משלוח חינם";
+                    ShippingTxt_e = "🎟️ Free Shipping Coupon!";
+
+                    is_free_shipping = true;
+                }
+                else
+                {
+                    is_free_shipping = false;
+                    ShippingTxt = "🎟️ קופון משלוח במחיר מוזל";
+                    ShippingTxt_e = "🎟️ Discounted Shipping Coupon!";
+                }
+                is_coupon_shipping = true;
+                coupon_shipping_cart_item_id = ShippingCoupon.id;
+                break;
+
+            case "FREE":
+                ShippingTxt = "דמי משלוח בוטלו";
+                ShippingTxt_e = "Shipping Charge Waived";
+                is_free_shipping = true;
+                break;
+        }
+
+        subTotalPlusShipping = SubTotal + shipping_charge;
+        grand_total = subTotalPlusShipping;
+        round_type = round.round_type;
+        min_order = round.min_order;
+        max_order = round.max_order;
+        round_type = round.round_type;
+
+        try { pd_discount = CartSettings.pd_discount; } catch { }
+        DataFunctions.WriteDebugLine("pd:" + pd_discount);
+        //  pd_discount = 0;
+        switch (pd_discount)
+        {
+            case 2:
+                is_discount = false;
+                discount_amount = 0;
+                discount_percantage = 0;
+                discount_total = 0;
+                break;
+            case 1:
+                //add discounts
+                decimal currentHighestDiscount = 0;
+                decimal currentDiscountTotal = 0;
+
+
+                if (max_order > userData.max_order_limit && userData.max_order_limit > 0)
+                {
+                    max_order = userData.max_order_limit;
+                }
+                if (userData.is_charity)
+                {
+                    min_order = 0;
+                }
+
+                sqlSelect = "SELECT * from discounts JOIN memberDiscounts ON discounts.discount_id=memberDiscounts.discount_id WHERE memberDiscounts.member_id=@0 AND(is_expirable=0 OR (is_expirable=1 AND valid_until>@1))";
+                var AvailableMemberDiscounts = db.Query(sqlSelect, member_id, local_time);
+                foreach (var discount in AvailableMemberDiscounts)
+                {
+
+                    currentDiscountTotal = OrderFunctions.calcDiscountAmount(discount.discount_percantage, discount.does_discount_includes_sh, discount.does_discount_includes_spItems, DiscountableItemsSubTotal, DiscountableSpOffersSubTotal, shipping_charge);
+                    if (currentDiscountTotal > currentHighestDiscount)
+                    {
+                        currentHighestDiscount = currentDiscountTotal;
+                        discount_id = discount.discount_id;
+                        discount_total = currentDiscountTotal;
+                        discount_percantage = discount.discount_percantage;
+                        does_discount_includes_sh = discount.does_discount_includes_sh;
+                        does_discount_includes_spItems = discount.does_discount_includes_spItems;
+                        pre_defined_discount_title = discount.title;
+                        pre_defined_discount_title_e = discount.title_e;
+                        pre_defined_discount_title = pre_defined_discount_title + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                        pre_defined_discount_title_e = pre_defined_discount_title_e + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                    }
+                }
+
+
+                sqlSelect = "SELECT * FROM MainCart WHERE item_id=-8 AND u_id=@0 AND round_id=@1 AND rep_id=@2 AND order_id=@3";
+                var discountCouponItems = db.Query(sqlSelect, member_id, round_id, u_id, order_id);
+                foreach (var discItem in discountCouponItems)
+                {
+                    sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+                    var coupon = db.QuerySingle(sqlSelect, discItem.special_id);
+                    if (coupon != null)
+                    {
+                        currentDiscountTotal = OrderFunctions.calcDiscountAmount(coupon.order_discount_percantage, coupon.does_discount_includes_sh, coupon.does_discount_includes_spItems, DiscountableItemsSubTotal, DiscountableSpOffersSubTotal, shipping_charge);
+                        if (currentDiscountTotal > currentHighestDiscount)
+                        {
+                            currentHighestDiscount = currentDiscountTotal;
+                            discount_id = coupon.coupon_id;
+                            discount_total = currentDiscountTotal;
+                            discount_percantage = coupon.order_discount_percantage;
+                            does_discount_includes_sh = coupon.does_discount_includes_sh;
+                            does_discount_includes_spItems = coupon.does_discount_includes_spItems;
+                            pre_defined_discount_title = "🎟️ " + coupon.coupon_title;
+                            pre_defined_discount_title_e = "🎟️ " + coupon.coupon_title_e;
+                            pre_defined_discount_title = pre_defined_discount_title + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                            pre_defined_discount_title_e = pre_defined_discount_title_e + " (" + String.Format("{0:0.00}", discount_percantage) + "%)";
+                            discount_coupon_id = coupon.coupon_id;
+                            discount_coupon_cart_item_id = discItem.id;
+                        }
+
+
+                    }
+                }
+
+
+                break;
+            case 0:
+                try { discount_amount = CartSettings.discount_amount; } catch { }
+                try { discount_percantage = CartSettings.discount_percantage; } catch { }
+                try { does_discount_includes_sh = CartSettings.does_discount_includes_sh; } catch { }
+                try { does_discount_includes_spItems = CartSettings.does_discount_includes_spItems; } catch { }
+                try { pre_defined_discount_title = CartSettings.discount_title; } catch { }
+                try { pre_defined_discount_title_e = CartSettings.discount_title_e; } catch { }
+                try { discount_id = CartSettings.discount_id; } catch { }
+                if (discount_percantage > 0)
+                {
+                    if (does_discount_includes_spItems)
+                    {
+                        DiscountableItemsSubTotal = DiscountableItemsSubTotal + unDiscountableItemsSubTotal;
+                        DiscountableSpOffersSubTotal = DiscountableSpOffersSubTotal + unDiscountableSpOffersSubTotal;
+                    }
+
+                    try { discount_total = OrderFunctions.calcDiscountAmount(discount_percantage, does_discount_includes_sh, does_discount_includes_spItems, DiscountableItemsSubTotal, DiscountableSpOffersSubTotal, shipping_charge); } catch { }
+                }
+                else
+                {
+                    discount_total = discount_amount;
+                }
+                break;
+        }
+
+
+
+
+
+        if (does_discount_includes_sh)
+        {
+            grand_total = subTotalPlusShipping - discount_total;
+        }
+        else
+        {
+            grand_total = SubTotal - discount_total + shipping_charge;
+        }
+
+
+        grand_total = grand_total - GiftVouchersTotal;
+
+        donate_amount = CartSettings.donate_amount;
+        return_amount = CartSettings.return_amount;
+        credit_amount = CartSettings.credit_amount;
+        charge_amount = CartSettings.charge_amount;
+
+        actual_pickup_amount = grand_total + return_amount + donate_amount - CreditCouponsTotal - credit_amount - charge_amount;
+
+
+        //        DataFunctions.WriteDebugLine("disc_id in cart: " + discount_id.ToString());
+        sqlSelect = "UPDATE cartSettings SET discount_amount=@0, discount_percantage=@1, discount_total=@2, does_discount_includes_sh=@3, does_discount_includes_spItems=@4, discount_title=@5, discount_title_e=@6,pd_discount=@7, discount_id=@8, shipping_title=@9, shipping_title_e=@10, grand_total=@11, subTotal=@12, subTotalPlusShipping=@13, DiscountableItemsSubTotal=@14, unDiscountableItemsSubTotal=@15, DiscountableSpOffersSubTotal=@16, unDiscountableSpOffersSubTotal=@17,actual_pickup_amount=@18,credit_amount=@19,donate_amount=@20,return_amount=@21,shipping_charge=@22,CreditCouponsTotal=@23,charge_amount=@24 WHERE order_id=@25 AND rep_id=@26";
+        db.Execute(sqlSelect, discount_amount, discount_percantage, discount_total, does_discount_includes_sh, does_discount_includes_spItems, pre_defined_discount_title, pre_defined_discount_title_e, pd_discount, discount_id, ShippingTxt, ShippingTxt_e, grand_total, SubTotal, subTotalPlusShipping, DiscountableItemsSubTotal, unDiscountableItemsSubTotal, DiscountableSpOffersSubTotal, unDiscountableSpOffersSubTotal, actual_pickup_amount, credit_amount, donate_amount, return_amount, shipping_charge, CreditCouponsTotal, charge_amount, order_id, rep_id);
+        db.Close();
+    }
+    public static int GetOrderLeadTimeMin(int order_id)
+    {
+        int lead_time = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT round_id,is_express,is_pickup FROM MainOrders WHERE order_id=@0";
+        var Order = db.QuerySingle(sqlSelect, order_id);
+        int round_id = 0; try { round_id = Order.round_id; } catch { }
+        sqlSelect = "SELECT round_type,express_eta_min,pu_lead_time,round_start,estimated_duration FROM rounds WHERE id=@0";
+        var Round = db.QuerySingle(sqlSelect, round_id);
+        if (Round != null)
+        {
+            bool is_express = false; try { is_express = Order.is_express; } catch { }
+            bool is_pickup = false; try { is_pickup = Order.is_pickup; } catch { }
+            if (is_express)
+            {
+                try { lead_time = Round.express_eta_min; } catch { }
+            }
+            if (is_pickup)
+            {
+                try { lead_time = Round.pu_lead_time; } catch { }
+
+            }
+            if (lead_time == 0)
+            {
+                DateTime defDate = Convert.ToDateTime("1/1/1900");
+                DateTime round_start = defDate; try { round_start = Round.round_start; } catch { }
+                int estimated_duration = 0; try { estimated_duration = Round.estimated_duration; } catch { }
+                if (round_start != defDate && estimated_duration > 0)
+                {
+                    round_start = round_start.AddMinutes(estimated_duration);
+                    lead_time = AppFunctions.MinutesDifferenceToDate(round_start);
+                }
+            }
+        }
+
+        db.Close();
+        return lead_time;
+    }
+    public static int CreateOrderEnvelopeId(int order_id, bool is_update = true, int delivery_id=0)
+    {
+        int envelope_id = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT round_id FROM MainOrders WHERE order_id=@0";
+        var Order = db.QuerySingle(sqlSelect, order_id);
+
+        if (delivery_id == 0)
+        {
+            int round_id = 0; try { round_id = Order.round_id; } catch { }
+            sqlSelect = "SELECT z_serial FROM rounds WHERE id=@0";
+            var round = db.QuerySingle(sqlSelect, round_id);
+            int z_serial = 0; try { z_serial = round.z_serial; } catch { }
+
+            sqlSelect = "SELECT MAX(envelope_id) as envelope_id FROM mainorders WHERE z_serial=@0 ";
+            Order = db.QuerySingle(sqlSelect, z_serial);
+        }
+        else
+        {
+            sqlSelect = "SELECT MAX(envelope_id) as envelope_id FROM mainorders WHERE delivery_id=@0 ";
+            Order = db.QuerySingle(sqlSelect, delivery_id);
+        }
+
+
+
+        if (Order != null)
+        {
+            int max_envelope_id = 0; try {max_envelope_id= Order.envelope_id;  } catch { }
+            envelope_id = max_envelope_id + 1;
+        }
+        sqlSelect = "UPDATE mainorders SET envelope_id=@0 WHERE order_id=@1";
+        db.Execute(sqlSelect, envelope_id, order_id);
+
+        db.Close();
+        return envelope_id;
+    }
+
+    public static decimal CalculateOrderComission(int order_id)
+    {
+        decimal order_commission = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT * FROM orderitems WHERE order_id=@0 ORDER BY special_id,item_id DESC";
+        var OrderItems = db.Query(sqlSelect, order_id);
+        foreach (var item in OrderItems)
+        {
+            order_commission += OrderFunctions.GetItemCommission(item.id);
+
+        }
+
+
+        db.Close();
+        return order_commission;
+    }
+    public static decimal GetItemCommission(int item_serial)
+    {
+        decimal item_commission = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM orderitems WHERE id=@0";
+        var orderItem = db.QuerySingle(sqlSelect, item_serial);
+        int p_id = orderItem.p_id;
+
+
+
+        //if item is a special offer
+        if (orderItem.item_id == -1)
+        {
+            sqlSelect = "SELECT * FROM specialoffers WHERE id=@0";
+            var spOffer = db.QuerySingle(sqlSelect, orderItem.special_id);
+            item_commission = orderItem.quan * spOffer.special_commision;
+        }
+
+
+        //if regular item
+        if (orderItem.item_id > 0)
+        {
+            if (!orderItem.isQuanByOption)
+            {
+                sqlSelect = "SELECT commision_rate FROM products WHERE p_id=@0";
+                var product = db.QuerySingle(sqlSelect, p_id);
+                try { item_commission = orderItem.quan * product.commision_rate; } catch { }
+            }
+            else
+            {
+                sqlSelect = "SELECT * FROM productpricingoptions WHERE serial=@0";
+                var priceOption = db.QuerySingle(sqlSelect, orderItem.QuanOptionId);
+                if (priceOption != null)
+                {
+                    int quan = orderItem.quan;
+                    int AdditionalsOverOptionQuan = 0;
+                    if (quan > priceOption.quan)
+                    {
+                        AdditionalsOverOptionQuan = quan - priceOption.quan;
+                    }
+
+                    try { item_commission = priceOption.optionCommision + (AdditionalsOverOptionQuan * priceOption.AdditionalUnitCommision); } catch { }
+                }
+            }
+        }
+
+        db.Close();
+
+        // DataFunctions.WriteDebugLine("item #" + orderItem.id + " comm: " + item_commission.ToString());
+        return item_commission;
+    }
+    public static string ApplyCoupon(int order_id, int coupon_id, int selected_item_id = 0)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int rep_id = u_id;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM coupons WHERE coupon_id=@0";
+        var coupon = db.QuerySingle(sqlSelect, coupon_id);
+        sqlSelect = "SELECT * FROM cartsettings WHERE order_id=@0";
+        var cart = db.QuerySingle(sqlSelect, order_id);
+        int round_id = cart.round_id;
+        string offer_type = coupon.offer_type;
+        string theHtmlOutput = "";
+        int member_id = cart.u_id;
+        int item_id = -5;
+
+        switch (offer_type)
+        {
+
+            case "ITEM":
+                if (true)
+                {
+                    dynamic MenuItem;
+                    int free_product_catalog_id = 0; free_product_catalog_id = coupon.free_product_id;
+
+                    if (selected_item_id>0)
+                    {
+                        sqlSelect = "SELECT TOP(1) * FROM RoundMenuItems WHERE id=@0";
+                        MenuItem = db.QuerySingle(sqlSelect, selected_item_id);
+                        free_product_catalog_id = MenuItem.catalog_p_id;
+
+                    }
+                    else
+                    {
+                        sqlSelect = "SELECT TOP(1) * FROM RoundMenuItems WHERE catalog_p_id=@0 AND round_id=@1";
+                        MenuItem = db.QuerySingle(sqlSelect, free_product_catalog_id, round_id);
+
+                    }
+                    if (MenuItem != null)
+                    {
+                        int free_product_serial = MenuItem.p_id;
+
+                        decimal price = coupon.offer_price;
+                        decimal calc_price = 0;
+                        decimal list_price = 0;
+
+                        bool is_discountable = coupon.allow_multi_discount;
+                        int item_quan = 1;
+                        string coupon_item_type = coupon.coupon_item_type;
+                        int price_type = 0;
+                        string item_discount_type = coupon.item_discount_type;
+                        if (item_discount_type == "LIST") { price_type = 1; }
+                        list_price = OrderFunctions.GetItemEffectivePrice(free_product_serial, round_id, coupon.free_product_quan, price_type);
+                        switch (coupon_item_type)
+                        {
+                            case "DISC":
+                                if (true)
+                                {
+                                    price = list_price - (list_price * (coupon.item_discount_rate / 100));
+                                }
+
+                                break;
+                            case "PRICE":
+                                price = coupon.offer_price;
+
+                                break;
+                            case "FREE":
+                                price = 0;
+                                break;
+                        }
+                        calc_price = price;
+
+
+                        sqlSelect = "INSERT INTO MainCart(u_id,item_id,quan,timestamp,price,title,e_title,description,e_description,vendor_id,round_id,cost,prod_code,itemunit,product_type,item_user_comment,staff_comment,p_id,is_discountable,calc_price,order_id,rep_id,special_id,group_ts,list_price,menuitemid) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25)";
+                        db.Execute(sqlSelect, member_id, item_id, item_quan, local_time, price, coupon.coupon_title, coupon.coupon_title_e, coupon.coupon_notes, coupon.coupon_notes_e, MenuItem.vendor_id, cart.round_id, MenuItem.cost, MenuItem.prod_code, MenuItem.itemunit, MenuItem.product_type, MenuItem.item_user_comment, MenuItem.staff_comment, item_id, is_discountable, calc_price, order_id, u_id, coupon_id, local_time, list_price,0);
+                        item_id = -6;
+                        item_quan = coupon.free_product_quan;
+                        sqlSelect = "INSERT INTO MainCart(u_id,item_id,quan,timestamp,price,title,e_title,description,e_description,vendor_id,round_id,cost,prod_code,itemunit,product_type,item_user_comment,staff_comment,p_id,is_discountable,calc_price,order_id,rep_id,special_id,group_ts,menuitemid,catalog_p_id) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25)";
+                        db.Execute(sqlSelect, member_id, item_id, item_quan, local_time, 0, MenuItem.title, MenuItem.title_e, MenuItem.description, MenuItem.desc_e, MenuItem.vendor_id, cart.round_id, MenuItem.cost, MenuItem.prod_code, MenuItem.itemunit, MenuItem.product_type, MenuItem.item_user_comment, MenuItem.staff_comment, MenuItem.p_id, is_discountable, calc_price, order_id, u_id, coupon_id, local_time,MenuItem.id, free_product_catalog_id);
+                        theHtmlOutput = theHtmlOutput + " " + MenuItem.title + " התווסף לרשימה ";
+
+
+                    }
+                    //check if free / discounted item is available
+                    //check if coupon terms is met.
+
+
+
+                }
+                break;
+            case "VOUCHER":
+                if (true)
+                {
+                    if (true)
+                    {
+                        string voucher_type = coupon.voucher_type;
+                        switch (voucher_type)
+                        {
+                            case "GIFT":
+                                if (true)
+                                {
+                                    item_id = -7;
+                                    decimal order_discount_amount = coupon.order_discount_amount;
+                                    sqlSelect = "INSERT INTO MainCart(u_id,item_id,quan,timestamp,price,title,e_title,description,e_description,round_id,is_discountable,order_id,rep_id,special_id) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13)";
+                                    db.Execute(sqlSelect, member_id, item_id, 1, local_time, order_discount_amount, coupon.coupon_title, coupon.coupon_title_e, coupon.coupon_notes, coupon.coupon_notes_e, round_id, 0, order_id, u_id, coupon.coupon_id);
+
+
+                                }
+                                break;
+
+                            case "DISC":
+                                if (true)
+                                {
+                                    item_id = -8;
+                                    decimal order_discount_percantage = coupon.order_discount_percantage;
+                                    sqlSelect = "INSERT INTO MainCart(u_id,item_id,quan,timestamp,price,title,e_title,description,e_description,round_id,is_discountable,order_id,rep_id,special_id) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13)";
+                                    db.Execute(sqlSelect, member_id, item_id, 1, local_time, order_discount_percantage, coupon.coupon_title, coupon.coupon_title_e, coupon.coupon_notes, coupon.coupon_notes_e, round_id, 0, order_id, u_id, coupon.coupon_id);
+                                    sqlSelect = "UPDATE cartsettings SET pd_discount=1 WHERE order_id=@0 AND rep_id=@1";
+                                    db.Execute(sqlSelect, order_id, rep_id);
+
+                                }
+                                break;
+
+                        }
+                    }
+                }
+                break;
+            case "CREDIT":
+                if (true)
+                {
+                    item_id = -9;
+                    decimal credit_amount = coupon.credit_amount;
+                    sqlSelect = "INSERT INTO MainCart(u_id,item_id,quan,timestamp,price,title,e_title,description,e_description,round_id,is_discountable,order_id,rep_id,special_id) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13)";
+                    db.Execute(sqlSelect, member_id, item_id, 1, local_time, credit_amount, coupon.coupon_title, coupon.coupon_title_e, coupon.coupon_notes, coupon.coupon_notes_e, round_id, 0, order_id, u_id, coupon.coupon_id);
+                }
+                break;
+            case "SHIPPING":
+                {
+                    item_id = -10;
+                    decimal shipping_price = coupon.shipping_price;
+                    sqlSelect = "INSERT INTO MainCart(u_id,item_id,quan,timestamp,price,title,e_title,description,e_description,round_id,is_discountable,order_id,rep_id,special_id) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13)";
+                    db.Execute(sqlSelect, member_id, item_id, 1, local_time, shipping_price, coupon.coupon_title, coupon.coupon_title_e, coupon.coupon_notes, coupon.coupon_notes_e, round_id, 0, order_id, u_id, coupon.coupon_id);
+                    sqlSelect = "UPDATE cartsettings SET shipping_type='COUPON' WHERE order_id=@0 AND rep_id=@1";
+                    db.Execute(sqlSelect, order_id, rep_id);
+                }
+                break;
+
+        }
+
+        OrderFunctions.ReCalculateCartOptions(order_id, rep_id);
+
+        theHtmlOutput = "הקופון " + coupon.coupon_title + " התווסף להזמנה!";
+
+        db.Close();
+        return theHtmlOutput;
+    }
+    public static decimal GetItemEffectivePrice(int p_id, int round_id, int quan = 1, int price_type = 0)
+    {
+        decimal item_price = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT *  FROM roundMenuItems WHERE round_id=@0 AND p_id=@1";
+        var MenuItem = db.QuerySingle(sqlSelect, round_id, p_id);
+        if (MenuItem == null)
+        {
+            DataFunctions.WriteDebugLine("round_id " + round_id + "p_id " + p_id);
+            item_price = -1;
+        }
+        else
+        {
+            int catalog_p_id = MenuItem.catalog_p_id;
+
+            if (price_type == 1)
+            {
+                item_price = (MenuItem.price * quan); //efffective price based on item list price
+
+            }
+            if (price_type == 0)
+            {
+                sqlSelect = "SELECT top(1) * FROM ProductPricingOptions WHERE (p_id=@0 OR p_id=@1) AND (round_id=@2 OR round_id=99999) AND quan<=@3 ORDER BY round_id DESC, QUAN DESC";
+                var pricingOption = db.QuerySingle(sqlSelect, MenuItem.p_id, catalog_p_id, round_id, quan);
+
+
+                if (pricingOption != null)
+                {
+                    decimal OptionIdPrice = pricingOption.price;
+                    int OptionIdQuan = pricingOption.quan;
+                    decimal optionIdAdditional = pricingOption.each_additional;
+                    int additionalUnitsCount = quan - OptionIdQuan;
+                    item_price = OptionIdPrice + (additionalUnitsCount * optionIdAdditional);
+                }
+                else
+                {
+                    item_price = (MenuItem.price * quan);
+                }
+            }
+
+
+        }
+
+
+
+
+
+        db.Close();
+        return item_price;
+    }
+    public static string RemoveCouponFromCart(string coupon_type, int order_id, int coupon_id = 0, int cart_item_id = 0)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int rep_id = u_id;
+        string theHtmlOutput = "";
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        switch (coupon_type)
+        {
+
+            case "COUPON":
+                if (true)
+                {
+                    sqlSelect = "SELECT * FROM MainCart WHERE id=@0";
+                    var couponInCart = db.QuerySingle(sqlSelect, cart_item_id);
+
+                    sqlSelect = "DELETE FROM maincart WHERE  (item_id=-5 OR item_id=-6) AND order_id=@0 AND rep_id=@1 AND special_id=@2 AND group_ts=@3";
+                    db.Execute(sqlSelect, order_id, u_id, coupon_id, couponInCart.group_ts);
+                    theHtmlOutput = "הקופון הוסר מההזמנה!";
+                }
+                break;
+            case "SHIPPING":
+                if (true)
+                {
+                    sqlSelect = "DELETE FROM maincart WHERE item_id=-10 AND order_id=@0 AND rep_id=@1 ";
+                    db.Execute(sqlSelect, order_id, u_id);
+                    sqlSelect = "UPDATE cartsettings SET shipping_type='AUTO' WHERE order_id=@0 AND rep_id=@1 ";
+                    db.Execute(sqlSelect, order_id, u_id);
+                    theHtmlOutput = "הקופון הוסר מההזמנה!";
+                }
+                break;
+
+            case "DISCOUNT":
+                if (true)
+                {
+                    sqlSelect = "DELETE FROM maincart WHERE item_id=-8 AND order_id=@0 AND rep_id=@1 AND special_id=@2 ";
+                    db.Execute(sqlSelect, order_id, u_id, coupon_id);
+                    theHtmlOutput = "הקופון הוסר מההזמנה!";
+                }
+                break;
+
+
+            case "CREDIT":
+            case "VOUCHER":
+                if (true)
+                {
+                    sqlSelect = "DELETE FROM maincart WHERE id=@0";
+                    db.Execute(sqlSelect, cart_item_id);
+                    theHtmlOutput = "השובר הוסר מההזמנה!";
+                }
+                break;
+
+            case "RETURN":
+                if (true)
+                {
+                    sqlSelect = "SELECT * FROM MainCart WHERE id=@0";
+                    var couponInCart = db.QuerySingle(sqlSelect, cart_item_id);
+
+                    sqlSelect = "DELETE FROM maincart WHERE  (item_id=-11 OR item_id=-12) AND order_id=@0 AND rep_id=@1";
+                    db.Execute(sqlSelect, order_id, u_id);
+                    theHtmlOutput = "ההחזרה בוטלה והוסרה מההזמנה!";
+                }
+                break;
+
+        }
+
+        OrderFunctions.ReCalculateCartOptions(order_id, rep_id);
+
+
+        db.Close();
+        return theHtmlOutput;
+    }
+    public static string UpdatePaymentSettings(int order_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime NOR_date = AppFunctions.GetNorDate();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+        string logMsg = "";
+
+        int payment_method = 0; try { payment_method = Convert.ToInt32(Request["payment_method"]); } catch { }
+        bool is_donate = false; if (!Request["is_donation"].IsEmpty()) { is_donate = true; }
+        decimal donate_amount = 0; try { donate_amount = Convert.ToDecimal(Request["donate_amount"]); } catch { }
+        bool is_returning_credit = false; if (!Request["is_returning_credit"].IsEmpty()) { is_returning_credit = true; }
+        decimal debt_return_amount = 0; try { debt_return_amount = Convert.ToDecimal(Request["return_amount"]); } catch { }
+        decimal credit_amount = 0; try { credit_amount = Convert.ToDecimal(Request["credit_amount"]); } catch { }
+        DateTime credit_return_date = local_time; try { credit_return_date = Convert.ToDateTime(Request["credit_return_date"]); } catch { }
+        decimal charge_amount = 0; try { charge_amount = Convert.ToDecimal(Request["charge_amount"]); } catch { }
+        decimal max_credit_order = 0; try { max_credit_order = Convert.ToDecimal(Request["max_credit_order"]); } catch { }
+        decimal credit_limit = 0;
+        int charge_account_id = 0; try { charge_account_id = Convert.ToInt32(Request["charge_account_id"]); } catch { }
+        string charge_account_name = "";
+        string credit_override_pw = ""; credit_override_pw = Request["credit_override_pw"];
+        string credit_notes = ""; credit_notes = Request["credit_notes"];
+        bool is_credit = false;
+        bool is_charge = false;
+        bool is_credit_limit_override = false; if (!Request["is_credit_limit_override"].IsEmpty()) { is_credit_limit_override = true; }
+        bool is_cost_charge = false; if (!Request["is_cost_charge"].IsEmpty()) { is_cost_charge = true; }
+        bool is_total_roundup = false; if (!Request["is_total_roundup"].IsEmpty()) { is_total_roundup = true; }
+        bool is_donate_roundup = false; if (!Request["is_donate_roundup"].IsEmpty()) { is_donate_roundup = true; }
+        decimal roundup_to = 0; try { roundup_to = Convert.ToDecimal(Request["roundup_to"]); } catch { }
+
+        bool is_refund = false; if (!Request["is_refund"].IsEmpty()) { is_refund = true; }
+        string refund_notes = ""; refund_notes = Request["refund_notes"];
+        decimal refund_amount = 0; try { refund_amount = Convert.ToDecimal(Request["refund_amount"]); } catch { }
+
+        bool is_charge_waived = false;
+        decimal waived_charge_sh = 0; try { waived_charge_sh = Convert.ToDecimal(Request["waived_charge_sh"]); } catch { }
+        string charge_waive_note = ""; charge_waive_note = Request["charge_waive_note"];
+
+        decimal credit_overide_amount = 0;
+        bool next_order_return = false; if (!Request["next_order_return"].IsEmpty()) { next_order_return = true; }
+        bool debt_bypass = false; if (Request["debt_bypass"].IsEmpty()) { debt_bypass = true; }
+        decimal debt_bypass_amount = 0;
+        decimal member_debt = 0;
+
+        bool DisableMoneyVouchers = false; if (Request["DisableMoneyVouchers"].IsEmpty()) { DisableMoneyVouchers = true; }
+
+        if (next_order_return) { credit_return_date = NOR_date; }
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT u_id,actual_pickup_amount,grand_total,CreditCouponsTotal,is_cost_charge,is_total_roundup,items_cost_charge,cost_charge_markup,total_cost_charge,is_refund,refund_amount,MoneyVouchersTotal,DisableMoneyVouchers FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+
+
+
+        if (order != null)
+        {
+            int member_id = order.u_id;
+
+            decimal actual_pickup_amount = order.actual_pickup_amount;
+            decimal grand_total = order.grand_total;
+            decimal CreditCouponsTotal = order.CreditCouponsTotal;
+            decimal items_cost_charge = order.items_cost_charge;
+            decimal cost_charge_markup = order.cost_charge_markup;
+            decimal total_cost_charge = order.total_cost_charge;
+            decimal MoneyVouchersTotal = order.MoneyVouchersTotal;
+            decimal money_vouchers_available_balance = 0;
+            money_vouchers_available_balance = MoneyFunctions.GetMemberAvailableMoneyVouchersBalance(member_id);
+
+            try { credit_limit = MoneyFunctions.GetMemberCreditLimit(member_id); } catch { }
+            try { member_debt = MoneyFunctions.GetMemberDebt(member_id, false); } catch { }
+
+            switch (payment_method)
+            {
+                case 0:
+                    if (true)
+                    {
+                        theHtmlOutput += "אמצעי תשלום לא זוהה!<br>";
+                    }
+                    break;
+                case 1:
+                    if (true)
+                    {
+
+                        if (is_donate)
+                        {
+                            if (donate_amount <= 0)
+                            {
+                                theHtmlOutput += "חובה להזין סכום תרומה תקין!<br>";
+                            }
+                        }
+
+                        if (!debt_bypass)
+                        {
+                            if (is_returning_credit)
+                            {
+                                if (debt_return_amount <= 0)
+                                {
+                                    theHtmlOutput += "חובה להזין סכום החזר חוב תקין!<br>";
+                                }
+                                if (debt_return_amount > member_id)
+                                {
+                                    theHtmlOutput += "חובה להזין סכום החזר חוב תקין!<br>";
+                                }
+                            }
+                        }
+
+                        if (debt_return_amount > member_debt)
+                        {
+                            theHtmlOutput += " סכום ההחזר גבוה מהחוב הרשום במערכת!<br>";
+                        }
+
+
+                    }
+
+                    break;
+                case 2:
+                    if (true)
+                    {
+                        if (credit_amount <= 0)
+                        {
+                            theHtmlOutput += "חובה להזין סכום קרדיט תקין!<br>";
+                        }
+                        if (credit_return_date <= local_time && credit_return_date != NOR_date)
+                        {
+                            theHtmlOutput += "חובה להזין תאריך החזרת קרדיט באופן תקין!<br>";
+                        }
+                        if (theHtmlOutput == "")
+                        {
+                            if (credit_limit < credit_amount)
+                            {
+                                if (is_credit_limit_override)
+                                {
+                                    if (credit_override_pw != AppFunctions.GetAppProperty("CreditOveridePassword"))
+                                    {
+                                        theHtmlOutput += "הסיסמא לעקיפת הגבלות המסגרת שגויה!<br>";
+                                    }
+                                    else
+                                    {
+                                        credit_overide_amount = credit_amount - credit_limit;
+                                    }
+                                    if (credit_notes == "")
+                                    {
+                                        theHtmlOutput += "חובה להזין הערות בעקיפת אשראי!<br>";
+                                    }
+                                }
+                                else
+                                {
+                                    theHtmlOutput += "סכום הקרדיט המבוקש גבוה מהסכום הזמין לשימוש!<br>";
+                                }
+
+
+                            }
+
+                            if (actual_pickup_amount < credit_amount)
+                            {
+                                theHtmlOutput += "סכום הקרדיט המבוקש גבוה מסכום ההזמנה!<br>";
+                            }
+                        }
+
+
+
+                    }
+                    break;
+                case 3:
+                    if (true)
+                    {
+                        if (charge_amount <= 0)
+                        {
+                            theHtmlOutput += "חובה להזין סכום חיוב תקין!<br>";
+                        }
+                        if (charge_account_id == 0)
+                        {
+                            theHtmlOutput += "חובה לבחור חשבון לחיוב!<br>";
+                        }
+
+                        if (theHtmlOutput == "")
+                        {
+                            sqlSelect = "SELECT * FROM ChargeAccounts WHERE account_id=@0";
+                            var chargeAccount = db.QuerySingle(sqlSelect, charge_account_id);
+                            if (chargeAccount == null)
+                            {
+                                theHtmlOutput += " חשבון לחיוב לא קיים!<br>";
+                            }
+                            else
+                            {
+                                charge_account_name = chargeAccount.account_name;
+                            }
+
+                        }
+
+
+                    }
+                    break;
+                case 4:
+                    if (true)
+                    {
+                        if (charge_waive_note=="")
+                        {
+                            theHtmlOutput += "חובה להזין הערה לביטול החיוב!<br>";
+                        }
+
+
+
+                    }
+                    break;
+
+            }
+
+            if (is_refund )
+            {
+                if(refund_amount <= 0)
+                {
+                    theHtmlOutput += "חובה להזין סכום החזר כספי תקין!<br>";
+                }
+                if (refund_notes == "")
+                {
+                    theHtmlOutput += "חובה להזין הערות להחזר כספי!<br>";
+                }
+            }
+            else
+            {
+                refund_amount = 0;
+                refund_notes = "";
+            }
+
+            if (theHtmlOutput == "")
+            {
+
+                OrderFunctions.ResetOrderPayment(order_id);
+
+                if (is_total_roundup && !order.is_total_roundup)
+                {
+                    logMsg = "עיגול סכום הופעל!";
+                    AppFunctions.WriteOrderComment(order_id, logMsg);
+
+                }
+                if (is_cost_charge)
+                {
+                    items_cost_charge = MoneyFunctions.GetOrderItemsCost(order_id);
+                    total_cost_charge = items_cost_charge + cost_charge_markup;
+                    grand_total = total_cost_charge;
+                    logMsg = "ההזמנה תחוייב במחיר עלות!";
+                    AppFunctions.WriteOrderComment(order_id, logMsg);
+                }
+
+
+                switch (payment_method)
+                {
+                    case 1:
+                        if (debt_bypass)
+                        {
+                            debt_bypass_amount = MoneyFunctions.GetMemberDebt(member_id);
+                            logMsg = "בוצעה עקיפה ידנית של הגבלות החזר חוב בסך " + debt_bypass_amount.ToString("C", culture);
+                            AppFunctions.WriteOrderComment(order_id, logMsg);
+                            //debt_return_amount = 0;
+                        }
+
+                        actual_pickup_amount = grand_total + debt_return_amount + donate_amount - CreditCouponsTotal;
+
+
+                        credit_amount = 0;
+                        charge_amount = 0;
+                        logMsg = "אופן תשלום עודכן למזומן!";
+                        AppFunctions.WriteOrderComment(order_id, logMsg);
+
+
+
+                        if (debt_return_amount > 0 & is_returning_credit)
+                        {
+                            logMsg = "התווסף להזמנה החזר חוב בסך " + debt_return_amount.ToString("C", culture);
+                            AppFunctions.WriteOrderComment(order_id, logMsg);
+                        }
+                        if (donate_amount > 0 & is_donate)
+                        {
+                            logMsg = "התווספה להזמנה תרומה בסך " + donate_amount.ToString("C", culture);
+                            AppFunctions.WriteOrderComment(order_id, logMsg);
+                        }
+                        break;
+                    case 2:
+                        is_credit = true;
+                        charge_amount = 0;
+                        donate_amount = 0;
+                        debt_return_amount = 0;
+
+                        actual_pickup_amount = grand_total - CreditCouponsTotal - credit_amount;
+
+                        if (credit_return_date == NOR_date)
+                        {
+                            logMsg = "אופן תשלום עודכן לאשראי עד להזמנה הבאה";
+                        }
+                        else
+                        {
+                            logMsg = "אופן תשלום עודכן לאשראי עד תאריך " + credit_return_date.ToShortDateString() + " " + credit_notes;
+                        }
+                        AppFunctions.WriteOrderComment(order_id, logMsg);
+
+                        if (is_credit_limit_override)
+                        {
+                            logMsg = "בוצעה עקיפה ידנית של הגבלות אשראי!: " + credit_notes;
+                            AppFunctions.WriteOrderComment(order_id, logMsg);
+                        }
+
+                        break;
+                    case 3:
+                        is_charge = true;
+                        credit_amount = 0;
+                        donate_amount = 0;
+                        debt_return_amount = 0;
+                        actual_pickup_amount = grand_total - CreditCouponsTotal - charge_amount;
+                        logMsg = "אופן תשלום עודכן לחיוב חשבון #" + charge_account_id;
+                        AppFunctions.WriteOrderComment(order_id, logMsg);
+                        break;
+                    case 4:
+                        is_charge_waived = true;
+                        credit_amount = 0;
+                        donate_amount = 0;
+                        debt_return_amount = 0;
+                        charge_amount = 0;
+                        is_cost_charge = false;
+                        actual_pickup_amount = waived_charge_sh;
+                        logMsg = "ההזמנה ללא עלות: " + charge_waive_note ;
+                        if (waived_charge_sh > 0)
+                        {
+                            logMsg += " בתשלום דמי משלוח של " + waived_charge_sh.ToString("C", culture);
+                        }
+                        AppFunctions.WriteOrderComment(order_id, logMsg);
+                        break;
+                }
+
+                if (DisableMoneyVouchers) {
+                    MoneyVouchersTotal = 0;
+
+                }
+                else {
+                    if (money_vouchers_available_balance > 0) {
+                        if (money_vouchers_available_balance > actual_pickup_amount)
+                        {
+                            MoneyVouchersTotal = actual_pickup_amount;
+
+                        }
+                        else
+                        {
+                            MoneyVouchersTotal = money_vouchers_available_balance;
+                        }
+                    }
+                    else
+                    {
+                        MoneyVouchersTotal = 0;
+                    }
+
+                }
+
+                DataFunctions.WriteDebugLine("actual_pickup_amount " + actual_pickup_amount);
+                DataFunctions.WriteDebugLine("MoneyVouchersTotal " + MoneyVouchersTotal);
+
+                actual_pickup_amount = actual_pickup_amount - MoneyVouchersTotal;
+
+
+                sqlSelect = "UPDATE MainOrders SET payment_method=@0,is_donate=@1,donate_amount=@2,is_returning_credit=@3,return_amount=@4,credit_amount=@5,is_credit=@6,credit_return_date=@7,charge_amount=@8,is_charge=@9,charge_account_id=@10,actual_pickup_amount=@11,charge_account_name=@12,is_credit_limit_override=@13,credit_limit_override_by=@14,credit_overide_amount=@15,credit_notes=@16,debt_bypass=@17,debt_bypass_amount=@18,debt_bypass_by=@19,is_cost_charge=@20,is_total_roundup=@21,is_donate_roundup=@22,roundup_to=@23,items_cost_charge=@24,cost_charge_markup=@25,total_cost_charge=@26,charge_waive_note=@27,is_charge_waived=@28,waived_charge_sh=@29,is_refund=@30,refund_amount=@31,refund_notes=@32,MoneyVouchersTotal=@33,DisableMoneyVouchers=@34 WHERE order_id=@35";
+                db.Execute(sqlSelect, payment_method, is_donate, donate_amount, is_returning_credit, debt_return_amount, credit_amount, is_credit, credit_return_date, charge_amount, is_charge, charge_account_id, actual_pickup_amount, charge_account_name, is_credit_limit_override, u_id, credit_overide_amount, credit_notes, debt_bypass, debt_bypass_amount, u_id, is_cost_charge, is_total_roundup, is_donate_roundup, roundup_to, items_cost_charge, cost_charge_markup, total_cost_charge,charge_waive_note, is_charge_waived,waived_charge_sh,is_refund,refund_amount,refund_notes, MoneyVouchersTotal, DisableMoneyVouchers, order_id);
+
+
+                if (payment_method == 1 && !debt_bypass)
+                {
+                    OrderFunctions.AttachDebtToOrder(order_id);
+                }
+                else
+                {
+                    OrderFunctions.CalcOrderActualPickupAmount(order_id);
+                }
+
+                decimal cur_order_refund_amount = 0; try { cur_order_refund_amount = order.refund_amount; } catch { }
+                if (cur_order_refund_amount > 0 && (refund_amount == 0 || (refund_amount>0 && refund_amount!= cur_order_refund_amount)) )
+                {
+                    logMsg = "בוטל ההחזר הכספי בסך  " + cur_order_refund_amount.ToString("C", culture);
+                    AppFunctions.WriteOrderComment(order_id, logMsg);
+                }
+
+
+                if (refund_amount > 0 && refund_amount != order.refund_amount)
+                {
+                    logMsg = "נרשם החזר כספי בסך " + refund_amount.ToString("C", culture);
+                    AppFunctions.WriteOrderComment(order_id, logMsg);
+                }
+
+                theHtmlOutput = "הגדרות התשלום התעדכנו בהצלחה!";
+
+                if (is_credit)
+                {
+                    //record transaction
+                    int transaction_id = MoneyFunctions.RegisterOrderCredit(order_id, credit_return_date, credit_amount, credit_notes);
+                    if (transaction_id > 0)
+                    {
+                        theHtmlOutput += "<br>תנועת אשראי #" + transaction_id + " נרשמה בהצלחה!";
+                    }
+
+                }
+
+
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+        }
+
+
+
+
+
+        db.Close();
+
+        return theHtmlOutput;
+
+
+    }
+    public static void ResetOrderPayment(int order_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int transaction_id = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        string logMsg = "";
+        var u_id = WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        int member_id = 0;
+        int vendor_id = 0;
+        int t_type = 0;
+
+        var sqlSelect = "UPDATE mainorders SET credit_transaction_id=0,is_credit_limit_override=0,credit_limit_override_by=0,credit_notes='',credit_overide_amount=0,payment_method=1,is_credit=0,credit_amount=0,is_cost_charge=0,is_charge_waived=0,charge_waive_note='',waived_charge_sh=0,DisableMoneyVouchers=0,MoneyVouchersTotal=0 WHERE order_id=@0";
+        db.Execute(sqlSelect, order_id);
+
+
+        OrderFunctions.CalcOrderActualPickupAmount(order_id);
+
+        //decimal actual_pickup_amount = 0; actual_pickup_amount = OrderFunctions.GetOrderActualPickupAmount(order_id);
+        //sqlSelect = "UPDATE mainorders SET actual_pickup_amount=@0 WHERE order_id=@1";
+        //db.Execute(sqlSelect, actual_pickup_amount, order_id);
+
+        logMsg = "הגדרות התשלום התאפסו!";
+        AppFunctions.WriteOrderComment(order_id, logMsg);
+
+
+        sqlSelect = "SELECT serial FROM ChargeBook WHERE order_id=@0 AND is_pending=1";
+        var exiting_transaction = db.QuerySingle(sqlSelect, order_id);
+        if (exiting_transaction != null)
+        {
+            sqlSelect = "DELETE FROM ChargeBook WHERE order_id=@0";
+            db.Execute(sqlSelect, order_id);
+            logMsg = "חיוב אשראי בוטל!";
+            AppFunctions.WriteOrderComment(order_id, logMsg);
+
+        }
+
+
+
+        db.Close();
+    }
+
+    public static decimal GetOrderActualPickupAmount(int order_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        decimal OrderPickupAmount = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        string logMsg = "";
+        var u_id = WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        int member_id = 0;
+        int vendor_id = 0;
+        int t_type = 0;
+
+        var sqlSelect = "SELECT grand_total,return_amount,donate_amount,CreditCouponsTotal,credit_amount,charge_amount,is_total_roundup,roundup_to,payment_method FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        OrderPickupAmount = order.grand_total + order.return_amount + order.donate_amount - order.CreditCouponsTotal - order.credit_amount - order.charge_amount;
+        bool is_total_roundup = order.is_total_roundup;
+        decimal roundup_amount = 0;
+        decimal roundup_to = order.roundup_to;
+        int payment_method = order.payment_method;
+
+        if (is_total_roundup && payment_method==1)
+        {
+            roundup_amount = MoneyFunctions.RoundUpAmount(Convert.ToDouble(OrderPickupAmount), Convert.ToDouble(roundup_to));
+        }
+        OrderPickupAmount = OrderPickupAmount + roundup_amount;
+
+
+        db.Close();
+        return OrderPickupAmount;
+    }
+
+    public static void AttachDebtToOrder(int order_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        string logMsg = "";
+        var u_id = WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        int member_id = 0;
+
+
+        var sqlSelect = "SELECT u_id,is_returning_credit,return_amount FROM mainorders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        try { member_id = order.u_id; } catch { }
+        decimal return_amount = 0; try { return_amount = order.return_amount; } catch { }
+        if (member_id > 0)
+        {
+            decimal member_due_debt = 0;
+            member_due_debt = MoneyFunctions.GetMemberDebt(member_id);
+            if (member_due_debt > 0)
+            {
+                //  OrderFunctions.ResetOrderPayment(order_id);
+                sqlSelect = "UPDATE mainOrders SET is_returning_credit=1,return_amount=@0 WHERE order_id=@1";
+                db.Execute(sqlSelect, member_due_debt, order_id);
+                OrderFunctions.CalcOrderActualPickupAmount(order_id);
+                logMsg = "להזמנה הוצמד חוב בסך " + member_due_debt.ToString("C", culture);
+                AppFunctions.WriteOrderComment(order_id, logMsg);
+            }
+
+
+
+
+
+        }
+
+
+
+        db.Close();
+    }
+    public static void CalcOrderActualPickupAmount(int order_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        decimal OrderPickupAmount = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        string logMsg = "";
+        var u_id = WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+
+        int vendor_id = 0;
+        int t_type = 0;
+
+        var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        if (order != null)
+        {
+            bool is_total_roundup = order.is_total_roundup;
+            bool is_cost_charge = order.is_cost_charge;
+            bool is_charge_waived = order.is_charge_waived;
+            decimal waived_charge_sh = order.waived_charge_sh;
+            decimal roundup_amount = 0;
+            decimal roundup_to = order.roundup_to;
+            decimal total_cost_charge = order.total_cost_charge;
+            decimal MoneyVouchersTotal = 0;
+            bool DisableMoneyVouchers = order.DisableMoneyVouchers;
+
+            int member_id = order.u_id;
+            try { MoneyVouchersTotal = MoneyFunctions.GetMemberAvailableMoneyVouchersBalance(member_id); } catch { }
+
+            decimal subTotal = 0;
+            int payment_method= order.payment_method;
+            decimal money_vouchers_available_balance = 0;
+            money_vouchers_available_balance = MoneyFunctions.GetMemberAvailableMoneyVouchersBalance(member_id);
+
+
+
+            if (is_charge_waived)
+            {
+                OrderPickupAmount = waived_charge_sh;
+            }
+            else
+            {
+                subTotal = order.grand_total + order.return_amount + order.donate_amount - order.CreditCouponsTotal - order.credit_amount - order.charge_amount;
+                OrderPickupAmount = subTotal;
+            }
+
+            if (is_cost_charge)
+            {
+                OrderPickupAmount = order.total_cost_charge + order.return_amount + order.donate_amount - order.CreditCouponsTotal - order.credit_amount - order.charge_amount;
+            }
+
+            if (OrderPickupAmount <= MoneyVouchersTotal)
+            {
+                MoneyVouchersTotal = OrderPickupAmount;
+            }
+
+            if (DisableMoneyVouchers)
+            {
+                MoneyVouchersTotal = 0;
+            }
+
+            OrderPickupAmount = OrderPickupAmount - MoneyVouchersTotal;
+
+
+            if (is_total_roundup && payment_method == 1)
+            {
+                roundup_amount = MoneyFunctions.RoundUpAmount(Convert.ToDouble(OrderPickupAmount), Convert.ToDouble(roundup_to));
+            }
+
+
+            decimal after_roundup_total = OrderPickupAmount + roundup_amount;
+
+            DataFunctions.WriteDebugLine("OrderPickupAmount123c " + OrderPickupAmount);
+
+            sqlSelect = "UPDATE mainOrders SET actual_pickup_amount=@0,roundup_amount=@1,after_roundup_total=@2,MoneyVouchersTotal=@3 WHERE order_id=@4";
+            db.Execute(sqlSelect, OrderPickupAmount, roundup_amount, after_roundup_total, MoneyVouchersTotal, order_id);
+
+        }
+
+
+        db.Close();
+    }
+
+    public static string TransferOrderToRound(int order_id,int dest_round_id)
+    {
+        string theHtmlOutput = "";
+        string logMsg = "";
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var order = op_data.QuerySingle(sqlSelect, order_id);
+        int src_round_id = 0; src_round_id = order.round_id;
+        DateTime ts = order.timestamp;
+        sqlSelect = "SELECT vendor_id,round_type,is_express,is_pickup,is_route,title,z_serial,main_z_id FROM rounds where id=@0";
+        var dest_round = op_data.QuerySingle(sqlSelect, dest_round_id);
+        var src_round = op_data.QuerySingle(sqlSelect, src_round_id);
+
+        if (src_round != null & dest_round != null)
+        {
+            string dest_round_title = dest_round.title;
+            string src_round_title = src_round.title;
+            string dest_round_vendor = AppFunctions.GetVendorTitleById(dest_round.vendor_id);
+            string src_round_vendor = AppFunctions.GetVendorTitleById(src_round.vendor_id);
+
+            int vendor_id = 0; try { vendor_id = dest_round.vendor_id; } catch { }
+            int round_type = 0; try { round_type = dest_round.round_type; } catch { }
+            int main_z_id = 0; try { main_z_id = dest_round.main_z_id; } catch { }
+            int z_serial = 0; try { z_serial = dest_round.z_serial; } catch { }
+            string ship_name = order.nick_name;
+            string ship_phone = order.wanum;
+            int order_status = -2;
+            bool is_express = false;
+            bool is_donate = false;
+            bool is_pickup = false;
+            bool is_route = false;
+            int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+            DateTime local_time = AppFunctions.LocalTime();
+
+            string order_type = "ROUND";
+            string existing_order_type = order.order_type;
+            string delivery_method = Request["delivery_method"];
+
+            switch (delivery_method)
+            {
+                case "ROUTE":
+                    is_route = true;
+                    order_type = "ROUND";
+                    break;
+                case "EXPRESS":
+                    is_express = true;
+                    order_type = "EXPRESS";
+                    break;
+                case "PICKUP":
+                    is_pickup = true;
+                    order_type = "PICKUP";
+                    break;
+                default:
+                    theHtmlOutput = "חובה לבחור אופן אספקה!";
+                    break;
+            }
+
+            if (theHtmlOutput == "")
+            {
+                string nick_name = order.nick_name;
+                if (nick_name == "")
+                { try { nick_name = AppFunctions.GetMemberName(order.u_id); } catch { } }
+                if (ship_name == "" && nick_name != "") { ship_name = nick_name; }
+                sqlSelect = "INSERT INTO MainOrders(is_route,u_id, UserName, ship_reciepient, ship_address, ship_phone, ship_city, timestamp, order_status, round_id, vendor_id, is_express, is_donate, donate_amount, wanum, is_postponed, is_pickup, rep_id, requested_delivery_date,orderpw,nick_name,orderBody,notes_count,board_color,is_new_member,full_name,email,ref_source,ref_source_desc,birth_date,ref_id,aff_id,is_ship_phone,ship_name,shipping_date,shipping_time,order_type,z_id,z_serial) VALUES(@0,@1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12, @13, @14, @15, @16, @17, @18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38)";
+                op_data.Execute(sqlSelect, is_route, order.u_id, order.UserName, order.ship_reciepient, order.ship_address, order.ship_phone, order.ship_city, local_time, order_status, dest_round_id, vendor_id, is_express, order.is_donate, order.donate_amount, order.wanum, order.is_postponed, is_pickup, order.rep_id, order.requested_delivery_date, order.orderpw, order.nick_name, order.orderBody, order.notes_count, order.board_color, order.is_new_member, order.full_name, order.email, order.ref_source, order.ref_source_desc, order.birth_date, order.ref_id, order.aff_id, order.is_ship_phone, order.ship_name, order.shipping_date, order.shipping_time, order_type,main_z_id,z_serial);
+
+                sqlSelect = "SELECT order_id FROM mainorders WHERE round_id=@0 AND u_id=@1 AND timestamp=@2";
+                var newOrder = op_data.QuerySingle(sqlSelect, dest_round_id, order.u_id, local_time);
+                if (newOrder != null)
+                {
+                    int new_order_id = newOrder.order_id;
+                    sqlSelect = "SELECT * FROM orderitems WHERE order_id=@0 ORDER BY id";
+                    var orderitems = op_data.Query(sqlSelect, order_id);
+                    foreach (var rec in orderitems)
+                    {
+                        string fldName = "IsProdReplace_" + rec.p_id;
+                        bool is_replace_item = false; if (!Request[fldName].IsEmpty()) { is_replace_item = true; }  // try { is_replace_item = Convert.ToBoolean(Request["IsProdReplace_" + rec.p_id]); } catch { } 
+                        int new_menuitemid = 0;
+                        int catalog_p_id = 0;
+                        bool isQuanByOption = false;
+                        int QuanOptionId = 0;
+                        decimal OptionIdPrice = 0;
+                        int OptionIdQuan = 0;
+                        decimal OptionIdAdditional = 0;
+                        int special_id = rec.special_id;
+                        int replacement_p_id = 0;
+                        if (rec.p_id > 0)
+                        {
+
+                            replacement_p_id = rec.p_id;
+                            if (is_replace_item)
+                            {
+                                try { replacement_p_id = Convert.ToInt32(Request["ProdReplaceSelector_" + rec.p_id]); } catch { }
+                            }
+
+                            DataFunctions.WriteDebugLine("ProdReplaceSelector_" + rec.p_id + " rep: " + replacement_p_id);
+
+                            sqlSelect = "SELECT id,catalog_p_id,p_id FROM roundMenuItems WHERE round_id=@0 AND p_id=@1";
+                            var newMenuItem = op_data.QuerySingle(sqlSelect, dest_round_id, replacement_p_id);
+                            try { new_menuitemid = newMenuItem.id; } catch { }
+                            try { catalog_p_id = newMenuItem.catalog_p_id; } catch { }
+
+                            if (catalog_p_id > 0 && special_id == 0)
+                            {
+                                sqlSelect = "SELECT TOP(1) * FROM ProductPricingOptions WHERE (round_id=@0 OR round_id=99999) AND quan>=@1 AND p_id=@2 ORDER BY round_id";
+                                var priceOption = op_data.QuerySingle(sqlSelect, dest_round_id, rec.quan, catalog_p_id);
+                                if (priceOption != null)
+                                {
+                                    isQuanByOption = true;
+                                    QuanOptionId = priceOption.serial;
+                                    OptionIdPrice = priceOption.price;
+                                    OptionIdQuan = priceOption.quan;
+                                    OptionIdAdditional = priceOption.each_additional;
+                                }
+                            }
+
+                        }
+
+
+                        sqlSelect = " INSERT INTO orderitems(order_id, p_id, quan, price, item_id, cost, prod_code, itemunit, product_type, item_user_comment, staff_comment, item_status, round_id, special_id, description, e_description, title, e_title, u_id, vendor_id, is_express, is_route, is_pickup, is_canceled, group_ts, isQuanByOption, QuanOptionId, OptionIdPrice, OptionIdQuan, optionIdAdditional, is_discountable, calc_price, is_charge_waived, waiver_code, is_free_charity, is_paid_charity, spOfferItemId, menuItemId, item_commision, inventory_id, itemunit_type, cat_id, notes, notes_e, strain, strain_e, is_strain_ok, cbd, thc, maincat_id, sub_cat_id, last_change_ts, last_change_by, itemunit_e, spOfferCatId, inventory_reserved, reservation_inv_trans_id, z_serial, add_ts, commision, is_spOffer, list_price,catalog_p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62)"; ;
+                        op_data.Execute(sqlSelect, new_order_id, replacement_p_id, rec.quan, rec.price, rec.item_id, rec.cost, rec.prod_code, rec.itemunit, rec.product_type, rec.item_user_comment, rec.staff_comment, rec.item_status, dest_round_id, rec.special_id, rec.description, rec.e_description, rec.title, rec.e_title, rec.u_id, vendor_id, is_express, is_route, is_pickup, rec.is_canceled, rec.group_ts, isQuanByOption, QuanOptionId, OptionIdPrice, OptionIdQuan, OptionIdAdditional, rec.is_discountable, rec.calc_price, rec.is_charge_waived, rec.waiver_code, rec.is_free_charity, rec.is_paid_charity, rec.spOfferItemId, new_menuitemid, rec.item_commision, rec.inventory_id, rec.itemunit_type, rec.cat_id, rec.notes, rec.notes_e, rec.strain, rec.strain_e, rec.is_strain_ok, rec.cbd, rec.thc, rec.maincat_id, rec.sub_cat_id, rec.last_change_ts, rec.last_change_by, rec.itemunit_e, rec.spOfferCatId, rec.inventory_reserved, rec.reservation_inv_trans_id, rec.z_serial, rec.add_ts, rec.commision, rec.is_spOffer, rec.list_price, catalog_p_id);
+                    }
+
+                    sqlSelect = "UPDATE mainorders SET order_status=-7,status_change_ts=@0,status_change_by=@1,cancel_code='TECHNICAL',is_cancelled=1,is_deleted=1 WHERE order_id=@2";
+                    op_data.Execute(sqlSelect, local_time, u_id, order_id);
+
+                    theHtmlOutput = "הזמנה #" + order_id + " עברה מ" +  src_round_title + " של הספק " + src_round_vendor + " אל " + dest_round_title + " של הספק " + dest_round_vendor;
+                    logMsg = theHtmlOutput;
+                    theHtmlOutput = "##" + new_order_id + "#$#" + dest_round_id + "#$#" + theHtmlOutput;
+
+                    AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                    AppFunctions.WriteOrderComment(new_order_id, logMsg, false, true);
+                    AppFunctions.WriteRoundComment(src_round_id, logMsg);
+                    if (src_round_id != dest_round_id)
+                    {
+                        AppFunctions.WriteRoundComment(dest_round_id, logMsg);
+                    }
+
+                }
+
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+
+            }
+
+        }
+
+
+        op_data.Close();
+        return theHtmlOutput;
+
+
+    }
+
+    public static string VerifyOrderItems(int order_id, int round_id,bool in_cart=false)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int rep_id = u_id;
+        string UnVerifiedOrderItems = "";
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT DISTINCT p_id FROM orderitems WHERE p_id>0 AND order_id=@0";
+        if (in_cart)
+        {
+            sqlSelect = "SELECT DISTINCT p_id FROM maincart WHERE p_id>0 AND order_id=@0 AND round_id=@1 AND rep_id=@2";
+        }
+        var orderitems = db.Query(sqlSelect, order_id,round_id,u_id);
+        foreach(var item in orderitems)
+        {
+            sqlSelect = "SELECT id FROM roundMenuItems WHERE p_id=@0 AND round_id=@1";
+            var menuItem = db.QuerySingle(sqlSelect, item.p_id, round_id);
+            if (menuItem == null)
+            {
+                UnVerifiedOrderItems += "##" + item.p_id + "##";
+            }
+        }
+
+
+        db.Close();
+        return UnVerifiedOrderItems;
+    }
+
+    public static string OrderActions()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+        string theHtmlOutput = "";
+        string logMsg = "";
+        int order_id = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defTime = Convert.ToDateTime("1/1/1900");
+        try { order_id = Convert.ToInt32(Request["value"]); } catch { }
+        string reqAction = Request["param1"];
+        int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+        switch (reqAction)
+        {
+            case "SETORDERROUND":
+                if (true)
+                {
+                    string order_type = Request["order_type"];
+                    int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+                    int delivery_id = 0; try { delivery_id = Convert.ToInt32(Request["delivery_id"]); } catch { }
+                    DateTime scheduled_delivery_start = Convert.ToDateTime("1/1/1900");
+                    if (round_id == 0 || order_type.IsEmpty())
+                    {
+                        theHtmlOutput = "!$!חובה לבחור ערוץ הפצה ואופן אספקה עבור ההזמנה!";
+                    }
+
+                    if (theHtmlOutput == "")
+                    {
+                        sqlSelect = "SELECT id,main_z_id,z_serial,title FROM rounds WHERE id=@0";
+                        var round = db.QuerySingle(sqlSelect, round_id);
+                        int main_z_id = 0; try { main_z_id = round.main_z_id; } catch { }
+                        int z_serial = 0; try { z_serial = round.z_serial; } catch { }
+                        string round_title = ""; try { round_title = round.title; } catch { }
+
+                        sqlSelect = "UPDATE mainorders SET round_id=@0,order_type=@1,delivery_id=@2,scheduled_delivery_start=@3,z_serial=@4,z_id=@5 WHERE order_id=@6";
+                        db.Execute(sqlSelect, round_id,order_type,delivery_id, scheduled_delivery_start,z_serial,main_z_id,order_id);
+                        theHtmlOutput = "הזמנה #" + order_id + " שוייכה ל" + round_title;
+                        logMsg = theHtmlOutput;
+                        AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                    }
+                }
+
+                break;
+
+
+
+            case "APPROVEIMPORTEDORDER":
+                if (true)
+                {
+                    int round_id = 0;
+                    try { round_id = order.round_id; } catch { }
+                    bool allow_no_items = false; try { allow_no_items = Convert.ToBoolean(Request["param2"]); } catch { }
+                    int pu_eta_selector = 0;
+                    try { pu_eta_selector = Convert.ToInt32(Request["pu_eta_selector"]); } catch { }
+                    int selected_delivery_id = 0;
+                    int selected_area_id = 0;
+                    int detected_area_id = 0;
+                    try { selected_delivery_id = Convert.ToInt32(Request["param3"]); } catch { }
+                    try { selected_area_id = Convert.ToInt32(Request["param4"]); } catch { }
+                    try { detected_area_id = Convert.ToInt32(Request["param5"]); } catch { }
+                    string pu_eta_time = Request["pu_eta_time"];
+                    int pu_eta_min = 0;
+                    try { pu_eta_min = Convert.ToInt32(Request["pu_eta_min"]); } catch { }
+                    string unverified_order_items = ""; try { unverified_order_items = OrderFunctions.VerifyOrderItems(order_id, round_id); } catch { }
+                    string order_type = ""; try { order_type = order.order_type; } catch { }
+                    int area_id = 0; try { area_id = order.area_id; } catch { }
+                    decimal order_commision = 0;
+                    order_commision = OrderFunctions.CalculateOrderComission(order_id);
+                    int delivery_id = 0;
+                    DateTime pu_eta = local_time;
+                    DateTime requested_delivery_date = local_time;
+
+                    try { requested_delivery_date = order.requested_delivery_date; } catch { }
+                    bool is_postponed = false; try { is_postponed = order.is_postponed; } catch { }
+
+
+
+                    if (unverified_order_items == "")
+                    {
+
+
+
+
+                        if (order_type=="ROUND" || order_type == "EXPRESS")
+                        {
+                            if (area_id == 0)
+                            {
+                                area_id = Rounds.GetAreaIdForCity(order.ship_city);
+                                if (area_id <= 0)
+                                {
+                                    if (selected_area_id > 0)
+                                    {
+                                        area_id = selected_area_id;
+                                    }
+                                    else
+                                    {
+                                        theHtmlOutput += "לא ניתן לאשר הזמנה למשלוח ללא שזוהה אזור ההזמנה!<br>";
+                                    }
+
+                                }
+
+                            }
+
+                            if (selected_delivery_id == 0 && order_type == "ROUND")
+                            {
+                                theHtmlOutput += "לא ניתן לאשר הזמנה למשלוח סבב ללא שהוגדר מספר משלוח לביצוע!<br>";
+                            }
+                        }
+
+                        if (theHtmlOutput == "")
+                        {
+                            if (!allow_no_items)
+                            {
+                                sqlSelect = "SELECT TOP(1) id FROM orderitems WHERE order_id=@0 AND p_id>0";
+                                var orderitem = db.QuerySingle(sqlSelect, order_id);
+                                if (orderitem == null)
+                                {
+                                    theHtmlOutput += "לא ניתן לאשר הזמנה ריקה!<br>";
+
+                                }
+
+                            }
+
+                        }
+
+                        if (theHtmlOutput == "")
+                        {
+                            int envelope_id = OrderFunctions.CreateOrderEnvelopeId(order_id, false, selected_delivery_id);
+                            if (pu_eta_selector > 0)
+                            {
+                                if (pu_eta_selector == 1)
+                                {
+                                    pu_eta = Convert.ToDateTime(pu_eta.Date.ToShortDateString() + " " + pu_eta_time);
+
+                                }
+
+                                if (pu_eta_selector == 2)
+                                {
+                                    pu_eta = pu_eta.AddMinutes(pu_eta_min);
+                                }
+
+
+
+
+                                sqlSelect = "UPDATE mainorders SET order_status=1,board_color='#ffffff',envelope_id=@0,commision=@1,pu_eta=@2,area_id=@3 WHERE order_id=@4";
+                                db.Execute(sqlSelect, envelope_id, order_commision, pu_eta,area_id, order_id);
+                            }
+                            else
+                            {
+                                DateTime round_start = defTime;
+                                DateTime scheduled_end = defTime;
+
+                                if (selected_area_id > 0)
+                                {
+                                    sqlSelect = "INSERT INTO CitiesInAreas(area_id,city) VALUES (@0,@1)";
+                                    db.Execute(sqlSelect, area_id, order.ship_city);
+                                }
+
+                                if (order_type == "ROUND")
+                                {
+                                    sqlSelect = "SELECT serial,scheduled_start,scheduled_end FROM deliveries WHERE serial=@0 ";
+                                    var delivery = db.QuerySingle(sqlSelect, selected_delivery_id);
+                                    if (delivery != null)
+                                    {
+                                        try { delivery_id = delivery.serial; } catch { }
+
+                                        try { round_start = delivery.scheduled_start; } catch { }
+                                        try { scheduled_end = delivery.scheduled_end; } catch { }
+
+
+                                    }
+                                }
+
+                                sqlSelect = "UPDATE mainorders SET order_status=1,board_color='#ffffff',envelope_id=@0,commision=@1,delivery_id=@2,scheduled_delivery_start=@3,delivery_eta=@4,area_id=@5 WHERE order_id=@6";
+                                db.Execute(sqlSelect, envelope_id, order_commision,delivery_id, round_start, scheduled_end,area_id, order_id);
+                            }
+
+
+
+                            theHtmlOutput = "הזמנה #" + order_id + " אושרה לביצוע!";
+                            logMsg = theHtmlOutput;
+                            AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+
+                        }
+                        else
+                        {
+                            theHtmlOutput = "!$!" + theHtmlOutput;
+                        }
+
+
+
+                    }
+                    else
+                    {
+                        theHtmlOutput = "!$!לא ניתן לאשר את ההזמנה מאחר וחסרים מוצרים בתפריט!" + unverified_order_items;
+                    }
+                }
+
+                break;
+
+            case "VENDORAPPROVE":
+            case "UpdateOrderEta":
+                if (true)
+                {
+
+                    int eta = 0; try { eta = Convert.ToInt32(Request["express_eta_min"]); } catch { }
+                    int eta_selector = 1; try { eta_selector = Convert.ToInt32(Request["eta_selector"]); } catch { }
+                    int driver_id = 0; try { driver_id = Convert.ToInt32(Request["driver_id"]); } catch { }
+                    string order_eta_time = Request["order_eta_time"];
+                    string order_type = Request["order_type"];
+                    DateTime order_eta = local_time;
+
+                    if (eta_selector ==1)
+                    {
+                        order_eta_time = local_time.ToShortDateString() + " " + order_eta_time;
+                        try { order_eta = Convert.ToDateTime(order_eta_time); } catch { }
+                    }
+                    else
+                    {
+                        order_eta = order_eta.AddMinutes(eta);
+                        order_eta_time = order_eta.ToString("HH:mm");
+                    }
+
+                    if (order_eta < local_time && order_type!="ROUND")
+                    {
+                        theHtmlOutput = "!$!חובה להכניס זמן אספקה עתידי";
+                    }
+
+                    if (order_eta == local_time)
+                    {
+                        int OrderLeadTimeMin = OrderFunctions.GetOrderLeadTimeMin(order_id);
+                        order_eta = order_eta.AddMinutes(OrderLeadTimeMin);
+                        order_eta_time = order_eta.ToString("HH:mm");
+
+                    }
+
+                    if (theHtmlOutput == "")
+                    {
+                        if (order_type == "ROUND")
+                        {
+                            int delivery_id = order.delivery_id;
+                            sqlSelect = "UPDATE mainorders SET order_status=2,status_change_ts=@0,status_change_by=@1 WHERE order_id=@2";
+                            db.Execute(sqlSelect, local_time,rep_id, order_id);
+                            if (delivery_id > 0) {
+                                theHtmlOutput = "הזמנה #" + order_id + " אושרה על ידי הספק ותסופק במשלוח #" + delivery_id;
+                            }
+                            else
+                            {
+                                theHtmlOutput = "הזמנה #" + order_id + " אושרה על ידי הספק";
+                            }
+
+                            logMsg = theHtmlOutput;
+                            AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+
+                        }
+                        else
+                        {
+                            sqlSelect = "UPDATE mainorders SET order_status=2,promised_express_eta=@0,status_change_ts=@1,status_change_by=@2,driver_id=@3 WHERE order_id=@4";
+                            db.Execute(sqlSelect, order_eta,local_time,rep_id,driver_id, order_id);
+                            theHtmlOutput = "הזמנה #" + order_id + " אושרה על ידי הספק ותסופק עד " + order_eta_time;
+                            logMsg = theHtmlOutput;
+                            AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                        }
+
+
+                    }
+
+                }
+
+                break;
+
+            case "AddDebtReturnToOrder":
+                if (true)
+                {
+                    theHtmlOutput = "!$!sdfsdfd עם הזמנה #" + order_id;
+                }
+                break;
+
+            case "ORDER_DELIVERY_REPORT":
+                if (true)
+                {
+                    bool is_delivered = false; if (!Request["is_delivered"].IsEmpty()) { is_delivered = true; }
+                    decimal actual_pickup_amount = 0; try { actual_pickup_amount = Convert.ToDecimal(Request["actual_pickup_amount"]); } catch { actual_pickup_amount = -1; }
+
+                    int driver_id = 0; try { driver_id = Convert.ToInt32(Request["driver_id"]); } catch { }
+                    string order_notes = Request["order_notes"];
+                    string delivery_status = Request["delivery_status"];
+                    DateTime delivery_timestamp = local_time;
+                    int order_status = 20;
+                    decimal grand_total = 0;
+                    bool is_partial_payment = false;
+
+                    if (is_delivered)
+                    {
+                        if (Request["actual_pickup_amount"] != "")
+                        {
+                            if (actual_pickup_amount < 0)
+                            {
+                                theHtmlOutput = "חובה להזין סכום תקין!<br>";
+                            }
+                        }
+                        else
+                        {
+                            theHtmlOutput += "חובה להזין סכום שנאסף!<br>";
+                        }
+                    }
+                    else
+                    {
+
+                        if (delivery_status == "")
+                        {
+                            theHtmlOutput += "חובה לציין מה היתה הבעיה במסירת ההזמנה!<br>";
+                        }
+
+                        if (order_notes == "")
+                        {
+                            theHtmlOutput += "חובה להזין הערות כשההזמנה לא נמסרה!<br>";
+                        }
+                    }
+
+                    if (theHtmlOutput == "")
+                    {
+                        try { grand_total = OrderFunctions.GetOrderPickupAmount(order_id); } catch { }
+                        if (grand_total > 0 && actual_pickup_amount < grand_total)
+                        {
+                            if (order_notes == "")
+                            {
+                                theHtmlOutput += "חובה להזין הערות כשסכום האיסוף בפועל קטן מהסכום הרשום בהזמנה!<br>" + grand_total;
+                            }
+                            else
+                            {
+                                is_partial_payment = true;
+                            }
+
+                        }
+                    }
+
+                    if (theHtmlOutput == "")
+                    {
+                        if (is_delivered)
+                        {
+                            order_status = 20;
+                            logMsg = "הזמנה #" + order_id + " נמסרה תקין!";
+                        }
+                        else
+                        {
+
+                            if (delivery_status == "NONDELIVERY")
+                            {
+                                logMsg = "הזמנה #" + order_id + " לא נמסרה!";
+                                order_status = 9;
+                            }
+                            if (delivery_status == "DELIVERYISSUE")
+                            {
+                                is_delivered = true;
+                                logMsg = "הזמנה #" + order_id + " נמסרה עם בעיות!";
+                                order_status = 10;
+                            }
+                            if (delivery_status == "POSTPONE")
+                            {
+                                logMsg = "הזמנה #" + order_id + " נדחתה לביצוע עתידי!";
+                                order_status = 7;
+                            }
+                        }
+                        sqlSelect = "UPDATE mainorders SET order_status=@0,actual_amount_pickedup=@1,status_change_ts=@2,status_change_by=@3,courier_notes=@4,driver_id=@5,delivery_status=@6,is_delivered=@7,delivery_timestamp=@8,is_complete=1 WHERE order_id=@9";
+                        db.Execute(sqlSelect, order_status, actual_pickup_amount, local_time, rep_id, order_notes, driver_id, delivery_status, is_delivered, local_time, order_id);
+                        AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                        theHtmlOutput = logMsg;
+
+                        if (is_partial_payment)
+                        {
+                            logMsg = "התקבל תשלום חלקי בסך " + actual_pickup_amount.ToString("C", culture);
+                        }
+                        else
+                        {
+                            logMsg = "התקבל תשלום מלא בסך " + actual_pickup_amount.ToString("C", culture);
+                        }
+
+                        if (actual_pickup_amount > 0)
+                        {
+                            //DO ORDER & FINCANCE FINALIZATION CHA-CHING
+                        }
+
+                        AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+
+                        if (order_notes != "")
+                        {
+                            AppFunctions.WriteOrderComment(order_id, order_notes, false, true);
+                        }
+
+
+
+
+                    }
+                    else
+                    {
+                        theHtmlOutput = "!$!" + theHtmlOutput;
+                    }
+
+                }
+
+                break;
+
+
+            case "ORDER_DELIVERY_REPORT_BCK":
+                if (true)
+                {
+                    bool is_delivered = false; if (!Request["is_delivered"].IsEmpty()) { is_delivered = true; }
+                    decimal actual_pickup_amount = 0;
+                    int driver_id = 0; try { driver_id = Convert.ToInt32(Request["driver_id"]); } catch { }
+                    string order_notes = Request["order_notes"];
+                    DateTime delivery_timestamp = local_time;
+                    int order_status = 10;
+                    decimal grand_total = 0;
+                    bool is_partial_payment = false;
+                    if (is_delivered)
+                    {
+                        if (Request["actual_pickup_amount"] != "")
+                        {
+                            try { actual_pickup_amount = Convert.ToDecimal(Request["actual_pickup_amount"]); } catch { actual_pickup_amount = -1; }
+                            if (actual_pickup_amount < 0)
+                            {
+                                theHtmlOutput = "חובה להזין סכום תקין!<br>";
+                            }
+                            else
+                            {
+                                //order delivered succesfully
+                                order_status = 7;
+                            }
+                        }
+                        else
+                        {
+                            theHtmlOutput += "חובה להזין סכום שנאסף!<br>";
+                        }
+                        order_status = 7;
+                    }
+                    else
+                    {
+                        if (order_notes == "")
+                        {
+                            theHtmlOutput += "חובה להזין הערות כשההזמנה לא נמסרה!<br>";
+                        }
+                    }
+
+                    if (theHtmlOutput == "")
+                    {
+                        try { grand_total = order.grand_total; } catch { }
+                        if (grand_total > 0 && actual_pickup_amount < grand_total)
+                        {
+                            if (order_notes == "")
+                            {
+                                theHtmlOutput += "חובה להזין הערות כשסכום האיסוף בפועל קטן מהסכום הרשום בהזמנה!<br>";
+                            }
+                            else
+                            {
+                                is_partial_payment = true;
+                            }
+
+                        }
+                    }
+
+                    if (theHtmlOutput == "")
+                    {
+                        if (is_delivered)
+                        {
+                            sqlSelect = "UPDATE mainorders SET order_status=@0,actual_amount_pickedup=@1,status_change_ts=@2,status_change_by=@3,delivery_timestamp=@4,order_notes=@5,driver_id=@6,is_delivered=1 WHERE order_id=@7";
+                            db.Execute(sqlSelect, order_status, actual_pickup_amount, local_time, rep_id, delivery_timestamp, order_notes, driver_id, order_id);
+                            logMsg = "הזמנה #" + order_id + " נמסרה!";
+                        }
+                        else
+                        {
+                            sqlSelect = "UPDATE mainorders SET order_status=@0,actual_amount_pickedup=@1,status_change_ts=@2,status_change_by=@3,order_notes=@4,driver_id=@5 WHERE order_id=@6";
+                            db.Execute(sqlSelect, order_status, actual_pickup_amount, local_time, rep_id, order_notes, driver_id, order_id);
+                            logMsg = "הזמנה #" + order_id + " לא נמסרה!";
+                        }
+
+                        AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+                        theHtmlOutput = logMsg;
+
+                        if (is_partial_payment)
+                        {
+                            logMsg = "התקבל תשלום חלקי בסך " + actual_pickup_amount.ToString("C", culture);
+                        }
+                        else
+                        {
+                            logMsg = "התקבל תשלום מלא בסך " + actual_pickup_amount.ToString("C", culture);
+                        }
+                        AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+
+                        if (order_notes != "")
+                        {
+                            AppFunctions.WriteOrderComment(order_id, order_notes, false, true);
+                        }
+
+
+
+
+                    }
+                    else
+                    {
+                        theHtmlOutput = "!$!" + theHtmlOutput;
+                    }
+
+                }
+
+                break;
+
+            case "ORDERFINALCANCEL":
+                if (true)
+                {
+
+
+
+                    if (theHtmlOutput == "")
+                    {
+                        sqlSelect = "UPDATE mainorders SET order_status=-4,status_change_ts=@0,status_change_by=@1 WHERE order_id=@2";
+                        db.Execute(sqlSelect, local_time, rep_id, order_id);
+                        theHtmlOutput = "ההזמנה בוטלה סופית!";
+                        logMsg = theHtmlOutput;
+                        AppFunctions.WriteOrderComment(order_id, logMsg, false, true);
+
+                    }
+
+                }
+
+                break;
+
+
+            case "TRANSFERORDER":
+                if (true)
+                {
+
+                    int dest_round_id = 0; try { dest_round_id = Convert.ToInt32(Request["param2"]); } catch { }
+                    if (dest_round_id > 0)
+                    {
+                        theHtmlOutput = OrderFunctions.TransferOrderToRound(order_id, dest_round_id);
+                    }
+                    else
+                    {
+                        theHtmlOutput = "!$!חובה לבחור לאן להעביר את ההזמנה!";
+                    }
+
+
+
+                }
+
+                break;
+
+            default:
+                theHtmlOutput = "!$!לא קרה כלום עם הזמנה #" + order_id;
+
+                break;
+        }
+
+
+
+        db.Close();
+        return theHtmlOutput;
+    }
+
+    public static string UpdateShippingInfo()
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        string theHtmlOutput = "";
+        string logMsg = "";
+        int order_id = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defTime=  Convert.ToDateTime("1/1/1900");
+        try { order_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+
+
+        int member_id = 0; ; try { member_id = Convert.ToInt32(Request["member_id"]); } catch { }
+        int round_id = order.round_id;
+        string order_type = Request["order_type"];
+        string ship_reciepient = Request["ship_reciepient"];
+        string ship_phone = Request["ship_phone"];
+        string new_ship_phone = Request["new_phone"];
+        int pu_eta_selector = 1; try { pu_eta_selector = Convert.ToInt32(Request["pu_eta_selector"]); } catch { }
+        string pu_eta_time = Request["pu_eta_time"];
+        int pu_eta_min = 0; try { pu_eta_min = Convert.ToInt32(Request["pu_eta_min"]); } catch { }
+        bool is_update_delivery_eta = false; if (!Request["is_update_delivery_eta"].IsEmpty()) { is_update_delivery_eta = true; }
+        int delivery_eta_selector = 0; try { delivery_eta_selector = Convert.ToInt32(Request["delivery_eta_selector"]); } catch { }
+        string delivery_eta_time = Request["delivery_eta_time"];
+        int delivery_id = 0; try { delivery_id = Convert.ToInt32(Request["delivery_id"]); } catch { }
+        DateTime scheduled_delivery_start = local_time; try { scheduled_delivery_start = order.scheduled_delivery_start; } catch { }
+        DateTime requested_delivery_date = local_time;
+        try { requested_delivery_date = order.requested_delivery_date; } catch { }
+        try { requested_delivery_date = Convert.ToDateTime(Request["requested_delivery_date"]); } catch { }
+
+        int delivery_eta_min = 0; try { delivery_eta_min = Convert.ToInt32(Request["delivery_eta_min"]); } catch { }
+        int saved_address_id = 0; try { saved_address_id = Convert.ToInt32(Request["saved_address_id"]); } catch { }
+        string ship_address = Request["ship_address"];
+        string ship_city = Request["ship_city"];
+        string address_notes = Request["address_notes"];
+        bool is_save_address = false; if (!Request["is_save_address"].IsEmpty()) { is_save_address = true; }
+        string address_nick = Request["address_nick"];
+        string ship_notes = Request["ship_notes"];
+        string packing_notes = Request["packing_notes"];
+        string order_notes = Request["order_notes"];
+        string shipping_time = Request["shipping_time"];
+        string requested_delivery_window_start_hour = Request["requested_delivery_window_start_hour"];
+        if (requested_delivery_window_start_hour.IsEmpty())
+        {
+            try { requested_delivery_window_start_hour = order.requested_delivery_window_start_hour; } catch { }
+            if (requested_delivery_window_start_hour.IsEmpty()) { requested_delivery_window_start_hour = "00:00"; }
+        }
+        string requested_delivery_window_end_hour = Request["requested_delivery_window_end_hour"];
+        if (requested_delivery_window_end_hour.IsEmpty())
+        {
+            try { requested_delivery_window_end_hour = order.requested_delivery_window_end_hour; } catch { }
+            if (requested_delivery_window_end_hour.IsEmpty()) { requested_delivery_window_end_hour = "23:59"; }
+        }
+
+        int area_id = 0;
+        int detected_area_id = 0; try { detected_area_id = Convert.ToInt32(Request["detected_area_id"]); } catch { }
+        int selected_area_id = 0; try { selected_area_id = Convert.ToInt32(Request["selected_area_id"]); } catch { }
+        int requested_delivery_date_non_update = 0; try { requested_delivery_date_non_update = Convert.ToInt32(Request["requested_delivery_date_non_update"]); } catch { }
+        DateTime pu_eta = local_time;
+        DateTime existing_pu_eta = local_time;try {existing_pu_eta = order.pu_eta; } catch { }
+        DateTime promised_express_eta = local_time;
+        bool is_express = false;
+        bool is_route = false;
+        bool is_pickup = false;
+        bool is_area_detected = false;
+        bool is_postponed = false;
+        bool is_area_selected = false;
+        int order_area_id = 0;
+        int DefaultExpressDeliveryMin = 90;
+        string existing_order_type = ""; try{ existing_order_type = order.order_type; } catch{}
+        string existing_ship_address = ""; try { existing_ship_address = order.ship_address; } catch { }
+        string existing_ship_city = ""; try { existing_ship_city = order.ship_city; } catch { }
+
+        string existing_packing_notes = ""; try { existing_packing_notes = order.packing_notes; } catch { }
+        string existing_ship_notes = ""; try { existing_ship_notes = order.ship_notes; } catch { }
+        string existing_order_notes = ""; try { existing_order_notes = order.order_notes; } catch { }
+        bool is_changing_delivery_method = false;
+        bool critical_order_change = false;
+        string critical_order_change_note = "";
+        bool is_mark_address_default = false; if (!Request["is_mark_address_default"].IsEmpty()) { is_mark_address_default = true; }
+        DateTime delivery_window_start = local_time;
+        DateTime delivery_window_end = local_time;
+        if (requested_delivery_date_non_update == 1)
+        {
+            requested_delivery_date = order.requested_delivery_date;
+            shipping_time = order.shipping_time;
+            requested_delivery_window_start_hour = order.requested_delivery_window_start_hour;
+            requested_delivery_window_end_hour = order.requested_delivery_window_end_hour;
+        }
+
+        string tmpdate = requested_delivery_date.Date.ToShortDateString() + " " + requested_delivery_window_start_hour;
+        DateTime tmp_date = Convert.ToDateTime(tmpdate);
+        requested_delivery_date = tmp_date;
+        try { delivery_window_start = Convert.ToDateTime(requested_delivery_date.ToShortDateString() + " " + requested_delivery_window_start_hour); } catch { }
+        try { delivery_window_end = Convert.ToDateTime(requested_delivery_date.ToShortDateString() + " " + requested_delivery_window_end_hour); } catch { }
+
+        if (requested_delivery_date.Date > local_time.Date)
+        {
+            is_postponed = true;
+        }
+
+        if (existing_order_type != order_type)
+        {
+            is_changing_delivery_method = true;
+            critical_order_change = true;
+            critical_order_change_note += "אופן המשלוח השתנה מ " + existing_order_type + " ל " + order_type + " <br>";
+        }
+
+        if (detected_area_id > 0) { area_id = detected_area_id; }
+        if (selected_area_id > 0) { area_id = selected_area_id; }
+
+        if (new_ship_phone == "") {new_ship_phone = ship_phone;}
+        new_ship_phone = AppFunctions.wanumize(new_ship_phone);
+        if (new_ship_phone == "" || !AppFunctions.IsValidPhone(new_ship_phone))
+        {
+            theHtmlOutput = theHtmlOutput + "טלפון למשלוח הוא שדה חובה!<br>";
+        }
+        if (ship_reciepient.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "מקבל המשלוח הוא שדה חובה!<br>";
+        }
+
+        if (delivery_window_end < local_time && requested_delivery_date_non_update==0)
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין תאריך מבוקש למשלוח עתידי!<br>";
+        }
+
+
+        if (delivery_window_start > delivery_window_end )
+        {
+            theHtmlOutput = theHtmlOutput + "נא להזין שעות חלון לאספקת ההזמנה באופן תקין!<br>";
+        }
+
+
+
+        switch (order_type)
+        {
+            case "PICKUP":
+                if (true)
+                {
+                    is_pickup = true;
+
+                    string pu_eta_str = "";
+                    pu_eta = local_time;
+                    if (pu_eta_selector == 1)
+                    {
+                        pu_eta_str = pu_eta.ToShortDateString() + " " + pu_eta_time;
+                        try { pu_eta = Convert.ToDateTime(pu_eta_str); } catch { }
+
+                        if (pu_eta <= local_time)
+                        {
+                            theHtmlOutput = theHtmlOutput + "חובה להזין זמן תקין להגעה לאיסוף!<br>";
+                        }
+
+                    }
+                    else
+                    {
+                        pu_eta = pu_eta.AddMinutes(pu_eta_min);
+                        if (pu_eta < existing_pu_eta)
+                        {
+                            critical_order_change = true;
+                            critical_order_change_note += "זמן הגעה הוקדם!<br>";
+                        }
+                    }
+                }
+                break;
+
+
+            case "EXPRESS":
+            case "ROUND":
+                if (true)
+                {
+                    int eta_min = 0;
+
+                    if (saved_address_id == 0 || saved_address_id == -1)
+                    {
+                        if (ship_address.IsEmpty())
+                        {
+                            theHtmlOutput = theHtmlOutput + "כתובת למשלוח הוא שדה חובה!<br>";
+                        }
+                        if (ship_city.IsEmpty())
+                        {
+                            theHtmlOutput = theHtmlOutput + "עיר למשלוח הוא שדה חובה!<br>";
+                        }
+
+
+                        try { detected_area_id = Rounds.GetAreaIdForCity(ship_city); } catch { }
+
+                        if (detected_area_id > 0)
+                        {
+                            is_area_detected = true;
+                        }
+                        else
+                        {
+                            try { selected_area_id = Convert.ToInt32(Request["selected_area_id"]); } catch { }
+                            if (selected_area_id <= 0)
+                            {
+                                theHtmlOutput = "$!$חובה לבחור איזור למשלוח!";
+                            }
+                            else
+                            {
+                                is_area_selected = true;
+                            }
+                        }
+
+                        if (detected_area_id > 0) { order_area_id = detected_area_id; }
+                        if (selected_area_id > 0)
+                        {
+                            order_area_id = selected_area_id;
+                            sqlSelect = "INSERT INTO CitiesInAreas(area_id,city) VALUES (@0,@1)";
+                            db.Execute(sqlSelect, order_area_id, ship_city);
+                        }
+
+
+
+
+
+                    }
+                    else
+                    {
+                        sqlSelect = "SELECT * FROM Addresses where id=@0 ";
+                        var savedAddress = db.QuerySingle(sqlSelect, saved_address_id);
+                        if (savedAddress != null)
+                        {
+                            ship_city = savedAddress.city;
+                            ship_address = savedAddress.address;
+                            order_area_id = savedAddress.area_id;
+                        }
+                        else
+                        {
+                            theHtmlOutput = theHtmlOutput + "הכתובת השמורה לא נמצאה!<br>";
+                        }
+                    }
+                    if (is_save_address)
+                    {
+                        if (address_nick.IsEmpty())
+                        {
+                            address_nick = ship_address;
+                        }
+
+                        sqlSelect = "SELECT id FROM Addresses WHERE address_nick=@0 AND member_id=@1 AND is_active=1";
+                        var dupChk = db.QuerySingle(sqlSelect, address_nick, member_id);
+                        if (dupChk != null)
+                        {
+                            theHtmlOutput = theHtmlOutput + "כינוי הכתובת כבר שמור במערכת!<br>";
+                        }
+
+                    }
+
+                    if (ship_city != existing_ship_city)
+                    {
+                        critical_order_change = true;
+                        critical_order_change_note += "עיר למשלוח השתנתה!<br>";
+                    }
+                    if (ship_address != existing_ship_address)
+                    {
+                        critical_order_change = true;
+                        critical_order_change_note += "כתובת למשלוח השתנתה!<br>";
+                    }
+
+
+                }
+                break;
+
+        }
+
+        // theHtmlOutput += requested_delivery_window_start_hour + "<BR>" + requested_delivery_window_end_hour + "<BR>" + delivery_window_start.ToString() + "<BR>" + delivery_window_end.ToString();
+
+
+        if (order_type == "ROUND")
+        {
+            is_route = true;
+
+        }
+        if (order_type == "EXPRESS")
+        {
+            is_express = true;
+
+        }
+
+
+        if (theHtmlOutput == "")
+        {
+
+            if (order_notes != existing_order_notes)
+            {
+                critical_order_change = true;
+                critical_order_change_note += "ההערות להזמנה התעדכנו!<br>";
+            }
+            if (ship_notes != existing_ship_notes)
+            {
+                critical_order_change = true;
+                critical_order_change_note += "ההערות לשליח התעדכנו!<br>";
+            }
+            if (packing_notes != existing_packing_notes)
+            {
+                critical_order_change = true;
+                critical_order_change_note += "ההערות לאריזה התעדכנו!<br>";
+            }
+
+            if (is_save_address)
+            {
+                if (is_mark_address_default)
+                {
+                    sqlSelect = "UPDATE addresses SET is_default=0 WHERE member_id=@0";
+                    db.Execute(sqlSelect, member_id);
+                }
+
+                sqlSelect = "INSERT INTO addresses(address,city,member_id,area_id,address_nick,address_notes,is_active,is_default) VALUES(@0,@1,@2,@3,@4,@5,1,@6)";
+                db.Execute(sqlSelect, ship_address, ship_city, member_id, area_id, address_nick, address_notes, is_mark_address_default);
+
+                sqlSelect = "SELECT id FROM addresses WHERE address_nick=@0 AND member_id=@1 ";
+                var new_saved_address = db.QuerySingle(sqlSelect, address_nick, member_id);
+                try { saved_address_id = new_saved_address.id; } catch { }
+
+            }
+
+
+
+            sqlSelect = "UPDATE mainOrders SET ship_reciepient=@0,ship_phone=@1,ship_address=@2,ship_city=@3,order_notes=@4,ship_notes=@5,packing_notes=@6,saved_address_id=@7,area_id=@8,is_express=@9,is_route=@10,is_pickup=@11,order_type=@12,pu_eta=@13,requested_delivery_date=@14,shipping_time=@15,requested_delivery_window_start_hour=@16,requested_delivery_window_end_hour=@17,is_postponed=@18 WHERE order_id=@19";
+            db.Execute(sqlSelect, ship_reciepient, new_ship_phone, ship_address, ship_city, order_notes, ship_notes, packing_notes, saved_address_id, area_id, is_express, is_route, is_pickup, order_type, pu_eta,   requested_delivery_date,shipping_time, requested_delivery_window_start_hour, requested_delivery_window_end_hour,is_postponed, order_id);
+
+            if (requested_delivery_date.Date != order.requested_delivery_date.Date) //delivery date changed
+            {
+                if (is_postponed != order.is_postponed || (is_postponed && order.is_postponed))
+                {
+
+                    sqlSelect = "UPDATE mainorders SET delivery_id=0,route_id=0,stop_id=0,driver_id=0,envelope_id=0 WHERE order_id=@0";
+                    db.Execute(sqlSelect, order.order_id);
+
+                    logMsg = "התאריך המבוקש לביצוע ההזמנה נקבע ל" + requested_delivery_date.ToShortDateString() + " " + delivery_window_start.ToString("HH:mm") + " - " + delivery_window_end.ToString("HH:mm");
+                    AppFunctions.WriteOrderComment(order_id, logMsg);
+                }
+            }
+
+
+            if (selected_area_id > 0)
+            {
+                AppFunctions.LinkCityToArea(selected_area_id, ship_city);
+            }
+
+            /*
+            if (critical_order_change)
+            {
+                sqlSelect = "UPDATE MainOrders SET critical_order_change=@0,critical_order_change_note=@1,critical_order_change_ts=@2,critical_order_change_by=@3 WHERE order_id=@4";
+                db.Execute(sqlSelect, critical_order_change, critical_order_change_note, local_time, rep_id, order_id);
+
+            }
+
+            if (critical_order_change_note != "")
+            {
+                AppFunctions.WriteOrderComment(order_id, critical_order_change_note);
+            }
+            */
+
+            Rounds.reCalcDeliveryStatistics(round_id);
+
+            theHtmlOutput = "ההזמנה התעדכנה בהצלחה!";
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+
+        db.Close();
+        return theHtmlOutput;
+    }
+
+    public static decimal GetOrderPickupAmount(int order_id)
+    {
+        decimal pickup_amount = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT after_roundup_total FROM MainOrders WHERE order_id=@0";
+        var Order = db.QuerySingle(sqlSelect, order_id);
+        try { pickup_amount = Order.after_roundup_total; } catch { }
+
+        db.Close();
+        return pickup_amount;
+    }
+
+}

@@ -1,0 +1,505 @@
+﻿@{
+    int u_id = WebSecurity.CurrentUserId;
+
+    string thePage = "";
+    int param2 = 0;
+    int param3 = 0;
+    int param4 = 0;
+    string PARAM2 = ""; PARAM2 = Request["p2"];
+    string PARAM3 = ""; PARAM3 = Request["p3"];
+    string PARAM4 = ""; PARAM4 = Request["p4"];
+    thePage = Request["p1"];
+    try { param2 = Convert.ToInt32(Request["p2"]); } catch { }
+    try { param3 = Convert.ToInt32(Request["p3"]); } catch { }
+    try { param4 = Convert.ToInt32(Request["p4"]); } catch { }
+
+    switch (thePage)
+    {
+
+        case "UsersAdmin":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.UsersAdmin() </div>
+            break;
+
+        case "SysLog":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.SysLog(param3, PARAM2) </div>
+            break;
+        //sdgf
+
+        case "JoinAdmin":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.JoinAdmin() </div>
+            }
+            break;
+
+
+        case "WebProspects":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                if (PARAM2.IsEmpty()) { PARAM2 = "APPROVED"; }
+                <div>@AppPages.WebProspects(PARAM2) </div>
+            }
+            break;
+
+
+        case "WebProspect2":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.WebProspect(param2) </div>
+            }
+            break;
+
+        case "WebProspect":
+            if (true)
+            {
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+                <div style="direction:rtl">@AppPages.WebProspect(param2) </div>
+            }
+            break;
+        case "CAProspect":
+            if (true)
+            {
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+                <div style="direction:rtl">@ClientApp.Prospect(param2) </div>
+            }
+            break;
+
+        case "WebProspectVerification":
+            if (true)
+            {
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+                <div style="direction:rtl">@AppPages.WebProspectVerification(param2) </div>
+            }
+            break;
+
+        case "RegisterWebProspect":
+            if (true)
+            {
+
+                <div style="direction:rtl"> @AppPages.RegisterWebProspect(param2) </div>
+            }
+            break;
+
+
+        case "prospect":
+            if (true)
+            {
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+                bool is_birthday = false; if (!Request["is_birthday"].IsEmpty()) { is_birthday = true; }
+
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                < div > @AppPages.Prospect(param2, template_id, is_birthday) </ div >
+            }
+
+            break;
+
+        case "FinalDelete":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.FinalDelete() </div>
+            break;
+
+        case "prospectUnVerfied":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                string sortDir = "DESC";
+                if (!PARAM2.IsEmpty())
+                {
+                    sortDir = PARAM2;
+                }
+                <div>@AppPages.prospectUnVerfied(sortDir) </div>
+            }
+            break;
+
+
+        case "PreserveMembers":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.PreserveMembers() </div>
+            break;
+
+        case "MembersListPreview":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                string StartsWith = ""; StartsWith = Request["StartsWith"];
+                int min_order_count = 0; try { min_order_count = Convert.ToInt32(Request["min_order_count"]); } catch { };
+                DateTime max_order_date = DateTime.Now; try { max_order_date = Convert.ToDateTime(Request["max_order_date"]); } catch { };
+                DateTime min_order_date = DateTime.Now; try { min_order_date = Convert.ToDateTime(Request["min_order_date"]); } catch { };
+                bool unassigned_only = true; if (Request["unassigned_only"].IsEmpty()) { unassigned_only = false; }
+                <div>@AppPages.MembersListPreview(StartsWith, min_order_count, max_order_date, min_order_date, unassigned_only) </div>
+
+            }
+
+            break;
+
+
+
+        case "ListManager":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.ListManager(param2) </div>
+
+            }
+
+            break;
+
+
+        case "MembersAdmin":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.MembersAdmin() </div>
+
+            }
+
+            break;
+        case "DeletedMembers":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.DeletedMembers() </div>
+
+            }
+
+            break;
+
+
+
+        case "UserReachout":
+            if (true)
+            {
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+                int list_id = 0; try { list_id = Convert.ToInt32(Request["list_id"]); } catch { }
+                string reachout_type = "REP";
+                if (!Request["reachout_type"].IsEmpty())
+                {
+                    reachout_type = Request["reachout_type"];
+                }
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div> @AppPages.UserReachout(param2, u_id, reachout_type, template_id, list_id) </div>
+
+            }
+
+            break;
+
+        case "msgTemplates":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.msgTemplates() </div>
+
+            }
+
+            break;
+
+        case "MsgEditor":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.MsgEditor(param2) </div>
+
+            }
+
+            break;
+
+
+        case "MemberInfo":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@AppPages.MemberInfo(param2) </div>
+
+            }
+            break;
+
+        case "Member_Info":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                <div>@NewAppPages.MemberInfo(param2) </div>
+
+            }
+            break;
+        ///////////////////////////////////////
+        ///
+
+        case "PhoneBook":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.PhoneBook() </div>
+            break;
+
+        case "OrdersMain":
+            string ShowWhat = PARAM2;
+            if (ShowWhat.IsEmpty()) { ShowWhat = "30"; }
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.OrdersMain(ShowWhat) </div>
+            break;
+        case "PhoneBookSync":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.PhoneBookSync() </div>
+            break;
+
+        case "OrdersNotes":
+        case "VerifyOrder":
+
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@NewAppPages.OrderInfo(param2) </div>
+            break;
+
+
+        case "SendMessageToProspect":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AppPages.SendMessageToProspect(param2) </div>
+            break;
+
+        case "SendMessageToMember":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+
+                int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+                int list_id = 0; try { list_id = Convert.ToInt32(Request["list_id"]); } catch { }
+
+                if (template_id == 0)
+                {
+                    try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultMembersWelcomeMsgTemplate")); } catch { }
+                }
+
+
+
+                <div style="direction:rtl">@AppPages.SendMessageToMember(param2, template_id) </div>
+            }
+
+            break;
+
+        /*
+    case "MemberContactCenter":
+        if (true)
+        {
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+
+            int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+            int list_id = 0; try { list_id = Convert.ToInt32(Request["list_id"]); } catch { }
+            string provided_wanum = ""; provided_wanum = Request["provided_wanum"];
+            int m_id = 0; try { m_id = Convert.ToInt32(Request["m_id"]); } catch { }
+            if (template_id == 0)
+            {
+                try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultMembersWelcomeMsgTemplate")); } catch { }
+            }
+
+
+
+
+            <div style="direction:rtl"> @NewAppPages.MemberContactCenter(m_id, provided_wanum, template_id, "MEMBERCONTACT") </div>
+
+
+        }
+
+        break;
+    case "NonMemberContact":
+        if (true)
+        {
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+
+            int template_id = 0; try { template_id = Convert.ToInt32(Request["RepDefaultTemplate"]); } catch { }
+            int list_id = 0; try { list_id = Convert.ToInt32(Request["list_id"]); } catch { }
+            string provided_wanum = ""; provided_wanum = Request["provided_wanum"];
+            int m_id = 0; try { m_id = Convert.ToInt32(Request["m_id"]); } catch { }
+            int entry_id = 0; try { entry_id = Convert.ToInt32(Request["entry_id"]); } catch { }
+            <div style="direction:rtl"> @NewAppPages.NonMemberContact(entry_id, provided_wanum, template_id) </div>
+
+
+        }
+
+        break;
+
+            */
+
+        case "CONTACTRESPONSE":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                string provided_wanum = Request["provided_wanum"];
+                int contact_entry_id = 0; try { contact_entry_id = Convert.ToInt32(Request["contact_entry_id"]); } catch { }
+                int member_id = 0; try { member_id = Convert.ToInt32(Request["member_id"]); } catch { }
+                string reachout_type = Request["reachout_type"];
+                if (contact_entry_id == 0) { try { contact_entry_id = param2; } catch { } }
+                DataFunctions.WriteDebugLine(reachout_type + member_id.ToString());
+                <div style="direction:rtl"> @NewAppPages.ContactResponse(contact_entry_id, member_id, provided_wanum, reachout_type) </div>
+
+
+
+            }
+
+            break;
+
+
+        case "NewOrder":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@NewAppPages.NewWebOrder() </div>
+            break;
+
+        case "RoundEdit":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                string viewMode = "GENERAL";
+                if (!PARAM3.IsEmpty()) { viewMode = PARAM3; }
+                <div style="direction:rtl">@AdminPages2.RoundEdit(param2, viewMode)</div>
+            }
+
+            break;
+
+        case "RoundCP":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                string viewMode = "GENERAL";
+                if (!PARAM3.IsEmpty()) { viewMode = PARAM3; }
+                <div style="direction:rtl">@Rounds.RoundControlPanel(param2, viewMode)</div>
+            }
+
+            break;
+
+        case "ProductEdit":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div style="display:none">AdminPages2.ProductEdit(param2)</div>
+            <div>@Products.ProductEdit(param2, PARAM3)</div>
+            break;
+
+        case "CatInfo":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AdminPages2.CatInfo(param2)</div>
+            break;
+
+        case "ImgInfo":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>
+                @AdminPages2.ImageDetails(param2, param3, param4)
+            </div>
+            break;
+
+
+        case "EditRoundMenu":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@AdminPages2.EditRoundMenu(param2)</div>
+            break;
+
+        case "MenuItemEdit":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@AdminPages2.RoundMenuItemEdit(param2)</div>
+            break;
+
+
+        case "BoardOrderInfo":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Order.BoardOrderInfo(param2) </div>
+            break;
+        case "OrderItemsEdit":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Order.OrderItemsEdit(param2) </div>
+            break;
+        case "OrderItemsReturn":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@tmpit2.OrderItemsReturn(param2) </div>
+            break;
+
+        case "ReviewReplacementOrder":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div style="display:none">Order.OrderItemsReturn(param2) </div>
+            <div>@tmpit2.ReviewReplacementOrder() </div>
+            break;
+
+        case "OrderTransfer":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Order.OrderTransfer(param2, param3) </div>
+            break;
+        case "OrderItemsReview":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Order.ReviewOrderItemsEdit(param2) </div>
+            break;
+
+        case "OrderLog":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Order.OrderLog(param2) </div>
+            break;
+
+        case "CancelOrder":
+            <div>@Order.OrderLog(param2) </div>
+            break;
+
+        case "SpecialEdit":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@AdminPages2.SpecialOfferEdit(param2)</div>
+            break;
+
+        case "CouponEdit":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Coupons.CouponEdit(param2)</div>
+            break;
+        case "CouponInfo":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Coupons.CouponInfo(param2)</div>
+            break;
+        case "CouponSetup":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Coupons.CouponSetup(param2)</div>
+            break;
+
+        case "VoucherSetup":
+            Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
+            <div>@Coupons.VoucherSetup(param2)</div>
+            break;
+
+
+        case "VerifyCouponCreation":
+            <div>@Coupons.VerifyCouponCreation()</div>
+            break;
+
+        case "IssueCoupon":
+            <div>@Coupons.IssueCoupon(param2)</div>
+            break;
+        case "VendorInfo":
+            <div>@Vendors.VendorInfo(param2)</div>
+            break;
+
+        case "VendorEdit":
+            <div>@Vendors.VendorEdit(param2)</div>
+            break;
+
+
+        case "RepInfo":
+            <div>@Reps.RepInfo(param2)</div>
+            break;
+
+
+        case "DeliveryDispatch":
+            <div>@Rounds.DeliveryDispatch(param2)</div>
+            break;
+
+
+        case "ZREPORT":
+            <div>@tmpit.ZReport(param2)</div>
+            break;
+
+
+
+        case "AddOrder":
+            <div>@tmpit2.AddOrder(param2)</div>
+            break;
+
+
+
+    }
+
+
+
+
+}
+

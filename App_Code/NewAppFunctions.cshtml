@@ -1,0 +1,424 @@
+﻿@functions {
+
+    public static int Counter(string CountWhat, string param1 = "", string param2 = "", string param3 = "")
+    {
+        int ret_val = 0;
+        var sqlSelect = "";
+        var db = Database.Open("op_data");
+        switch (CountWhat)
+        {
+            case "ALLORDERS": //count all orders
+                if (true)
+                {
+                    sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders";
+                    var theCounter = db.QuerySingle(sqlSelect);
+                    try { ret_val = theCounter.cnt; } catch { }
+                }
+                break;
+
+            case "ALLROUNDORDERS": //count unpacked orders
+                if (true)
+                {
+                    int round_id = 0; try { round_id = Convert.ToInt32(param1); } catch { }
+                    sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where round_id=@0";
+                    var theCounter = db.QuerySingle(sqlSelect, round_id);
+                    try { ret_val = theCounter.cnt; } catch { }
+
+                }
+                break;
+
+            case "CURRENTROUNDORDERS": //count unpacked orders
+                if (true)
+                {
+                    int round_id = 0; try { round_id = Convert.ToInt32(param1); } catch { }
+                    DateTime curTime = AppFunctions.LocalTime();
+                    sqlSelect = "SELECT next_scheduled_delivery FROM dbo.rounds WHERE id=@0";
+                    var round_info = db.QuerySingle(sqlSelect, round_id);
+                    DateTime next_scheduled_delivery = Convert.ToDateTime("1/1/2100");
+                    try { next_scheduled_delivery = round_info.next_scheduled_delivery; } catch { }
+                    sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where round_id=@0 AND requested_delivery_date<=@1";
+                    var theCounter = db.QuerySingle(sqlSelect, round_id, next_scheduled_delivery);
+                    try { ret_val = theCounter.cnt; } catch { }
+
+                }
+                break;
+
+            case "FUTUREROUNDORDERS": //count unpacked orders
+                if (true)
+                {
+                    int round_id = 0; try { round_id = Convert.ToInt32(param1); } catch { }
+                    DateTime curTime = AppFunctions.LocalTime();
+                    sqlSelect = "SELECT next_scheduled_delivery FROM dbo.rounds WHERE id=@0";
+                    var round_info = db.QuerySingle(sqlSelect, round_id);
+                    DateTime next_scheduled_delivery = Convert.ToDateTime("1/1/2100");
+                    try { next_scheduled_delivery = round_info.next_scheduled_delivery; } catch { }
+                    sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where round_id=@0 AND requested_delivery_date>@1";
+                    var theCounter = db.QuerySingle(sqlSelect, round_id, next_scheduled_delivery);
+                    try { ret_val = theCounter.cnt; } catch { }
+                }
+                break;
+
+            case "UNASSIGNEDDUEROUNDORDERS": //count unpacked orders
+                if (true)
+                {
+                    int round_id = 0; try { round_id = Convert.ToInt32(param1); } catch { }
+                    DateTime curTime = AppFunctions.LocalTime();
+                    sqlSelect = "SELECT next_scheduled_delivery FROM dbo.rounds WHERE id=@0";
+                    var round_info = db.QuerySingle(sqlSelect, round_id);
+                    DateTime next_scheduled_delivery = Convert.ToDateTime("1/1/2100");
+                    try { next_scheduled_delivery = round_info.next_scheduled_delivery; } catch { }
+                    sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where delivery_id=0 AND round_id=@0 AND requested_delivery_date<=@1";
+                    var theCounter = db.QuerySingle(sqlSelect, round_id, next_scheduled_delivery);
+                    try { ret_val = theCounter.cnt; } catch { }
+
+                }
+                break;
+
+            case "DeliveryOrders": //count orders in a delivery
+                if (true)
+                {
+                    int delivery_id = 0; try { delivery_id = Convert.ToInt32(param1); } catch { }
+                    sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where delivery_id=@0";
+                    var theCounter = db.QuerySingle(sqlSelect, delivery_id);
+                    try { ret_val = theCounter.cnt; } catch { }
+
+                }
+                break;
+
+            case "RoundDeliveriesCount": //count orders in a delivery
+                if (true)
+                {
+                    int round_id = 0; try { round_id = Convert.ToInt32(param1); } catch { }
+                    sqlSelect = "SELECT COUNT(serial) AS cnt from deliveries where round_id=@0";
+                    var theCounter = db.QuerySingle(sqlSelect, round_id);
+                    try { ret_val = theCounter.cnt; } catch { }
+
+                }
+                break;
+
+        }
+
+        db.Close();
+
+        return ret_val;
+
+    }
+
+    public static Decimal GetRoundTotalOrdersSum(int round_id,int z_id=0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT SUM(grand_total) AS ord_tot from MainOrders  WHERE is_cancelled=0 AND is_deleted=0 AND z_id=@0 AND round_id=@1";
+        var ord_total = db.QuerySingle(sqlSelect, z_id,round_id);
+        decimal totalSum = 0;
+        try { totalSum = Convert.ToDecimal(ord_total.ord_tot); } catch { }
+        db.Close();
+        return totalSum;
+
+    }
+    public static int GetOrdersCountByRound(string CountWhat, int round_id)
+    {
+        var sqlSelect = "";
+
+
+        switch (CountWhat)
+        {
+            case "ALL": //count all orders
+
+                sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where round_id=@0";
+
+                break;
+            case "UNPACKED": //count unpacked orders
+                sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where is_packed=0 AND round_id=@0";
+                break;
+
+            case "PACKED": //count unpacked orders
+                sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where is_packed=1 AND round_id=@0";
+
+
+                break;
+            case "UNAPPROVED": //count unapproved orders
+                sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where is_approved=0 AND  round_id=@0";
+                break;
+
+            case "READYFORPU": //count unapproved orders
+                sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where is_awaiting_pickup=1 AND  round_id=@0";
+                break;
+            case "INCOMPLETE": //count uncompleted orders
+                sqlSelect = "SELECT COUNT(order_id) AS cnt from MainOrders where is_complete=0 AND  round_id=@0";
+                break;
+
+        }
+
+        var db = Database.Open("op_data");
+        var theCounter = db.QuerySingle(sqlSelect, round_id);
+        db.Close();
+        if (theCounter != null)
+        {
+            return theCounter.cnt;
+        }
+        else { return 0; }
+    }
+
+    public static string strDayOfWeek(DateTime theDate, int lang = 0)
+    {
+        string dayOfWeekStr = "";
+        int theDay = (int)theDate.DayOfWeek;
+        dayOfWeekStr = NewAppFunctions.strDayOfWeekFromInt(theDay);
+
+        return dayOfWeekStr;
+
+    }
+    public static string strDayOfWeekFromInt(int theDay, int lang = 0)
+    {
+        string dayOfWeekStr = "";
+        switch (theDay)
+        {
+            case 0:
+                dayOfWeekStr = "ראשון";
+                break;
+            case 1:
+                dayOfWeekStr = "שני";
+                break;
+            case 2:
+                dayOfWeekStr = "שלישי";
+                break;
+            case 3:
+                dayOfWeekStr = "רביעי";
+                break;
+            case 4:
+                dayOfWeekStr = "חמישי";
+                break;
+            case 5:
+                dayOfWeekStr = "שישי";
+                break;
+            case 6:
+                dayOfWeekStr = "שבת";
+                break;
+
+        }
+
+        return dayOfWeekStr;
+
+    }
+
+    public static string StatusLabelByCode(int status_code, string status_of, bool is_english = false)
+    {
+
+        var sqlSelect = "";
+        var db = Database.Open("op_data");
+
+        switch (status_of)
+        {
+
+            case "LOCALORDER":
+                break;
+            case "CAT":
+                if (!is_english)
+                {
+                    sqlSelect = "SELECT title AS theStatus FROM irgoon.categories WHERE id=@0";
+                }
+                else
+                {
+                    sqlSelect = "SELECT title_e AS theStatus FROM irgoon.categories WHERE id=@0";
+                }
+                break;
+            case "SALEDISAPPROVAL":
+                if (!is_english)
+                {
+                    sqlSelect = "SELECT denial_reason AS theStatus FROM irgoon.localSaleDenialCodes WHERE serial=@0";
+                }
+                else
+                {
+                    sqlSelect = "SELECT denial_reason_e AS theStatus FROM irgoon.localSaleDenialCodes WHERE serial=@0";
+                }
+                break;
+            case "ROUND":
+                if (!is_english)
+                {
+                    sqlSelect = "SELECT heb_status AS theStatus FROM irgoon.RoundStatuses WHERE round_status=@0";
+                }
+                else
+                {
+                    sqlSelect = "SELECT eng_status AS theStatus FROM irgoon.RoundStatuses WHERE round_status=@0";
+                }
+                break;
+            case "ORDER":
+                if (!is_english)
+                {
+                    sqlSelect = "SELECT heb_status AS theStatus FROM irgoon.AppOrderStatuses WHERE order_status=@0";
+                }
+                else
+                {
+                    sqlSelect = "SELECT eng_status AS theStatus FROM irgoon.AppOrderStatuses WHERE order_status=@0";
+                }
+                break;
+            case "ROUTE":
+                if (!is_english)
+                {
+                    sqlSelect = "SELECT heb_status AS theStatus FROM tlg.AppRouteStatuses WHERE route_status=@0";
+                }
+                else
+                {
+                    sqlSelect = "SELECT eng_status AS theStatus FROM tlg.AppRouteStatuses WHERE route_status=@0";
+                }
+                break;
+
+        }
+
+
+
+        var StatusRS = db.QuerySingle(sqlSelect, status_code);
+        db.Close();
+        if (StatusRS != null) { return StatusRS.theStatus; }
+        else { return ""; }
+
+    }
+
+    public static string GetTitleById(string TitleOf, int id, int lang = 1)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        switch (TitleOf)
+        {
+            case "Menu":
+                sqlSelect = "SELECT title AS the_label FROM irgoon.mahSysMenus WHERE id=@0";
+                break;
+            case "ItemType":
+                switch (lang)
+                {
+                    case 1:
+                        sqlSelect = "SELECT title AS the_label FROM ItemUnitTypes WHERE id=@0";
+                        break;
+                    case 2:
+                        sqlSelect = "SELECT title_e AS the_label FROM ItemUnitTypes WHERE id=@0";
+                        break;
+
+                    default:
+                        sqlSelect = "SELECT title AS the_label FROM ItemUnitTypes WHERE id=@0";
+                        break;
+                }
+                break;
+            case "Round":
+                sqlSelect = "SELECT title AS the_label FROM rounds WHERE id=@0";
+                break;
+
+            case "Round_Short":
+                sqlSelect = "SELECT short_title AS the_label FROM rounds WHERE id=@0";
+                break;
+
+            case "Cat":
+                sqlSelect = "SELECT title AS the_label FROM categories WHERE id=@0";
+                break;
+
+            case "Product":
+                sqlSelect = "SELECT title AS the_label FROM products WHERE p_id=@0";
+                break;
+
+
+            case "SpecialOffer":
+                sqlSelect = "SELECT title AS the_label FROM SpecialOffers WHERE id=@0";
+                break;
+
+
+            case "Coupon":
+                sqlSelect = "SELECT coupon_title AS the_label FROM coupons WHERE coupon_id=@0";
+                break;
+
+            case "Area":
+                sqlSelect = "SELECT title AS the_label FROM AppServicesArea WHERE id=@0";
+                break;
+
+            case "OrderStatus":
+                sqlSelect = "SELECT heb_status AS the_label FROM AppOrderStatuses WHERE order_status=@0";
+                break;
+
+            case "InventoryActionCode":
+                sqlSelect = "SELECT title AS the_label FROM irgoon.InventoryActionCodes WHERE action_code=@0";
+                break;
+            case "Vendor":
+                sqlSelect = "SELECT vendor_name AS the_label FROM vendors WHERE vendor_id=@0";
+                break;
+            case "VendorPermission":
+                sqlSelect = "SELECT title AS the_label FROM appPermissionCodes WHERE id=@0";
+                break;
+            case "VendorAddressNick":
+                sqlSelect = "SELECT address_nick AS the_label FROM vendoraddresses WHERE id=@0";
+                break;
+            default:
+                return "";
+
+        }
+
+        var rs = db.QuerySingle(sqlSelect, id);
+        db.Close();
+        if (rs != null) { return rs.the_label; }
+        else { return ""; }
+
+    }
+
+    public static string GetRoundTypeTitleById(int round_type, int lang = 0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT title from AppRoundTypes Where round_type=@0";
+        var round_rs = db.QuerySingle(sqlSelect, round_type);
+        db.Close();
+        if (round_rs != null) { return round_rs.title; }
+        else { return ""; }
+
+    }
+
+    public static void DoProductCustomFieldSequencing(int p_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id FROM ProductsCustomFields WHERE is_activated=1 AND p_id=@0 ORDER BY listindex";
+        var fieldRs = db.Query(sqlSelect, p_id);
+        int i = 0;
+        foreach (var item in fieldRs)
+        {
+            i++;
+            sqlSelect = "UPDATE ProductsCustomFields SET listindex=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
+
+    public static void DoCategoryCustomFieldSequencing(int cat_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id FROM ProductsCustomFields WHERE p_id=0 AND cat_id=@0 ORDER BY listindex";
+        var fieldRs = db.Query(sqlSelect, cat_id);
+        int i = 0;
+        foreach (var item in fieldRs)
+        {
+            i++;
+            sqlSelect = "UPDATE ProductsCustomFields SET listindex=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
+
+    public static void CopyProductPriceOptions(int src_p_id,int dest_p_id)
+    {
+        ProductsFunctions.CopyProductPriceOptions( src_p_id,  dest_p_id);
+    }
+
+    public static void CopyProductImages(int src_p_id, int dest_p_id)
+    {
+        ProductsFunctions.CopyProductImages(src_p_id, dest_p_id);
+    }
+
+    public static Decimal GetOrderTotal(int order_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "select SUM(price*quan) AS tot from orderitems where order_id=@0";
+        var ord_total = db.QuerySingle(sqlSelect, order_id);
+        decimal totalSum = 0;
+        try { totalSum = Convert.ToDecimal(ord_total.tot); } catch { }
+        db.Close();
+        return totalSum;
+
+    }
+
+}

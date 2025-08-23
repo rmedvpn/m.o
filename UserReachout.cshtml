@@ -1,0 +1,103 @@
+﻿@{
+      if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+      
+
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+var db = Database.Open("irgoon");
+var sqlSelect="";
+
+int member_id=0;
+try{member_id=Convert.ToInt32(Request["member_id"]);}catch{}
+
+sqlSelect = "select * from irgoon.irgUsers WHERE userId=@0";
+var memberRs = db.QuerySingle(sqlSelect,member_id);
+
+string wanum="";
+if(memberRs!=null){
+    wanum=memberRs.wanum;
+}
+
+sqlSelect= "Select * from irgoon.MasterWebOrders WHERE wanum=@0 ORDER BY ts DESC";
+var userOrders=db.Query(sqlSelect,wanum);
+
+decimal avgDaysBetweenOrders=0;
+int total_orders=0;
+
+TimeSpan DaysSinceLastOrder = DateTime.Now - memberRs.last_order_ts;
+var DaysSinceLastOrderInt = DaysSinceLastOrder.Days;
+
+db.Close();
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+
+
+
+   @if(memberRs!=null){
+
+             <div style="overflow: auto;padding: 5px;border: 2px dotted #000;color: #000;font-size: 16px;text-align: right;">
+            <button style="float: left;font-size: 16px;padding: 5px;margin: 5px;font-weight: bold;color: #57d600;background-color: #fff;border: 2px solid #57d600" onclick="sbload('SubMenu','OrdersHistory?member_id=@member_id');">הזמנות</button>
+            
+            <div style="overflow: auto;font-size: 24px;font-weight: bold">@memberRs.pbname            </div>
+            <div style="overflow: auto;font-size: 14px;padding: 0;margin: 0">
+                <span  style="color: #57d600;font-weight: bold;">@Convert.ToInt32(memberRs.order_count)</span> הזמנות קודמות, בממוצע כל <span  style="color: #57d600;font-weight: bold;">@Convert.ToInt32(memberRs.avgDaysBetweenOrders)</span> ימים, האחרונה לפני <span  style="color: #57d600;font-weight: bold;">@AppFunctions.HowManyDaysAgoWas(memberRs.last_order_ts)</span> ימים, הראשונה לפני <span  style="color: #57d600;font-weight: bold;">@AppFunctions.HowManyDaysAgoWas(memberRs.first_order_ts)</span> ימים
+            </div>
+        </div>
+        <div style="overflow: auto;">
+        
+        </div>
+  <div style="overflow: auto;-webkit-overflow-scrolling: touch;width: 100%;height: 100%;">
+ 
+    <div style="overflow: auto;">
+        
+        <div style="overflow: auto;">
+        <button class="accordion" id="UserInfoAcc" style="display: none;"></button>
+        <div class="panel">
+            <div style="overflow: auto;max-height: 400px;">
+            <div>
+                הזמנה ראשונה:  @memberRs.first_order_ts<br>
+                הזמנה אחרונה:  @memberRs.first_order_ts<br>
+            </div>
+               <h2>היסטורית הזמנות</h2>
+                @foreach(var order in userOrders){
+                    TimeSpan DaysSinceOrder = DateTime.Now - order.ts;
+                    var DaysSinceOrderInt = DaysSinceOrder.Days;
+                    <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;">
+                   <div style="overflow: auto;font-size: 14px;color: #b200ff">
+                       <span style="float: left;padding-left: 5px;">לפני @DaysSinceOrderInt ימים</span>
+                    @order.ts.ToShortDateString()</div>
+                    <div style="overflow: auto">@order.orderBody</div>
+                    </div>
+                }
+        </div>
+        </div>
+        </div>
+        
+     <div style="overflow: auto;background-color: #ffffcc" id="MsgTemplatesDiv">
+       @AppHelpers.LoadReachoutTemplate(memberRs.userid)
+     </div>
+    
+     
+
+     
+    </div>
+    
+
+      
+</div>
+    }
+
+
+</body>
+</html>

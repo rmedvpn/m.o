@@ -1,0 +1,20 @@
+﻿@{
+    //APP USER MONITOR VERSION 1.23.17
+    //THIS PAGE IS TRIGGERED VIA AJAX
+    //THIS PAGE IS BEING CALLED UPON LAYOUT PAGE  LOAD
+
+    if (WebSecurity.IsAuthenticated){
+        DateTime curTime = AppFunctions.LocalTime();
+        int u_id=WebSecurity.CurrentUserId;
+        var op_data = Database.Open("op_data");
+        var sqlSelect="";
+        sqlSelect = "UPDATE members SET last_online=@0 where userId=@1";
+        op_data.Execute(sqlSelect, curTime, u_id);
+        op_data.Close();
+
+    }
+    else
+    {
+        Response.Write ("!!!");
+    }
+}

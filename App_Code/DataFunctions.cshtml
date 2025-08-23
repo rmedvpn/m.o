@@ -1,0 +1,1275 @@
+﻿@functions {
+    public static int ActivatePbUserAndReturnId(int pb_id)
+    {
+        DateTime timeStamp = AppFunctions.LocalTime();
+        string userName = "";
+        string wanum = "";
+        int user_id = 0;
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM phonebook WHERE serial=@0";
+        var pbEntry = db.QuerySingle(sqlSelect, pb_id);
+
+        if (pbEntry != null)
+        {
+            userName = pbEntry.member_name;
+            wanum = pbEntry.phone;
+            int prospect_id = 0;
+
+            sqlSelect = "SELECT * FROM irgUsers where pb_id=@0";
+            var dupCheck = db.QuerySingle(sqlSelect, pb_id);
+
+            if (dupCheck == null)
+            {
+                DateTime birthday = Convert.ToDateTime("1/1/1900");
+                string email = "";
+                string city = "";
+                string social1 = "";
+                sqlSelect = "SELECT * FROM dbo.Prospects WHERE wanum=@0";
+                var prospect = db.QuerySingle(sqlSelect, wanum);
+                if (prospect != null)
+                {
+                    prospect_id = prospect.serial;
+                    try { birthday = prospect.birth_date; } catch { }
+                    email = prospect.email;
+                    city = prospect.city;
+                    social1 = prospect.fb;
+                }
+
+                sqlSelect = "INSERT INTO irgusers(pbname,wanum,order_count,create_ts,recent_order_count,pb_id,prospect_id,birth_date,email,city,is_update,update_ts) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,1,@3)";
+                try { db.Execute(sqlSelect, userName, wanum, 0, timeStamp, 0, pb_id, prospect_id, birthday, email, city); } catch { }
+                sqlSelect = "SELECT userId FROM irgusers WHERE wanum=@0 AND create_ts=@1";
+                var tmpRs = db.QuerySingle(sqlSelect, wanum, timeStamp);
+                try { user_id = tmpRs.userId; } catch { }
+
+                if (prospect_id != 0)
+                {
+
+                    sqlSelect = "INSERT INTO usersMeta(display_name,birth_date,gender,city,ref_txt,occupation,more_info,join_reason,involvement,notes,user_id,pb_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11)";
+                    db.Execute(sqlSelect, prospect.prospect_name, prospect.birth_date, prospect.gender, prospect.city, prospect.ref_txt, prospect.occupation, prospect.more_info, prospect.join_reason, prospect.involvement, prospect.notes, user_id, pb_id);
+
+                    sqlSelect = "UPDATE phonebook SET user_id=@0,prospect_id=@1,email=@2,birth_date=@3,social1=@4 WHERE serial=@5";
+                    db.Execute(sqlSelect, user_id, prospect_id, email, birthday, social1,  pb_id);
+
+                    sqlSelect = "UPDATE Prospects SET user_id=@0,pb_id=@1,is_deleted=1 WHERE serial=@2";
+                    db.Execute(sqlSelect, user_id, pb_id, prospect_id);
+
+
+                }
+
+            }
+
+
+
+        }
+
+        db.Close();
+        return user_id;
+
+    }
+
+    public static void UpdateMemberStats(int member_id)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "";
+        DateTime first_order_ts = Convert.ToDateTime("1/1/1900");
+        DateTime last_order_ts = Convert.ToDateTime("1/1/1900");
+        DateTime first_order_ts_recent = Convert.ToDateTime("1/1/1900");
+        DateTime last_order_ts_recent = Convert.ToDateTime("1/1/1900");
+        DateTime last_orders_sync_ts = AppFunctions.LocalTime();
+        int order_count = 0;
+        int recent_order_count = 0;
+        decimal avgDaysBetweenOrders = 0;
+        decimal recentAvgDaysBetweenOrders = 0;
+
+        sqlSelect = "SELECT wanum FROM pb WHERE m_id=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+        if (pbEntry != null)
+        {
+            sqlSelect = "UPDATE OSTATS SET num='',m_id=@0 WHERE num=@1";
+            op_data.Execute(sqlSelect, member_id, pbEntry.wanum);
+        }
+
+
+        sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM OStats WHERE m_id=@0";
+        var userOrderStats = op_data.QuerySingle(sqlSelect, member_id);
+        if (userOrderStats != null)
+        {
+
+            try { first_order_ts = userOrderStats.first_order_ts; } catch { }
+            try { last_order_ts = userOrderStats.last_order_ts; } catch { }
+            try { order_count = userOrderStats.order_count; } catch { }
+
+            double DaysBetweenFirstAndLastOrders = 0;
+
+            TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+            DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+            if (DaysBetweenFirstAndLastOrders > 0)
+            {
+                try { avgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / order_count); } catch { }
+            }
+
+        }
+
+
+        int MonthsToCalculateAvgTimeBetweenOrders = 3;//Convert.ToInt32(AppFunctions.GetAppProperty("MonthsToCalculateAvgTimeBetweenOrders"));
+        DateTime DateToCalculateAverageFrom = DateTime.Today.AddMonths(MonthsToCalculateAvgTimeBetweenOrders * -1);
+        sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM OStats WHERE m_id=@0 AND ts>@1";
+        userOrderStats = op_data.QuerySingle(sqlSelect, member_id, DateToCalculateAverageFrom);
+
+        if (userOrderStats != null)
+        {
+
+            try { first_order_ts_recent = userOrderStats.first_order_ts; } catch { first_order_ts_recent = LocalTime; }
+            try { last_order_ts_recent = userOrderStats.last_order_ts; } catch { last_order_ts_recent = LocalTime; }
+            try { recent_order_count = userOrderStats.order_count; } catch { recent_order_count = 0; }
+
+            double DaysBetweenFirstAndLastOrders = 0;
+            TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts_recent - first_order_ts_recent;
+            DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+            if (DaysBetweenFirstAndLastOrders > 0)
+            {
+                try { recentAvgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / recent_order_count); } catch { }
+            }
+
+        }
+
+        sqlSelect = "UPDATE u_stats SET avgDaysBetweenOrders=@0,recentAvgDaysBetweenOrders=@1,order_count=@2,recent_order_count=@3,is_update=1,last_order_ts=@4,first_order_ts=@5,last_orders_sync_ts=@6 WHERE serial=@7";
+        try { op_data.Execute(sqlSelect, avgDaysBetweenOrders, recentAvgDaysBetweenOrders, order_count, recent_order_count, last_order_ts, first_order_ts, last_orders_sync_ts, member_id); } catch { }
+
+        sqlSelect = "UPDATE pb SET anniversary_ts=@0,lo=@1,oc=@2,is_update=1 WHERE m_id=@3";
+        try { op_data.Execute(sqlSelect, first_order_ts, last_order_ts, order_count, member_id); } catch { }
+
+        sqlSelect = "UPDATE listsusers SET is_update=1,order_count=@0 WHERE user_id=@1";
+        try { op_data.Execute(sqlSelect, order_count, member_id); } catch { }
+
+
+        //sync user info across dbs
+
+        //DataFunctions.SyncPbAmongDatabases(member_id);
+        //DataFunctions.SyncU_StatsAmongDatabases(member_id);
+
+        op_data.Close();
+    }
+
+
+    public static void UpdateMemberStatsOLD(int member_id)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        int pb_id = 0;
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT pb_id FROM irgusers WHERE userId=@0";
+        var member = db.QuerySingle(sqlSelect, member_id);
+        try { pb_id = member.pb_id; } catch { }
+        sqlSelect = "UPDATE irgusers SET last_order_ts=(SELECT max(ts) from o_History WHERE user_Id=@0),first_order_ts=(SELECT min(ts) from o_History WHERE user_Id=@0) WHERE userId=@0";
+        try { db.Execute(sqlSelect, member_id); } catch { }
+        DateTime first_order_ts = LocalTime;
+        DateTime last_order_ts = LocalTime;
+        int order_count = 0;
+        int recent_order_count = 0;
+        decimal avgDaysBetweenOrders = 0;
+        decimal recentAvgDaysBetweenOrders = 0;
+
+        sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM o_History WHERE user_id=@0";
+        var userOrderStats = db.QuerySingle(sqlSelect, member_id);
+        if (userOrderStats != null)
+        {
+
+            try { first_order_ts = userOrderStats.first_order_ts; } catch { }
+            try { last_order_ts = userOrderStats.last_order_ts; } catch { }
+            try { order_count = userOrderStats.order_count; } catch { }
+
+            double DaysBetweenFirstAndLastOrders = 0;
+
+            TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+            DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+            if (DaysBetweenFirstAndLastOrders > 0)
+            {
+                try { avgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / order_count); } catch { }
+            }
+
+        }
+
+        int MonthsToCalculateAvgTimeBetweenOrders = 3;//Convert.ToInt32(AppFunctions.GetAppProperty("MonthsToCalculateAvgTimeBetweenOrders"));
+        DateTime DateToCalculateAverageFrom = DateTime.Today.AddMonths(MonthsToCalculateAvgTimeBetweenOrders * -1);
+        sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM o_History WHERE user_id=@0 AND ts>@1";
+        userOrderStats = db.QuerySingle(sqlSelect, member_id, DateToCalculateAverageFrom);
+
+        if (userOrderStats != null)
+        {
+
+            try { first_order_ts = userOrderStats.first_order_ts; } catch { first_order_ts = LocalTime; }
+            try { last_order_ts = userOrderStats.last_order_ts; } catch { last_order_ts = LocalTime; }
+            try { recent_order_count = userOrderStats.order_count; } catch { recent_order_count = 0; }
+
+            double DaysBetweenFirstAndLastOrders = 0;
+            TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+            DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+            if (DaysBetweenFirstAndLastOrders > 0)
+            {
+                try { recentAvgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / recent_order_count); } catch { }
+            }
+
+        }
+
+        sqlSelect = "UPDATE irgusers SET avgDaysBetweenOrders=@0,recentAvgDaysBetweenOrders=@1,order_count=@2,recent_order_count=@3 WHERE userId=@4";
+        try { db.Execute(sqlSelect, avgDaysBetweenOrders, recentAvgDaysBetweenOrders, order_count, recent_order_count,  member_id); } catch { }
+
+        sqlSelect = "UPDATE phonebook SET order_count=@0,first_order_ts=@1,last_order_ts=@2 WHERE serial=@3";
+        try { db.Execute(sqlSelect, order_count, first_order_ts, last_order_ts,  pb_id); } catch { }
+
+
+        db.Close();
+    }
+
+    public static int GetRoundId(string round_title)
+    {
+        int ret_val = 0;
+        DateTime timeStamp = AppFunctions.LocalTime();
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT round_id FROM d_host.roundstext WHERE round_text=@0";
+        var round = db.QuerySingle(sqlSelect, round_title);
+        try { ret_val = round.round_id; } catch { }
+
+        db.Close();
+        return ret_val;
+
+    }
+
+    public static void UpdateProspectData(int prospect_id)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        string wanum = "";
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT * FROM prospects WHERE serial=@0";
+        var prospect = db.QuerySingle(sqlSelect, prospect_id);
+
+        if (prospect != null)
+        {
+            wanum = prospect.wanum;
+
+            sqlSelect = "SELECT serial,user_id FROM d_host.icloud_phonebook WHERE phone=@0";
+            var userRs = db.QuerySingle(sqlSelect, wanum);
+            if (userRs != null)
+            {
+                DateTime birthday = Convert.ToDateTime("1/1/1900"); try { birthday = prospect.birth_date; } catch { }
+                string email = ""; email = prospect.email;
+                string social = ""; social = prospect.fb;
+                string city = ""; city = prospect.city;
+                int pb_id = 0; pb_id = userRs.serial;
+                int member_id = 0; member_id = userRs.user_id;
+
+                sqlSelect = "UPDATE d_host.icloud_phonebook SET email=@0,birth_date=@1,social1=@2,is_update=1,update_ts=@3,prospect_id=@4 WHERE serial=@5";
+                db.Execute(sqlSelect, email, birthday, social, LocalTime, prospect_id, pb_id);
+                sqlSelect = "UPDATE d_host.ActiveUsers SET email=@0,birth_date=@1,social1=@2,city=@3,is_update=1,update_ts=@4,prospect_id=@5 WHERE userId=@6";
+                db.Execute(sqlSelect, email, birthday, social, city, LocalTime, prospect_id, member_id);
+            }
+        }
+
+        db.Close();
+    }
+
+    public static void ImportWebProspects(string src_db_name="m_join",string dest_db_name= "op_data")
+    {
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM webprospects ORDER BY serial";
+        var WebProspects = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var rec in WebProspects)
+        {
+            bool is_ok = true;
+
+            sqlSelect = "SELECT serial FROM WebProspects WHERE ts=@0 AND wanum=@1";
+            var dupCheck = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+            if (dupCheck == null)
+            {
+
+                sqlSelect = "INSERT INTO WebProspects(ts,prospect_id,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,last_bday_msg,last_bday_msg_by,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,status_change_ts) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62,@63)";
+                try { dest_db.Execute(sqlSelect, rec.ts, rec.prospect_id, rec.prospect_name, rec.birth_date, rec.gender, rec.city, rec.wanum, rec.email, rec.fb, rec.ref_txt, rec.occupation, rec.more_info, rec.join_reason, rec.involvement, rec.notes, rec.birth_date_str, rec.ts_str, rec.refer_id, rec.uniqe_str, rec.is_finished, rec.finish_ts, rec.is_approved, rec.is_deleted, rec.last_contact, rec.in_review, rec.review_notes, rec.is_by_referal, rec.reachout_attempts, rec.last_reachout_ts, rec.last_reachout_by, rec.reachout_log, rec.is_interesting, rec.next_reachout_ts, rec.m_id, rec.tmpFlg, rec.mark_deletion, rec.invalid_wanum, rec.removal_request, rec.is_contact, rec.deletecode, rec.is_returning, rec.return_ts, rec.join_attempts, rec.is_update, rec.update_ts, rec.delete_ts, rec.pb_id, rec.last_bday_msg, rec.last_bday_msg_by, rec.instagram, rec.tlg_nick, rec.ref_source, rec.fb_friends, rec.insta_friends, rec.ref_source_desc, rec.is_license, rec.license_info, rec.involvement_volunteer, rec.involvement_paid, rec.involvement_social, rec.involvement_other, rec.involvement_other_info, rec.usage_habits, local_time); } catch { is_ok = false; }
+
+                sqlSelect = "SELECT * FROM RawProspects WHERE ts=@0 AND wanum=@1";
+                var rawDupCheck= dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+                if (rawDupCheck == null)
+                {
+                    sqlSelect = "INSERT INTO RawProspects(ts,prospect_id,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,last_bday_msg,last_bday_msg_by,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,status_change_ts) ";
+                    sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62,@63)";
+                    try { dest_db.Execute(sqlSelect, rec.ts, rec.prospect_id, rec.prospect_name, rec.birth_date, rec.gender, rec.city, rec.wanum, rec.email, rec.fb, rec.ref_txt, rec.occupation, rec.more_info, rec.join_reason, rec.involvement, rec.notes, rec.birth_date_str, rec.ts_str, rec.refer_id, rec.uniqe_str, rec.is_finished, rec.finish_ts, rec.is_approved, rec.is_deleted, rec.last_contact, rec.in_review, rec.review_notes, rec.is_by_referal, rec.reachout_attempts, rec.last_reachout_ts, rec.last_reachout_by, rec.reachout_log, rec.is_interesting, rec.next_reachout_ts, rec.m_id, rec.tmpFlg, rec.mark_deletion, rec.invalid_wanum, rec.removal_request, rec.is_contact, rec.deletecode, rec.is_returning, rec.return_ts, rec.join_attempts, rec.is_update, rec.update_ts, rec.delete_ts, rec.pb_id, rec.last_bday_msg, rec.last_bday_msg_by, rec.instagram, rec.tlg_nick, rec.ref_source, rec.fb_friends, rec.insta_friends, rec.ref_source_desc, rec.is_license, rec.license_info, rec.involvement_volunteer, rec.involvement_paid, rec.involvement_social, rec.involvement_other, rec.involvement_other_info, rec.usage_habits, local_time); } catch { is_ok = false; }
+                }
+
+
+            }
+
+            if (is_ok)
+            {
+                sqlSelect = "DELETE FROM webprospects WHERE serial=@0";
+                src_db.Execute(sqlSelect, rec.serial);
+            }
+
+
+
+        }
+
+        sqlSelect = "SELECT prospect_id FROM prospectsapprovals WHERE is_completed=1";
+        var prospectsApprovals = src_db.Query(sqlSelect);
+        foreach(var prosApp in prospectsApprovals)
+        {
+            sqlSelect = "UPDATE webprospects SET status_code=3 WHERE serial=@0";
+            dest_db.Execute(sqlSelect, prosApp.prospect_id);
+        }
+
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+    public static int CollectProspectsTable(string srcTbl = "WebProspects", string src_db_name = "op_data")
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        string wanum = "";
+
+        var src_db = Database.Open(src_db_name);
+        var data_host = Database.Open("data_host");
+
+        var sqlSelect = "";
+        sqlSelect = "SELECT * FROM " + srcTbl + " WHERE is_in_raw=0 ORDER BY ts";
+        var prospects = src_db.Query(sqlSelect);
+
+        int counter = 0;
+
+        foreach (var prospect in prospects)
+        {
+            wanum = prospect.wanum;
+            int prospect_id = prospect.serial;
+
+
+            sqlSelect = "SELECT serial FROM rawProspects WHERE ts=@0 AND wanum=@1";
+            var dupCheck = data_host.QuerySingle(sqlSelect, prospect.ts, prospect.wanum);
+
+            if (dupCheck == null)
+            {
+                counter++;
+
+                sqlSelect = "INSERT INTO rawProspects(prospect_id,ts,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,last_bday_msg,last_bday_msg_by,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,is_urgent,urgent_ts,urgent_code,lang,is_wa,is_tlg,is_email,is_fb,is_insta,is_vip,isMemberCanHelp,vip_info,memberCanHelpInfo,approval_ts,approved_by,approval_notes,suggested_nick,is_denied,review_ts,review_by,status_code,status_change_ts) ";
+                sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62,@63,@64,@65,@66,@67,@68,@69,@70,@71,@72,@73,@74,@75,@76,@77,@78,@79,@80,@81,@82,@83,@84)";
+                data_host.Execute(sqlSelect, prospect.serial, prospect.ts, prospect.prospect_name, prospect.birth_date, prospect.gender, prospect.city, prospect.wanum, prospect.email, prospect.fb, prospect.ref_txt, prospect.occupation, prospect.more_info, prospect.join_reason, prospect.involvement, prospect.notes, prospect.birth_date_str, prospect.ts_str, prospect.refer_id, prospect.uniqe_str, prospect.is_finished, prospect.finish_ts, prospect.is_approved, prospect.is_deleted, prospect.last_contact, prospect.in_review, prospect.review_notes, prospect.is_by_referal, prospect.reachout_attempts, prospect.last_reachout_ts, prospect.last_reachout_by, prospect.reachout_log, prospect.is_interesting, prospect.next_reachout_ts, prospect.m_id, prospect.tmpFlg, prospect.mark_deletion, prospect.invalid_wanum, prospect.removal_request, prospect.is_contact, prospect.deletecode, prospect.is_returning, prospect.return_ts, prospect.join_attempts, prospect.is_update, prospect.update_ts, prospect.delete_ts, prospect.pb_id, prospect.last_bday_msg, prospect.last_bday_msg_by, prospect.instagram, prospect.tlg_nick, prospect.ref_source, prospect.fb_friends, prospect.insta_friends, prospect.ref_source_desc, prospect.is_license, prospect.license_info, prospect.involvement_volunteer, prospect.involvement_paid, prospect.involvement_social, prospect.involvement_other, prospect.involvement_other_info, prospect.usage_habits, prospect.is_urgent, prospect.urgent_ts, prospect.urgent_code, prospect.lang, prospect.is_wa, prospect.is_tlg, prospect.is_email, prospect.is_fb, prospect.is_insta, prospect.is_vip, prospect.isMemberCanHelp, prospect.vip_info, prospect.memberCanHelpInfo, prospect.approval_ts, prospect.approved_by, prospect.approval_notes, prospect.suggested_nick, prospect.is_denied, prospect.review_ts, prospect.review_by, prospect.status_code, prospect.status_change_ts);
+
+
+                //INSERT RECORD INTO RAW PROSPECTS TABLE
+
+            }
+            else
+            {
+                sqlSelect = "UPDATE " + srcTbl + " SET is_in_raw=1 WHERE serial=@0";
+                src_db.Execute(sqlSelect, prospect.serial);
+            }
+        }
+
+        data_host.Close();
+        src_db.Close();
+
+        return counter;
+    }
+
+    public static void SyncProspectsInformtion()
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+
+        var op_data = Database.Open("op_data");
+        var data_host = Database.Open("data_host");
+
+
+        var sqlSelect = "";
+        sqlSelect = "SELECT serial,m_id,prospect_id,wanum FROM pb WHERE prospect_id=0 ORDER BY serial";
+        var contacts = op_data.Query(sqlSelect);
+        int counter = 0;
+
+        foreach (var contact in contacts)
+        {
+            string wanum = contact.wanum;
+            int member_id = contact.m_id;
+            int pb_id = contact.serial;
+
+
+            sqlSelect = "SELECT * FROM rawProspects WHERE wanum=@0";
+            var prospect = data_host.QuerySingle(sqlSelect, wanum);
+
+            if (prospect != null)
+            {
+                counter++;
+
+                DataFunctions.UpdateProspectDataByWanum(prospect.wanum);
+
+            }
+
+        }
+
+        op_data.Close();
+    }
+
+    public static int CleanUpProspectstable(string srcTbl = "WebProspects")
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "";
+        sqlSelect = "SELECT serial,wanum FROM " + srcTbl + " ORDER BY serial";
+        var prospects = op_data.Query(sqlSelect);
+        int counter = 0;
+
+        foreach (var prospect in prospects)
+        {
+            string wanum = prospect.wanum;
+            int prospect_id = prospect.serial;
+
+            sqlSelect = "SELECT serial FROM pb WHERE wanum=@0";
+            var contact = op_data.QuerySingle(sqlSelect, wanum);
+
+            if (contact != null) //prospects exists in phonebook
+            {
+                counter++;
+                DataFunctions.UpdateProspectDataByWanum(prospect.wanum);
+
+                sqlSelect = "DELETE FROM " + srcTbl + " WHERE serial=@0";
+                op_data.Execute(sqlSelect, prospect_id);
+
+            }
+
+        }
+
+        op_data.Close();
+        return counter;
+    }
+
+    public static void UpdateProspectDataByWanum(string wanum)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+
+        var data_host = Database.Open("data_host");
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT * FROM rawProspects WHERE wanum=@0";
+        var prospect = data_host.QuerySingle(sqlSelect, wanum);
+
+        if (prospect != null)
+        {
+            int prospect_id = prospect.serial;
+
+            sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+            var userRs = data_host.QuerySingle(sqlSelect, wanum);
+            if (userRs != null)
+            {
+                DateTime birthday = Convert.ToDateTime("1/1/1900"); try { birthday = prospect.birth_date; } catch { }
+                int pb_id = 0; pb_id = userRs.serial;
+                int member_id = 0; member_id = userRs.m_id;
+
+                sqlSelect = "UPDATE pb SET email=@0,birth_date=@1,social1=@2,social2=@3,telegram_nick=@4,is_update=1,prospect_id=@5 WHERE serial=@6";
+                op_data.Execute(sqlSelect, prospect.email, birthday, prospect.fb, prospect.instagram, prospect.tlg_nick, prospect_id, pb_id);
+
+                sqlSelect = "UPDATE u_stats SET is_license=@0,license_info=@1,is_update=1 WHERE serial=@2";
+                op_data.Execute(sqlSelect, prospect.is_license, prospect.license_info, member_id);
+
+                sqlSelect = "UPDATE prospects set is_finished=1,is_deleted=1,is_update=1,pb_id=@0,m_id=@1 WHERE wanum=@2";
+                op_data.Execute(sqlSelect, pb_id, member_id, wanum);
+
+                sqlSelect = "UPDATE webProspects set is_finished=1,is_deleted=1,is_update=1,pb_id=@0,m_id=@1 WHERE wanum=@2";
+                op_data.Execute(sqlSelect, pb_id, member_id, wanum);
+
+                sqlSelect = "SELECT serial FROM uMeta WHERE pb_id=@0";
+                var dupMetaChk = op_data.QuerySingle(sqlSelect, pb_id);
+
+                if (dupMetaChk == null)
+                {
+                    sqlSelect = "INSERT INTO uMeta(ts,prospect_id,pb_id,m_id,prospect_name,birth_date,gender,city,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,refer_id,is_deleted,is_interesting,is_update,update_ts,delete_ts,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,lang,isMemberCanHelp,memberCanHelpInfo,is_vip,vip_info) ";
+                    sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40)";
+                    op_data.Execute(sqlSelect, prospect.ts, prospect.prospect_id, pb_id, member_id, prospect.prospect_name, prospect.birth_date, prospect.gender, prospect.city, prospect.email, prospect.fb, prospect.ref_txt, prospect.occupation, prospect.more_info, prospect.join_reason, prospect.involvement, prospect.notes, prospect.refer_id, prospect.is_deleted, prospect.is_interesting, 1, prospect.update_ts, prospect.delete_ts, prospect.instagram, prospect.tlg_nick, prospect.ref_source, prospect.fb_friends, prospect.insta_friends, prospect.ref_source_desc, prospect.is_license, prospect.license_info, prospect.involvement_volunteer, prospect.involvement_paid, prospect.involvement_social, prospect.involvement_other, prospect.involvement_other_info, prospect.usage_habits, prospect.lang, prospect.isMemberCanHelp, prospect.memberCanHelpInfo, prospect.is_vip, prospect.vip_info);
+                }
+
+
+                sqlSelect = "UPDATE rawprospects SET m_id=@0,pb_id=@1,is_finished=1 WHERE serial=@2";
+                data_host.Execute(sqlSelect, member_id, pb_id, prospect.prospect_id);
+
+
+
+
+            }
+        }
+
+        data_host.Close();
+        op_data.Close();
+    }
+
+    public static int CreateUserForPbEntry(int pb_id)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string userName = "";
+        string wanum = "";
+        int member_id = 0;
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM pb WHERE serial=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, pb_id);
+
+        if (pbEntry != null)
+        {
+            userName = pbEntry.member_name;
+            wanum = pbEntry.wanum;
+            int prospect_id = pbEntry.prospect_id;
+
+            sqlSelect = "SELECT * FROM u_stats where pb_id=@0";
+            var dupCheck = op_data.QuerySingle(sqlSelect, pb_id);
+
+            if (dupCheck == null)
+            {
+                DateTime birthday = Convert.ToDateTime("1/1/1900");
+                string email = "";
+                string social1 = "";
+                try { birthday = pbEntry.birth_date; } catch { }
+
+                sqlSelect = "INSERT INTO u_stats(create_ts,pb_id,is_update,wanum,is_new) VALUES(@0,@1,1,@2,1)";
+                try { op_data.Execute(sqlSelect, local_time,pb_id,wanum); } catch { }
+                sqlSelect = "SELECT serial FROM u_stats WHERE pb_id=@0 AND create_ts=@1";
+                var tmpRs = op_data.QuerySingle(sqlSelect, pb_id, local_time);
+                try { member_id = tmpRs.serial; } catch { }
+
+                if (prospect_id != 0)
+                {
+
+                    sqlSelect = "SELECT * FROM WebProspects WHERE wanum=@0";
+                    var prospect = op_data.QuerySingle(sqlSelect, wanum);
+
+                    if (prospect != null)
+                    {
+                        sqlSelect = "UPDATE pb SET email=@0,birth_date=@1,social1=@2,social2=@3,telegram_nick=@4,is_update=1,prospect_id=@5,m_id=@6 WHERE serial=@7";
+                        op_data.Execute(sqlSelect, prospect.email, birthday, prospect.fb, prospect.instagram, prospect.tlg_nick, prospect_id, member_id,pb_id);
+
+                        sqlSelect = "UPDATE u_stats SET is_license=@0,license_info=@1,is_update=1 WHERE serial=@2";
+                        op_data.Execute(sqlSelect, prospect.is_license, prospect.license_info, member_id);
+
+                        sqlSelect = "UPDATE webProspects set is_finished=1,is_deleted=1,is_update=1,pb_id=@0,m_id=@1,status_code=9,status_change_ts=@2 WHERE wanum=@3";
+                        op_data.Execute(sqlSelect, pb_id, member_id, local_time,wanum);
+
+                        sqlSelect = "SELECT serial FROM uMeta WHERE pb_id=@0";
+                        var dupMetaChk = op_data.QuerySingle(sqlSelect, pb_id);
+
+                        if (dupMetaChk == null)
+                        {
+                            sqlSelect = "INSERT INTO uMeta(ts,prospect_id,pb_id,m_id,prospect_name,birth_date,gender,city,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,refer_id,is_deleted,is_interesting,is_update,update_ts,delete_ts,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,lang,isMemberCanHelp,memberCanHelpInfo,is_vip,vip_info) ";
+                            sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40)";
+                            op_data.Execute(sqlSelect, prospect.ts, prospect.prospect_id, pb_id, member_id, prospect.prospect_name, prospect.birth_date, prospect.gender, prospect.city, prospect.email, prospect.fb, prospect.ref_txt, prospect.occupation, prospect.more_info, prospect.join_reason, prospect.involvement, prospect.notes, prospect.refer_id, prospect.is_deleted, prospect.is_interesting, 1, prospect.update_ts, prospect.delete_ts, prospect.instagram, prospect.tlg_nick, prospect.ref_source, prospect.fb_friends, prospect.insta_friends, prospect.ref_source_desc, prospect.is_license, prospect.license_info, prospect.involvement_volunteer, prospect.involvement_paid, prospect.involvement_social, prospect.involvement_other, prospect.involvement_other_info, prospect.usage_habits, prospect.lang, prospect.isMemberCanHelp, prospect.memberCanHelpInfo, prospect.is_vip, prospect.vip_info);
+                        }
+                    }
+
+
+                }
+
+            }
+
+
+
+        }
+
+        op_data.Close();
+        return member_id;
+
+    }
+
+    public static int CreatePbEntry(string member_name,string wanum)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebSecurity.CurrentUserId;
+
+        int pb_id = 0;
+        bool is_existing = false;
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM pb WHERE wanum=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, wanum);
+
+        if (pbEntry == null)
+        {
+            sqlSelect = "INSERT INTO pb(member_name,wanum,create_ts,created_by,is_update,is_main,last_change_ts,is_new,anniversary_ts) VALUES(@0,@1,@2,@3,@4,@5,@6,1,@2)";
+            op_data.Execute(sqlSelect, member_name, wanum, local_time, u_id, 1, 1, local_time);
+            sqlSelect = "SELECT * FROM pb WHERE wanum=@0 AND create_ts=@1";
+            var newPbEntry = op_data.QuerySingle(sqlSelect, wanum, local_time);
+            if (newPbEntry != null)
+            {
+                pb_id = newPbEntry.serial;
+
+                sqlSelect = "INSERT INTO u_stats(create_ts,pb_id,is_update,wanum,is_new) VALUES(@0,@1,1,@2,1)";
+                try { op_data.Execute(sqlSelect, local_time, pb_id, wanum); } catch { }
+                sqlSelect = "SELECT serial FROM u_stats WHERE pb_id=@0 AND create_ts=@1";
+                var newUStatsEntry = op_data.QuerySingle(sqlSelect, pb_id, local_time);
+                if (newUStatsEntry != null)
+                {
+                    int member_id = newUStatsEntry.serial;
+                    sqlSelect = "UPDATE pb SET m_id=@0 WHERE serial=@1";
+                    op_data.Execute(sqlSelect, member_id, pb_id);
+                    DataFunctions.UpdateMemberStats(member_id);
+                }
+            }
+
+        }
+
+        op_data.Close();
+        return pb_id;
+
+    }
+
+    public static void ImportWebContactForm(string src_db_name = "m_join", string dest_db_name = "op_data")
+    {
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM ContactForm ORDER BY serial";
+        var ContactRequests = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var rec in ContactRequests)
+        {
+
+            int m_id = 0;
+            int pb_id = 0;
+
+            sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+            var member = dest_db.QuerySingle(sqlSelect, rec.wanum);
+            try { m_id = member.m_id;pb_id = member.serial; } catch { }
+
+            bool is_ok = true;
+            sqlSelect = "INSERT INTO ContactForm(ts,nick_name,wanum,subject,message,rep_id,is_closed,close_ts,closed_by,lang,cus_refresh,cus_refresh_ts,cus_refresh_by,m_id,pb_id,contactActionCode) ";
+            sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15)";
+            try { dest_db.Execute(sqlSelect, rec.ts, rec.nick_name, rec.wanum, rec.subject, rec.message, rec.rep_id, rec.is_closed, rec.close_ts, rec.closed_by, rec.lang, rec.cus_refresh, rec.cus_refresh_ts, rec.cus_refresh_by,m_id,pb_id,rec.contactActionCode); } catch { is_ok = false; }
+
+            if (is_ok)
+            {
+                sqlSelect = "DELETE FROM ContactForm WHERE serial=@0";
+                src_db.Execute(sqlSelect, rec.serial);
+            }
+
+
+        }
+
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+    public static void ArchiveProspectEntriesForWanum(string wanum)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string wanumize = ""; wanumize = AppFunctions.wanumize(wanum);
+        DataFunctions.WriteDebugLine("phase000");
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM WebProspects WHERE wanum=@0";
+        var WebProspects = op_data.Query(sqlSelect, wanumize);
+        sqlSelect = "SELECT * FROM Prospects WHERE wanum=@0";
+        var Prospects = op_data.Query(sqlSelect, wanumize);
+
+        foreach (var prospect in WebProspects)
+        {
+            DataFunctions.WriteDebugLine("phase--" + prospect.serial) ;
+            int newProspectId = 0;
+            DataFunctions.WriteDebugLine("phase@");
+            newProspectId = createDbRecord(op_data, prospect, "rawProspects", true);
+            if (newProspectId > 0)
+            {
+                DataFunctions.WriteDebugLine("phase3");
+                sqlSelect = "DELETE FROM webprospects WHERE serial=@0";
+                op_data.Execute(sqlSelect, prospect.serial);
+            }
+
+        }
+
+
+        foreach (var prospect in Prospects)
+        {
+
+            int newProspectId = 0;
+            newProspectId = createDbRecord(op_data, prospect, "rawProspects",true);
+            if (newProspectId > 0)
+            {
+                DataFunctions.WriteDebugLine("DEL-B" + wanumize);
+                sqlSelect = "DELETE FROM Prospects WHERE serial=@0";
+                op_data.Execute(sqlSelect, prospect.serial);
+            }
+
+
+        }
+
+
+
+        op_data.Close();
+
+    }
+
+    public static void ArchiveProspectEntriesForMember(int member_id)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string userName = "";
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "SELECT wanum FROM pb WHERE m_id=@0";
+        var member = op_data.QuerySingle(sqlSelect, member_id);
+        string wanum = ""; try { wanum = member.wanum; } catch { }
+        if (wanum != "")
+        {
+            DataFunctions.WriteDebugLine("phase0");
+            DataFunctions.UpdatePBWithProspectDataByWanum(wanum);
+            DataFunctions.ArchiveProspectEntriesForWanum(wanum);
+        }
+
+
+
+        op_data.Close();
+
+    }
+
+    public static void UpdatePBWithProspectDataByWanum(string wanum)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT * FROM webprospects WHERE wanum=@0";
+        var prospect = op_data.QuerySingle(sqlSelect, wanum);
+
+        if (prospect != null)
+        {
+            int prospect_id = prospect.serial;
+
+            sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+            var userRs = op_data.QuerySingle(sqlSelect, wanum);
+            if (userRs != null)
+            {
+                int pb_id = 0; pb_id = userRs.serial;
+                int member_id = 0; member_id = userRs.m_id;
+
+                prospect_id = prospect.serial;
+                string prospect_name = prospect.prospect_name;
+                var names = prospect_name.Split(' ');
+                string first_name = names[0];
+
+                sqlSelect = "UPDATE pb SET prospect_id=@0,lang=@1,email=@2,birth_date=@3,telegram_nick=@4,is_update=1,anniversary_ts=@5,is_vip=@6,isMemberCanHelp=@7,vip_info=@8,memberCanHelpInfo=@9,usage_habits=@10,fname=@11 WHERE serial=@12";
+                op_data.Execute(sqlSelect, prospect_id, prospect.lang, prospect.email, prospect.birth_date, prospect.tlg_nick, LocalTime, prospect.is_vip, prospect.isMemberCanHelp, prospect.vip_info, prospect.memberCanHelpInfo, prospect.usage_habits, first_name, pb_id);
+
+                sqlSelect = "UPDATE prospects set is_finished=1,is_deleted=1,is_update=1,pb_id=@0,m_id=@1 WHERE wanum=@2";
+                op_data.Execute(sqlSelect, pb_id, member_id, wanum);
+
+                sqlSelect = "UPDATE webProspects set is_finished=1,is_deleted=1,is_update=1,pb_id=@0,m_id=@1,status_code=9 WHERE wanum=@2";
+                op_data.Execute(sqlSelect, pb_id, member_id, wanum);
+
+            }
+        }
+
+        op_data.Close();
+    }
+
+    public static void ImportWebOrders(string src_db_name = "m_join", string dest_db_name = "op_data")
+    {
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM WebOrders ORDER BY serial";
+        var WebOrders = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var rec in WebOrders)
+        {
+            bool is_ok = true;
+
+            sqlSelect = "SELECT serial FROM WebOrders WHERE ts=@0 AND wanum=@1";
+            var dupCheck = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+            if (dupCheck == null)
+            {
+                string wanum = AppFunctions.wanumize(rec.wanum);
+                int m_id = 0;
+                if (rec.m_id == 0)
+                {
+                    sqlSelect = "SELECT m_id FROM pb WHERE wanum=@0";
+                    var member = dest_db.QuerySingle(sqlSelect, wanum);
+                    try { m_id = member.m_id; } catch { }
+                }
+                else
+                {
+                    m_id = rec.m_id;
+                }
+                sqlSelect = "INSERT INTO WebOrders(o_id,orderpw,ts,nick_name,city,wanum,orderBody,termsOK,m_id,delivery_option,lang,menu_id,import_ts,imported_by,ts_str,address,is_sync,sync_ts,pb_id,donation,menu_title,is_processed,process_ts,processed_by,notes_count,board_color,is_new_member,full_name,email,ref_source,ref_source_desc,birth_date,ref_id,aff_id,is_ship_phone,ship_phone,ship_name,is_manual_verification,manual_verification_by,manual_verification_ts,is_postponed,shipping_date,shipping_time) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42)";
+                try { dest_db.Execute(sqlSelect, rec.o_id, rec.orderpw, rec.ts, rec.nick_name, rec.city, rec.wanum, rec.orderBody, rec.termsOK, m_id, rec.delivery_option, rec.lang, rec.menu_id, rec.import_ts, rec.imported_by, rec.ts_str, rec.address, rec.is_sync, rec.sync_ts, rec.pb_id, rec.donation, rec.menu_title, rec.is_processed, rec.process_ts, rec.processed_by, rec.notes_count, rec.board_color, rec.is_new_member, rec.full_name, rec.email, rec.ref_source, rec.ref_source_desc, rec.birth_date, rec.ref_id, rec.aff_id, rec.is_ship_phone, rec.ship_phone, rec.ship_name, rec.is_manual_verification, rec.manual_verification_by, rec.manual_verification_ts, rec.is_postponed, rec.shipping_date, rec.shipping_time); } catch { is_ok = false; }
+                sqlSelect = "SELECT serial FROM webOrders WHERE ts=@0 AND wanum=@1";
+                var newOrder = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+                if (newOrder != null)
+                {
+                    //    DataFunctions.tmpCopyOrderToMainOrders(newOrder.serial);
+                }
+
+            }
+
+            if (is_ok)
+            {
+
+                sqlSelect = "DELETE FROM WebOrders WHERE serial=@0";
+                src_db.Execute(sqlSelect, rec.serial);
+            }
+
+
+
+        }
+        DataFunctions.updateRoundsActiveOrdersCount();
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+    public static void tmpCopyOrderToMainOrders(int order_id)
+    {
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT * FROM weborders WHERE serial=@0";
+        var rec = op_data.QuerySingle(sqlSelect,order_id);
+        int round_id = 0; round_id = rec.menu_id;
+        DateTime ts = rec.ts;
+        sqlSelect = "SELECT vendor_id,round_type FROM rounds where id=@0";
+        var round = op_data.QuerySingle(sqlSelect, round_id);
+        int vendor_id = 0; try { vendor_id = round.vendor_id; } catch { }
+        int round_type = 0; try { round_type = round.round_type; } catch { }
+        string ship_name = rec.nick_name;
+        string ship_phone = rec.wanum;
+        int order_status = -1;
+        bool is_express = false;
+        bool is_donate = false;
+        bool is_pickup = false;
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        DateTime local_time = AppFunctions.LocalTime();
+
+
+        ////THIS IS KOMBINA, VERY UGLY!, CHANGE THIS SO order_type WILL BE SET UPON ORDER PLACING ON CLIENT SITE!
+        string order_type = "ROUND";
+        if (round_id == 9 || round_id == 40) { is_express = true; order_type = "EXPRESS"; }
+        if (round_type == 4)
+        {
+            if (round_id == 9 || round_id == 40) { is_express = true; order_type = "EXPRESS"; }
+            else { is_pickup = true; order_type = "PICKUP"; }
+        }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        if (rec.donation > 0)
+        {
+            is_donate = true;
+        }
+
+        if (rec.ship_name != "")
+        {
+            ship_name = rec.ship_name;
+        }
+        if (rec.ship_phone != "")
+        {
+            ship_phone = rec.ship_phone;
+        }
+
+        sqlSelect = "SELECT order_id FROM mainorders WHERE order_id=@0";
+        var dupchk = op_data.QuerySingle(sqlSelect, order_id);
+        if (dupchk == null)
+        {
+            string nick_name = rec.nick_name;
+            if (nick_name == "")
+            { try { nick_name = AppFunctions.GetMemberName(rec.u_id); } catch { } }
+            if (ship_name == "" && nick_name!="") { ship_name = nick_name; }
+            sqlSelect = "SET IDENTITY_INSERT MainOrders ON;INSERT INTO MainOrders(order_id,u_id, UserName, ship_reciepient, ship_address, ship_phone, ship_city, timestamp, order_status, round_id, vendor_id, is_express, is_donate, donate_amount, wanum, is_postponed, is_pickup, rep_id, requested_delivery_date,orderpw,nick_name,orderBody,notes_count,board_color,is_new_member,full_name,email,ref_source,ref_source_desc,birth_date,ref_id,aff_id,is_ship_phone,ship_name,shipping_date,shipping_time,order_type) VALUES(@0,@1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12, @13, @14, @15, @16, @17, @18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36)";
+            op_data.Execute(sqlSelect, order_id, rec.m_id, nick_name, ship_name, rec.address, ship_phone, rec.city, rec.ts, order_status, rec.menu_id, vendor_id, is_express, is_donate, rec.donation, rec.wanum, rec.is_postponed, is_pickup, rec.rep_id, rec.shipping_date, rec.orderpw, rec.nick_name, rec.orderBody, rec.notes_count, rec.board_color, rec.is_new_member, rec.full_name, rec.email, rec.ref_source, rec.ref_source_desc, rec.birth_date, rec.ref_id, rec.aff_id, rec.is_ship_phone, rec.ship_name, rec.shipping_date, rec.shipping_time,order_type);
+        }
+
+
+        op_data.Close();
+
+
+
+    }
+
+    public static void updateRoundsActiveOrdersCount()
+    {
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT * FROM rounds";
+        var rounds = op_data.Query(sqlSelect);
+        foreach(var round in rounds)
+        {
+            int round_id = round.id;
+            sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM mainorders WHERE round_id=@0";
+            var order = op_data.QuerySingle(sqlSelect, round_id);
+            int orders_count = 0; try { orders_count = order.the_cnt; } catch { }
+            if (orders_count > 0)
+            {
+                sqlSelect = "UPDATE rounds SET active_orders=@0 WHERE id=@1";
+                op_data.Execute(sqlSelect, orders_count, round_id);
+
+            }
+        }
+        op_data.Close();
+
+    }
+
+
+    public static void WriteDebugLine(string txt)
+    {
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "INSERT INTO debugTbl(ts,txt,u_id) VALUES(@0,@1,@2)";
+        op_data.Execute(sqlSelect, AppFunctions.LocalTime(), txt, WebSecurity.CurrentUserId);
+        op_data.Close();
+    }
+
+    public static int createDbRecord(dynamic dest_db, dynamic rec, string rec_type, bool is_return = false)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime LocalTime = AppFunctions.LocalTime();
+        int new_rec_id = -1;
+
+        var sqlSelect = "";
+
+        switch (rec_type)
+        {
+
+            case "pb":
+                sqlSelect = "INSERT INTO pb(pb_id,member_name,wanum,create_ts,is_blocked,m_id,prospect_id,is_dnc,dnc_ts,lang,wanum_valid,email,birth_date,social1,social2,telegram_nick,prefered_contact_method,is_deleted,delete_ts,block_ts,block_by,is_update,anniversary_ts,lo,oc,last_bday_msg,last_bday_msg_by,prospect_notify,prospect_notify_ts,last_anniversary_msg,last_anniversary_msg_by) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30)";
+                try { dest_db.Execute(sqlSelect, rec.serial, rec.member_name, rec.wanum, rec.create_ts, rec.is_blocked, rec.m_id, rec.prospect_id, rec.is_dnc, rec.dnc_ts, rec.lang, rec.wanum_valid, rec.email, rec.birth_date, rec.social1, rec.social2, rec.telegram_nick, rec.prefered_contact_method, rec.is_deleted, rec.delete_ts, rec.block_ts, rec.block_by, rec.is_update, rec.anniversary_ts, rec.lo, rec.oc, rec.last_bday_msg, rec.last_bday_msg_by, rec.prospect_notify, rec.prospect_notify_ts, rec.last_anniversary_msg, rec.last_anniversary_msg_by); } catch { }
+
+                if (is_return)
+                {
+                    sqlSelect = "SELECT serial FROM pb WHERE create_ts=@0 AND wanum=@1";
+                    var pbEntry = dest_db.QuerySingle(sqlSelect, rec.create_ts, rec.wanum);
+                    try { new_rec_id = pbEntry.serial; } catch { }
+                }
+                break;
+
+            case "rawProspects":
+                sqlSelect = "INSERT INTO rawProspects(ts,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59)";
+                try { dest_db.Execute(sqlSelect, rec.ts, rec.prospect_name, rec.birth_date, rec.gender, rec.city, rec.wanum, rec.email, rec.fb, rec.ref_txt, rec.occupation, rec.more_info, rec.join_reason, rec.involvement, rec.notes, rec.birth_date_str, rec.ts_str, rec.refer_id, rec.uniqe_str, rec.is_finished, rec.finish_ts, rec.is_approved, rec.is_deleted, rec.last_contact, rec.in_review, rec.review_notes, rec.is_by_referal, rec.reachout_attempts, rec.last_reachout_ts, rec.last_reachout_by, rec.reachout_log, rec.is_interesting, rec.next_reachout_ts, rec.m_id, rec.tmpFlg, rec.mark_deletion, rec.invalid_wanum, rec.removal_request, rec.is_contact, rec.deletecode, rec.is_returning, rec.return_ts, rec.join_attempts, rec.is_update, rec.update_ts, rec.delete_ts, rec.pb_id, rec.instagram, rec.tlg_nick, rec.ref_source, rec.fb_friends, rec.insta_friends, rec.ref_source_desc, rec.is_license, rec.license_info, rec.involvement_volunteer, rec.involvement_paid, rec.involvement_social, rec.involvement_other, rec.involvement_other_info, rec.usage_habits); } catch { }
+
+                if (is_return)
+                {
+                    sqlSelect = "SELECT serial FROM rawProspects WHERE ts=@0 AND wanum=@1";
+                    var rawProspect = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+                    try { new_rec_id = rawProspect.serial; } catch { }
+                }
+
+                break;
+
+            case "Prospects":
+                sqlSelect = "INSERT INTO Prospects(ts,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,prospect_id,last_bday_msg,last_bday_msg_by) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62)";
+                try { dest_db.Execute(sqlSelect, rec.ts, rec.prospect_name, rec.birth_date, rec.gender, rec.city, rec.wanum, rec.email, rec.fb, rec.ref_txt, rec.occupation, rec.more_info, rec.join_reason, rec.involvement, rec.notes, rec.birth_date_str, rec.ts_str, rec.refer_id, rec.uniqe_str, rec.is_finished, rec.finish_ts, rec.is_approved, rec.is_deleted, rec.last_contact, rec.in_review, rec.review_notes, rec.is_by_referal, rec.reachout_attempts, rec.last_reachout_ts, rec.last_reachout_by, rec.reachout_log, rec.is_interesting, rec.next_reachout_ts, rec.m_id, rec.tmpFlg, rec.mark_deletion, rec.invalid_wanum, rec.removal_request, rec.is_contact, rec.deletecode, rec.is_returning, rec.return_ts, rec.join_attempts, rec.is_update, rec.update_ts, rec.delete_ts, rec.pb_id, rec.instagram, rec.tlg_nick, rec.ref_source, rec.fb_friends, rec.insta_friends, rec.ref_source_desc, rec.is_license, rec.license_info, rec.involvement_volunteer, rec.involvement_paid, rec.involvement_social, rec.involvement_other, rec.involvement_other_info, rec.usage_habits, rec.prospect_id, rec.last_bday_msg, rec.last_bday_msg_by); } catch { }
+
+                if (is_return)
+                {
+                    sqlSelect = "SELECT serial FROM Prospects WHERE ts=@0 AND wanum=@1";
+                    var Prospect = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+                    try { new_rec_id = Prospect.serial; } catch { }
+                }
+
+                break;
+
+            case "WebProspects":
+                sqlSelect = "INSERT INTO WebProspects(ts,prospect_id,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,last_bday_msg,last_bday_msg_by,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62)";
+                try { dest_db.Execute(sqlSelect, rec.ts, rec.prospect_id, rec.prospect_name, rec.birth_date, rec.gender, rec.city, rec.wanum, rec.email, rec.fb, rec.ref_txt, rec.occupation, rec.more_info, rec.join_reason, rec.involvement, rec.notes, rec.birth_date_str, rec.ts_str, rec.refer_id, rec.uniqe_str, rec.is_finished, rec.finish_ts, rec.is_approved, rec.is_deleted, rec.last_contact, rec.in_review, rec.review_notes, rec.is_by_referal, rec.reachout_attempts, rec.last_reachout_ts, rec.last_reachout_by, rec.reachout_log, rec.is_interesting, rec.next_reachout_ts, rec.m_id, rec.tmpFlg, rec.mark_deletion, rec.invalid_wanum, rec.removal_request, rec.is_contact, rec.deletecode, rec.is_returning, rec.return_ts, rec.join_attempts, rec.is_update, rec.update_ts, rec.delete_ts, rec.pb_id, rec.last_bday_msg, rec.last_bday_msg_by, rec.instagram, rec.tlg_nick, rec.ref_source, rec.fb_friends, rec.insta_friends, rec.ref_source_desc, rec.is_license, rec.license_info, rec.involvement_volunteer, rec.involvement_paid, rec.involvement_social, rec.involvement_other, rec.involvement_other_info, rec.usage_habits); } catch { }
+
+                if (is_return)
+                {
+                    sqlSelect = "SELECT serial FROM WebProspects WHERE ts=@0 AND wanum=@1";
+                    var WebProspect = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+                    try { new_rec_id = WebProspect.serial; } catch { }
+                }
+
+                break;
+
+            default:
+                break;
+        }
+
+
+
+        return new_rec_id;
+
+
+
+
+    }
+
+    public static void ImportOrderFeedBacks(string src_db_name = "m_join", string dest_db_name = "op_data")
+    {
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM orderfeedback ORDER BY serial";
+        var ordFbs = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var rec in ordFbs)
+        {
+            bool is_ok = true;
+
+            sqlSelect = "SELECT serial,wanum FROM OrderFeedback WHERE ts=@0 AND wanum=@1";
+            var dupCheck = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+            if (dupCheck == null)
+            {
+                string wanum = rec.wanum;
+                try { wanum = AppFunctions.wanumize(wanum); } catch { }
+                sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+                var pbEntry = dest_db.QuerySingle(sqlSelect, wanum);
+                int m_id = 0; try { m_id = pbEntry.m_id; } catch { }
+
+                sqlSelect = "INSERT INTO OrderFeedback(ts,order_id,u_id,order_date,lang,nick_name,wanum,menu_id,menu_title,gen_sat_grade,prod_qual_grade,delivery_grade,is_ok_weight,is_happy,is_contact,order_notes,rep_id,rep_notes) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17)";
+                try { dest_db.Execute(sqlSelect, rec.ts, rec.order_id, m_id, rec.order_date, rec.lang, rec.nick_name, rec.wanum, rec.menu_id, rec.menu_title, rec.gen_sat_grade, rec.prod_qual_grade, rec.delivery_grade, rec.is_ok_weight, rec.is_happy, rec.is_contact, rec.order_notes, rec.rep_id, rec.rep_notes); } catch { is_ok = false; }
+
+            }
+
+            if (is_ok)
+            {
+
+                sqlSelect = "DELETE FROM OrderFeedback WHERE serial=@0";
+                src_db.Execute(sqlSelect, rec.serial);
+            }
+
+
+
+        }
+
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+    public static void SyncRoundsDataAcrossSystems(string syncWhat="ACTIVE")
+    {
+        var op_data = Database.Open("op_data");
+        var m_join = Database.Open("m_join");
+        var sqlSelect = "";
+        sqlSelect = "SELECT id From rounds WHERE is_active=1 AND is_setup=1 AND is_deleted=0 ORDER BY sort_order";
+
+        var rounds = op_data.Query(sqlSelect);
+        int sort_order = 0;
+
+        foreach (var round in rounds)
+        { //sorting before copying
+            sort_order += 100;
+            sqlSelect = "UPDATE rounds SET sort_order = @0 WHERE id=@1";
+            op_data.Execute(sqlSelect, sort_order, round.id);
+        }
+        if (syncWhat == "ACTIVE")
+        {
+            sqlSelect = "SELECT * From rounds WHERE is_active=1 AND is_setup=1 AND is_deleted=0 ORDER BY id";
+        }
+        else
+        {
+            sqlSelect = "SELECT * From rounds ORDER BY id";
+        }
+
+
+        rounds = op_data.Query(sqlSelect);
+
+        sqlSelect = "DELETE FROM rounds";
+        m_join.Execute(sqlSelect);
+
+
+        foreach (var rec in rounds)
+        {
+
+            /*    sqlSelect = "SET IDENTITY_INSERT dbo.rounds ON; INSERT INTO Rounds(id,Title,Description,e_Title,e_Desc,vendor_id,is_express,round_start,order_open_hour,order_close_hour,is_every_day,comments,territory_id,is_active,shipping_charge,free_shipping_marker,discounted_shipping_charge,discounted_shipping_marker,shipping_method,is_open_for_orders,has_started,is_sorted,is_locked,is_local_round,min_order,max_order,moked_id,create_ts,start_date,start_time,round_type,sorted_by,stop_sort_ts,started_by,start_ts,dispatching_driver_id,dispatching_driver_pu_ts,is_dispatched,dispatched_on,dispatcher_id,is_sorting_mode,preview_p_id,is_pickup,express_eta_min,express_comments,is_sh_late_waiver,clerk_id,packing_user_id,inv_entity_id,estimated_end_time,actual_end_time,pu_loc_lat,pu_loc_longt,last_pu_loc_change_ts,last_pu_loc_changr_clerk,pu_loc_address,returns_allowed,gen_pu_loc,gen_pu_loc_e,estimated_duration,is_guaranteed,is_accepting_credit,is_accepting_debt_collection,is_accepting_charity_payment,is_accepting_charity_donations,express_start_hour,express_end_hour,last_settings_change,last_settings_change_clerk,express_start_time,express_end_time,pickup_instructions,pickup_instructions_e,shipping_instructions,shipping_instructions_e,main_round_id,in_delivery_mode,delivery_mode_clerk,delivery_mode_ts,start_address_street,start_address_city,start_address_notes,end_address_street,end_address_city,end_address_notes,is_start_address,is_end_address,start_address_type,end_address_type,shift_leader_id,delivered_from,express_eta_type,service_availability,service_availability_e,pickup_area,pickup_city,pickup_city_e,sh_late_discount,min_shipping_marker,search_priority,is_route,pu_eta,is_free_shipping,pu_lead_time,round_status,is_completed,complete_ts,completed_by,status_change_ts,status_change_by,googleFormIdentifier,is_catalog,info_update_ts,info_update_by,is_setup,next_scheduled_delivery,active_deliveries,active_delivery_id,sort_order)" +
+                        " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53,@54,@55,@56,@57,@58,@59,@60,@61,@62,@63,@64,@65,@66,@67,@68,@69,@70,@71,@72,@73,@74,@75,@76,@77,@78,@79,@80,@81,@82,@83,@84,@85,@86,@87,@88,@89,@90,@91,@92,@93,@94,@95,@96,@97,@98,@99,@100,@101,@102,@103,@104,@105,@106,@107,@108,@109,@110,@111,@112,@113,@114,@115,@116,@117,@118)";
+
+            m_join.Execute(sqlSelect, round.id, round.Title, round.Description, round.e_Title, round.e_Desc, round.vendor_id, round.is_express, round.round_start, round.order_open_hour, round.order_close_hour, round.is_every_day, round.comments, round.territory_id, round.is_active, round.shipping_charge, round.free_shipping_marker, round.discounted_shipping_charge, round.discounted_shipping_marker, round.shipping_method, round.is_open_for_orders, round.has_started, round.is_sorted, round.is_locked, round.is_local_round, round.min_order, round.max_order, round.moked_id, round.create_ts, round.start_date, round.start_time, round.round_type, round.sorted_by, round.stop_sort_ts, round.started_by, round.start_ts, round.dispatching_driver_id, round.dispatching_driver_pu_ts, round.is_dispatched, round.dispatched_on, round.dispatcher_id, round.is_sorting_mode, round.preview_p_id, round.is_pickup, round.express_eta_min, round.express_comments, round.is_sh_late_waiver, round.clerk_id, round.packing_user_id, round.inv_entity_id, round.estimated_end_time, round.actual_end_time, round.pu_loc_lat, round.pu_loc_longt, round.last_pu_loc_change_ts, round.last_pu_loc_changr_clerk, round.pu_loc_address, round.returns_allowed, round.gen_pu_loc, round.gen_pu_loc_e, round.estimated_duration, round.is_guaranteed, round.is_accepting_credit, round.is_accepting_debt_collection, round.is_accepting_charity_payment, round.is_accepting_charity_donations, round.express_start_hour, round.express_end_hour, round.last_settings_change, round.last_settings_change_clerk, round.express_start_time, round.express_end_time, round.pickup_instructions, round.pickup_instructions_e, round.shipping_instructions, round.shipping_instructions_e, round.main_round_id, round.in_delivery_mode, round.delivery_mode_clerk, round.delivery_mode_ts, round.start_address_street, round.start_address_city, round.start_address_notes, round.end_address_street, round.end_address_city, round.end_address_notes, round.is_start_address, round.is_end_address, round.start_address_type, round.end_address_type, round.shift_leader_id, round.delivered_from, round.express_eta_type, round.service_availability, round.service_availability_e, round.pickup_area, round.pickup_city, round.pickup_city_e, round.sh_late_discount, round.min_shipping_marker, round.search_priority, round.is_route, round.pu_eta, round.is_free_shipping, round.pu_lead_time, round.round_status, round.is_completed, round.complete_ts, round.completed_by, round.status_change_ts, round.status_change_by, round.googleFormIdentifier, round.is_catalog, round.info_update_ts, round.info_update_by, round.is_setup, round.next_scheduled_delivery, round.active_deliveries, round.active_delivery_id, round.sort_order);
+            */
+
+            sqlSelect = "SET IDENTITY_INSERT dbo.rounds ON; INSERT INTO Rounds(id, Title, Description, e_Title, e_Desc, vendor_id, round_type,sort_order,is_active,is_express,is_pickup) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,1,@8,@9)";
+            m_join.Execute(sqlSelect, rec.id, rec.Title, rec.Description, rec.e_Title, rec.e_Desc, rec.vendor_id, rec.round_type,rec.sort_order, rec.is_express, rec.is_pickup);
+        }
+        op_data.Close();
+        m_join.Close();
+    }
+
+    public static void ImportWebJobApps(string src_db_name = "m_join", string dest_db_name = "op_data")
+    {
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM JobApps ORDER BY serial";
+        var JobApps = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var rec in JobApps)
+        {
+
+            int m_id = 0;
+            int pb_id = 0;
+            string wanum = ""; try { wanum = AppFunctions.wanumize(rec.wanum); } catch { }
+            sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+            var member = dest_db.QuerySingle(sqlSelect, wanum);
+            try { m_id = member.m_id; pb_id = member.serial; } catch { }
+
+            bool is_ok = true;
+            sqlSelect = "INSERT INTO JobApps( ts, nick_name, wanum, age, gender, experience, occupation, added_value, city, fb, instagram, job_other_desc, living_status, ls_other_desc, applyFor, rep_id, status_code, rep_notes,m_id,bgcolor) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19)";
+            try { dest_db.Execute(sqlSelect, rec.ts, rec.nick_name, rec.wanum, rec.age, rec.gender, rec.experience, rec.occupation, rec.added_value, rec.city, rec.fb, rec.instagram, rec.job_other_desc, rec.living_status, rec.ls_other_desc, rec.applyFor, rec.rep_id, rec.status_code, rec.rep_notes, m_id, "#ffffff"); } catch { is_ok = false; }
+
+            if (is_ok)
+            {
+                sqlSelect = "DELETE FROM JobApps WHERE serial=@0";
+                src_db.Execute(sqlSelect, rec.serial);
+            }
+
+
+        }
+
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+
+    public static int CreateZReport(int round_id,DateTime z_date)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int z_id = 0;
+        string logMsg = "";
+        int vendor_id = 0;
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT vendor_id FROM rounds WHERE id=@0";
+        var round = op_data.QuerySingle(sqlSelect, round_id);
+        try { vendor_id = round.vendor_id; } catch { }
+        sqlSelect = "UPDATE ZReports SET is_active=0 WHERE round_id=@0";
+        op_data.Execute(sqlSelect, round_id);
+        sqlSelect = "INSERT INTO ZReports(round_id,z_date,open_ts,open_by,is_active,vendor_id) values(@0,@1,@2,@3,@4,@5)";
+        op_data.Execute(sqlSelect,  round_id, z_date, LocalTime, u_id, 1,vendor_id);
+        sqlSelect = "SELECT serial FROM ZReports WHERE round_id=@0 AND open_ts=@1 AND is_active=1";
+        var newZ = op_data.QuerySingle(sqlSelect, round_id, LocalTime);
+        int new_z_serial = 0;
+        try { new_z_serial = newZ.serial; } catch { }
+
+        sqlSelect = "UPDATE rounds SET z_id=@0 WHERE id=@1";
+        op_data.Execute(sqlSelect, new_z_serial, round_id);
+
+        logMsg = "נוצר Z חדש #" + new_z_serial + " לתאריך " + z_date.ToShortDateString();
+        AppFunctions.WriteRoundComment(round_id, logMsg);
+
+        op_data.Close();
+        return new_z_serial;
+    }
+
+
+    public static int CreateRoundZReport(int round_id, DateTime z_date, int main_z_id)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int z_id = 0;
+        string logMsg = "";
+        string round_title = "";
+        string vendor_name = "";
+        int vendor_id = 0;
+        int round_type = 0;
+        bool is_active = false;
+        var op_data = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "";
+        int new_z_serial = 0;
+
+        try { z_date = z_date.Date; } catch { }
+
+        sqlSelect = "SELECT vendor_id,title,round_type FROM rounds WHERE id=@0";
+        var round = op_data.QuerySingle(sqlSelect, round_id);
+        try { vendor_id = round.vendor_id; } catch { }
+        try { round_title = round.title; } catch { }
+        try { round_type = round.round_type; } catch { }
+        try { vendor_name = AppFunctions.GetVendorTitleById(vendor_id); } catch { }
+        if (z_date == local_time.Date)
+        {
+            is_active = true;
+        }
+
+
+        sqlSelect = "SELECT serial FROM ZReports WHERE round_id=@0 AND main_z_id=@1";
+        var dupChk = op_data.QuerySingle(sqlSelect, round_id, main_z_id);
+
+        if (dupChk == null)
+        {
+            sqlSelect = "INSERT INTO ZReports(round_id,z_date,open_ts,open_by,is_active,vendor_id,vendor_name,round_title,round_type,main_z_id) values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9)";
+            op_data.Execute(sqlSelect, round_id, z_date, local_time, u_id, is_active, vendor_id, vendor_name, round_title, round_type);
+
+            sqlSelect = "SELECT serial FROM ZReports WHERE round_id=@0 AND main_z_id=@1 ";
+            var newZ = op_data.QuerySingle(sqlSelect, round_id, main_z_id);
+            try { new_z_serial = newZ.serial; } catch { }
+
+            if (is_active)
+            {
+                sqlSelect = "UPDATE rounds SET z_id=@0 WHERE id=@1";
+                op_data.Execute(sqlSelect, new_z_serial, round_id);
+            }
+            logMsg = "נוצר Z חדש #" + new_z_serial + " לתאריך " + z_date.ToShortDateString();
+            AppFunctions.WriteRoundComment(round_id, logMsg);
+
+        }
+
+
+        op_data.Close();
+        return new_z_serial;
+    }
+
+
+    public static void CreateProductCopy(dynamic rec, int p_id,int vendor_id, bool is_pricing=true,bool is_pictures=true)
+    {
+        ProductsFunctions.CreateProductCopy(rec, p_id, vendor_id, is_pricing, is_pictures);
+    }
+
+
+
+
+
+}
+
+}

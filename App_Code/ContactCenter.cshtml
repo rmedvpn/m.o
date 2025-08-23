@@ -1,0 +1,606 @@
+﻿@helper MemberInfo(int member_id)
+{
+var op_data = Database.Open("op_data");
+var sqlSelect = "";
+int rep_id = WebSecurity.CurrentUserId;
+string rep_name = AppFunctions.GetRepName(rep_id);
+DateTime local_time = AppFunctions.LocalTime();
+sqlSelect = "SELECT * FROM pb WHERE m_id=@0";
+var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+sqlSelect = "SELECT * FROM u_stats WHERE serial=@0";
+var member = op_data.QuerySingle(sqlSelect, member_id);
+sqlSelect = "SELECT * FROM MHistory WHERE m_id=@0 ORDER BY ts DESC";
+var orders = op_data.Query(sqlSelect, member_id);
+
+DateTime birth_date = Convert.ToDateTime("1/1/1900");
+try { birth_date = pbEntry.birth_date; } catch { }
+
+int orders_count = 0; try { orders_count = pbEntry.oc; } catch { }
+DateTime last_order_ts = local_time; try { last_order_ts = pbEntry.lo; } catch { }
+int DaysSinceLastOrder = 0; try { DaysSinceLastOrder = AppFunctions.HowManyDaysAgoWas(last_order_ts); } catch { }
+
+int DaysSinceJoinInt = 0;
+DaysSinceJoinInt = AppFunctions.HowManyDaysAgoWas(member.first_order_ts);
+DateTime zeroTime = new DateTime(1, 1, 1);
+TimeSpan span = local_time - birth_date;
+int age = 0; try { age = (zeroTime + span).Year - 1; } catch { }
+
+
+
+
+
+    <center>
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <div class="formSectionSep"></div>
+            <div class="formSection">
+                <h3>👤 פרטים אישיים</h3>
+                <div class="ProspectListRow">
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">שם<br></span>@pbEntry.member_name
+                    </div>
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">גיל<br></span>@age
+                    </div>
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">רישיון רפואי<br></span>
+                        @if (member.is_license)
+                        {<span>כן</span> }
+                        else
+                        {<span>לא</span>}
+
+                    </div>
+
+                    <div class="ProspcetListCell" onclick="Accordionize('ordersAcc');">
+                        <span class="ProspcetListCellHeader">הזמנות<br></span> @orders_count
+                    </div>
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">אחרונה<br></span>@DaysSinceLastOrder ימים  <span class="SmallInfo"> (@last_order_ts.ToShortDateString())</span>
+                    </div>
+                </div>
+                <div class="ProspectListRow">
+                    <div class="ProspcetListCell">
+                        <button class="accordion" style="display:none" id="ordersAcc"></button>
+                        <div class="panel">
+                            @foreach (var order in orders)
+                            {
+                                <div style="overflow:auto;">
+                                    <span>@order.ts.ToShortDateString()</span>
+                                    <span>@order.ship_city</span>
+                                    <span>@order.round_id</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+            </div>
+
+            <div class="formSectionSep"></div>
+
+
+
+        </div>
+    </center>
+
+
+
+
+
+
+    op_data.Close();
+}
+
+@helper ContactEntries(int member_id = 0, string wanum = "")
+{
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    int rep_id = WebSecurity.CurrentUserId;
+    string rep_name = AppFunctions.GetRepName(rep_id);
+    string member_name = "";
+    DateTime local_time = AppFunctions.LocalTime();
+
+    sqlSelect = "SELECT * FROM contactform WHERE m_id=@0";
+    var contactFormEntries = op_data.Query(sqlSelect, member_id);
+
+
+
+    if (member_id == 0)
+    {
+        sqlSelect = "SELECT * FROM contactform WHERE wanum=@0";
+        contactFormEntries = op_data.Query(sqlSelect, wanum);
+    }
+    else
+    {
+        member_name = AppFunctions.GetMemberName(member_id);
+
+    }
+
+
+    <center>
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <div class="formSectionSep"></div>
+            <div class="formSection">
+                <h3>☎️ יצירות קשר פתוחות</h3>
+                @foreach (var entry in contactFormEntries)
+                {
+                    string nick_name = entry.nick_name;
+                    if (nick_name == "")
+                    {
+                        nick_name = member_name;
+                    }
+
+                    <div class="ProspectListRow">
+                        <div class="ProspcetListCell">
+
+                            @if (nick_name != "")
+                            {
+                                <span class="ProspcetListCellHeader"> המשתמש.ת @nick_name כתב.ה ב <br></span>
+                            }
+                            else
+                            {
+                                <span class="ProspcetListCellHeader"> משתמש.ת ללא שם @nick_name כתב.ה ב <br></span>
+                            }
+                            @entry.ts.ToShortDateString() @entry.ts.ToString("HH:mm")
+
+                        </div>
+                        <div class="ProspcetListCell">
+                            <span class="ProspcetListCellHeader">הודעה<br></span>@entry.subject<br />@entry.message
+                        </div>
+                    </div>
+
+                }
+                <div class="formSectionSep"></div>
+
+            </div>
+
+
+
+
+        </div>
+    </center>
+
+
+
+
+
+
+    op_data.Close();
+}
+
+@helper ProspectPreview(int prospect_id = 0, string wanum = "")
+{
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    int rep_id = WebSecurity.CurrentUserId;
+    string rep_name = AppFunctions.GetRepName(rep_id);
+    string member_name = "";
+    DateTime local_time = AppFunctions.LocalTime();
+
+    sqlSelect = "SELECT * FROM prospects WHERE serial=@0";
+    var prospects = op_data.Query(sqlSelect, prospect_id);
+    sqlSelect = "SELECT * FROM webprospects WHERE serial=@0";
+    var webprospects = op_data.Query(sqlSelect, prospect_id);
+
+    int prospect_count = 0;
+    prospect_count = prospects.Count() + webprospects.Count();
+
+
+
+    if (prospect_count > 0)
+    {
+        <center>
+            <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+                <div class="formSectionSep"></div>
+                <div class="formSection">
+                    <h3>👤 @prospect_count בקשות הצטרפות פתוחות</h3>
+
+                    @foreach (var prospect in webprospects)
+                    {
+                        DateTime birth_date = Convert.ToDateTime("1/1/1900"); try { birth_date = prospect.birth_date; } catch { }
+
+                        DateTime zeroTime = new DateTime(1, 1, 1);
+                        TimeSpan span = local_time - birth_date;
+
+                        int age = (zeroTime + span).Year - 1;
+                        string gender = "";
+
+
+                        if (prospect.gender == 1) { gender = "זכר"; }
+                        if (prospect.gender == 2) { gender = "נקבה"; }
+
+                        // int aff_id = memberRs.aff_id;
+                        string ref_source = ""; try { ref_source = prospect.ref_source; } catch { }
+                        if (ref_source == null) { ref_source = ""; }
+
+                        <div class="formSectionSep"></div>
+                        <div>
+                            <h3>בקשה #<span>@prospect.serial</span></h3>
+                            <div class="ProspectListRow">
+                                <div class="ProspcetListCell">
+                                    <span class="ProspcetListCellHeader">שם<br></span>@prospect.prospect_name
+                                </div>
+                                <div class="ProspcetListCell">
+                                    <span class="ProspcetListCellHeader">מין<br></span>@gender
+                                </div>
+                                <div class="ProspcetListCell">
+                                    <span class="ProspcetListCellHeader">גיל<br></span>@age
+                                </div>
+                                <div class="ProspcetListCell">
+                                    <span class="ProspcetListCellHeader">עיר<br></span>@prospect.city
+                                </div>
+                            </div>
+
+
+                            <div class="ProspectListRow">
+                                <div class="ProspcetListCell">
+                                    <span class="ProspcetListCellHeader">רישיון רפואי<br></span>
+                                    @if (prospect.is_license)
+                                    {<span>כן<br />@prospect.license_info</span> }
+                                else
+                                {<span>לא</span>}
+
+                                </div>
+                                <div class="ProspcetListCell">
+                                    <span class="ProspcetListCellHeader">הרגלי צריכה<br></span>@prospect.usage_habits גרם/חודש
+                                </div>
+                            </div>
+
+                            @if (prospect.ref_txt != "")
+                            {
+                                <div class="ProspectListRow">
+                                    <span style="padding: 3px;margin: 3px;font-size: 14px;float: right;">
+                                        <span style="font-size: 11px;;color: #b200ff">מקור פניה<br></span>@prospect.ref_txt
+                                    </span>
+                                </div>
+                            }
+
+                            @if (prospect.involvement_volunteer || prospect.involvement_paid || prospect.involvement_social || prospect.involvement_other)
+                            {
+                                <div class="ProspectListRow">
+                                    <div class="ProspcetListCell">
+                                        <span class="ProspcetListCellHeader">
+                                            מעורבות<br>
+                                            <span style="color: #000; font-size: 16px">
+                                                @if (prospect.involvement_volunteer)
+                                                {<span>✅ התנדבות</span><br />}
+                                                @if (prospect.involvement_paid)
+                                                {<span>✅ עבודה בתשלום</span><br />}
+                                                @if (prospect.involvement_social)
+                                                {<span>✅ שיווק ברשתות חברתיות</span><br />}
+                                                @if (prospect.involvement_other)
+                                                {<span>✅ אחר </span> @prospect.involvement_other_info}
+                                            </span>
+                                        </span>
+                                    </div>
+
+                                </div>
+                            }
+
+
+                            @switch (ref_source)
+                            {
+                                case "ref":
+                                    string referring_member_wanum = prospect.ref_source_desc;
+                                    referring_member_wanum = AppFunctions.wanumize(referring_member_wanum);
+                                    string referring_member_display = "";
+                                    bool recognized_referring_member = false;
+                                    sqlSelect = "SELECT member_name,oc from pb where wanum=@0";
+                                    var ref_check = op_data.QuerySingle(sqlSelect, referring_member_wanum);
+                                    if (ref_check != null)
+                                    {
+                                        referring_member_display = " ✅ " + ref_check.member_name + " (" + ref_check.oc + ")";
+                                        recognized_referring_member = true;
+                                    }
+                                    else
+                                    {
+                                        referring_member_display = " ❌ " + referring_member_wanum;
+                                    }
+
+                                    <div class="ProspectListRow">
+                                        <div class="ProspcetListCell">
+                                            <span class="ProspcetListCellHeader">מקור פניה<br></span>
+                                            הפניה על ידי חבר.ה בשירות <br />@referring_member_display
+                                        </div>
+
+                                        @if (recognized_referring_member)
+                                        {
+                                            <span style="padding: 5px;margin: 5px;;float: left;">
+                                                <a href="https://wa.me/@referring_member_wanum" style="border:0;" target="_blank"><img src="~/wa_icon.jpg" width="45" height="45" /></a>
+                                            </span>
+                                        }
+
+                                    </div>
+                                    break;
+
+                                case "other":
+                                    <div class="ProspectListRow">
+                                        <div class="ProspcetListCell">
+                                            <span class="ProspcetListCellHeader">
+                                                מקור פניה<br>
+                                            </span>אחר - @prospect.ref_source_desc
+                                        </div>
+                                    </div>
+                                    break;
+
+                                case "":
+
+                                    break;
+
+                                default:
+                                    <div class="ProspectListRow">
+                                        <div class="ProspcetListCell">
+                                            <span class="ProspcetListCellHeader">מקור פניה</span><br>
+                                            @prospect.ref_source
+                                        </div>
+                                    </div>
+
+                                    break;
+                            }
+
+                        </div>
+
+
+                    }
+
+                    <div class="formSectionSep"></div>
+
+                </div>
+
+
+
+
+            </div>
+        </center>
+    }
+
+
+
+
+
+
+    op_data.Close();
+}
+
+
+@helper MessageSender(int member_id, int template_id, int entry_id = 0, int prospect_id = 0, string reachout_type = "REP", int list_id = 0)
+{
+int u_id = WebSecurity.CurrentUserId;
+DateTime local_time = AppFunctions.LocalTime();
+var db = Database.Open("op_data");
+var sqlSelect = "";
+
+
+if (template_id == 0)
+{
+    if (member_id == 0)
+    {
+        try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultMemberContactMsgTemplate")); } catch { }
+    }
+    else
+    {
+        try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultNonMemberContactMsgTemplate")); } catch { }
+    }
+}
+
+sqlSelect = "SELECT * FROM msgTemplates WHERE id=@0";
+var msgTemplate = db.QuerySingle(sqlSelect, template_id);
+
+
+string msgType = ""; try { msgType = msgTemplate.msgType; } catch { }
+bool is_welcome_msg = false;
+if (msgType == "WELCOME")
+{
+    is_welcome_msg = true;
+}
+
+sqlSelect = "select * from msgTemplates WHERE msgType=@0 AND (rep_id=@1 OR rep_id=0)";
+var msgTemplates = db.Query(sqlSelect, msgType, u_id);
+
+string msgTxt = "";
+string USERNAME = "";
+string REPNAME = ""; REPNAME = AppFunctions.GetRepName(u_id);
+string DATESTAMP30 = local_time.AddDays(30).ToShortDateString();
+string DATESTAMP14 = local_time.AddDays(14).ToShortDateString();
+string DATESTAMP7 = local_time.AddDays(7).ToShortDateString();
+string DATESTAMP = local_time.ToShortDateString();
+string TIMESTAMP = local_time.ToShortDateString() + " " + local_time.ToString("HH:mm");
+string LODAYS = "";
+string ANNIVERSARYYEARS = "";
+string USERID = "";
+string WANUM = "";
+string CONTACTMSGSUBJECT = "";
+
+string MAINWEBSITELINK = AppFunctions.GetAppProperty("MAINWEBSITELINK");
+
+string MOKEDPHONENUMBER = AppFunctions.GetAppProperty("MokedPhoneNumber");
+string NSMOKEDPHONENUMBER = MOKEDPHONENUMBER.Replace("-", "");
+
+string DISCONNECTPHONENUMBER = AppFunctions.GetAppProperty("DisconnectPhoneNumber");
+string NSDISCONNECTPHONENUMBER = DISCONNECTPHONENUMBER.Replace("-", "");
+
+
+string BROADCASTPHONENUMBER = AppFunctions.GetAppProperty("BROADCASTPHONENUMBER");
+string NSBROADCASTPHONENUMBER = BROADCASTPHONENUMBER.Replace("-", "");
+
+
+string MOKEDTIFOOLPHONENUMBER = AppFunctions.GetAppProperty("MOKEDTIFOOLPHONENUMBER");
+string NSMOKEDTIFOOLPHONENUMBER = MOKEDTIFOOLPHONENUMBER.Replace("-", "");
+
+
+string JoinPhoneNumber = AppFunctions.GetAppProperty("JoinPhoneNumber");
+string NSJOINPHONENUMBER = JoinPhoneNumber.Replace("-", "");
+
+
+
+
+NSJOINPHONENUMBER = NSJOINPHONENUMBER.Replace(" ", "");
+try { NSJOINPHONENUMBER = AppFunctions.wanumize(NSJOINPHONENUMBER); } catch { }
+try { NSMOKEDPHONENUMBER = AppFunctions.wanumize(NSMOKEDPHONENUMBER); } catch { }
+try { NSDISCONNECTPHONENUMBER = AppFunctions.wanumize(NSDISCONNECTPHONENUMBER); } catch { }
+try { NSBROADCASTPHONENUMBER = AppFunctions.wanumize(NSBROADCASTPHONENUMBER); } catch { }
+try { NSMOKEDTIFOOLPHONENUMBER = AppFunctions.wanumize(NSMOKEDTIFOOLPHONENUMBER); } catch { }
+
+
+string WANUMMASK = "";
+string PROSPECT_ID = "";
+
+
+switch (reachout_type)
+{
+    case "REP":
+    case "MEMBERCONTACT":
+    case "MEMBERWELCOME":
+    case "REFRESHMSG":
+    case "ORDERWELCOME":
+        if (true)
+        {
+            sqlSelect = "select u_Stats.*,pb.member_name,pb.wanum from u_Stats JOIN pb ON u_Stats.serial=pb.m_id WHERE u_Stats.serial=@0";
+            var memberRs = db.QuerySingle(sqlSelect, member_id);
+            if (memberRs != null)
+            {
+                USERNAME = memberRs.member_name;
+                WANUM = memberRs.wanum;
+                TimeSpan DaysSinceLastOrder = local_time - memberRs.last_order_ts;
+                int lodays = DaysSinceLastOrder.Days;
+                LODAYS = lodays.ToString();
+
+                TimeSpan DaysSinceFirstOrder = local_time - memberRs.first_order_ts;
+                int AnniversaryYears = local_time.Year - memberRs.first_order_ts.Year;
+                ANNIVERSARYYEARS = AppFunctions.FormatAnniversaryYears(AnniversaryYears);
+            }
+        }
+
+        break;
+
+
+    case "PROSPECTMSG":
+        if (true)
+        {
+            sqlSelect = "select * FROM webprospects WHERE serial=@0";
+            var memberRs = db.QuerySingle(sqlSelect, prospect_id);
+            if (memberRs != null)
+            {
+                USERNAME = memberRs.prospect_name;
+                WANUM = memberRs.wanum;
+                PROSPECT_ID = memberRs.serial.ToString();
+            }
+        }
+
+        break;
+
+    default:
+        break;
+}
+
+if (reachout_type == "NONMEMBERCONTACT" || reachout_type == "MEMBERCONTACT")
+{
+    sqlSelect = "select * FROM contactform WHERE serial=@0";
+    var NonMemberRs = db.QuerySingle(sqlSelect, member_id);
+    if (NonMemberRs != null)
+    {
+        USERNAME = NonMemberRs.nick_name;
+        WANUM = NonMemberRs.wanum;
+        CONTACTMSGSUBJECT = NonMemberRs.subject;
+    }
+
+}
+
+var names = USERNAME.Split(' ');
+string FIRSTNAME = names[0];
+
+
+if (msgTemplate != null)
+{
+    string wanum_code = "";
+    try { wanum_code = WANUM.Substring(WANUM.Length - 4); } catch { wanum_code = "9999"; }
+    WANUMMASK = "***" + wanum_code;
+
+    msgTxt = msgTemplate.msg_body;
+    msgTxt = msgTxt.Replace("FIRSTNAME", FIRSTNAME);
+    msgTxt = msgTxt.Replace("USERNAME", USERNAME);
+    msgTxt = msgTxt.Replace("REPNAME", REPNAME);
+
+    msgTxt = msgTxt.Replace("DATESTAMP30", DATESTAMP30);
+    msgTxt = msgTxt.Replace("DATESTAMP14", DATESTAMP14);
+    msgTxt = msgTxt.Replace("DATESTAMP7", DATESTAMP7);
+    msgTxt = msgTxt.Replace("DATESTAMP", DATESTAMP);
+    msgTxt = msgTxt.Replace("TIMESTAMP", TIMESTAMP);
+    msgTxt = msgTxt.Replace("LODAYS", LODAYS);
+    msgTxt = msgTxt.Replace("ANNIVERSARYYEARS", ANNIVERSARYYEARS);
+    msgTxt = msgTxt.Replace("USER_ID", USERID);
+    msgTxt = msgTxt.Replace("USERID", USERID);
+    try { msgTxt = msgTxt.Replace("LAST4WANUM", wanum_code); } catch { }
+
+    msgTxt = msgTxt.Replace("WANUMMASK", WANUMMASK);
+    msgTxt = msgTxt.Replace("WANUM", WANUM);
+    msgTxt = msgTxt.Replace("CONTACTMSGSUBJECT", CONTACTMSGSUBJECT);
+    msgTxt = msgTxt.Replace("MAINWEBSITELINK", MAINWEBSITELINK);
+
+    try { msgTxt = msgTxt.Replace("NSMOKEDPHONENUMBER", NSMOKEDPHONENUMBER); } catch { }
+    msgTxt = msgTxt.Replace("MOKEDPHONENUMBER", MOKEDPHONENUMBER);
+
+    try { msgTxt = msgTxt.Replace("NSDISCONNECTPHONENUMBER", NSDISCONNECTPHONENUMBER); } catch { }
+    msgTxt = msgTxt.Replace("DISCONNECTPHONENUMBER", DISCONNECTPHONENUMBER);
+
+    try { msgTxt = msgTxt.Replace("NSBROADCASTPHONENUMBER", NSBROADCASTPHONENUMBER); } catch { }
+    msgTxt = msgTxt.Replace("BROADCASTPHONENUMBER", BROADCASTPHONENUMBER);
+
+    try { msgTxt = msgTxt.Replace("NSMOKEDTIFOOLPHONENUMBER", NSMOKEDTIFOOLPHONENUMBER); } catch { }
+    msgTxt = msgTxt.Replace("MOKEDTIFOOLPHONENUMBER", MOKEDTIFOOLPHONENUMBER);
+
+    try { msgTxt = msgTxt.Replace("NSJOINPHONENUMBER", NSJOINPHONENUMBER); } catch { }
+    try { msgTxt = msgTxt.Replace("JOINPHONENUMBER", JoinPhoneNumber); } catch { }
+
+
+
+    try { msgTxt = msgTxt.Replace("PROSPECT_ID", PROSPECT_ID); } catch { }
+    try { msgTxt = msgTxt.Replace("PROSPECTID", PROSPECT_ID.ToString()); } catch { }
+
+
+}
+    <form id="MessageSenderParams">
+        <div style="overflow: auto;background-color: #e3e3e3;border:2px solid #808080;border-radius:5px;">
+            <div style="overflow: auto">
+
+                <div style="overflow: auto">
+                    <div style="overflow: auto;" id="beforeMsgSentOptions">
+                        <span style="float:left">@reachout_type</span>
+                        <span style="display: none" id="testcb1"></span>
+
+                        <select style="border: 0;font-weight: bold;font-size: 16px;width: 80%;padding:5px;margin:10px;" name="template_id" onchange="if (this.value == '0') { Accordionize('AccMoreOptions'); } else {hideElement('beforeMsgSentOptions'); RepAjaxUpdate('LoadMessageTemplate','MsgTemplatesDiv','MsgTemplatesLoader','MessageSenderParams');}">
+                            @foreach (var item in msgTemplates)
+                            {
+                                <option value="@item.id" @if (template_id == item.id) { <text> selected</text>}>@item.msg_title</option>
+                            }
+                        </select>
+                    </div>
+                    <div style="overflow: auto">
+                        <div class="spinner" style="text-align: center;display: none;" id="MsgTemplatesLoader">
+                            <div class="bounce1"></div>
+                            <div class="bounce2"></div>
+                            <div class="bounce3"></div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <textarea id="tb_cb" style="padding: 5px;margin: 5px;font-size: 16px;width: 90%;height: 300px;resize:none" oninput="document.getElementById('txt_@member_id').innerHTML = this.value;">@msgTxt</textarea>
+                <div id="txt_@member_id" style="padding: 5px;margin: 5px;display: none;">@msgTxt</div>
+            </div>
+
+
+        </div>
+
+        <input type="hidden" name="member_id" value="@member_id" />
+        <input type="hidden" name="entry_id" value="@entry_id" />
+        <input type="hidden" name="reachout_type" value="@reachout_type" />
+        <input type="hidden" name="list_id" value="@list_id" />
+        <input type="hidden" name="prospect_id" value="@prospect_id" />
+    </form>
+
+    db.Close();
+}

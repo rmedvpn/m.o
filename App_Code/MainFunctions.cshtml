@@ -1,0 +1,138 @@
+﻿@functions {
+
+    public static string GetAppProperty (string Property)
+    {
+        var sqlSelect="";
+        var db = Database.Open("irgoon");
+
+        sqlSelect = "SELECT propertyValue FROM irgoon.AppProperties WHERE propertyName=@0";
+        var Loadedproperty = db.QuerySingle(sqlSelect,Property);
+        db.Close();
+        if (Loadedproperty!=null){ return Loadedproperty.propertyValue;}
+        else{return "";}
+
+    }
+
+    public static void SetAppProperty (string Property, string theValue)
+    {
+        var sqlSelect="";
+        var db = Database.Open("irgoon");
+
+        sqlSelect = "UPDATE irgoon.AppProperties SET propertyValue=@0 WHERE propertyName=@1";
+        db.Execute(sqlSelect,theValue,Property);
+        db.Close();
+
+    }
+
+    public static string wanumize(string wanum)
+    {
+        string wanumized_str=wanum;
+
+        wanumized_str=wanumized_str.Replace("(","");
+        wanumized_str=wanumized_str.Replace(")","");
+        wanumized_str=wanumized_str.Replace("+","");
+        wanumized_str=wanumized_str.Replace(" ","");
+        wanumized_str=wanumized_str.Replace("-","");
+        wanumized_str=wanumized_str.Replace("‑","");
+        wanumized_str=wanumized_str.Replace(" ","");
+
+        if(wanumized_str.StartsWith("0")){
+            wanumized_str = "972" + wanumized_str.Substring(1);
+        }
+        if(wanumized_str.StartsWith("50") || wanumized_str.StartsWith("51") || wanumized_str.StartsWith("52") || wanumized_str.StartsWith("53") || wanumized_str.StartsWith("54") || wanumized_str.StartsWith("55") || wanumized_str.StartsWith("56") || wanumized_str.StartsWith("57") || wanumized_str.StartsWith("58") || wanumized_str.StartsWith("59")){
+            wanumized_str = "972" + wanumized_str;
+        }
+
+
+
+        return wanumized_str;
+
+    }
+
+
+    public static void WriteLog (string theLog, int clerk_id,string msg,int rec_id=0,bool is_note=false)
+    {
+        var db = Database.Open("irgoon");
+        var sqlSelect = "INSERT INTO irgoon.AppLog (rec_id,clerk_id,entry,timestamp,LogName) VALUES (@0,@1,@2,@3,@4) ";
+        try{db.Execute (sqlSelect,rec_id,clerk_id,msg,DateTime.Now,theLog);}catch{}
+        db.Close();
+    }
+
+
+    public static int CreateMemberAndReturnId(string userName,string wanum)
+    {
+        int user_id=0;
+        try{wanum=MainFunctions.wanumize(wanum);}catch{}
+        DateTime timeStamp=DateTime.Now;
+        var db = Database.Open("irgoon");
+        var sqlSelect = "INSERT INTO irgoon.irgUsers(pbname,wanum,order_count,create_ts,recent_order_count) VALUES(@0,@1,@2,@3,1)";
+        try{db.Execute(sqlSelect,userName,wanum,1,timeStamp);}catch{}
+        sqlSelect = "SELECT userId FROM irgoon.irgUsers WHERE wanum=@0 AND create_ts=@1";
+        var tmpRs=db.QuerySingle(sqlSelect,wanum,timeStamp);
+        try{user_id=tmpRs.userId;}catch{}
+        db.Close();
+        return user_id;
+
+    }
+
+    public static void UpdateMemberStats (int member_id)
+    {
+        var db = Database.Open("irgoon");
+        var sqlSelect = "";
+        sqlSelect = "UPDATE irgoon.irgUsers SET last_order_ts=(SELECT max(ts) from masterWebOrders WHERE userId=@0) WHERE userId=@0";
+        try{db.Execute(sqlSelect,member_id);}catch{}
+        DateTime first_order_ts=DateTime.Now;
+        DateTime last_order_ts=DateTime.Now;
+        int order_count=0;
+        int recent_order_count=0;
+        decimal avgDaysBetweenOrders=0;
+        decimal recentAvgDaysBetweenOrders=0;
+
+        sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM irgoon.irgoon.MasterWebOrders WHERE user_id=@0";
+        var userOrderStats = db.QuerySingle(sqlSelect,member_id);
+        if(userOrderStats!=null){
+
+            try{first_order_ts=userOrderStats.first_order_ts;}catch{}
+            try{last_order_ts=userOrderStats.last_order_ts;}catch{}
+            try{order_count=userOrderStats.order_count;}catch{}
+
+            double DaysBetweenFirstAndLastOrders=0;
+
+            TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+            DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+            if(DaysBetweenFirstAndLastOrders>0){
+                try{avgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / order_count);}catch{}
+            }
+
+        }
+
+        int MonthsToCalculateAvgTimeBetweenOrders = 3;//Convert.ToInt32(AppFunctions.GetAppProperty("MonthsToCalculateAvgTimeBetweenOrders"));
+        DateTime DateToCalculateAverageFrom = DateTime.Today.AddMonths(MonthsToCalculateAvgTimeBetweenOrders*-1);
+        sqlSelect = "SELECT MAX(ts) as last_order_ts,MIN(ts) as first_order_ts,Count(serial) AS order_count FROM irgoon.irgoon.MasterWebOrders WHERE user_id=@0 AND ts>@1";
+        userOrderStats = db.QuerySingle(sqlSelect,member_id,DateToCalculateAverageFrom);
+
+        if(userOrderStats!=null){
+
+            try{first_order_ts=userOrderStats.first_order_ts;}catch{first_order_ts=DateTime.Now;}
+            try{last_order_ts=userOrderStats.last_order_ts;}catch{last_order_ts=DateTime.Now;}
+            try{recent_order_count=userOrderStats.order_count;}catch{recent_order_count=0;}
+
+            double DaysBetweenFirstAndLastOrders=0;
+            TimeSpan TimeBetweenFirstAndLastOrders = last_order_ts - first_order_ts;
+            DaysBetweenFirstAndLastOrders = TimeBetweenFirstAndLastOrders.TotalDays;
+            if(DaysBetweenFirstAndLastOrders>0){
+                try{recentAvgDaysBetweenOrders = Convert.ToDecimal(DaysBetweenFirstAndLastOrders / recent_order_count);}catch{}                }
+
+        }
+
+        sqlSelect = "UPDATE irgoon.irgUsers SET avgDaysBetweenOrders=@0,recentAvgDaysBetweenOrders=@1,order_count=@2,recent_order_count=@3 WHERE userId=@4";
+        try{db.Execute(sqlSelect,avgDaysBetweenOrders,recentAvgDaysBetweenOrders,order_count,recent_order_count,member_id);}catch{}
+
+
+
+
+        db.Close();
+    }
+
+
+}

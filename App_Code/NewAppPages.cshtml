@@ -1,0 +1,2308 @@
+﻿
+@helper ContactResponse(int contact_entry_id, int member_id = 0, string wanum = "", string reachout_type = "")
+{
+
+    int u_id = WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime LocalTime = AppFunctions.LocalTime();
+    DataFunctions.WriteDebugLine(reachout_type + "-" + member_id.ToString());
+
+    string msgType = "";
+
+    int template_id = 0;
+    string contact_name = "";
+
+    bool isMember = false;
+    bool cus_refresh = false;
+
+    int contactFormEntriesCnt = 0;
+
+    bool is_prospect = false;
+    bool is_prospect_msg = false;
+
+    bool is_approved_prospect = false;
+    DateTime approval_ts = Convert.ToDateTime("1/1/1900");
+
+    int prospect_id = 0;
+    bool is_contact_requests = false;
+
+    if (reachout_type == "PROSPECTMSG")
+    {
+        prospect_id = member_id;
+        member_id = 0;
+        is_prospect_msg = true;
+        is_prospect = true;
+        sqlSelect = "SELECT * FROM webprospects WHERE serial=@0";
+        var prospectMsg = op_data.QuerySingle(sqlSelect, prospect_id);
+        try { wanum = prospectMsg.wanum; } catch { }
+        try { contact_name = prospectMsg.prospect_name; } catch { }
+    }
+
+    DataFunctions.WriteDebugLine(prospect_id.ToString() + "-" + member_id.ToString());
+
+
+    if (contact_entry_id > 0)
+    {
+        sqlSelect = "SELECT * FROM contactform WHERE serial=@0";
+        var contact_entry = op_data.QuerySingle(sqlSelect, contact_entry_id);
+        if (contact_entry != null)
+        {
+            member_id = contact_entry.m_id;
+            wanum = contact_entry.wanum;
+            sqlSelect = "SELECT COUNT(*) AS the_cnt FROM contactform WHERE wanum=@0";
+            var contactFormEntries = op_data.QuerySingle(sqlSelect, wanum);
+            try { contactFormEntriesCnt = contactFormEntries.the_cnt; } catch { }
+            cus_refresh = contact_entry.cus_refresh;
+            try { contact_name = contact_entry.nick_name; } catch { }
+            is_contact_requests = true;
+        }
+    }
+
+
+
+
+    if (member_id == 0)
+    {
+        sqlSelect = "SELECT * FROM pb WHERE wanum=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, wanum);
+        if (pbEntry != null)
+        {
+            member_id = pbEntry.m_id;
+        }
+    }
+
+
+
+    if (member_id > 0)
+    {
+        sqlSelect = "select * from pb WHERE m_id=@0";
+        var memberRs = op_data.QuerySingle(sqlSelect, member_id);
+        if (memberRs != null)
+        {
+            isMember = true;
+
+            wanum = memberRs.wanum;
+            contact_name = memberRs.member_name;
+            DateTime tss = LocalTime;
+
+            if (reachout_type == "")
+            {
+                reachout_type = "MEMBERCONTACT";
+            }
+        }
+    }
+    else
+    {
+        if (reachout_type == "")
+        {
+            reachout_type = "NONMEMBERCONTACT";
+        }
+
+
+    }
+
+    if (reachout_type == "REFRESHMSG")
+    {
+        cus_refresh = true;
+    }
+
+    switch (reachout_type)
+    {
+        case "MEMBERWELCOME":
+            try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultMembersWelcomeMsgTemplate")); } catch { }
+            break;
+        case "ORDERWELCOME":
+            try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultOrderWelcomeMsgTemplate")); } catch { }
+            break;
+
+
+        case "MEMBERCONTACT":
+        case "REFRESHMSG":
+            if (cus_refresh) { try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultInfoReminderMsgTemplate-HE")); } catch { } }
+            else { try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultMemberContactMsgTemplate")); } catch { } }
+            break;
+
+        case "NONMEMBERCONTACT":
+            try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultNonMemberContactMsgTemplate")); } catch { }
+            break;
+
+        case "PROSPECTMSG":
+            try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultWebProspectsMsgTemplate")); } catch { }
+
+            break;
+
+        default:
+            if (isMember) { try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultMemberContactMsgTemplate")); } catch { } }
+            else { try { template_id = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultNonMemberContactMsgTemplate")); } catch { } }
+            break;
+
+    }
+
+    DataFunctions.WriteDebugLine(prospect_id.ToString() + "-$!" + template_id.ToString());
+
+
+    if (template_id > 0)
+    {
+        sqlSelect = "SELECT * FROM msgTemplates WHERE id=@0";
+        var msgTemplate = op_data.QuerySingle(sqlSelect, template_id);
+        try { msgType = msgTemplate.msgType; } catch { }
+    }
+
+
+    if (!is_prospect_msg)
+    {
+        sqlSelect = "SELECT * FROM PROSPECTS WHERE wanum=@0";
+        var prospect = op_data.QuerySingle(sqlSelect, wanum);
+        if (prospect != null)
+        {
+            is_prospect = true;
+            prospect_id = prospect.serial;
+            if (contact_name == "")
+            {
+                contact_name = prospect.prospect_name;
+            }
+            if (wanum.IsEmpty())
+            {
+                wanum = prospect.wanum;
+            }
+        }
+        else
+        {
+            sqlSelect = "SELECT * FROM WEBPROSPECTS WHERE wanum=@0";
+            prospect = op_data.QuerySingle(sqlSelect, wanum);
+            if (prospect != null)
+            {
+                is_prospect = true;
+                prospect_id = prospect.serial;
+                if (contact_name == "")
+                {
+                    contact_name = prospect.prospect_name;
+                }
+                if (wanum.IsEmpty())
+                {
+                    wanum = prospect.wanum;
+                }
+                is_approved_prospect = prospect.is_approved;
+                try { approval_ts = prospect.approval_ts; } catch { }
+            }
+        }
+    }
+
+    try { wanum = AppFunctions.wanumize(wanum); } catch { }
+
+    string wanum_mask = ""; try { wanum_mask = "***" + wanum.Substring(wanum.Length - 4); } catch { }
+
+
+    if (contact_name == "")
+    {
+        contact_name = wanum;
+    }
+
+    <div style="overflow: auto;font-weight: bold;font-size: 24px;padding: 5px;">
+        <button class="closeSideBar" onclick="controller.close('MainSb');">❎</button>
+        שליחת הודעה ל<span>@contact_name</span>
+
+        @if (!isMember)
+        {
+            <span style="float:left;background-color:yellow;color:red;padding:5px;">משתמש לא רשום</span>
+
+        }
+        @if (cus_refresh && isMember)
+        {
+            <span style="float:left;background-color:#57d600;color:#fff;padding:5px;">נדרשת הודעת רענון</span>
+
+        }
+        @if (is_prospect)
+        {
+            <span style="float:left;background-color:#b200ff;color:#fff;padding:5px;">קיימת בקשת הצטרפות פתוחה!</span>
+
+        }
+    </div>
+
+    if (isMember)
+    {
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <div class="formSectionSep"></div>
+            <div>@ContactCenter.MemberInfo(member_id)</div>
+        </div>
+
+    }
+
+    if (is_prospect)
+    {
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <div class="formSectionSep"></div>
+            <div>@ContactCenter.ProspectPreview(prospect_id)</div>
+        </div>
+    }
+
+    if (is_contact_requests)
+    {
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <div class="formSectionSep"></div>
+            <div>@ContactCenter.ContactEntries(member_id, wanum)</div>
+        </div>
+    }
+
+
+    <center>
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <div class="formSectionSep"></div>
+
+
+            <div class="formSection">
+
+                <div style="overflow: auto;padding:10px;margin:5px;" id="MsgTemplatesDiv">
+                    @ContactCenter.MessageSender(member_id, template_id, contact_entry_id, prospect_id, reachout_type)
+                </div>
+            </div>
+            <form id="MsgSettingsFrm">
+                <div class="formSection">
+
+                    @switch (reachout_type)
+                    {
+                        case "MEMBERWELCOME":
+                            <div style="overflow:auto;padding:5px;margin:5px;text-align:right" id="SendMsgActionSpan">
+                                <textarea style="width:75%;font-size:16px;resize:none;" name="contact_notes" placeholder="הערות לטיפול.."></textarea>
+
+                                <div style="overflow:auto;padding:5px;margin:5px;">
+
+
+
+                                    <div id="ActionBtnDiv" style="float:left">
+
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="copyTextAreaToClipBoard('tb_cb'); waLaunch('@wanum'); hideElement('SendMsgActionSpan'); showElement('afterSendDiv'); AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','WELCOMEMSG');">שליחת הודעת ברוכים הבאים ל<span>@contact_name</span></button>
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="CancelMsgBtn" onclick="AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','DELWELCOMEMSG','1');controller.close('MainSb')">מחיקת התזכורת</button>
+
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                            <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                            <input type="hidden" name="entry_id" id="entry_id" value="@contact_entry_id" />
+                            <input type="hidden" name="reachout_type" id="reachout_type" value="@reachout_type" />
+
+                            break;
+                        case "REFRESHMSG":
+                            <div style="overflow:auto;padding:5px;margin:5px;text-align:right" id="SendMsgActionSpan">
+                                <textarea style="width:75%;font-size:16px;resize:none;" name="contact_notes" placeholder="הערות לטיפול.."></textarea>
+
+                                <div style="overflow:auto;padding:5px;margin:5px;">
+
+
+
+                                    <div id="ActionBtnDiv" style="float:left">
+
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="copyTextAreaToClipBoard('tb_cb'); waLaunch('@wanum'); hideElement('SendMsgActionSpan'); showElement('afterSendDiv'); AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','PROSPECTREFRESHMSG');">שליחת הודעת לקוח חוזר ל<span>@contact_name</span></button>
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="CancelMsgBtn" onclick="AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','DELPROSPECTREFRESHMSG');controller.close('MainSb')">סגירת בקשת הצטרפות</button>
+
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                            <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                            <input type="hidden" name="entry_id" id="entry_id" value="@contact_entry_id" />
+                            <input type="hidden" name="reachout_type" id="reachout_type" value="@reachout_type" />
+
+                            break;
+                        case "ORDERWELCOME":
+
+                            <div style="overflow:auto;padding:5px;margin:5px;text-align:right" id="SendMsgActionSpan">
+                                <textarea style="width:75%;font-size:16px;resize:none;" name="contact_notes" placeholder="הערות לטיפול.."></textarea>
+
+                                <div style="overflow:auto;padding:5px;margin:5px;">
+
+
+
+                                    <div id="ActionBtnDiv" style="float:left">
+
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="copyTextAreaToClipBoard('tb_cb'); waLaunch('@wanum'); hideElement('SendMsgActionSpan'); showElement('afterSendDiv'); AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','ORDERWELCOMEMSG');">שליחת הודעת הזמנה ראשונה ל<span>@contact_name</span></button>
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="CancelMsgBtn" onclick="AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','DELWELCOMEMSG','1');controller.close('MainSb')">לא משנה</button>
+
+
+
+
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                            <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                            <input type="hidden" name="entry_id" id="entry_id" value="@contact_entry_id" />
+                            <input type="hidden" name="reachout_type" id="reachout_type" value="@reachout_type" />
+
+                            break;
+                        case "PROSPECTMSG":
+
+                            <div style="overflow:auto;padding:5px;margin:5px;text-align:right" id="SendMsgActionSpan">
+                                <textarea style="width:75%;font-size:16px;resize:none;" name="contact_notes" placeholder="הערות לטיפול.."></textarea>
+
+                                <div style="overflow:auto;padding:5px;margin:5px;">
+
+
+
+                                    <div id="ActionBtnDiv" style="float:left">
+
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="copyTextAreaToClipBoard('tb_cb'); waLaunch('@wanum'); hideElement('SendMsgActionSpan'); showElement('afterSendDiv'); AjaxActions('WEPROSPECTMSGSENT', '@prospect_id', '', '');">שליחת הודעה ל<span>@contact_name</span></button>
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="CancelMsgBtn" onclick="AjaxActions('SENDMSG', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','DELWELCOMEMSG','1');controller.close('MainSb')">לא צריך, אפשר למחוק את התזכורת</button>
+
+
+
+
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                            <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                            <input type="hidden" name="prospect_id" id="prospect_id" value="@prospect_id" />
+                            <input type="hidden" name="entry_id" id="entry_id" value="@contact_entry_id" />
+                            <input type="hidden" name="reachout_type" id="reachout_type" value="@reachout_type" />
+
+                            break;
+                        default:
+                            <div style="overflow:auto;padding:5px;margin:5px;text-align:right" id="SendMsgActionSpan">
+                                <textarea style="width:75%;font-size:16px;resize:none;" name="contact_notes" placeholder="הערות לטיפול.."></textarea>
+
+                                <div style="overflow:auto;padding:5px;margin:5px;">
+
+                                    <span style="float:right;padding:5px;margin:5px;">
+                                        <input type="checkbox" name="is_ok_to_close" id="is_ok_to_close" checked /> הפניה טופלה
+                                    </span>
+                                    @if (contactFormEntriesCnt > 1)
+                                    {
+                                        <span style="float: right; padding: 5px; margin: 5px; ">
+                                            <input type="checkbox" name="close_all_entries" id="close_all_entries" checked /> לסגור את כל הפניות למספר זה
+                                        </span>
+                                    }
+
+                                    <div id="ActionBtnDiv" style="float:left">
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="copyTextAreaToClipBoard('tb_cb'); waLaunch('@wanum'); hideElement('SendMsgActionSpan'); showElement('afterSendDiv'); AjaxActions('CONTACTRESPONSE', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm');">שליחת הודעה ל<span>@contact_name</span></button>
+                                        <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="AjaxActions('CONTACTRESPONSE', document.getElementById('tb_cb').value, '', 'MsgSettingsFrm','1');controller.close('MainSb')">מחיקת פניה</button>
+
+
+                                        @if (!isMember)
+                                        {
+                                            <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="hideElement('ActionBtnDiv'); showElement('FastRegisterBtnDiv');">רישום למערכת</button>
+                                        }
+
+                                    </div>
+
+
+
+                                </div>
+
+
+
+                            </div>
+                            <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                            <input type="hidden" name="entry_id" id="entry_id" value="@contact_entry_id" />
+                            <input type="hidden" name="reachout_type" id="reachout_type" value="@reachout_type" />
+
+                            break;
+
+                    }
+
+
+
+
+
+
+                    <center>
+                        <div style="overflow:auto;display:none;width:80%" id="afterSendDiv">
+                            <div style="padding: 5px; margin: 5px; text-align: center; background-color: #fff; border: 1px dashed #808080; color: #000;">
+                                <div style="overflow: auto; padding: 5px; margin: 5px;"><b>⚠️ <span style="background-color:yellow">בבקשה לשים ❤️ </span> המערכת רשמה את שליחת ההודעה, נא לוודא שההודעה אכן הודבקה בווטסאפ ונשלחה ל<span>@contact_name</span>!</b></div>
+                                <button type="button" style="font-size: 16px; text-align: center; color: #fff; background-color: #57d600; border: 2px solid #fff; padding: 5px; margin: 5px; font-weight: bold" onclick="controller.close('MainSb')">סגירה</button>
+                                <button type="button" style="font-size: 16px; text-align: center; color: #fff; background-color: #808080; border: 2px solid #fff; padding: 5px; margin: 5px; font-weight: bold" onclick="copyTextAreaToClipBoard('tb_cb'); waLaunch('@wanum');">לשלוח שוב</button>
+
+                                @if (is_prospect)
+                                {
+                                    <button type="button" style="font-size: 16px; text-align: center; color: #fff; background-color: #ff0000; border: 2px solid #fff; padding: 5px; margin: 5px; font-weight: bold" onclick=" AjaxActions('WEBPROSPECTBADWANUM', '@prospect_id', '', '');">סימון המספר @wanum_mask לא תקין</button>
+                                    <button type="button" style="font-size: 16px;text-align: center;padding: 5px;margin: 5px;font-weight: bold;float:left" id="SendMsgBtn" onclick="hideElement('afterSendDiv'); showElement('FastRegisterBtnDiv');">רישום למערכת</button>
+
+
+
+
+                                }
+
+
+                            </div>
+
+                        </div>
+
+                        <div id="FastRegisterBtnDiv" style="display:none;float:left;overflow:auto">
+                            <span style="float:right;font-size:12px;">לרישום מהיר נא להכניס פרטים</span>
+                            <input type="text" placeholder="כינוי" style="padding:5px;margin:5px;font-size:16px;float:right" value="@contact_name" name="selectedNick" id="selectedNick" />
+                            <input type="text" placeholder="ווטסאפ" style="padding:5px;margin:5px;font-size:16px;float:right" value="@wanum" name="NumberToRegister" id="NumberToRegister" />
+                            <button type="button" style="font-size: 16px; text-align: center; padding: 5px; margin: 5px; font-weight: bold; float: right" id="SendMsgBtn" onclick="AjaxActions('RegisterNewMember', '', '', 'MsgSettingsFrm','@contact_entry_id','@reachout_type');">רישום למערכת</button>
+                            <button type="button" style="font-size: 16px; text-align: center; padding: 5px; margin: 5px; font-weight: bold; float: right" id="SendMsgBtn" onclick="showElement('afterSendDiv'); hideElement('FastRegisterBtnDiv');">ביטול</button>
+                        </div>
+
+
+                    </center>
+                    <span style="display:none">https://api.whatsapp.com/send?phone=@wanum</span>
+                </div>
+            </form>
+
+            <div style="overflow: auto;height: 200px;">&nbsp;</div>
+        </div>
+    </center>
+
+
+
+
+
+
+
+    op_data.Close();
+}
+
+@helper MemberInfo(int member_id)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+var op_data = Database.Open("op_data");
+var sqlSelect = "";
+int rep_id = WebSecurity.CurrentUserId;
+string rep_name = AppFunctions.GetRepName(rep_id);
+DateTime local_time = AppFunctions.LocalTime();
+DateTime default_time = Convert.ToDateTime("1/1/1900");
+sqlSelect = "SELECT * FROM pb WHERE m_id=@0";
+var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+
+if (pbEntry != null)
+{
+    sqlSelect = "SELECT * FROM u_stats WHERE serial=@0";
+    var member = op_data.QuerySingle(sqlSelect, member_id);
+    sqlSelect = "SELECT * FROM OStats WHERE m_id=@0 ORDER BY ts DESC";
+    var orders = op_data.Query(sqlSelect, member_id);
+    sqlSelect = "SELECT * FROM usernotes WHERE m_id=@0 ORDER BY ts DESC";
+    var usernotes = op_data.Query(sqlSelect, member_id);
+    sqlSelect = "SELECT * FROM appservicesarea WHERE is_active=1";
+    var ServiceAreas = op_data.Query(sqlSelect);
+
+    DateTime birth_date = default_time;
+    try { birth_date = pbEntry.birth_date; } catch { }
+
+    int notes_count = 0; try { notes_count = usernotes.Count(); } catch { }
+    int orders_count = 0; try { orders_count = pbEntry.oc; } catch { }
+    int area_id = 0; try { area_id = pbEntry.def_area; } catch { }
+    DateTime last_order_ts = local_time; try { last_order_ts = pbEntry.lo; } catch { }
+    int DaysSinceLastOrder = 0; try { DaysSinceLastOrder = AppFunctions.HowManyDaysAgoWas(last_order_ts); } catch { }
+
+    int DaysSinceJoinInt = 0;
+    DaysSinceJoinInt = AppFunctions.HowManyDaysAgoWas(member.first_order_ts);
+    DateTime zeroTime = new DateTime(1, 1, 1);
+    TimeSpan span = local_time - birth_date;
+    int age = 0; try { age = (zeroTime + span).Year - 1; } catch { }
+    string member_wanum = pbEntry.wanum;
+    string display_wanum = member_wanum.Substring(member_wanum.Length - 4) + "****";
+    string member_name = pbEntry.member_name;
+    bool is_blocked = false; try { is_blocked = pbEntry.is_blocked; } catch { }
+    bool is_deleted = false; try { is_deleted = pbEntry.is_deleted; } catch { }
+    bool is_credit = false; try { is_credit = pbEntry.is_credit; } catch { }
+    bool is_credit_blocked = false; try { is_credit_blocked = pbEntry.is_credit_blocked; } catch { }
+
+
+    decimal debt = pbEntry.debt;
+    decimal credit_limit=pbEntry.credit_limit; 
+    DateTime debt_due_date = default_time; try { debt_due_date = pbEntry.due_Date; } catch { }
+    DateTime due_date = local_time.AddDays(14);
+
+
+        <div style="overflow: auto;-webkit-overflow-scrolling: touch;background-color:#808080;">
+            <center>
+
+                <div class="formSectionSep"></div>
+                <div class="formSection">
+
+                    <h3>
+                        <button type="button" style="padding: 2px; margin: 2px; font-size: 16px; float: left" onclick="waLaunch('@pbEntry.wanum');">ווטסאפ</button>
+                        <button style="padding:2px;margin:2px;font-size:16px;float:left" onclick="Accordionize('EditInfoAcc');">עריכה</button>
+                        <button style="padding:2px;margin:2px;font-size:16px;float:right" onclick="Accordionize('CreditInfoAcc');">קרדיט</button>
+                        <button style="padding:2px;margin:2px;font-size:16px;float:right" onclick="Accordionize('DiscountsInfoAcc');">הנחות</button>
+
+                        👤 פרטי חבר.ה #@member_id
+
+                    </h3>
+
+                    @if (is_deleted)
+                    {
+                        <div style="background-color:#e3e3e3;color:#808080;font-size:22px;padding:5px;margin:5px;overflow:auto;text-align:center">
+                            <span><b>המשתמש נמחק!</b></span>
+                        </div>
+
+                    }
+                    @if (is_blocked)
+                    {
+                        <div style="background-color:red;color:yellow;font-size:22px;padding:5px;margin:5px;overflow:auto;text-align:center">
+                            <span><b>המשתמש חסום!</b></span>
+                        </div>
+
+                    }
+                <div class="ProspectListRow">
+
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">שם<br></span>@pbEntry.member_name
+                    </div>
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">גיל<br></span>@age
+                    </div>
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">ווטסאפ<br></span>@display_wanum
+                    </div>
+                    <div class="ProspcetListCell">
+                        <span class="ProspcetListCellHeader">אזור<br></span>@NewAppFunctions.GetTitleById("Area", area_id)
+                    </div>
+                    <div class="ProspcetListCell" onclick="Accordionize('btnLicInfAcc');">
+                        <span class="ProspcetListCellHeader">רישיון רפואי<br></span>
+                        @if (pbEntry.is_license)
+                        {<span>כן</span> }
+                        else
+                        {<span>לא</span>}
+
+                    </div>
+                    <div class="ProspcetListCell" onclick="Accordionize('btnVipInfAcc');">
+                        <span class="ProspcetListCellHeader">וי.איי.פי<br></span>
+                        @if (pbEntry.is_vip)
+                        {<span>כן</span> }
+                        else
+                        {<span>לא</span>}
+
+                    </div>
+                    <div style="float:left">
+                        <div class="ProspcetListCell">
+                            <span class="ProspcetListCellHeader">הזמנות<br></span> @orders_count
+                        </div>
+                        @if (orders_count > 0)
+                        {
+                            <div class="ProspcetListCell">
+                                <span class="ProspcetListCellHeader">אחרונה</span><br>לפני @DaysSinceLastOrder ימים  <span class="SmallInfo"><br /> (@last_order_ts.ToShortDateString())</span>
+                            </div>
+                        }
+
+                        @if (debt > 0)
+                        {
+                            <div class="ProspcetListCell">
+                                <span class="ProspcetListCellHeader">חוב</span><br>@debt.ToString("C", culture)
+                            </div>
+                            <div class="ProspcetListCell">
+                                <span class="ProspcetListCellHeader">לתשלום עד</span><br>@debt_due_date.ToShortDateString()
+                            </div>
+                        }
+
+                    </div>
+                </div>
+                    <div style="overflow:auto;text-align:right">
+                        <button class="accordion" id="btnLicInfAcc" style="display:none"></button>
+                        <div class="panel">
+                            @if (pbEntry.is_license)
+                            {
+                                <h2>מידע על רישיון רפואי</h2>
+                                <div style="overflow:auto">
+                                    @pbEntry.license_info
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                    <div style="overflow:auto;text-align:right">
+                        <button class="accordion" id="btnVipInfAcc" style="display:none"></button>
+                        <div class="panel">
+                            @if (pbEntry.is_vip)
+                            {
+                                <h2>מידע על סטטוס VIP</h2>
+                                <div style="overflow:auto">
+                                    @pbEntry.vip_info
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                    <button class="accordion" style="display:none" id="EditInfoAcc"></button>
+                    <div class="panel">
+                        <h3>עדכון פרטים</h3>
+                        <div class="ProspectListRow">
+                            <div id="InfoUpdateForm">
+                                <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                                <div id="InfoUpdateForm">
+
+
+                                    <div style="overflow: auto;">
+                                        <center>
+                                            <div style="overflow: auto;float:right" id="btnEditCredit">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('CreditSettingsDiv'); FixAccordion('EditInfoAcc');">הגדרות אשראי</button>
+                                            </div>
+                                            <div style="overflow: auto;float:right" id="btnEditArea">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('AreaSettingsDiv'); FixAccordion('EditInfoAcc');">הגדרות אזור</button>
+                                            </div>
+                                            <div style="overflow: auto;float:right" id="btnEditNick">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('NickEditDiv'); FixAccordion('EditInfoAcc');">עדכון כינוי</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditWanum">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('WanumEditDiv'); FixAccordion('EditInfoAcc');">עדכון מספר ווטסאפ</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditTlg">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('TlgEditDiv'); FixAccordion('EditInfoAcc');">עדכון טלגרם</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditEmail">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('EmailEditDiv'); FixAccordion('EditInfoAcc');">עדכון כתובת מייל</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditBirthDate">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('BirthDateEditDiv'); FixAccordion('EditInfoAcc');">עדכון ת.לידה</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditVip">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('VipEditDiv'); FixAccordion('EditInfoAcc');">עדכון VIP</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditLicense">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('LicenseEditDiv'); FixAccordion('EditInfoAcc');">עדכון רישיון</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditBlock">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('BlockEditDiv'); FixAccordion('EditInfoAcc');">חסימה</button>
+                                            </div>
+                                            <div style="overflow: auto;; float: right" id="btnEditDelete">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('DeleteEditDiv'); FixAccordion('EditInfoAcc');">מחיקת משתמש</button>
+                                            </div>
+
+
+                                            <div style="overflow: auto;; float: right" id="btnEditMoreActions">
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="MiscActions('ResetMemberEditView'); showElement('MoreActionsEditDiv'); FixAccordion('EditInfoAcc');">עוד</button>
+                                            </div>
+                                        </center>
+                                    </div>
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="AreaSettingsDiv">
+                                        <form id="MemberAreaSettings">
+                                            <input type="hidden" name="DataToUpdate" value="AREA" />
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    הגדרות אזור
+                                                </div>
+
+                                                <div class="A">
+                                                    <select class="A" name="area_id">
+                                                        @foreach (var area in ServiceAreas)
+                                                        {
+                                                            <option value="@area.id" @if (area.id == pbEntry.def_area) { <text>checked</text>}>@area.title</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                                <div class="A">
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('AreaSettingsDiv');showElement('btnEditCredit'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberAreaSettings','@member_id');">שמירה</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="CreditSettingsDiv">
+                                        <form id="MemberCreditSettings">
+                                            <input type="hidden" name="DataToUpdate" value="CREDIT" />
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    הגדרות אשראי
+                                                </div>
+
+                                                <div class="A">
+                                                    <div class="A">מקסימום חוב מאושר <input class="A50" type="text" id="credit_limit" name="credit_limit" @if (credit_limit > 0) { <text> value="@String.Format("{0:0.00}", credit_limit)" </text> } />₪</div>
+
+                                                    <div class="A"><input class="A" type="checkbox" id="is_credit_blocked" name="is_credit_blocked" @if (is_credit_blocked) { <text> checked</text> } />  חסימת אשראי </div>
+
+
+                                                </div>
+                                                <div class="A">
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('CreditSettingsDiv');showElement('btnEditCredit'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberCreditSettings','@member_id');">שמירה</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="NickEditDiv">
+                                        <form id="MemberUpdateNick">
+                                            <input type="hidden" name="DataToUpdate" value="NICK" />
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    כינוי מזהה חדש
+                                                </div>
+                                                <div style="overflow:auto">
+                                                    <input type="text" id="nick_name" name="nick_name" style="padding:5px;margin:5px;font-size:16px;" value="@member_name" />
+                                                </div>
+                                            </div>
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('NickEditDiv');showElement('btnEditNick'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateNick','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="WanumEditDiv">
+                                        <form id="MemberUpdateWanum">
+                                            <input type="hidden" name="DataToUpdate" value="WANUM" />
+
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    נא להזין מספר ווטסאפ חדש
+                                                </div>
+
+                                                <div style="overflow:auto">
+                                                    <input type="text" id="new_wanum" name="new_wanum" value="@display_wanum" style="padding:5px;margin:5px;font-size:16px;" />
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('WanumEditDiv');showElement('btnEditWanum'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateWanum','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="TlgEditDiv">
+                                        <form id="MemberUpdateTlg">
+                                            <input type="hidden" name="DataToUpdate" value="TLG" />
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    יוזר טלגרם
+                                                </div>
+
+                                                <div style="overflow:auto">
+                                                    <input type="text" id="tlg_nick" name="tlg_nick" style="padding:5px;margin:5px;font-size:16px;" />
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('TlgEditDiv');showElement('btnEditTlg'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateTlg','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="EmailEditDiv">
+                                        <form id="MemberUpdateEmail">
+                                            <input type="hidden" name="DataToUpdate" value="EMAIL" />
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    כתובת אימייל
+                                                </div>
+
+                                                <div style="overflow:auto">
+                                                    <input type="text" id="email" name="email" style="padding:5px;margin:5px;font-size:16px;" />
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('EmailEditDiv');showElement('btnEditEmail'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateEmail','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="BirthDateEditDiv">
+                                        <form id="MemberUpdateBirthDate">
+                                            <input type="hidden" name="DataToUpdate" value="BIRTHDATE" />
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    תאריך לידה
+                                                </div>
+
+                                                <div style="overflow:auto">
+                                                    <input type="date" id="birth_date" name="birth_date" style="padding:5px;margin:5px;font-size:16px;" />
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('BirthDateEditDiv');showElement('btnEditBirthDate'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateBirthDate','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="VipEditDiv">
+                                        <form id="MemberUpdateVip">
+                                            <input type="hidden" name="DataToUpdate" value="VIP" />
+
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    VIP?
+
+                                                </div>
+
+                                                <div style="overflow:auto">
+                                                    <select id="is_vip" name="is_vip" style="padding:5px;margin:5px;font-size:16px;" onclick="if (this.value == 'yes') { showElement('vip_info'); } else { hideElement('vip_info'); } FixAccordion('EditInfoAcc');">
+                                                        <option value="">נא לבחור..</option>
+                                                        <option value="no">לא</option>
+                                                        <option value="yes">כן</option>
+
+                                                    </select>
+                                                    <textarea id="vip_info" name="vip_info" style="display:none;padding:5px;margin:5px;font-size:16px;resize:none;" rows="3" placeholder="נשמח לדעת על מה VIP?"></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('VipEditDiv');showElement('btnEditVip'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateVip','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="LicenseEditDiv">
+                                        <form id="MemberUpdateLicense">
+                                            <input type="hidden" name="DataToUpdate" value="License" />
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    רישיון רפואי?
+
+                                                </div>
+
+                                                <div style="overflow:auto">
+                                                    <select id="is_license" name="is_license" style="padding:5px;margin:5px;font-size:16px;" onclick="if (this.value == 'yes') { showElement('license_info'); } else { hideElement('license_info'); } FixAccordion('EditInfoAcc');">
+                                                        <option value="">נא לבחור..</option>
+                                                        <option value="no">לא</option>
+                                                        <option value="yes">כן</option>
+
+                                                    </select>
+                                                    <textarea id="license_info" name="license_info" style="display:none;padding:5px;margin:5px;font-size:16px;resize:none;" rows="3" placeholder="נשמח לדעת על מה קיבלת רישיון?"></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('LicenseEditDiv');showElement('btnEditLicense'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateLicense','@member_id');">שמירה</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                    </div>
+
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="BlockEditDiv">
+                                        <form id="MemberUpdateBlock">
+                                            @if (is_blocked)
+                                            {
+                                                <input type="hidden" name="DataToUpdate" value="BLOCK" />
+                                                <input type="hidden" id="is_blocked" name="is_blocked" value="false" />
+                                                <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                    <div style="overflow: auto;">
+                                                        לפתוח חסימה עבור @member_name
+
+                                                    </div>
+
+                                                    <div style="overflow:auto">
+
+                                                        <textarea id="block_info" name="block_info" style="padding:5px;margin:5px;font-size:16px;resize:none;" rows="3" placeholder="נא לפרט את נסיבות פתיחת החסימה.."></textarea>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <input type="hidden" name="DataToUpdate" value="BLOCK" />
+                                                <input type="hidden" id="is_blocked" name="is_blocked" value="true" />
+                                                <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                    <div style="overflow: auto;">
+                                                        לחסום את @member_name
+
+                                                    </div>
+
+                                                    <div style="overflow:auto">
+
+                                                        <textarea id="block_info" name="block_info" style="padding:5px;margin:5px;font-size:16px;resize:none;" rows="3" placeholder="נא לפרט את נסיבות החסימה.."></textarea>
+                                                    </div>
+                                                </div>
+                                            }
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('BlockEditDiv');showElement('btnEditBlock'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateBlock','@member_id');">אישור</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                    </div>
+
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="DeleteEditDiv">
+                                        <form id="MemberUpdateDelete">
+                                            <input type="hidden" name="DataToUpdate" value="DELETE" />
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    למחוק את @member_name מהמערכת?
+
+                                                </div>
+                                                <div style="overflow:auto">
+
+                                                    <textarea id="delete_info" name="delete_info" style="padding:5px;margin:5px;font-size:16px;resize:none;" rows="3" placeholder="נא לפרט את נסיבות המחיקה.."></textarea>
+                                                </div>
+                                                <div style="overflow:auto">
+
+                                                    <input type="password" id="MemberDeletePw" name="MemberDeletePw" style="padding:5px;margin:5px;font-size:16px;" placeholder="נא להזין סיסמא לאישור המחיקה..">
+                                                </div>
+                                            </div>
+                                            <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                                <div style="overflow: auto;">
+                                                    <br />
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('DeleteEditDiv');showElement('btnEditDelete'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                    <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('UpdateMemberInfo','@member_id','','MemberUpdateDelete','@member_id');">אישור</button>
+
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                    </div>
+
+
+                                    <div style="overflow: auto;display:none;background-color:#808080;color:#fff" id="MoreActionsEditDiv">
+                                        <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+
+                                        </div>
+                                        <div class="fldLabel" style="float:right;padding:5px;margin:5px;">
+                                            <div style="overflow: auto;">
+                                                <br />
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="hideElement('MoreActionsEditDiv');showElement('btnEditMoreActions'); FixAccordion('EditInfoAcc');">ביטול</button>
+                                                <button type="button" style="padding: 5px; margin: 5px; font-size: 16px;" onclick="AjaxActions('MARKMEMBERNEW','@member_id','','','@member_id');">לסמן כחשבון חדש</button>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+
+
+
+
+
+
+
+
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                </div>
+
+
+                <div class="formSectionSep"></div>
+                <div class="formSection">
+                    <button class="Accordion" id="DiscountsInfoAcc" style="display:none"></button>
+                    <div class="panel" style="padding: 0; margin: 0; color: #000">
+                        <div id="MemberDiscountDiv">
+                            @AppHelpers.MemberDiscounts(member_id)
+                        </div>
+                        
+
+                    </div>
+                </div>
+                <div class="formSectionSep"></div>
+                <div class="formSection">
+                    <button class="Accordion" id="CreditInfoAcc" style="display:none"></button>
+                    <div class="panel" style="padding:0;margin:0;color:#000">
+                        @AppHelpers.MemberCredit(member_id)
+
+                    </div>
+                </div>
+
+                <div class="formSectionSep"></div>
+                <div class="formSection">
+                    <h3>
+                        <button style="padding:2px;margin:2px;font-size:16px;float:left" onclick="Accordionize('AddNotessAcc');">הוספה</button>
+                        הערות לחבר.ה
+                    </h3>
+
+                    <div class="ProspectListRow">
+
+                        <button class="accordion" style="display:none" id="AddNotessAcc"></button>
+                        <div class="panel">
+                            <form id="NoteAddForm">
+                                <input type="hidden" name="member_id" id="member_id" value="@member_id" />
+                                <div style="overflow:auto;">
+                                    <textarea style="padding:5px;margin:5px;font-size:16px;resize:none;width:80%;float:right" placeholder="נא לרשום הערה.." name="usernote" id="usernote"></textarea>
+                                    <span style="float:right">
+                                        <input type="checkbox" style="padding: 5px; margin: 5px; float: right" name="is_important" id="is_important" /> חשוב?<br />
+                                        <button type="button" style="padding: 5px; margin: 5px; font-size: 16px; float: right " onclick="AjaxActions('WRITEUSERNOTE', document.getElementById('usernote').value, '', 'NoteAddForm','@member_id');">שמירה</button>
+                                    </span>
+
+                                </div>
+                            </form>
+                        </div>
+                        @if (notes_count > 0)
+                        {
+                            <div class="ProspcetListCell">
+
+                                @foreach (var note in usernotes)
+                                {
+                                    string note_rep_name = "";
+                                    bool is_important = note.is_important;
+                                    string impBGColor = "#fff";
+                                    if (is_important)
+                                    {
+                                        impBGColor = "Yellow";
+                                    }
+                                    if (note.is_system)
+                                    {
+                                        note_rep_name = "מערכת";
+                                    }
+                                    else
+                                    {
+                                        note_rep_name = AppFunctions.GetRepName(note.rep_id);
+                                    }
+                                    <div style="overflow:auto;">
+                                        <span style="font-size:12px;color:#000"><span style="font-size:12px;color:#b200ff">@note.ts.ToShortDateString() @note.ts.ToString("HH:mm")</span><br /><span style="background-color:@impBGColor;">(@note_rep_name)</span></span>
+                                        <span></span>
+                                        <span>@note.theNote</span>
+                                    </div>
+                                }
+
+                            </div>
+
+                        }
+                        else
+                        {
+                            <div class="ProspcetListCell">אין הערות</div>
+                        }
+                    </div>
+
+
+
+
+                </div>
+
+                <div class="formSectionSep"></div>
+                <div class="formSection">
+                    <h3>היסטורית הזמנות</h3>
+                    <div class="ProspectListRow">
+                        <div class="ProspcetListCell">
+                            @foreach (var order in orders)
+                            {
+                                <div style="overflow:auto;">
+                                    <span>@order.ts.ToShortDateString()</span>
+                                    <span>@order.city</span>
+                                    <span>@AppFunctions.GetRoundTitleById(order.r_id)</span>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+
+
+
+
+                </div>
+                <div class="formSectionSep"></div>
+
+            </center>
+
+        </div>
+
+    }
+    else
+    {
+        <center>
+            <div style="overflow:auto;padding:20px;margin:20px;"><h2>המשתמש לא נמצא</h2></div>
+        </center>
+
+    }
+
+
+    <div style="overflow:auto;height:150px;">&nbsp;</div>
+
+
+
+
+
+
+    op_data.Close();
+}
+
+@helper OrderInfo(int order_id)
+{
+
+    int u_id = WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    //var m_join = Database.Open("m_join");
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM weborders WHERE serial=@0";
+    var order = op_data.QuerySingle(sqlSelect, order_id);
+
+    sqlSelect = "SELECT * FROM orderNotes WHERE order_id=@0 ORDER BY serial DESC";
+    var orderNotes = op_data.Query(sqlSelect, order_id);
+
+    if (order != null)
+    {
+        bool is_processed = order.is_processed;
+        bool is_new_member = order.is_new_member;
+        string wanum = order.wanum;
+        wanum = AppFunctions.wanumize(wanum);
+        string copPaste_wanum = wanum;
+        string board_color = order.board_color;
+        string member_name = order.nick_name;
+        string provided_member_name = order.nick_name;
+        if (member_name == "")
+        {
+            member_name = order.full_name;
+        }
+        var names = member_name.Split(' ');
+        string first_name = names[0];
+        string wanum_last_3 = "";
+        if (member_name == "") { member_name = order.full_name; }
+        if (board_color == "") { board_color = "#e3e3e3"; }
+        try { wanum_last_3 = wanum.Substring(wanum.Length - 3); } catch { }
+        string suggested_nick = first_name + wanum_last_3;
+        string wanumized_friend_wanum = "";
+        bool isRegisteredMember = false;
+        int m_id = order.m_id;
+        string pbName = "";
+
+        sqlSelect = "SELECT m_id,member_name FROM pb WHERE wanum=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, wanum);
+        bool is_verification_needed = false;
+        bool is_manual_verification = order.is_manual_verification;
+        if (pbEntry != null)
+        {
+            m_id = pbEntry.m_id;
+            isRegisteredMember = true;
+            pbName = pbEntry.member_name;
+        }
+        else
+        {
+
+            is_verification_needed = true;
+        }
+
+
+        string NickIdentifiedWanum = "";
+        sqlSelect = "SELECT m_id,wanum FROM pb WHERE member_name=@0";
+        pbEntry = op_data.QuerySingle(sqlSelect, member_name);
+        try { NickIdentifiedWanum = pbEntry.wanum; } catch { }
+
+        if (pbName == "")
+        {
+            pbName = member_name;
+        }
+        else
+        {
+            member_name = pbName;
+
+        }
+
+        string ref_desc = order.ref_source;
+        if (ref_desc == "ref")
+        {
+            string ref_friend_wanum = order.ref_source_desc;
+            wanumized_friend_wanum = AppFunctions.wanumize(ref_friend_wanum);
+            sqlSelect = "SELECT member_name FROM pb WHERE wanum=@0";
+            var refFriend = op_data.QuerySingle(sqlSelect, wanumized_friend_wanum);
+            if (refFriend != null)
+            {
+                ref_desc = "<span style='float:right;'>✅</span> הפנייה על ידי החבר.ה " + refFriend.member_name + "<BR>" + ref_friend_wanum;
+            }
+            else
+            {
+                ref_desc = "<span style='float:right;'>❌</span> הפנייה על ידי מספר לא מזוהה " + ref_friend_wanum;
+            }
+
+        }
+        if (is_new_member)
+        {
+            is_verification_needed = true;
+        }
+
+        if (is_manual_verification) { is_verification_needed = false; }
+
+        <div style="overflow:auto;background-color:#e3e3e3;padding:10px;text-align:right;">
+            <div style="overflow:auto;">
+                <span style="float: left; margin-left: 40px;">
+                    @if (isRegisteredMember)
+                    {
+                        <span style="font-size: 24px; color: #fff; background-color: #b200ff; float: left; margin-left: 10px; padding: 2px">משתמש רשום</span>
+                    }
+                    else
+                    {
+                        <span style="font-size: 24px; color: red; background-color: yellow; float: left; margin-left: 10px;padding:2px">משתמש לא רשום</span>
+                    }
+
+                    @if (is_verification_needed)
+                    {
+                        <span style="font-size: 24px; color: red; background-color: yellow; float: left; margin-left: 10px; padding: 2px ">נדרש אימות</span>
+                    }
+                    @if (is_manual_verification)
+                    {
+                        <span style="font-size: 24px; color: #fff; background-color: #b200ff; float: left; margin-left: 10px; padding: 2px ">בוצע אימות ידני</span>
+                    }
+                </span>
+                <h2>
+                    פרטי הזמנה #@order_id על שם @member_name
+                </h2>
+                <div style="overflow:auto;font-size:12px;text-align:right">@order.ts.ToShortDateString() @order.ts.ToString("HH:mm")</div>
+
+
+
+            </div>
+
+            <button class="Accordion" style="display:none" id="editOrderAcc"></button>
+            <div class="panel" style="padding:0;margin:0">
+                <div style="overflow:auto;background-color:#e3e3e3;text-align:right;">
+                    @AppHelpers.EditWebOrder(order_id)
+                </div>
+            </div>
+
+            <div style="overflow:auto;padding:5px;margin:5px;background-color:white;">
+                <button type="button" style="padding:5px;margin:5px;font-size:16px;float:left" onclick="waLaunch('@order.wanum');">ווטסאפ</button>
+                <button type="button" style="padding:5px;margin:5px;font-size:16px;float:left" onclick="Accordionize('editOrderAcc');">עריכה</button>
+
+                <h3>חבר.ה מזמינ.ה</h3>
+                <div style="overflow:auto">
+                    <span style="float:right">@member_name</span>
+                    @if (member_name != provided_member_name && provided_member_name != "")
+                    {
+                        <span style="font-size:12px;color:#b200ff;margin-right:10px;"> (הכינוי שהוזן הוא <span><b>@provided_member_name)</b></span></span>
+                    }
+                </div>
+                <div style="overflow:auto">
+                    @order.address @order.city
+                </div>
+                <div style="overflow:auto">
+                    @copPaste_wanum
+                    @if (copPaste_wanum != NickIdentifiedWanum && NickIdentifiedWanum != "")
+                    {
+                        if (provided_member_name == "")
+                        {
+                            provided_member_name = member_name;
+                        }
+                        <div style="overflow:auto;color:#b200ff">
+                            מספר הטלפון של הכינוי שהוזן (@provided_member_name) רשום במערכת כ: @NickIdentifiedWanum
+                        </div>
+
+                    }
+                </div>
+                <div style="overflow:auto;height:20px;">&nbsp;</div>
+                <div style="overflow:auto"> <h3>פירוט הזמנה</h3></div>
+                <div style="overflow:auto">@order.menu_title</div>
+                <div style="overflow:auto"> @order.orderbody</div>
+
+                @if (order.donation > 0)
+                {<div style="overflow:auto;height:20px;">&nbsp;</div>
+                    <div style="overflow:auto">תרומה: @order.donation</div>
+                }
+
+                @if (order.ref_source != "")
+                {
+                    <div style="overflow:auto;height:20px;">&nbsp;</div>
+                    <div style="overflow:auto">
+                        <h3>מקור פניה</h3>
+                    </div>
+                    <div style="overflow:auto">
+                        @Html.Raw(ref_desc)
+                        @if (order.ref_source == "ref")
+                        {
+                            <button type="button" style="padding:5px;margin:5px;font-size:16px;float:left" onclick="waLaunch('@wanumized_friend_wanum');">ווטסאפ</button>
+                        }
+                    </div>
+
+                }
+
+                @if (order.birth_date.ToShortDateString() != "1/1/1900")
+                {
+                    <div style="overflow:auto;height:20px;">&nbsp;</div>
+                    <div style="overflow:auto"><h3>תאריך לידה</h3></div>
+                    <div style="overflow:auto">@order.birth_date.ToShortDateString() (גיל @AppFunctions.HowManyYearsAgoWas(order.birth_date))</div>
+                }
+
+            </div>
+
+
+            @if (is_verification_needed)
+            {
+                <div style="overflow:auto;background-color:#e3e3e3;direction:rtl">
+                    <div style="overflow:auto;text-align:center" id="orderActionsDiv">
+
+
+                        <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="hideElement('orderActionsDiv');showElement('OrderRejectDiv');">דחיית ההזמנה</button>
+                        <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="hideElement('orderActionsDiv');showElement('OrderApproveDiv');">אישור ההזמנה</button>
+                    </div>
+                    <div style="overflow: auto; display: none; padding: 5px; margin: 5px;text-align:center" id="OrderRejectDiv">
+                        <form id="DenyOrderForm">
+                            <center>
+                                <select style="padding: 5px; margin: 5px;font-size:16px;" id="deny_reason" name="deny_reason" onchange="if (this.value == 'OTHER') { showElement('deny_reason_other'); } else {hideElement('deny_reason_other'); }">
+                                    <option value="">נא לציין את סיבת הדחיה..</option>
+                                    <option value="AGE">מתחת לגיל המינימום</option>
+                                    <option value="CONTACT">פרטי קשר לא תקינים</option>
+                                    <option value="TEST">הזמנה לבדיקה</option>
+                                    <option value="OTHER">אחר..</option>
+                                </select>
+                                <textarea style="padding: 5px; margin: 5px;font-size:16px;display:none;resize:none" id="deny_reason_other" name="deny_reason_other"></textarea>
+                                <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="hideElement('OrderRejectDiv');showElement('orderActionsDiv');">ביטול</button>
+                                <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="AjaxActions('RefuseOrder','@order.serial','','DenyOrderForm');">דחיית ההזמנה</button>
+                            </center>
+                        </form>
+                    </div>
+
+                    <div style="overflow: auto; display: none; padding: 5px; margin: 5px;text-align:center" id="OrderApproveDiv">
+                        <form id="VerifyOrderForm">
+                            <center>
+                                <span id="OrderRegSpan">
+                                    @if (isRegisteredMember)
+                                    {
+                                        <span>
+                                            המשתמש @pbName קיים במערכת!
+                                            <input type="hidden" id="member_id" name="member_id" value="@m_id">
+                                            <input type="hidden" id="wanum" name="wanum" value="@wanum">
+                                            <input type="hidden" id="full_name" name="full_name" value="@member_name">
+                                        </span>
+
+                                        <span>
+                                            <input type="checkbox" style="padding: 5px; margin: 5px;" name="is_welcome_msg" id="is_welcome_msg" checked>
+                                            הודעת פתיחה
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>
+                                            כינוי:<input type="text" style="padding: 5px; margin: 5px;font-size:16px;" placeholder="כינוי" id="suggested_nick" name="suggested_nick" value="@suggested_nick">
+                                            <input type="hidden" id="wanum" name="wanum" value="@wanum">
+                                            <input type="hidden" id="full_name" name="full_name" value="@member_name">
+                                        </span>
+                                        <span>
+                                            <input type="checkbox" style="padding: 5px; margin: 5px;" name="is_register_member" id="is_register_member" checked onclick="document.getElementById('suggested_nick').disabled = !this.checked;">
+                                            רישום למערכת
+                                        </span>
+
+                                        <span>
+                                            <input type="checkbox" style="padding: 5px; margin: 5px;" name="is_welcome_msg" id="is_welcome_msg" checked>
+                                            הודעת פתיחה
+                                        </span>
+                                    }
+                                    <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="hideElement('OrderApproveDiv');showElement('orderActionsDiv');">ביטול</button>
+                                    <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="AjaxActions('VerifyOrder', '@order.serial', '', 'VerifyOrderForm',document.getElementById('is_welcome_msg').checked);">אישור ההזמנה</button>
+                                </span>
+
+
+                            </center>
+                        </form>
+                    </div>
+
+
+                </div>
+            }
+
+
+
+            <div style="overflow:auto;background-color:#e3e3e3;padding:5px;margin:5px;text-align:right;">
+
+                <div style="overflow:auto">
+                    <span onclick="Accordionize('addNoteAcc');" style="padding:5px;margin:5px;float:left;text-align:right;direction:rtl;border:1px solid #000;font-size:14px;background-color:#fff">
+                        הערה חדשה
+                    </span>
+                    <span style="margin:5px;float:left;text-align:right;direction:rtl;border:1px solid #000;font-size:14px;background-color:#fff">
+                        <input type="color" id="colorpicker" value="@board_color" onchange="AjaxActions('SetOrderBoardColor', '@order.serial', '', this.value,'@order.serial');">
+                    </span>
+
+
+                    <span style="padding:5px;margin:5px;float:left;text-align:right;direction:rtl;border:1px solid #000;font-size:14px;background-color:#fff">
+                        <input type="checkbox" @if (is_processed) { <text> checked </text> } onclick="AjaxActions('SetOrderActiveState', '@order.serial', '', this.checked,'@order.serial');" /> טופל?
+
+                    </span>
+
+
+
+                    <h2>
+                        הערות להזמנה
+                    </h2>
+                </div>
+                <div style="overflow:auto">
+                    <button class="Accordion" style="display:none" id="addNoteAcc"></button>
+                    <div class="panel">
+                        <div style="overflow:auto;background-color:#e3e3e3;padding:5px;margin:5px;text-align:right;">
+                            <form id="orderNotesForm">
+                                <input type="hidden" name="notes_order_id" id="notes_order_id" value="@order.serial" />
+                                <textarea id="order_note" name="order_note" style="padding: 5px; margin: 5px;resize:none;font-size:16px;width:90%;text-align:right" rows="4" placeholder="נא להכניס הערה.."></textarea>
+                                <button type="button" style="float:left;padding:5px;margin:5px;font-size:16px;" onclick="AjaxActions('WriteOrderComment','','','orderNotesForm','@order.serial');">שמירה</button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+
+                @if (orderNotes.Count() > 0)
+                {
+                    foreach (var note in orderNotes)
+                    {<div style="overflow:auto;padding:5px;background-color:white;border-bottom:1px dotted #b200ff">
+                            <div style="overflow:auto;font-size:12px;float:right;">
+                                @AppFunctions.GetRepName(note.rep_id) כתב.ה<br />@note.ts.ToShortDateString() @note.ts.ToString("HH:mm")
+                            </div>
+                            <div style="overflow:auto;font-size:16px;float:right;margin-right:20px;">
+                                @note.order_note
+                            </div>
+
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div style="overflow:auto;font-size:16px;color:red">-= אין הערות להזמנה =-</div>
+                }
+
+
+            </div>
+            @if (m_id != 0)
+            {
+
+                sqlSelect = "SELECT count(*) AS the_cnt FROM Mhistory WHERE m_id=@0";
+                var ordHistory = op_data.QuerySingle(sqlSelect, m_id);
+                int orders_count = 0; try { orders_count = ordHistory.the_cnt; } catch { }
+                sqlSelect = "SELECT * FROM Mhistory WHERE m_id=@0 ORDER BY ts DESC";
+                ordHistory = op_data.Query(sqlSelect, m_id);
+
+
+
+                <div style="overflow:auto;padding:5px;margin:5px;text-align:right;">
+                    <h2>
+                        היסטורית הזמנות
+                        <span style="padding:5px;margin:5px;font-size:14px;color:#b200ff">( @orders_count הזמנות )</span>
+                    </h2>
+
+                    @foreach (var old_order in ordHistory)
+                    {
+                        <div style="overflow: auto;  text-align: right; padding: 5px; margin: 5px;border-bottom:1px dotted #b200ff">
+                            <div style="font-size:16px;float:right;padding:5px;margin:5px">
+                                @old_order.ts.ToShortDateString()
+                            </div>
+                            <div style="font-size:16px;float:right;padding:5px;margin:5px">
+                                @old_order.ship_city
+                            </div>
+                            <div style="font-size:16px;float:right;padding:5px;margin:5px">
+                                @AppFunctions.GetRoundTitleById(old_order.round_id)
+                            </div>
+                        </div>
+                    }
+
+
+                </div>
+            }
+        </div>
+
+
+    }
+
+
+    op_data.Close();
+}
+
+@helper FeedBackManager(string showWhat = "NEW")
+{
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    string srchTitle = "";
+
+
+    int newMembersCount = 0;
+
+    //DataFunctions.ImportWebContactForm();
+
+
+
+    switch (showWhat)
+    {
+        case "NEW":
+            sqlSelect = "SELECT top(100) * FROM OrderFeedback WHERE status_code='NEW' order by serial DESC";
+            srchTitle = " משובים חדשים";
+            break;
+        case "INWORK":
+            sqlSelect = "SELECT top(100) * FROM OrderFeedback WHERE status_code='INWORK' order by serial DESC";
+            srchTitle = " משובים בטיפול";
+            break;
+        case "COMPLETE":
+            sqlSelect = "SELECT top(100) * FROM OrderFeedback WHERE status_code='COMPLETE' order by complete_ts DESC";
+            srchTitle = " משובים שטופלו";
+            break;
+    }
+
+    var Feedbacks = op_data.Query(sqlSelect);
+
+    //srchTitle = " משובים";
+    op_data.Close();
+
+
+    int DefaultWelcomeMsg = 0;
+    try { DefaultWelcomeMsg = Convert.ToInt32(Request["DefaultMembersWelcomeMsgTemplate"]); } catch { }
+
+
+
+    <div style="overflow: auto;padding: 5px;">
+        <select style="float:left;padding:5px;margin:5px;font-size:16px;" onchange="PageNavigator('FEEDBACKMANAGER',this.value);">
+            <option value="NEW" @if (showWhat == "NEW") { <text> selected</text>}>משובים חדשים</option>
+            <option value="INWORK" @if (showWhat == "INWORK") { <text> selected</text>}>משובים בטיפול</option>
+            <option value="COMPLETE" @if (showWhat == "COMPLETE") { <text> selected</text>}>משובים שטופלו</option>
+        </select>
+        <h2 style="float:right;direction:rtl">
+            @srchTitle
+        </h2>
+    </div>
+
+
+
+    <div style="overflow: auto;">
+        @foreach (var fb in Feedbacks)
+        {
+            string member_name = fb.nick_name;
+            string provided_wanum = fb.wanum;
+            string member_wanum = provided_wanum;
+            int m_id = fb.u_id;
+            int pb_id = 0;
+
+            int fb_id = fb.serial;
+            int is_ok_weight = fb.is_ok_weight;
+            int is_happy = fb.is_happy;
+            bool is_contact = fb.is_contact;
+            DateTime create_ts = fb.ts;
+            int DaysSinceContactInt = 0;
+            int round_id = fb.menu_id;
+            bool is_completed = fb.is_completed;
+            string board_color = fb.board_color;
+            bool is_reverse_lookup = false;
+            sqlSelect = "SELECT member_name,wanum,create_ts,m_id,serial FROM pb WHERE wanum=@0";
+            var pbEntry = op_data.QuerySingle(sqlSelect, provided_wanum);
+            if (pbEntry != null)
+            {
+                member_name = pbEntry.member_name;
+                member_wanum = pbEntry.wanum;
+                m_id = pbEntry.m_id;
+                pb_id = pbEntry.serial;
+            }
+            else
+            {
+                sqlSelect = "SELECT member_name,wanum,create_ts,m_id,serial FROM pb WHERE member_name=@0";
+                pbEntry = op_data.QuerySingle(sqlSelect, member_name);
+                if (pbEntry != null)
+                {
+                    member_name = pbEntry.member_name;
+                    member_wanum = pbEntry.wanum;
+                    m_id = pbEntry.m_id;
+                    pb_id = pbEntry.serial;
+                    is_reverse_lookup = true;
+                }
+            }
+
+            DaysSinceContactInt = AppFunctions.HowManyDaysAgoWas(create_ts);
+
+
+
+            string recognition_icon = "❌";
+
+            if (m_id > 0)
+            {
+                recognition_icon = "✅";
+            }
+            if (is_reverse_lookup)
+            {
+                recognition_icon = "🤔";
+            }
+
+            <div class="ListRow" style="overflow:auto;background-color:@board_color" id="entry_@fb.serial">
+                <div>
+                    <div class="ListCell" style="float: right;width:50px;">
+                        @recognition_icon
+
+
+                    </div>
+
+
+
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000">
+                            <b>@member_name</b>
+                            @if (fb.nick_name != "" && fb.nick_name != member_name)
+                            {<span style="color: #808080;font-size: 12px;">(@fb.nick_name)</span>}
+                        </div>
+                        <div style="color: #b200ff; font-size: 12px; overflow: auto">
+                            🗓️ @create_ts.ToShortDateString() @create_ts.ToString("HH:mm")  (לפני @DaysSinceContactInt ימים)
+                        </div>
+                        <div style="color: #000; font-size: 14px; overflow: auto">
+                            <b>🚚 @AppFunctions.GetRoundTitleById(round_id)</b>
+                        </div>
+
+                        <div style="color: #808080; font-size: 11px; overflow: auto">
+
+
+                            @if (m_id > 0 && !is_reverse_lookup)
+                            {
+                                <span id="numRev_@fb.serial">
+                                    <button type="button" style="margin:2px;padding:2px;font-size:12px;float:right" onclick="RepAjaxUpdate('RevWanum', 'numRev_@fb.serial', '', '@m_id');">
+                                        👁️
+                                    </button>
+                                </span>
+                            }
+                            else
+                            {
+                                <div style="overflow:auto"> @fb.wanum</div>
+                            }
+
+                            <span style="float:right;">
+                                <input type="color" id="colorpicker" style="float: right; padding: 0; margin: 2px;width:20px;height:24px; " name="board_color" value="@board_color" onchange="AjaxActions('SetFbEntryColor', '@fb.serial', '', this.value,'@showWhat');">
+                            </span>
+
+                            <button type="button" style="margin:2px;padding:2px;font-size:12px;float:right" onclick="waLaunch('@fb.wanum');">
+                                💬 ווטסאפ
+                            </button>
+                            <button type="button" style="margin:2px;padding:2px;font-size:12px;float:right" onclick="sbload('MainSb', 'Caller?p1=Member_Info&p2=@m_id');">
+                                👤 כרטיס
+                            </button>
+
+                            <span style="display:none">משוב #@fb.serial</span>
+                        </div>
+                    </div>
+
+                    <div class="ListCell" style="float: right;width:15%;">
+                        <div style="overflow:auto;color:#000">
+                            @fb.order_notes
+                        </div>
+                    </div>
+
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000">
+                            <div style="overflow:auto;font-size:12px">כללי</div>
+
+                            @fb.gen_sat_grade
+                        </div>
+                    </div>
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000">
+                            <div style="overflow:auto;font-size:12px">מוצר</div>
+
+                            @fb.prod_qual_grade
+                        </div>
+                    </div>
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000">
+                            <div style="overflow:auto;font-size:12px">משלוח</div>
+
+                            @fb.delivery_grade
+                        </div>
+                    </div>
+
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000;">
+                            <div style="overflow:auto;font-size:12px">דיוק במשקל</div>
+
+                            @switch (is_ok_weight)
+                            {
+                                case 0:
+                                    <span style="color:#e3e3e3;">לא נשקל</span>
+                                    break;
+                                case 1:
+                                    <span style="color:#57d600;">כן</span>
+                                    break;
+                                case 2:
+                                    <span style="color:red;">לא</span>
+                                    break;
+
+                            }
+                        </div>
+                    </div>
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000">
+                            <div style="overflow:auto;font-size:12px">ש.רצון</div>
+                            @switch (is_happy)
+                            {
+                                case 1:
+                                    <span style="color:#57d600;">כן</span>
+                                    break;
+                                case 2:
+                                    <span style="color:red;">לא</span>
+                                    break;
+                                case 3:
+                                    <span style="color:blue;">ככה ככה</span>
+                                    break;
+
+                            }
+                        </div>
+                    </div>
+                    <div class="ListCell" style="float: right;">
+                        <div style="overflow:auto;color:#000">
+                            <div style="overflow:auto;font-size:12px">לצור קשר?</div>
+                            @if (is_contact)
+                            {
+                                <span style="color:#57d600;">כן</span>
+                            }
+                            else
+                            {
+                                <span style="color:#e3e3e3;">אין צורך</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form_@fb_id">
+                    <div class="ListCell" style="float: left;">
+                        <div style="overflow:auto;color:#000">
+                            <div style="overflow:auto;text-align:right">
+                                <select style="float:left;padding:5px;margin:5px;font-size:16px;float:right;width:95%" name="status_code" onchange="AjaxActions('SaveFeedbackInfo','@fb_id', '', 'form_@fb_id','@showWhat');">
+                                    <option value="NEW" @if (fb.status_code == "NEW") { <text> selected</text>}>פניה חדשה</option>
+                                    <option value="INWORK" @if (fb.status_code == "INWORK") { <text> selected</text>}>בטיפול</option>
+                                    <option value="COMPLETE" @if (fb.status_code == "COMPLETE") { <text> selected</text>}>טיפול הסתיים</option>
+                                </select>
+                            </div>
+                            <textarea style="padding:5px;margin:5px;font-size:16px;resize:none;" name="rep_notes" rows="3" placeholder="הערות טיפול.." onblur="AjaxActions('SaveFeedbackInfo','@fb_id', '', 'form_@fb_id','@showWhat');">@fb.rep_notes</textarea>
+
+                            @if (is_completed)
+                            {
+                                <div style="overflow:auto;color:#b200ff;font-size:12px;">
+                                    טופל ע"י @AppFunctions.GetRepName(fb.rep_id) ב<span>@fb.complete_ts.ToShortDateString()</span>
+
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+        }
+    </div>
+    <div style="overflow: auto;height:200px;"> &nbsp; </div>
+
+}
+
+@helper NewWebOrder()
+{
+    int u_id = WebSecurity.CurrentUserId;
+    //var m_join = Database.Open("m_join");
+    var op_data = Database.Open("op_data");
+
+    var sqlSelect = "SELECT id,title FROM menus WHERE is_active=1 ORDER BY sort_order";
+    var menus = op_data.Query(sqlSelect);
+    DateTime LocalTime = AppFunctions.LocalTime();
+    DateTime Tommorow = LocalTime.AddDays(1);
+    DateTime AfterTommorow = LocalTime.AddDays(2);
+    <center>
+        <div style="overflow:auto;direction:rtl;padding:5px;text-align:right;background-color:#808080;color:white">
+            <form id="NewOrder">
+
+                <div style="overflow:auto">
+                    <h2>הזמנה חדשה</h2>
+                </div>
+                <div style="overflow:auto;" id="NewOrderMemberContainer">
+                    @AppHelpers.SelectOrderMember(0)
+                </div>
+
+                <div style="overflow:auto;margin-top:10px;margin-bottom:10px;">
+                    <input type="checkbox" name="is_for_today" style="padding:5px;margin-left:5px;" checked onclick="if (this.checked) { hideElement('future_shipment_div');showElement('round_select_div'); } else { hideElement('round_select_div');showElement('future_shipment_div'); } " />
+                    הזמנה להיום?
+                </div>
+
+                <div style="overflow:auto;" id="round_select_div">
+                    סבב חלוקה<br />
+                    <select style="padding:5px;margin:5px;font-size:16px" name="round_id">
+                        <option value="">בבקשה לבחור..</option>
+                        @foreach (var round in menus)
+                        {
+                            <option value="@round.id">@round.title</option>
+                        }
+                    </select>
+                </div>
+                <div style="overflow:auto;display:none" id="future_shipment_div">
+                    <div style="overflow:auto;">
+                        תאריך לקבלת המשלוח<br />
+                        <select style="padding:5px;margin:5px;font-size:16px" name="shipping_date" onchange="if (this.value == '-1'){showElement('shipping_date_custom'); }else{hideElement('shipping_date_custom');}">
+                            <option value="">בבקשה לבחור....</option>
+                            <option value="@Tommorow.ToShortDateString()">מחר (@Tommorow.ToShortDateString())</option>
+                            <option value="@AfterTommorow.ToShortDateString()">מחרתיים (@AfterTommorow.ToShortDateString())</option>
+                            <option value="-1">אחר..</option>
+
+                        </select>
+                        <input type="date" style="padding:5px;margin:5px;font-size:16px;display:none" name="shipping_date_custom" id="shipping_date_custom" value="@LocalTime.ToShortDateString()" />
+                    </div>
+                    <div style="overflow:auto;">
+                        זמן מועדף לקבלת המשלוח
+                        <br />
+                        <select style="padding:5px;margin:5px;font-size:16px" name="shipping_time" onchange="if (this.value == '-1'){showElement('shipping_time_custom'); }else{hideElement('shipping_time_custom');}">
+                            <option value="">בבקשה לבחור....</option>
+                            <option value="08:00">בוקר (08:00-12:00)</option>
+                            <option value="12:00">צהריים (12:00-16:00)</option>
+                            <option value="16:00">ערב (16:00-20:00)</option>
+                            <option value="20:00">לילה (20:00-00:00)</option>
+                            <option value="-1">אחר..</option>
+
+                        </select>
+
+                        <input type="time" style="padding:5px;margin:5px;font-size:16px;display:none" name="shipping_time_custom" id="shipping_time_custom" />
+                    </div>
+                </div>
+
+                <div style="overflow:auto;">
+                    <div style="overflow:auto;margin-top:10px;margin-bottom:10px;">
+                        <input type="checkbox" name="is_ship_phone" style="padding:5px;margin-left:5px;" onclick="if (this.checked) { showElement('other_recipient_div'); } else { hideElement('other_recipient_div'); } " />
+                        משלוח לאדם אחר?
+                    </div>
+
+                </div>
+                <div style="overflow:auto;display:none" id="other_recipient_div">
+                    <div style="overflow:auto;">
+                        שם מקבל.ת המשלוח<br />
+                        <input type="text" style="padding:5px;margin:5px;font-size:16px" name="ship_name" />
+                    </div>
+                    <div style="overflow:auto;">
+                        מספר מקבל.ת המשלוח<br />
+                        <input type="text" style="padding:5px;margin:5px;font-size:16px" name="ship_phone" />
+                    </div>
+                </div>
+                <div style="overflow:auto;">
+                    <div style="overflow:auto;">
+                        כתובת<br />
+                        <input type="text" style="padding:5px;margin:5px;font-size:16px" name="address" />
+                    </div>
+                    <div style="overflow:auto;">
+                        עיר<br />
+                        <input type="text" style="padding:5px;margin:5px;font-size:16px" name="city" />
+                    </div>
+                </div>
+
+                <div style="overflow:auto;">
+                    פירוט הזמנה<br />
+                    <textarea style="padding:5px;margin:5px;font-size:16px;resize:none;" rows="6" name="order_body"></textarea>
+
+                </div>
+                <div style="overflow:auto;">
+                    תרומה<br />
+                    <input type="text" style="padding:5px;margin:5px;font-size:16px" name="donation" />
+                </div>
+                <div style="overflow:auto;"></div>
+                <div style="overflow:auto;"></div>
+
+                <div style="overflow: auto; padding: 5px; margin: 5px;text-align:center">
+
+                    <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="controller.close('MainSb');">ביטול</button>
+                    <button type="button" style="padding:5px;margin:5px;font-size:16px;" onclick="AjaxActions('RepInsertOrder','','','NewOrder','');">שמירת שינויים</button>
+                </div>
+            </form>
+        </div>
+        <div style="overflow:auto;height:100px">&nbsp;</div>
+
+    </center>
+
+    // m_join.Close();
+
+    op_data.Close();
+
+}
+
+@helper CreditManager(string showWhat = "ALL")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    string srchTitle = "";
+
+
+    int newMembersCount = 0;
+
+    //DataFunctions.ImportWebContactForm();
+
+
+
+    srchTitle = " ניהול קרדיט";
+
+    <div style="overflow: auto; padding: 5px; direction: rtl">
+        <div id="CreditStatusDiv">
+            @AppHelpers.CreditStatus()
+        </div>
+
+
+        <h2 style="float:right;direction:rtl">
+            @srchTitle
+        </h2>
+        <select style="padding:5px;margin:5px;font-size:16px;float:right;margin-right:20px;" onchange="RepAjaxUpdate('DebtsStatus', 'DebtsStatusDiv', 'MainLoader', this.value);">
+            <option value="ALL">כל החובות</option>
+            <option value="DUE">לתשלום מיידי</option>
+            <option value="NOR">לתשלום בהזמנה הבאה</option>
+            <option value="GOOD">חובות טובים</option>
+        </select>
+    </div>
+    <button class="Accordion" style="display:none" id="CreditActionsAcc"></button>
+    <div class="panel" style="padding:0;margin:0">
+        <div style="overflow:auto;background-color:#e3e3e3;width:99%;float:right" id="NewOrderMemberContainer">
+            @AppHelpers.SelectCreditMember(0)
+        </div>
+    </div>
+
+
+    <div style="overflow: auto;" id="DebtsStatusDiv">
+        @AppHelpers.DebtsStatus()
+    </div>
+    <div style="overflow: auto;height:200px;"> &nbsp; </div>
+
+    op_data.Close();
+
+}
+
+@helper CreditHistory(string showWhat = "NEW")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime default_date = Convert.ToDateTime("1/1/1900");
+
+    DateTime ts = local_time;
+    string srchTitle = "";
+    int currMemberId = 0;
+
+    int newMembersCount = 0;
+
+    //DataFunctions.ImportWebContactForm();
+
+
+    sqlSelect = "SELECT SUM(amount) as TotalDebt FROM chargebook WHERE is_paid=1 AND is_cancelled=0";
+    var totDebt = op_data.QuerySingle(sqlSelect);
+    decimal totalDebt = 0; try { totalDebt = totDebt.TotalDebt; } catch { }
+    sqlSelect = "SELECT SUM(amount_due) as DueDebt FROM chargebook WHERE is_paid=0 AND current_due_date<=@0";
+    var dueDebt = op_data.QuerySingle(sqlSelect, local_time);
+    decimal DueDebt = 0; try { DueDebt = dueDebt.DueDebt; } catch { }
+    sqlSelect = "SELECT * FROM chargebook WHERE is_paid=1 order by payment_ts DESC";
+    var transactions = op_data.Query(sqlSelect);
+
+
+
+    srchTitle = " היסטורית חובות";
+
+    <div style="overflow: auto;padding: 5px;">
+        <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #b200ff; text-align: center; border-radius: 5px " onclick="PageNavigator('CREDIT');">
+            <span style="font-size:18px;">הווה</span><br />חובות פתוחים
+        </div>
+
+        <div style="float: left; padding: 5px; margin: 5px; font-size: 12px; border: 2px solid #808080; text-align: center; border-radius: 5px ">
+            <span style="font-size:18px;">@totalDebt.ToString("C", culture)</span><br />סה"כ חובות ששולמו
+        </div>
+
+        <h2 style="float:right;direction:rtl">
+            @srchTitle
+        </h2>
+
+    </div>
+
+
+
+    <div style="overflow: auto;" id="DebtsStatusDiv">
+
+
+        <table style="width:99%;direction:rtl">
+            <tr class="ListRow" style="width: 100%;">
+                <td class="TableCell">שם חבר.ה</td>
+                <td class="TableCell">סכום חוב</td>
+                <td class="TableCell">תאריך נטילה</td>
+                <td class="TableCell">תאריך פרעון</td>
+                <td class="TableCell">תאריך תשלום</td>
+            </tr>
+
+
+
+            @foreach (var entry in transactions)
+            {
+                int member_id = entry.m_id;
+                string member_name = ""; member_name = AppFunctions.GetMemberNameById(entry.m_id);
+                decimal debt = entry.amount;
+                DateTime due_date = default_date;
+                DateTime payment_ts = default_date;
+                DateTime credit_ts = default_date;
+                try { due_date = entry.original_due_date; } catch { }
+                try { payment_ts = entry.payment_ts; } catch { }
+                try { credit_ts = entry.credit_ts; } catch { }
+                bool is_cancelled = false; try { is_cancelled = entry.is_cancelled; } catch { }
+                string tblClass = "TableCell";
+                if (is_cancelled) { tblClass = "cancelledRow"; }
+
+
+                <tr id="CreditEntryRow_@entry.m_id">
+
+
+                    <td class="TableCell">
+                        <div style="overflow:auto;color:#000">
+                            <button type="button" style="margin-left: 5px; font-size: 16px;float:right;border:0 " onclick="sbload('MainSb', 'Caller?p1=Member_Info&p2=@entry.m_id');">👤</button>
+
+                            <b>@member_name</b>
+
+                        </div>
+                    </td>
+
+                    <td class="@tblClass">
+                        <div style="overflow:auto;">
+                            <b>@debt.ToString("C", culture) </b>
+
+
+                        </div>
+
+                    </td>
+                    <td class="TableCell">
+                        <div style="overflow:auto;color:#000">
+                            <b>@credit_ts.ToShortDateString() </b>
+                        </div>
+
+                    </td>
+                    <td class="TableCell">
+                        <div style="overflow:auto;color:#000">
+                            <b>@due_date.ToShortDateString() </b>
+                        </div>
+
+                    </td>
+                    <td class="TableCell">
+                        <div style="overflow:auto;color:#000">
+                            @if (is_cancelled)
+                            {
+
+                                <span style="color:red;font-size:12px;">התנועה בוטלה ב<span>@entry.cancellation_ts.ToShortDateString()</span> ע"י @AppFunctions.GetRepName(entry.cancelled_by)</span><br />
+                                <span style="color:#808080;font-size:12px;">@entry.cancellation_notes</span>
+                            }
+                            else
+                            {
+                                <b>@payment_ts.ToShortDateString() </b>
+                            }
+                        </div>
+
+                    </td>
+                </tr>
+
+
+
+
+
+
+
+
+            }
+        </table>
+
+    </div>
+    <div style="overflow: auto;height:200px;"> &nbsp; </div>
+
+    op_data.Close();
+
+}
+
+@helper JOBAPPS(string showWhat = "NEW")
+{
+    int u_id = WebSecurity.CurrentUserId;
+    string repTitle = "";
+    var op_data = Database.Open("op_data");
+    var m_join = Database.Open("m_join");
+    var sqlSelect = "";
+    string username = WebSecurity.CurrentUserName;
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime ts = local_time;
+    string srchTitle = "";
+
+
+
+    DataFunctions.ImportWebJobApps();
+
+    //showWhat = "COMPLETED";
+    sqlSelect = "SELECT * FROM jobapps order by ts DESC";
+    srchTitle = " חיפוש עבודה - פניות";
+
+
+
+    var formEntries = op_data.Query(sqlSelect);
+
+
+    op_data.Close();
+    m_join.Close();
+
+
+    int DefaultWelcomeMsg = 0;
+    try { DefaultWelcomeMsg = Convert.ToInt32(Request["DefaultMembersWelcomeMsgTemplate"]); } catch { }
+
+
+
+    <div style="overflow: auto;padding: 5px;">
+
+
+        <h2 style="float:right;direction:rtl">
+            @srchTitle
+        </h2>
+    </div>
+
+
+
+    <div style="overflow: auto;">
+        @foreach (var entry in formEntries)
+        {
+            string member_name = entry.nick_name;
+            string wanum = entry.wanum;
+            int m_id = entry.m_id;
+            string bgcolor = entry.bgcolor;
+            string applyFor = entry.applyFor;
+            DateTime create_ts = entry.ts;
+            string city = entry.city;
+            int DaysSinceContactInt = 0;
+            int genderCode = entry.gender;
+            string gender = "";
+            switch (genderCode)
+            {
+                case 1:
+                    gender = "בן";
+                    break;
+
+                case 2:
+                    gender = "בת";
+                    break;
+            }
+            if (m_id == 0)
+            {
+                sqlSelect = "SELECT member_name,wanum,create_ts,m_id,serial FROM pb WHERE wanum=@0";
+                var pbEntry = op_data.QuerySingle(sqlSelect, wanum);
+                if (pbEntry != null)
+                {
+                    member_name = pbEntry.member_name;
+                    wanum = pbEntry.wanum;
+                    m_id = pbEntry.m_id;
+                }
+            }
+
+
+            DaysSinceContactInt = AppFunctions.HowManyDaysAgoWas(create_ts);
+
+            applyFor = applyFor.Replace("##", " | ");
+            applyFor = applyFor.Remove(applyFor.Length - 2, 2);
+            string recognition_icon = "❌";
+
+            if (m_id > 0)
+            {
+                recognition_icon = "✅";
+            }
+
+
+            <div class="ListRow" style="overflow:auto;background-color:@bgcolor" id="entry_@entry.serial">
+
+                <div class="ListCell" style="float: right;width:30px;">
+                    @recognition_icon
+                </div>
+
+
+
+                <div class="ListCell" style="float: right;">
+                    <div style="overflow:auto;color:#000">
+                        <b>@member_name</b> <span> @gender @entry.age </span> <span style="color:blue">@city</span>
+                        @if (entry.nick_name != "" && entry.nick_name != member_name)
+                        {<span style="color: #808080;font-size: 12px;">(@entry.nick_name)</span>}
+                    </div>
+                    <div style="color: #b200ff; font-size: 12px; overflow: auto">
+                        🗓️ @create_ts.ToShortDateString() @create_ts.ToString("HH:mm")  (לפני @DaysSinceContactInt ימים)
+                    </div>
+
+                    <div style="color: #808080; font-size: 11px; overflow: auto">
+
+
+                        @if (m_id > 0)
+                        {
+                            <span id="numRev_@entry.serial">
+                                <button type="button" style="margin:2px;padding:2px;font-size:12px;float:right" onclick="RepAjaxUpdate('RevWanum', 'numRev_@entry.serial', '', '@m_id');">
+                                    👁️
+                                </button>
+                            </span>
+                        }
+                        else
+        {
+                            <div style="overflow:auto"> @entry.wanum</div>
+                        }
+
+                        <span style="float:right;">
+                            <input type="color" id="colorpicker" style="float: right; padding: 0; margin: 2px;width:20px;height:24px; " name="board_color" value="@bgcolor" onchange="AjaxActions('SetJobAppEntryColor', '@entry.serial', '', this.value,'@showWhat');">
+                        </span>
+
+                        <button type="button" style="margin:2px;padding:2px;font-size:12px;float:right" onclick="waLaunch('@entry.wanum');">
+                            💬 ווטסאפ
+                        </button>
+                        @if (m_id > 0)
+                        {
+                            <button type="button" style="margin:2px;padding:2px;font-size:12px;float:right" onclick="sbload('MainSb', 'Caller?p1=Member_Info&p2=@m_id');">
+                                👤 כרטיס
+                            </button>
+                        }
+
+                        <span style="display:none">בקשת עבודה #@entry.serial</span>
+                    </div>
+                </div>
+
+
+                <div class="ListCell" style="float: right;width:40%;">
+                    <div style="overflow:auto;color:#000"><b>@applyFor </b></div>
+                    <span style="color: #808080;font-size: 12px;">
+                        <span style="color:#57d600">@entry.occupation</span>
+                        <span style="color:#808080">@entry.experience</span>
+                        <span  style="color:blue">@entry.added_value</span>
+
+
+
+                    </span>
+
+                </div>
+
+
+
+
+
+
+
+
+
+
+            </div>
+        }
+    </div>
+    <div style="overflow: auto;height:200px;"> &nbsp; </div>
+
+}

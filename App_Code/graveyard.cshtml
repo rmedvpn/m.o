@@ -1,0 +1,424 @@
+﻿@helper NewOrderApproval(int order_id, string orderbody, int order_status = -9999, string order_type = "")
+{
+    string actionTxt = "";
+    string headerTxt = "";
+    string supplyTxt = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    var u_id = WebSecurity.CurrentUserId;
+    var db = WebMatrix.Data.Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+    sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+    var order_data = db.QuerySingle(sqlSelect, order_id);
+    int round_id = 0; try { round_id = order_data.round_id; } catch { }
+    int delivery_id = 0; try { delivery_id = order_data.delivery_id; } catch { }
+
+    DateTime requested_delivery_date = local_time; try { requested_delivery_date = order_data.requested_delivery_date; } catch { }
+    string shipping_time = ""; try { shipping_time = order_data.shipping_time; } catch { }
+    string requested_delivery_window_start_hour = ""; try { requested_delivery_window_start_hour = order_data.requested_delivery_window_start_hour; } catch { }
+    string requested_delivery_window_end_hour = ""; try { requested_delivery_window_end_hour = order_data.requested_delivery_window_end_hour; } catch { }
+    supplyTxt = "בין שעה " + requested_delivery_window_start_hour + " לשעה " + requested_delivery_window_end_hour;
+
+
+    if (requested_delivery_window_start_hour == "00:00" && requested_delivery_window_end_hour == "23:59") { supplyTxt = ""; }
+    else
+    {
+        if (requested_delivery_window_start_hour == "00:00" && requested_delivery_window_end_hour != "23:59") { supplyTxt = "עד " + requested_delivery_window_end_hour; }
+        if (requested_delivery_window_start_hour != "00:00" && requested_delivery_window_end_hour == "23:59") { supplyTxt = "אחרי " + requested_delivery_window_start_hour; }
+    }
+
+    try { order_type = order_data.order_type; } catch { }
+
+    if (round_id == 0)
+    {
+        order_type = "";
+    }
+
+    switch (order_status)
+    {
+
+        case 0:
+            actionTxt = "❗ נא לוודא את ההזמנה";
+            headerTxt = "הזמנה חדשה";
+
+            break;
+
+        case -1:
+            actionTxt = "❗ נא לוודא הוספת פריטים בהתאם לבקשת הקונה";
+            headerTxt = "הזמנה מיובאת";
+            break;
+        default:
+            actionTxt = "❗ נא לוודא הוספת פריטים בהתאם לבקשת הקונה";
+            headerTxt = NewAppFunctions.GetTitleById("OrderStatus", order_status);
+            break;
+
+    }
+
+    <center>
+        <div style=" overflow: auto; background-color: white; font-size: 18px; text-align: right">
+            <div class="A">
+                <span class="PrplMiniTag" style="float:left">@headerTxt</span>
+                <h3>אישור הזמנה חדשה</h3>
+                <div class="A">
+                    <b>@AppFunctions.GetRoundTitleById(round_id)</b>
+                    <div class="B" style="float:left">
+                        @switch (order_type)
+                        {
+                            case "":
+                            case "FUTURE":
+                                <div><b>🌎 הזמנה עתידית</b></div>
+                                break;
+                            case "ROUND":
+                                <div><b>🚚 סבב חלוקה</b></div>
+                                break;
+                            case "EXPRESS":
+                                <div><b>🛵 משלוח אקספרס</b></div>
+                                break;
+                            case "PICKUP":
+                                <div><b>🏠 איסוף עצמי</b></div>
+                                break;
+                            default:
+                                <div><b>@order_type</b></div>
+                                break;
+
+                        }
+
+                    </div>
+                </div>
+
+                <div class="B" style="border-top:1px dotted #808080;">
+                    <button class="OrderSectionTitleBtn" style="float: left;" onclick="sbload('SubMenuLeft','Caller?p1=OrderItemsEdit&p2=@order_id');">🛒</button>
+                    <div class="A">
+                        <b>@actionTxt</b>
+                    </div>
+
+                    <div class="A">
+                        👈 @orderbody
+                    </div>
+
+                    <div class="A">
+                        <div class="B">
+                            <div class="B" style="float:left">
+                                <span class="PrplMiniTag">@supplyTxt</span>
+                            </div>
+                            @switch (order_type)
+                            {
+                                case "":
+                                case "FUTURE":
+
+                                    <div class="B">
+                                        <span><b>🌎 לאספקה @AppFunctions.FormatRelativeDate(requested_delivery_date)</b></span>
+                                    </div>
+
+                                    break;
+                                case "ROUND":
+
+                                    <div class="B">
+                                        <span><b>🚚 לאספקה באמצעות סבב חלוקה @AppFunctions.FormatRelativeDate(requested_delivery_date) </b></span>
+                                    </div>
+
+                                    break;
+                                case "EXPRESS":
+
+                                    <div class="B">
+                                        <span><b>🛵 לאספקה במשלוח אקספרס @AppFunctions.FormatRelativeDate(requested_delivery_date) </b></span>
+                                    </div>
+
+                                    break;
+                                case "PICKUP":
+
+                                    <div class="B">
+                                        <span><b>🏠 לאספקה באיסוף עצמי @AppFunctions.FormatRelativeDate(requested_delivery_date) </b></span>
+                                    </div>
+
+                                    break;
+                                default:
+                                    <div><b>@order_type</b></div>
+                                    break;
+
+                            }
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+            </div>
+            <div class="B">
+
+                @if (round_id == 0)
+                {
+                    sqlSelect = "SELECT id,title FROM rounds WHERE is_active=1 order by sort_order";
+                    var rounds = db.Query(sqlSelect);
+                    <div class="A">
+                        <b>נא לבחור ערוץ הפצה עבור הזמנה זו</b> @order_type
+                    </div>
+                    <form id="SETORDERROUND">
+                        <div class="A">
+
+
+
+                            ערוץ הפצה
+                            <div class="B" style="background-color: white; color: #000; border-radius: 5px;float:left">
+                                <select class="A" style="display:none" onchange="if (this.value != 0) { AjaxActions('ORDERACTION',@order_id, 'MainLoader', 'SETORDERROUND', this.value); }">
+                                    <option value="">נא לבחור</option>
+                                    @foreach (var round in rounds)
+                                    {
+                                        <option value="@round.id">@round.title</option>
+                                    }
+                                </select>
+
+
+                                <select class="A" style="float:left" onchange="RepAjaxUpdate('RoundFullfilmentMethod','FullfilmentMethodDiv','FullfilmentMethodLoader',this.value,@order_id)">
+                                    <option value="">נא לבחור</option>
+                                    @foreach (var round in rounds)
+                                    {
+                                        <option value="@round.id">@round.title</option>
+                                    }
+                                </select>
+                                <div class="Tinyloader" style="display: none; float: left" id="FullfilmentMethodLoader"></div>
+                            </div>
+
+                        </div>
+                        <div class="A" id="FullfilmentMethodDiv">
+
+                        </div>
+                    </form>
+
+                }
+
+
+            </div>
+
+
+        </div>
+    </center>
+    db.Close();
+
+}
+@helper UnassignedOrdersInDelivery(int delivery_id)
+{
+
+    DateTime local_time = AppFunctions.LocalTime();
+
+    int u_id = WebSecurity.CurrentUserId;
+    string username = WebSecurity.CurrentUserName;
+    var db = WebMatrix.Data.Database.Open("op_data");
+    var sqlSelect = "SELECT serial,round_id FROM deliveries WHERE serial=@0";
+    var delivery = db.QuerySingle(sqlSelect, delivery_id);
+    int round_id = 0; try { round_id = delivery.round_id; } catch { }
+
+    int driver_id = 0;
+    string driverName = "";
+    string driverSelectorDisplayState = "block;";
+    string driverInfoDisplayState = "none;";
+
+    string tmpOrdersList = "";
+
+    sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=1 AND order_status<=3 AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) AND delivery_id<=0) ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+    var orders = db.Query(sqlSelect, 0, round_id, local_time, delivery_id);
+    <div class="B" style="background-color:#fff">
+        <h2>הזמנות שלא משובצות למשלוח</h2>
+        @foreach (var order in orders)
+        {
+            tmpOrdersList += "##" + order.order_id + "##";
+            string routeAppAddress = ""; try { routeAppAddress = order.routeAppAddress; } catch { }
+
+
+            <div class="A" style="float:right;border:1px solid #808080;border-radius:5px;">
+                <input type="checkbox" id="RouteTbl_@order.order_id" class="A" style="float:right;display:none" onclick="let x = document.getElementById('SelOrdersRoute_0'); if (this.checked) { x.value = x.value + '##' +@order.order_id+'##'; } else { x.value = x.value.replace('##' +@order.order_id+'##', ''); }" />
+
+                <div class="B">
+                    @order.username
+                </div>
+
+                <div class="B">
+                    <span class="MiniTag"> @order.ship_city </span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="B" style="font-size: 12px;display:none;">
+        <div class="A" colspan="999" style="float:right;font-size: 12px;">
+            <br />
+            <input type="hidden" id="AllOrdersRoute_0" value="@tmpOrdersList" />
+            <input type="hidden" id="SelOrdersRoute_0" value="" />
+
+        </div>
+    </div>
+
+    db.Close();
+
+}
+
+
+@functions {
+
+    public static string StopOnGoingDelivery()
+    {
+
+        int delivery_id = 0; try { delivery_id = Convert.ToInt32(Request["param1"]); } catch { }
+        bool has_stopped = false;
+
+        int tmpFlag = 0; try { tmpFlag = Convert.ToInt32(Request["value"]); } catch { }
+        if (tmpFlag == 1)
+        {
+            has_stopped = true;
+        }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+        string theHtmlOutput = "";
+        string logmsg = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        DateTime defTime = Convert.ToDateTime("1/1/1900");
+        int delivered_count = 0;
+        int undelivered_count = 0;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "SELECT order_id,actual_amount_pickedup,order_status FROM MainOrders WHERE delivery_id=@0 AND route_serial>0";
+        var orders = db.Query(sqlSelect, delivery_id);
+        decimal actual_amount_collected = 0;
+        foreach (var order in orders)
+        {
+            actual_amount_collected += order.actual_amount_collected;
+            int order_status = order.order_status;
+            if (order_status == 10 || order_status == 20)
+            {
+                delivered_count++;
+            }
+            if (order_status < 10)
+            {
+                undelivered_count++;
+            }
+        }
+        //update delivery table that
+        sqlSelect = "UPDATE deliveries SET has_stopped=@0,is_completed=1,actual_end=@1,complete_ts=@1,completed_by=@2,actual_amount_collected=@3,delivered_count=@4,undelivered_count=@5 WHERE serial=@6 ";
+        db.Execute(sqlSelect, has_stopped, local_time, rep_id, actual_amount_collected, delivered_count, undelivered_count, delivery_id);
+        if (has_stopped)
+        {
+            logmsg = "משלוח #" + delivery_id + " הסתיים באופן ידני";
+        }
+        else
+        {
+            logmsg = "משלוח #" + delivery_id + " הסתיים בהצלחה";
+        }
+        AppFunctions.WriteRoundComment(round_id, logmsg);
+
+        //set next delivery as active in round
+
+        sqlSelect = "SELECT serial,schedueld_start,order_close_hour FROM deliveries WHERE schedueld_start>@0 order by schedueld_start";
+        var next_delivery = db.QuerySingle(sqlSelect, local_time);
+        int next_delivery_id = 0; try { next_delivery_id = next_delivery.serial; } catch { }
+        if (next_delivery_id == 0)
+        {
+            graveyard.SetupNextDeliveryFromRoundSchedule(round_id);
+            sqlSelect = "SELECT serial,schedueld_start,order_close_hour FROM deliveries WHERE schedueld_start>@0 order by schedueld_start";
+            next_delivery = db.QuerySingle(sqlSelect, local_time);
+            next_delivery_id = 0; try { next_delivery_id = next_delivery.serial; } catch { }
+        }
+
+        if (next_delivery_id > 0)
+        {
+            sqlSelect = "UPDATE rounds SET active_delivery_id=@0,round_start=@1,order_close_hour=@2 WHERE id=@3";
+            db.Execute(sqlSelect, next_delivery_id, next_delivery.schedueld_start, next_delivery.order_close_hour, round_id);
+
+            sqlSelect = "UPDATE mainorders SET delivery_id=@0 WHERE delivery_id=@1 AND route_serial>0";
+            db.Execute(sqlSelect, next_delivery_id, delivery_id);
+
+        }
+
+
+
+
+        db.Close();
+
+
+
+        return theHtmlOutput;
+    }
+
+    public static void SetupNextDeliveryFromRoundSchedule(int round_id, string actionMode = "")
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defTime = Convert.ToDateTime("1/1/1900");
+        DateTime tmp_date = defTime;
+        string curTime = defTime.ToShortDateString() + " " + local_time.ToString("HH:mm");
+        DateTime Round_Schedule_time = defTime; try { Round_Schedule_time = Convert.ToDateTime(curTime); } catch { }
+
+        int min_to_dispatch = 0; min_to_dispatch = Rounds.GetMinToDispacthForDeliveryRound(round_id);
+        int daysDiff = 0;
+        string str_date = "";
+        int todaysDayOfWeek = ((int)local_time.DayOfWeek);
+        int cur_delivery_id = 0;
+        int cur_schedule_id = 0;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "";
+        if (actionMode == "NEXTSCHEDULE")
+        {
+            DataFunctions.WriteDebugLine("2 " + actionMode);
+
+            sqlSelect = "SELECT active_delivery_id FROM rounds WHERE id=@0";
+            var round = db.QuerySingle(sqlSelect, round_id);
+            try { cur_delivery_id = round.active_delivery_id; } catch { }
+
+            sqlSelect = "SELECT schedule_id FROM deliveries WHERE serial=@0";
+            var delivery = db.QuerySingle(sqlSelect, cur_delivery_id);
+            try { cur_schedule_id = delivery.schedule_id; } catch { }
+
+        }
+        DataFunctions.WriteDebugLine("cur_schedule_id " + cur_schedule_id);
+        DataFunctions.WriteDebugLine("cur_delivery_id " + cur_delivery_id);
+        sqlSelect = "SELECT TOP(1) * FROM RoundsSchedules WHERE round_id=@0 AND ((dayOfWeek=@1 AND round_order_close>@2) OR dayOfWeek>@1) AND schedule_id<>@3  ORDER BY dayOfWeek,round_order_close";
+        var round_schecdule = db.QuerySingle(sqlSelect, round_id, todaysDayOfWeek, Round_Schedule_time, cur_schedule_id);
+        if (round_schecdule != null)
+        {
+
+            int schedule_id = round_schecdule.schedule_id;
+            DataFunctions.WriteDebugLine("schedule_id " + schedule_id);
+
+            DateTime round_order_close = round_schecdule.round_order_close;
+            int dayOfWeek = round_schecdule.dayOfWeek;
+            DateTime round_start = round_schecdule.round_start;
+            DateTime next_scheduled_delivery = defTime;
+
+            daysDiff = dayOfWeek - todaysDayOfWeek;
+
+            if (daysDiff < 0)
+            {
+                daysDiff = daysDiff + 7;
+            }
+            tmp_date = local_time.AddDays(daysDiff);
+            str_date = tmp_date.ToShortDateString() + " " + round_order_close.ToString("HH:mm");
+            try { tmp_date = Convert.ToDateTime(str_date); } catch { }
+            round_order_close = tmp_date;
+
+
+            tmp_date = local_time.AddDays(daysDiff);
+            str_date = tmp_date.ToShortDateString() + " " + round_start.ToString("HH:mm");
+            try { tmp_date = Convert.ToDateTime(str_date); } catch { }
+            round_start = tmp_date;
+            next_scheduled_delivery = round_start;
+
+            DateTime next_scheduled_launch = round_schecdule.next_scheduled_launch;
+            DateTime next_scheduled_finish = round_schecdule.next_scheduled_finish;
+            int estimated_duration = Rounds.GetEstimatedDurationForDeliveryRound(round_id);
+            next_scheduled_launch = next_scheduled_delivery;
+            next_scheduled_finish = next_scheduled_launch.AddMinutes(estimated_duration);
+            sqlSelect = "UPDATE RoundsSchedules SET next_scheduled_launch=@0,next_scheduled_finish=@1,next_order_close=@2 WHERE schedule_id=@3";
+            int new_delivery_id = Rounds.CreateScheduledDeliveryAndReturnId(schedule_id);
+            sqlSelect = "UPDATE RoundsSchedules SET next_delivery_id=@0 WHERE schedule_id=@1";
+            db.Execute(sqlSelect, new_delivery_id, schedule_id);
+        }
+
+
+
+        db.Close();
+    }
+
+
+}

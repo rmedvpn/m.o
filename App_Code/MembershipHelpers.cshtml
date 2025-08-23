@@ -1,0 +1,35 @@
+﻿@helper AccountSummary()
+{
+    if(WebSecurity.IsAuthenticated) {
+        string nick = WebSecurity.CurrentUserName;
+
+            
+            <b>מחובר/ת כ<span>@nick</span></b>
+       
+    } 
+}
+
+@functions {
+public static int GetMemberRankingScore(int user_id)
+{
+    var db = Database.Open("tlg");
+    var sqlSelect="SELECT ranking_score FROM Members Where UserId = @0"; 
+    var user = db.QuerySingle(sqlSelect,user_id);
+    db.Close();
+    if (user!=null)
+        {return user.ranking_score;} else{return user_id*-1;}
+}
+
+
+    public static string GetMemberName(int member_id)
+{
+    var db = Database.Open("tlg");
+    var sqlSelect = "SELECT UserName from members Where UserId=@0";
+    var member = db.QuerySingle(sqlSelect,member_id);
+    db.Close();
+    if (member!=null){return member.UserName;}
+    else {return "";}
+    
+}
+
+}

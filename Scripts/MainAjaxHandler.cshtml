@@ -1,0 +1,48 @@
+﻿@{
+
+if(!WebSecurity.IsAuthenticated){
+    Response.Redirect("~/");
+}
+int u_id = WebSecurity.CurrentUserId;
+string theAction="";
+theAction=Request["theAction"];
+
+string theHtmlOutput= "";
+
+switch(theAction){
+        case "UploadOrdersTsv":
+        if(theHtmlOutput==""){
+        @MainHelpers.UploadOrdersTsv()  
+        }
+        break;
+        case "ProcessPhoneBookTsv":
+        if(theHtmlOutput==""){
+        @MainHelpers.ProcessPhoneBookTsv()  
+        }
+        break;
+        case "UpdateImportSettingsRoundLists":
+        if(theHtmlOutput==""){
+        @MainHelpers.ImportSettingsAvaliableRounds()  
+        }
+        break;
+
+
+        case "UpdateImportSettingsUnlinkedTexts":
+        if(theHtmlOutput==""){
+        @MainHelpers.ImportSettingsUnlinkedTexts()  
+        }
+        break;
+        
+        
+        
+    default:
+    if(theHtmlOutput==""){
+        
+    }
+    break;
+}
+
+
+
+}
+  

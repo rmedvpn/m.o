@@ -1,0 +1,720 @@
+﻿@functions {
+
+    public static void DoLogin(int u_id)
+    {
+        var op_data = Database.Open("op_data");
+        DateTime local_time = AppFunctions.LocalTime();
+        var sqlSelect = "SELECT * FROM members WHERE userId=@0";
+        var member = op_data.QuerySingle(sqlSelect, u_id);
+        if (member != null)
+        {
+            DateTime last_online = Convert.ToDateTime("1/1/1900"); try { last_online = member.last_online; } catch { }
+            sqlSelect = "UPDATE RepTrack SET is_active=0,session_end=@0 WHERE u_id=@1 AND is_active=1";
+            op_data.Execute(sqlSelect, last_online, u_id);
+            sqlSelect = "INSERT INTO RepTrack (u_id,session_start,is_active) VALUES (@0,@1,1) ";
+            op_data.Execute(sqlSelect, u_id, local_time);
+            sqlSelect = "UPDATE members SET last_login=@0,last_online=@0 WHERE userId=@1";
+            op_data.Execute(sqlSelect,  local_time,u_id);
+
+            string logMsg = "המשתמש/ת " + member.username + " התחבר/ה למערכת";
+
+            AppFunctions.WriteLog("LOGIN", u_id, logMsg,u_id);
+
+        }
+
+
+        op_data.Close();
+    }
+
+    public static string GetAppProperty (string Property)
+    {
+        var sqlSelect="";
+        var db = Database.Open("op_data");
+
+        sqlSelect = "SELECT propertyValue FROM AppProperties WHERE propertyName=@0";
+        var Loadedproperty = db.QuerySingle(sqlSelect,Property);
+        db.Close();
+        if (Loadedproperty!=null){ return Loadedproperty.propertyValue;}
+        else{return "";}
+
+    }
+    public static void SetAppProperty (string Property, string theValue)
+    {
+        var sqlSelect="";
+        var db = Database.Open("op_data");
+
+        sqlSelect = "UPDATE AppProperties SET propertyValue=@0 WHERE propertyName=@1";
+        db.Execute(sqlSelect,theValue,Property);
+        db.Close();
+
+    }
+    public static void WriteLog (string theLog, int clerk_id,string msg,int rec_id=0,bool is_note=false)
+    {
+        var db = Database.Open("op_data");
+        DateTime local_time=AppFunctions.LocalTime();
+        var sqlSelect = "INSERT INTO AppLog (rec_id,clerk_id,entry,timestamp,LogName) VALUES (@0,@1,@2,@3,@4) ";
+        db.Execute (sqlSelect,rec_id,clerk_id,msg,local_time,theLog);
+        db.Close();
+    }
+
+    public static string GetRepName(int member_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT username from members Where userId=@0";
+        var member = db.QuerySingle(sqlSelect, member_id);
+        db.Close();
+        if (member != null) { return member.username; }
+        else { return ""; }
+
+    }
+
+    public static string GetMemberName(int pb_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT member_name from pb Where serial=@0";
+        var member = db.QuerySingle(sqlSelect, pb_id);
+        db.Close();
+        if (member!=null){return member.member_name; }
+        else {return "";}
+
+    }
+    public static string GetMemberNameById(int member_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT member_name from pb Where m_id=@0";
+        var member = db.QuerySingle(sqlSelect, member_id);
+        db.Close();
+        if (member != null) { return member.member_name; }
+        else { return ""; }
+
+    }
+    public static string GetIrgUserName(int member_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT pbname from irgusers Where UserId=@0";
+        var member = db.QuerySingle(sqlSelect,member_id);
+        db.Close();
+        if (member!=null){return member.pbname;}
+        else {return "";}
+
+    }
+
+    public static double HowManyMinutesAgoWas(DateTime theDate)
+    {
+
+        TimeSpan spanSinceDate = AppFunctions.LocalTime() - theDate;
+        return spanSinceDate.TotalMinutes;
+    }
+
+    public static int HowManyDaysAgoWas (DateTime theDate)
+    {
+        TimeSpan spanSinceDate = AppFunctions.LocalTime() - theDate;
+        return spanSinceDate.Days;
+    }
+    public static int HowManyMonthsAgoWas(DateTime theDate)
+    {
+
+        DateTime local_time = AppFunctions.LocalTime();
+
+        // TimeSpan spanSinceDate = local_time - theDate;
+        return 12 * (local_time.Year - theDate.Year) + (local_time.Month - theDate.Month);
+    }
+    public static int HowManyYearsAgoWas (DateTime theDate)
+    {
+        TimeSpan spanSinceDate = AppFunctions.LocalTime() - theDate;
+        decimal tmp = spanSinceDate.Days / 365;
+        int tmpInt = Convert.ToInt32(tmp);
+        return tmpInt;
+    }
+    public static int MinutesDifferenceToDate(DateTime theDate)
+    {
+        TimeSpan spanSinceDate = theDate - AppFunctions.LocalTime();
+        int tmp = spanSinceDate.Minutes;
+        return tmp;
+    }
+    public static string wanumize(string wanum)
+    {
+        string wanumized_str=wanum;
+
+        wanumized_str=wanumized_str.Replace("(","");
+        wanumized_str=wanumized_str.Replace(")","");
+        wanumized_str=wanumized_str.Replace("+","");
+        wanumized_str=wanumized_str.Replace(" ","");
+        wanumized_str=wanumized_str.Replace("-","");
+        wanumized_str=wanumized_str.Replace("‑","");
+        wanumized_str=wanumized_str.Replace(" ","");
+
+        if(wanumized_str.StartsWith("0")){
+            wanumized_str = "972" + wanumized_str.Substring(1);
+        }
+        if(wanumized_str.StartsWith("50") || wanumized_str.StartsWith("51") || wanumized_str.StartsWith("52") || wanumized_str.StartsWith("53") || wanumized_str.StartsWith("54") || wanumized_str.StartsWith("55") || wanumized_str.StartsWith("56") || wanumized_str.StartsWith("57") || wanumized_str.StartsWith("58") || wanumized_str.StartsWith("59")){
+            wanumized_str = "972" + wanumized_str;
+        }
+
+
+
+        return wanumized_str;
+
+    }
+    public static string mask_phone(string wanum,int maskLength=3)
+    {
+        string masked_wanum=wanum;
+
+
+        masked_wanum = masked_wanum.Substring(masked_wanum.Length - maskLength) + "**";
+
+
+
+        return masked_wanum;
+
+    }
+
+    public static DateTime LocalTime (string localCode="IL")
+    {
+        DateTime local_time=DateTime.UtcNow;
+        int utcDiff=0;
+        string propName="UTCDIFF-" + localCode;
+        propName=propName.ToUpper();
+        try{utcDiff=Convert.ToInt32(AppFunctions.GetAppProperty(propName));}catch{}
+        local_time = local_time.AddHours(utcDiff);
+        return local_time;
+    }
+
+    public static DateTime GetNorDate(string localCode = "IL")
+    {
+        DateTime NOR_date = Convert.ToDateTime("1/1/1901");
+        return NOR_date;
+    }
+
+    public static bool isUserAdmin(int member_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT is_admin from members Where UserId=@0";
+        var member = db.QuerySingle(sqlSelect,member_id);
+        db.Close();
+        if (member!=null){return member.is_admin;}
+        else {return false;}
+
+    }
+
+    public static bool isPermission(int member_id,string permission)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT " + permission + " AS permission FROM members WHERE UserId=@0";
+        var member = db.QuerySingle(sqlSelect, member_id);
+        db.Close();
+        if (member != null) { return member.permission; }
+        else { return false; }
+
+    }
+
+    public static void DeleteProspect (int prospect_id)
+    {
+        var op_data = Database.Open("op_data");
+        int u_id = WebSecurity.CurrentUserId;
+        DateTime local_time=AppFunctions.LocalTime();
+        var sqlSelect = "select * FROM prospects WHERE serial=@0";
+        var prospect= op_data.Query(sqlSelect, prospect_id);
+        if (prospect != null)
+        {
+            sqlSelect = "UPDATE prospects set is_deleted=1,is_update=1,update_ts=@0,delete_ts=@0,is_finished=1 WHERE serial=@1";
+            op_data.Execute(sqlSelect, local_time, prospect_id);
+        }
+
+        op_data.Close();
+    }
+
+    public static bool IsDigitsOnly(string str)
+    {
+        bool ret_val = true;
+        foreach (char c in str)
+        {
+            if (c < '0' || c > '9')
+                ret_val = false;
+        }
+
+        if (ret_val)
+        {
+            if (str.Length < 7 || str.Length > 14)
+            {
+                ret_val = false;
+            }
+        }
+
+        return ret_val;
+    }
+    public static bool IsValidPhone(string str)
+    {
+        bool ret_val = true;
+        foreach (char c in str)
+        {
+            if (c < '0' || c > '9')
+                ret_val = false;
+        }
+
+        if (ret_val)
+        {
+            if (str.Length < 10 || str.Length > 14)
+            {
+                ret_val = false;
+            }
+        }
+
+        return ret_val;
+    }
+    public static string FormatAnniversaryYears(int YearsAgo,int lang=1)
+    {
+        string retVal = "";
+
+        switch (YearsAgo)
+        {
+            case 1:
+                retVal = "שנה";
+                break;
+
+            case 2:
+                retVal = "שנתיים";
+                break;
+
+            default:
+                retVal = YearsAgo.ToString() +  " שנים";
+                break;
+        }
+
+        return retVal;
+    }
+
+    public static string FormatRelativeDate(DateTime theDate,bool is_year=true,bool is_dayOfWeek=false,int lang=1)
+    {
+        DateTime curTime = AppFunctions.LocalTime();
+        string retVal = "";
+
+        int daysDiff = 0;
+        TimeSpan daysUntilDate = theDate.Date - curTime.Date;
+        daysDiff= daysUntilDate.Days;
+
+        int dayOfWeek = ((int)theDate.DayOfWeek);
+
+
+        switch (daysDiff)
+        {
+            case -1:
+                retVal = "אתמול";
+                break;
+            case 0:
+                retVal = "היום";
+                break;
+
+            case 1:
+                retVal = "מחר";
+                break;
+
+            default:
+                retVal = theDate.ToShortDateString() ;
+                if (!is_year)
+                {
+                    retVal = theDate.ToString("dd/MM");
+                }
+
+                if (is_dayOfWeek)
+                {
+                    retVal = "יום " + AppFunctions.DayOfWeekTxt(((int)theDate.DayOfWeek)) + " " + retVal;
+                }
+
+                break;
+        }
+
+        return retVal;
+    }
+
+    public static string FormatStringMinutes(int valueToFormat,int lang = 1)
+    {
+        string retVal = "";
+
+        int formattedValue = 0;
+        int formattedReminder = 0;
+        formattedValue = valueToFormat / 60;
+        formattedReminder = valueToFormat % 60;
+
+        if (formattedValue > 0)
+        {
+            retVal = formattedValue.ToString() + " שעות ";
+        }
+        if (formattedReminder > 0)
+        {
+            retVal = retVal + formattedReminder.ToString() + " דקות";
+        }
+
+
+        return retVal;
+    }
+
+
+    public static string DayOfWeekTxt(int dayOfWeek)
+    {
+
+        switch (dayOfWeek)
+        {
+            case 0: return "ראשון";
+            case 1: return "שני";
+            case 2: return "שלישי";
+            case 3: return "רביעי";
+            case 4: return "חמישי";
+            case 5: return "שישי";
+            case 6: return "שבת";
+            default: return "";
+
+
+        }
+
+    }
+
+
+    public static DateTime GetDateOfNextDayOfWeek(int requested_dayOfWeek)
+    {
+
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime dateResult = local_time.Date;
+        int todays_dayOfWeek = ((int)local_time.DayOfWeek);
+        int dayDiff = 0;
+
+        dayDiff = requested_dayOfWeek - todays_dayOfWeek;
+        if (dayDiff < 0) { dayDiff += 7; }
+        dateResult = dateResult.Date.AddDays(dayDiff);
+
+        return dateResult;
+
+
+    }
+
+
+    public static string PopulateReachoutTemplate(int member_id, int template_id, string reachout_type = "REP", int list_id = 0)
+    {
+        int u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT * FROM msgTemplates WHERE id=@0";
+        var msgTemplate = db.QuerySingle(sqlSelect, template_id);
+        string msgType = ""; try { msgType = msgTemplate.msgType; } catch { }
+        DateTime local_time = AppFunctions.LocalTime();
+        sqlSelect = "select u_Stats.*,pb.member_name,pb.wanum from u_Stats JOIN pb ON u_Stats.serial=pb.m_id WHERE u_Stats.serial=@0";
+        var memberRs = db.QuerySingle(sqlSelect, member_id);
+        string msgTxt = "";
+        string MokedPhoneNumber = AppFunctions.GetAppProperty("MokedPhoneNumber");
+        string DisconnectPhoneNumber = AppFunctions.GetAppProperty("DisconnectPhoneNumber");
+
+        if (msgTemplate != null)
+        {
+            msgTxt = msgTemplate.msg_body;
+            if (memberRs != null)
+            {
+                msgTxt = msgTxt.Replace("USERNAME", memberRs.member_name);
+                msgTxt = msgTxt.Replace("REPNAME", WebSecurity.CurrentUserName);
+                msgTxt = msgTxt.Replace("MOKEDPHONENUMBER", MokedPhoneNumber);
+                msgTxt = msgTxt.Replace("DISCONNECTPHONENUMBER", DisconnectPhoneNumber);
+                msgTxt = msgTxt.Replace("DATESTAMP30", local_time.AddDays(30).ToShortDateString());
+                msgTxt = msgTxt.Replace("DATESTAMP14", local_time.AddDays(30).ToShortDateString());
+                msgTxt = msgTxt.Replace("DATESTAMP7", local_time.AddDays(7).ToShortDateString());
+                msgTxt = msgTxt.Replace("DATESTAMP", local_time.ToShortDateString());
+                msgTxt = msgTxt.Replace("TIMESTAMP", local_time.ToShortDateString() + " " + local_time.ToString("HH:mm"));
+
+                if (msgTxt.Contains("LODAYS"))
+                {
+                    TimeSpan DaysSinceLastOrder = local_time - memberRs.last_order_ts;
+                    int lodays = DaysSinceLastOrder.Days;
+                    msgTxt = msgTxt.Replace("LODAYS", lodays.ToString());
+                }
+
+                if (msgTxt.Contains("ANNIVERSARYYEARS"))
+                {
+                    TimeSpan DaysSinceFirstOrder = local_time - memberRs.first_order_ts;
+                    int AnniversaryYears = local_time.Year - memberRs.first_order_ts.Year;
+                    string AnniversaryYearsStr = ""; AnniversaryYearsStr = AppFunctions.FormatAnniversaryYears(AnniversaryYears);
+                    msgTxt = msgTxt.Replace("ANNIVERSARYYEARS", AnniversaryYearsStr);
+                }
+
+                msgTxt = msgTxt.Replace("USER_ID", memberRs.serial.ToString());
+                msgTxt = msgTxt.Replace("USERID", memberRs.serial.ToString());
+                msgTxt = msgTxt.Replace("WANUM", memberRs.wanum);
+
+            }
+        }
+        return msgTxt;
+    }
+
+
+
+    public static void WriteOrderComment(int order_serial, string order_note,bool is_mark_order=true,bool is_main=true)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        var op_data = Database.Open("op_data");
+        var m_join = Database.Open("m_join");
+
+        var sqlSelect = "INSERT INTO orderNotes(ts,order_id,rep_id,order_note,is_main) VALUES(@0,@1,@2,@3,@4)";
+        op_data.Execute(sqlSelect, LocalTime, order_serial, WebSecurity.CurrentUserId, order_note,is_main);
+        op_data.Close();
+
+
+        if (is_mark_order)
+        {
+            sqlSelect = "UPDATE weborders SET notes_count=notes_count+1 WHERE serial=@0";
+            m_join.Execute(sqlSelect, order_serial);
+            m_join.Close();
+        }
+    }
+
+
+    public static void WriteRoundComment(int round_id, string note)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "INSERT INTO RoundsLog(ts,round_id,rep_id,note) VALUES(@0,@1,@2,@3)";
+        op_data.Execute(sqlSelect, LocalTime, round_id, WebSecurity.CurrentUserId, note);
+        op_data.Close();
+
+    }
+
+    public static string GetRoundTitleById(int round_id, int lang = 1)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT title  FROM rounds WHERE id=@0";
+        var rs = db.QuerySingle(sqlSelect, round_id);
+        db.Close();
+        if (rs != null) { return rs.title; }
+        else { return ""; }
+
+    }
+
+    public static string GetVendorTitleById(int vendor_id, int lang = 1)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT vendor_name  FROM vendors WHERE vendor_id=@0";
+        var rs = db.QuerySingle(sqlSelect, vendor_id);
+        db.Close();
+        if (rs != null) { return rs.vendor_name; }
+        else { return ""; }
+
+    }
+
+    public static void WriteUserNoteComment(int member_id,  string the_note, bool is_important = false,bool is_editable = false,bool is_system=false)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT serial FROM pb WHERE m_id=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+        int pb_id = 0;
+        try { pb_id = pbEntry.serial; } catch { }
+
+        sqlSelect = "INSERT INTO usernotes(ts,rep_id,m_id,pb_id,thenote,is_important,is_editable,is_system) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+        op_data.Execute(sqlSelect, LocalTime, WebSecurity.CurrentUserId, member_id, pb_id, the_note, is_important, is_editable,is_system);
+        op_data.Close();
+
+
+    }
+
+
+    public static void ChangeMemberWanum(int member_id, string new_wanum)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT serial,wanum,member_name FROM pb WHERE m_id=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+        if (pbEntry != null)
+        {
+            int pb_id = pbEntry.serial;
+            string wanum = pbEntry.wanum;
+            string member_name = pbEntry.member_name;
+            string changeTo = new_wanum;
+            string changeFrom = wanum;
+            sqlSelect = "INSERT INTO pb_sub_records(pb_id,m_id,wanum,nick,is_nick,is_update) VALUES(@0,@1,@2,@3,@4,1)";
+            op_data.Execute(sqlSelect, pb_id, member_id, wanum, member_name, 0);
+
+            sqlSelect = "UPDATE pb SET wanum=@0,is_update=1 WHERE serial=@1";
+            op_data.Execute(sqlSelect, new_wanum, pb_id);
+
+            sqlSelect = "UPDATE u_stats SET wanum=@0,is_update=1 WHERE serial=@1";
+            op_data.Execute(sqlSelect, new_wanum, member_id);
+
+            sqlSelect = "INSERT INTO pbActions(create_ts,actionCode,pb_id,m_id,changeFrom,changeTo,wanum,member_name) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+            //op_data.Execute(sqlSelect, LocalTime, "WANUM", pb_id, member_id, changeFrom, changeTo, wanum, member_name);
+            AppFunctions.CreatePBAction(member_id, "WANUM", changeTo,changeFrom);
+
+        }
+        op_data.Close();
+
+
+    }
+
+    public static void ChangeMemberNick(int member_id, string new_nick)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT serial,wanum,member_name FROM pb WHERE m_id=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+        if (pbEntry != null)
+        {
+            int pb_id = pbEntry.serial;
+            string wanum = pbEntry.wanum;
+            string member_name = pbEntry.member_name;
+            string changeTo = new_nick;
+            string changeFrom = member_name;
+
+
+            sqlSelect = "INSERT INTO pb_sub_records(pb_id,m_id,wanum,nick,is_nick,is_update) VALUES(@0,@1,@2,@3,@4,1)";
+            op_data.Execute(sqlSelect, pb_id, member_id, wanum, member_name, 1);
+
+            sqlSelect = "UPDATE pb SET member_name=@0,is_update=1 WHERE serial=@1";
+            op_data.Execute(sqlSelect, new_nick, pb_id);
+            sqlSelect = "INSERT INTO pbActions(create_ts,actionCode,pb_id,m_id,changeFrom,changeTo,wanum,member_name) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+            //op_data.Execute(sqlSelect, LocalTime, "NICK", pb_id, member_id, changeFrom, changeTo,wanum,member_name);
+            AppFunctions.CreatePBAction(member_id, "NICK", changeTo, changeFrom);
+
+        }
+        op_data.Close();
+
+
+    }
+
+    public static void CreatePBAction(int member_id,string ActionCode, string changeTo,string changeFrom="")
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        int pb_id = 0;
+        string wanum = "";
+        string member_name = "";
+
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT serial,wanum,member_name FROM pb WHERE m_id=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, member_id);
+        if (pbEntry != null)
+        {
+            pb_id = pbEntry.serial;
+            wanum = pbEntry.wanum;
+            member_name = pbEntry.member_name;
+        }
+
+        sqlSelect = "DELETE FROM pbActions WHERE is_completed=0 AND ActionCode=@0 AND m_id=@1";
+        op_data.Execute(sqlSelect, ActionCode, member_id);
+
+        sqlSelect = "INSERT INTO pbActions(create_ts,ActionCode,pb_id,m_id,changeFrom,changeTo,wanum,member_name) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+        op_data.Execute(sqlSelect, LocalTime, ActionCode, pb_id, member_id, changeFrom, changeTo, wanum, member_name);
+
+        op_data.Close();
+
+
+    }
+
+
+    public static void BlockMember(int member_id)
+    {
+        int block_by = WebSecurity.CurrentUserId;
+
+        DateTime LocalTime = AppFunctions.LocalTime();
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT * FROM pb WHERE m_id=@0";
+        var pb_entry = op_data.QuerySingle(sqlSelect, member_id);
+        if (pb_entry != null)
+        {
+            string member_name = pb_entry.member_name;
+
+            //mark phonebook entries as blocked
+            sqlSelect = "UPDATE pb SET is_blocked=1,block_ts=@0,block_by=@1,is_update=1 WHERE serial=@2";
+            op_data.Execute(sqlSelect, LocalTime, block_by, pb_entry.serial);
+
+            //mark phonebook user account as blocked
+            sqlSelect = "UPDATE u_stats SET is_blocked=1,block_ts=@0,block_by=@1,is_update=1 WHERE serial=@2";
+            op_data.Execute(sqlSelect, LocalTime, block_by, pb_entry.m_id);
+            string logMsg = "המשתמש " + member_name + " נחסם!";
+            AppFunctions.WriteLog("BLOCKMEMBER", block_by, logMsg);
+
+        }
+
+
+        op_data.Close();
+    }
+
+    public static void UnBlockMember(int member_id)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        int block_by = WebSecurity.CurrentUserId;
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT * FROM pb WHERE m_id=@0";
+        var pb_entry = op_data.QuerySingle(sqlSelect, member_id);
+        if (pb_entry != null)
+        {
+            string member_name = pb_entry.member_name;
+            //mark phonebook entries as blocked
+            sqlSelect = "UPDATE pb SET is_blocked=0,block_ts=@0,block_by=@1,is_update=1 WHERE serial=@2";
+            op_data.Execute(sqlSelect, LocalTime, block_by, pb_entry.serial);
+
+            //mark phonebook user account as blocked
+            sqlSelect = "UPDATE u_stats SET is_blocked=0,block_ts=@0,block_by=@1,is_update=1 WHERE serial=@2";
+            op_data.Execute(sqlSelect, LocalTime, block_by, pb_entry.m_id);
+            string logMsg = "הוסרה החסימה מהמשתמש  " + member_name;
+            AppFunctions.WriteLog("BLOCKMEMBER", block_by, logMsg);
+        }
+
+
+        op_data.Close();
+    }
+
+    public static void DeleteMember(int member_id)
+    {
+        DateTime LocalTime = AppFunctions.LocalTime();
+        int u_id = WebSecurity.CurrentUserId;
+
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT * FROM pb WHERE m_id=@0";
+        var memberRs = op_data.QuerySingle(sqlSelect, member_id);
+        if (memberRs != null)
+        {
+            string member_name = memberRs.member_name;
+            member_id = memberRs.m_id;
+            sqlSelect = "UPDATE pb SET is_deleted=1,delete_ts=@0,block_by=@1,is_update=1 WHERE m_id=@2";
+            op_data.Execute(sqlSelect, LocalTime, u_id, member_id);
+
+            sqlSelect = "UPDATE listsusers SET is_update=1,is_deleted=1,mark_deletion=1 WHERE user_id=@0";
+            try { op_data.Execute(sqlSelect, member_id); } catch { }
+
+            op_data.Close();
+            string logMsg = "המשתמש  " + member_name + " נמחק ";
+            AppFunctions.WriteLog("LOG", u_id, logMsg);
+
+        }
+
+
+        op_data.Close();
+    }
+
+    public static void LinkCityToArea(int area_id,string city)
+    {
+
+        var op_data = Database.Open("op_data");
+        int u_id = WebSecurity.CurrentUserId;
+        DateTime local_time = AppFunctions.LocalTime();
+        var sqlSelect = "select serial FROM citiesInAreas WHERE city=@0";
+        var area = op_data.QuerySingle(sqlSelect, city);
+        if (area == null)
+        {
+            sqlSelect = "INSERT INTO citiesInAreas (city,area_id) VALUES(@0,@1)";
+            op_data.Execute(sqlSelect, city,area_id);
+        }
+
+        op_data.Close();
+    }
+
+}

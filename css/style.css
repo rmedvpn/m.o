@@ -1,0 +1,1772 @@
+/*
+@font-face {
+    font-family: font;
+    src: url(font.ttf);
+}
+*/
+
+/* General Styles
+---------------------------------*/
+*, html, body {
+    margin: 0px;
+    padding: 0px;
+}
+ body {
+    background-color:#fff;
+    color: #808080;
+    font-family: font,Verdana, Helvetica, Sans-Serif;
+    font-size: 16px;
+}
+ 
+ /* Layout
+---------------------------------*/
+#page {
+    margin: 0 auto;
+    width: 320px;
+    background-color: #fff;
+    text-align: right;
+}
+ #header {
+    height: 60px;
+}
+ #content {
+    border-top: 1px solid #cdcdcd;
+    clear: both;
+    margin: 0px 10px 0px 10px;
+    padding: 20px;
+  
+}
+ #footer {
+    color:#000;
+    padding: 10px;
+    text-align: center;
+}
+
+
+ #main {
+    float:right;
+    width: 400px;
+    margin-bottom: 20px;
+    border-left: 1px solid #cdcdcd;
+    padding-left:20px;
+}
+
+button.accordion.active, button.accordion:hover {
+    background-color: #fff;
+    border: 0;
+    
+}
+
+button.accordion:after {
+    content: '';
+    color: #57d600;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+    background-color: #fff;
+
+}
+
+button.accordion.active:after {
+    content: "";
+    background-color: #fff;
+
+}
+
+div.panel {
+    padding: 0 18px;
+    background-color: white;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+  
+}
+
+td.header {
+    border-bottom: 2px solid #000000;
+    padding: 5px;
+    margin: 5px;
+    background-color:#808080;
+    color:white;
+}
+td.dataCell {
+    border-bottom: 2px solid #000000;
+    padding: 5px;
+    margin: 5px;
+}
+
+.heart {
+	font-size: 30px;
+	color: #e00;
+	animation: beat .50s infinite alternate;
+	transform-origin: center;
+    z-index: 9999;
+}
+
+
+td.CA_cell {
+    border-bottom: 1px dotted #e3e3e3;
+    padding: 5px;
+    margin: 5px;
+}
+
+button.prospectsInf {
+    border-radius: 50%;
+    border:2px solid #000;
+    font-size:18px;
+    padding:2px;margin:5px;
+}
+
+
+/* Heart beat animation */
+@keyframes beat{
+	to { transform: scale(1.4); }
+}
+
+.spinner {
+  width: 70px;
+  text-align: center;
+}
+
+.spinner > div {
+  width: 14px;
+  height: 14px;
+  background-color: #808080;
+
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+  animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+}
+
+.spinner .bounce1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+.spinner .bounce2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+
+@-webkit-keyframes sk-bouncedelay {
+  0%, 80%, 100% { -webkit-transform: scale(0) }
+  40% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes sk-bouncedelay {
+  0%, 80%, 100% { 
+    -webkit-transform: scale(0);
+    transform: scale(0);
+  } 40% { 
+    -webkit-transform: scale(1.0);
+    transform: scale(1.0);
+  }
+}
+
+.Msngrloader {
+    border: 4px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 4px solid #57d600;
+    width: 16px;
+    height: 16px;
+    padding: 4px;
+    margin: 4px;
+    -webkit-animation: spin 1s linear infinite;
+    animation: spin 1s linear infinite;
+}
+
+.Tinyloader {
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top: 2px solid #808080;
+    width: 12px;
+    height: 12px;
+    padding: 2px;
+    margin: 2px;
+    margin-top:10px;
+    -webkit-animation: spin 1s linear infinite;
+    animation: spin 1s linear infinite;
+}
+
+@-webkit-keyframes spin {
+    0% {
+        -webkit-transform: rotate(0deg);
+    }
+
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+/*START MY CUSTOM STYLING*/
+
+button.closeSideBar {
+    float: left;
+    font-size: 16px;
+    padding: 5px;
+    margin: 5px;
+    background-color: transparent;
+    border:0
+}
+
+div.BarInfoBox {
+    font-size: 16px;
+    overflow: auto;
+    float: right;
+    padding: 5px;
+    margin: 5px;
+    border: 2px solid #e3e3e3;
+    background-color: white;
+    color: #808080
+}
+div.BarInfoBoxGoodAlert {
+    font-size: 16px;
+    overflow: auto;
+    float: right;
+    padding: 5px;
+    margin: 5px;
+    border: 2px solid #e3e3e3;
+    background-color: #57d600;
+    color: #fff
+}
+
+div.ListRow {
+    direction:rtl;
+    overflow: auto;
+    padding: 5px;
+    margin: 5px;
+    background-color: #fff;
+    text-align: right;
+    border-bottom: 2px dotted #808080;
+}
+
+
+
+
+div.ListCell {
+
+    padding: 5px;
+    margin: 5px;
+    float:right;
+}
+div.ListCell_odl {
+    background-color: #fff;
+    color: #808080;
+    padding: 5px;
+    margin: 5px;
+    float: right;
+}
+div.ProspectListRow {
+    direction: rtl;
+    overflow: auto;
+    padding: 5px;
+    margin: 5px;
+    background-color: #fff;
+    text-align: right;
+    border-bottom: 2px dotted #808080;
+}
+
+div.ProspcetListCell {
+    background-color: #fff;
+    color: #808080;
+    padding: 5px;
+    margin: 5px;
+    float: right;
+    font-size: 18px;
+}
+span.ProspcetListCellHeader {
+    font-size: 14px;
+    color: #b200ff;
+    padding: 0;
+    margin: 2px;
+   
+}
+
+span.SmallInfo {
+    font-size: 11px;
+    color: #b200ff;
+    padding: 1px;
+    margin: 1px;
+}
+
+span.prosMoreInf {
+    float: left;
+    padding: 5px;
+    margin: 5px;
+    border: 1px dotted #808080;
+    border-radius: 50%;
+}
+img.ProspcetApprove {
+    height: 45px;
+    width: 45px;
+    float: right;
+    padding: 5px;
+    margin: 5px;
+}
+
+input.prosMiniTxt {
+    font-size: 16px;
+    float: left;
+    width: 70px;
+    padding: 3px;
+    margin: 3px
+}
+
+div.formSection {
+    overflow: auto;
+    width: 80%;
+    border-radius: 5px;
+    background-color: #fff;
+    border: 2px solid #000
+}
+div.formSectionSep {
+    overflow: auto;
+    height: 10px;
+}
+
+button.formSubmit1 {
+    font-size: 16px;
+    padding: 5px;
+    margin: 5px;
+    float: left;
+    background-color: #57d600;
+    color: #fff;
+    width: 40%
+}
+button.formCancel1 {
+    font-size: 16px;
+    padding: 5px;
+    margin: 5px;
+    float: right;
+    background-color: #f00;
+    color: #fff;
+    width: 40%
+}
+textarea.formTxtArea1 {
+    resize: none;
+    font-size: 16px;
+    text-align: right;
+    padding: 5px;
+    margin: 5px;
+    width: 90%
+}
+
+select.formSelect1 {
+    font-size: 18px;
+    padding: 5px;
+    margin: 5px;
+    width: 90%;
+    background-color:#808080;
+    color:#fff
+}
+
+div.SearchResDiv {
+    overflow: auto;
+    padding: 5px;
+    font-size: 16px;
+    border-bottom: 1px dotted #fff;
+}
+
+div.SearchResInfo {
+    overflow: auto;
+    float: right;
+    
+    direction: rtl
+}
+
+div.SearchResSubtitle {
+    overflow: auto;
+    font-size: 12px;
+    direction: rtl;
+    color:#57d600
+}
+div.SearchResInfoBox {
+    height: 30px;
+    float: left;
+    padding: 2px;
+    margin: 2px;
+    margin-left: 10px;
+    background-color:white;
+    color:#808080;
+    font-size:12px;
+    text-align:center;
+    border-radius:5px;
+}
+div.SearchResInfoBoxAlert {
+    height: 30px;
+    float: left;
+    padding: 2px;
+    margin: 2px;
+    margin-left: 10px;
+    background-color: white;
+    color: red;
+    font-size: 12px;
+    text-align: center;
+    border-radius: 5px;
+}
+img.SearchResButton {
+    height: 30px;
+    float: left;
+    padding: 2px;
+    margin: 2px;
+    margin-left: 10px;
+    background: transparent;
+    border-radius: 50%;
+}
+
+
+div.NewOrderSearchResDiv {
+    overflow: auto;
+    padding: 5px;
+    font-size: 16px;
+    border-bottom: 1px dotted #808080;
+    background-color:#fff;
+    color:#808080;
+    width:100%;
+
+}
+
+div.NewOrderSearchResInfo {
+    overflow: auto;
+    float: right;
+    direction: rtl;
+    width: 100%;
+}
+
+div.NewOrderSearchResSubtitle {
+    overflow: auto;
+    font-size: 12px;
+    direction: rtl;
+    color: #57d600;
+    float:left
+
+}
+TableCell {
+    padding: 5px;
+    margin: 5px;
+    vertical-align: top;
+}
+td.TableCell {
+    padding: 5px;
+    margin: 5px;
+    vertical-align:top;
+    color:#000000
+}
+
+
+tr.ListRow {
+    direction: rtl;
+    overflow: auto;
+    padding: 5px;
+    margin: 5px;
+    background-color: #fff;
+    text-align: right;
+    border-bottom: 2px dotted #808080;
+}
+td.TableCell1 {
+    padding: 5px;
+    margin: 5px;
+    vertical-align: top;
+    color: #000000;
+    border-bottom: 2px dotted #e3e3e3;
+}
+td.cancelledRow {
+    padding: 5px;
+    margin: 5px;
+    vertical-align: top;
+    text-decoration: line-through;
+    color: #f00;
+}
+
+
+button.editBtn {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+}
+
+button.delBtn {
+    padding: 5px;
+    margin: 5px;
+    background-color: #f00;
+    color: #fff;
+    font-size: 16px;
+}
+
+button.OkBtn {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+}
+
+div.EmptyRound {
+    padding: 2px;
+    margin: 2px;
+    font-size: 16px;
+    float: right;
+    background-color: #e3e3e3;
+    color: @#808080;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+div.ActiveRound {
+    padding: 2px;
+    margin: 2px;
+    font-size: 16px;
+    float: right;
+    background-color: #fff;
+    color: #000;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+div.AttnRound {
+    padding: 2px;
+    margin: 2px;
+    font-size: 16px;
+    float: right;
+    background-color: #fff;
+    color: #000;
+    margin-left: 3px;
+    margin-right: 3px;
+    font-weight:bold;
+}
+span.RoundNewOrdersAlert {
+    float: left;
+    padding: 1px;
+    background-color: #57d600;
+    color: #fff;
+    margin-left: 3px;
+    margin-right: 3px;
+    font-weight: bold;
+}
+span.RoundOrdersCounterAlert {
+    float: left;
+    padding: 1px;
+    background-color: #4800ff;
+    color: white;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+span.VendorCancelledOrdersCounterAlert {
+    float: left;
+    padding: 1px;
+    background-color: #f00;
+    color: yellow;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+span.TransferredOrdersCounterAlert {
+    float: left;
+    padding: 1px;
+    background-color: #b200ff;
+    color: #fff;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+span.ProblematicOrdersCounterAlert {
+    float: left;
+    padding: 1px;
+    background-color: #f00;
+    color: yellow;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+span.RoundNoOrdersAlert {
+    float: left;
+    padding: 1px;
+    background-color: #808080;
+    color: #e3e3e3;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+div.zReportInfoBox {
+    overflow: auto;
+    width: 50%;
+    padding: 5px;
+    margin: 5px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    font-size: 18px;
+    text-align: center
+}
+div.zReportInfoBoxWide {
+    overflow: auto;
+    width: 90%;
+    padding: 5px;
+    margin: 5px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    font-size: 18px;
+    text-align: center
+}
+div.zReportRowHeader {
+    text-align:right;
+    overflow: auto;
+    border-bottom: 1px dotted #808080
+}
+div.zReportRowItem {
+    font-weight: bold;
+    float: right
+}
+div.zReportRowResult {
+    float: left
+}
+div.priceOp {
+    float: left;
+    border-radius: 5px;
+    text-align: center;
+    padding: 3px;
+    margin: 3px;
+    border: 1px solid #808080;
+}
+div.priceOpSpecial {
+    float: left;
+    border-radius: 5px;
+    text-align: center;
+    padding: 3px;
+    margin: 3px;
+    border: 1px solid #b200ff;
+    color: #000;
+}
+div.priceOpCatalog {
+    float: left;
+    border-radius: 5px;
+    text-align: center;
+    padding: 3px;
+    margin: 3px;
+    border: 1px solid #ff6a00;
+    color: #000;
+}
+
+
+span.FullEnvelope {
+    text-align: center;
+    direction: rtl;
+    font-size: 12px;
+    margin: 5px;
+    padding: 5px;
+    float: right;
+    color: #fff;
+    background-color: #000;
+    border-radius: 5px;
+}
+span.EmptyEnvelope {
+    text-align: center;
+    direction: rtl;
+    font-size: 12px;
+    margin: 5px;
+    padding: 5px;
+    float: right;
+    color: #808080;
+    background-color: #e3e3e3;
+    border-radius: 5px;
+}
+span.RndBrdEntryAlert {
+    text-align: right;
+    direction: rtl;
+    font-size: 14px;
+    float: right;
+    border-radius: 5px;
+    
+}
+button.RndBrdCartEditAlert {
+    font-size: 12px;
+    height: 40px;
+    background-color: yellow;
+    border-radius: 5px;
+    border: 0;
+    margin-top: 5px;
+    margin-right: 2px
+}
+input.RndBrdEntryColorPicker {
+    width: 15px;
+    height: 40px;
+    margin-top: 5px;
+    margin-right: 2px
+}
+
+input.HiddenRndBrdEntryColorPicker {
+    width: 1px;
+    height: 1px;
+    float: right;
+    border: 0
+}
+
+select.A {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+}
+div.A {
+    overflow: auto;
+    padding: 5px;
+    margin: 5px;
+    color:#000;
+}
+span.A {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+}
+span.A-Right {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float:right;
+}
+span.B-Right {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: right;
+}
+span.A-Right-Centered {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: right;
+    text-align:center;
+}
+span.B-Right-Centered {
+    padding: 3px;
+    margin: 3px;
+    font-size: 16px;
+    float: right;
+    text-align: center;
+}
+
+span.A-Left {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left;
+}
+span.PrplMiniTag {
+    font-size: 11px;
+    color: #b200ff;
+}
+span.RedMiniTag {
+    font-size: 11px;
+    color: #f00;
+}
+span.GreenMiniTag {
+    font-size: 11px;
+    color: #57d600;
+}
+span.GrayMiniTag {
+    font-size: 11px;
+    color: #808080;
+}
+span.MiniTag {
+    font-size: 11px;
+    color: #000;
+}
+span.WhiteMiniTag {
+    font-size: 11px;
+    color: #fff;
+}
+span.YellowMiniTag {
+    font-size: 11px;
+    color: yellow;
+}
+div.B {
+    overflow: auto;
+}
+div.C {
+    overflow: auto;
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    border-bottom: 1px dotted #808080
+}
+input.A {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+}
+input.A30 {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    width:30px;
+}
+
+input.A50 {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    width: 50px;
+}
+
+
+
+button.A {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px
+}
+button.LeftAction {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float:left;
+
+}
+button.GreenRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #57d600
+}
+div.GreenRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #57d600
+}
+button.PrplRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #b200ff
+}
+button.RedRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #f00
+}
+button.GrayRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #808080
+}
+button.NoDeliveryRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 5px solid #f00
+}
+button.DeliveryOkRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #57d600
+}
+
+button.PostponedRoundButton {
+    padding: 5px;
+    margin: 5px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 5px dotted #4800ff
+}
+
+textarea.A {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    
+    resize: none;
+    width: 80%;
+}
+
+textarea.A-Left {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float:left;
+    resize:none;
+    width:80%;
+    
+}
+
+
+div.cartItemEntry {
+    overflow: auto;
+    border-bottom: 1px dashed #808080;
+    font-size:16px;
+
+}
+div.cartItemInfo {
+    font-size: 16px;
+    text-align: right;
+    overflow: auto;
+    color: #000
+}
+span.cartItemIcon {
+    float: right;
+    margin: 5px;
+    padding: 5px;
+    font-size: 24px;
+    background-color: #e3e3e3;
+    border-radius: 5px;
+    width: 35px;
+    height: 35px;
+    text-align: center
+}
+div.cartItemTitle {
+    overflow: auto;
+    float: right;
+    margin-right: 5px;
+}
+div.cartItemSubProd {
+    overflow: auto;
+    color: #000;
+    margin-right: 45px
+}
+div.cartItemSubTitle {
+    overflow: auto;
+    font-size: 12px;
+    color: #808080
+}
+img.cartItemImg {
+    width: 45px;
+    height: 45px;
+    border-radius: 5px;
+    float: right;
+    margin-top: 5px;
+}
+img.cartItemImgSmall {
+    width: 25px;
+    height: 25px;
+    border-radius: 5px;
+    float: right;
+    margin-top: 5px;
+}
+div.reg{
+    overflow:auto;
+}
+span.cartItemPrice {
+    float: left;
+    padding-left: 10px;
+    padding-top: 10px;
+    color: #000;
+    font-weight: bold
+}
+div.RedBorder {
+    border: 1px dotted #f00;
+}
+div.MiniTitle {
+    overflow: auto;
+    font-size: 12px;
+    color:#b200ff
+}
+div.CouponIssueSearchResDiv {
+    overflow: auto;
+    padding: 5px;
+    font-size: 16px;
+    border-bottom: 1px dotted #808080;
+    background-color: #fff;
+    color: #000;
+}
+
+div.CouponIssueSearchResInfo {
+    overflow: auto;
+    float: right;
+    direction: rtl;
+    width: 100%;
+}
+
+div.CouponIssueSearchResSubtitle {
+    overflow: auto;
+    font-size: 12px;
+    direction: rtl;
+    color: #57d600;
+    float: left;
+    margin-left:10px;
+}
+div.PreApprovalSearchResDiv {
+    overflow: auto;
+    padding: 5px;
+    font-size: 16px;
+    border-bottom: 1px dotted #808080;
+    background-color: #fff;
+    color: #000;
+    cursor:pointer;
+}
+
+div.PreApprovalSearchResInfo {
+    overflow: auto;
+    float: right;
+    direction: rtl;
+    width: 100%;
+}
+
+div.PreApprovalSearchResSubtitle {
+    overflow: auto;
+    font-size: 12px;
+    direction: rtl;
+    color: #57d600;
+    float: left;
+    margin-left: 10px;
+}
+
+span.cartAmountHl {
+    background-color: yellow;
+    border-radius: 3px;
+}
+span.cartAmountHlCrossed {
+    background-color: yellow;
+    border-radius: 3px;
+    text-decoration: line-through;
+    color:#f00
+}
+
+div.VednorSummaryBox {
+    direction: rtl;
+    float: right;
+    margin: 10px;
+    padding: 5px;
+    border:2px solid #808080;
+    border-radius:5px;
+    text-align:center;
+
+}
+div.RoundCpSettingsBox {
+    direction: rtl;
+    float: right;
+    margin: 5px;
+    padding: 5px;
+    border: 2px solid #808080;
+    border-radius: 5px;
+    text-align: center;
+    background-color:#fff
+}
+span.RoundCpSettingsInfo {
+ font-size:14px;
+ color:#000;
+ font-weight:bold;
+}
+
+
+div.PropSection {
+    overflow: auto;
+    font-size: 16px;
+    border: 2px solid #808080;
+    padding:10px;
+    margin:10px;
+    border-radius:5px;
+    background-color:#fff
+}
+div.PropRow {
+    overflow: auto;
+    border-bottom: 1px dotted #808080;
+    padding-top:5px;
+    padding-bottom:5px;
+}
+span.PropTitle {
+    font-size: 16px;
+    color: #000;
+    font-weight: bold;
+}
+span.PropValue {
+    float: left;
+    font-size: 14px;
+    color: #808080
+}
+div.PropTag {
+    overflow: auto;
+    font-size: 14px;
+    padding: 3px;
+    margin: 0;
+    background-color: #e3e3e3;
+    color: #000;
+}
+div.GreenPropTag {
+    overflow: auto;
+    font-size: 14px;
+    padding: 3px;
+    margin: 0;
+    background-color: #57d600;
+    color: #000;
+}
+div.YellowPropTag {
+    overflow: auto;
+    font-size: 14px;
+    padding: 3px;
+    margin: 0;
+    background-color: #ffffcc;
+    color: #000;
+}
+div.GrayPropTag {
+    overflow: auto;
+    font-size: 14px;
+    padding: 3px;
+    margin: 0;
+    background-color: #e3e3e3;
+    color: #000;
+}
+div.BluePropTag {
+    overflow: auto;
+    font-size: 14px;
+    padding: 3px;
+    margin: 0;
+    background-color: #afceeb;
+    color: #000;
+}
+div.PropTagBox {
+    float: left;
+    font-size: 12px;
+    padding: 3px;
+    margin: 1px;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #808080;
+}
+div.PropTagTitle {
+    float: right;
+    padding: 3px;
+    margin: 3px;
+    color: #000;
+}
+
+div.SelectedMainAreaLbl {
+    float: right;
+    color: #000;
+}
+
+div.NotSelectedMainAreaLbl{
+    float: right;
+    color: #808080;
+}
+
+input.PropTextBox {
+    font-size: 16px;
+    padding: 3px;
+    margin: 1px;
+    border: 0;
+    background-color: #e3e3e3;
+    color: #000;
+}
+    input.PropTextBox::placeholder {
+        font-size: 11px;
+
+    }
+textarea.PropTextBox {
+    font-size: 16px;
+    padding: 3px;
+    margin: 1px;
+    border: 0;
+    background-color: #e3e3e3;
+    color: #000;
+    resize: none;
+    width: 90%;
+}
+select.PropSelect {
+    font-size: 16px;
+    padding: 3px;
+    margin: 1px;
+    border: 0;
+    background-color: #e3e3e3;
+    color: #000;
+}
+div.OrderSection {
+    overflow: auto;
+    padding: 5px;
+    background-color: white;
+    font-size: 18px;
+    width: 90%;
+    margin: 5px;
+    border-radius: 5px;
+    text-align: right
+}
+div.OrderSectionTitle {
+    overflow: auto;
+    background-color: #fff;
+    color: #000
+}
+button.OrderSectionTitleBtn {
+    float: left;
+    background-color: white;
+    border: 1px dotted #e3e3e3;
+    color: #808080;
+    padding: 3px;
+    border-radius: 5px;
+    font-size: 14px;
+    margin: 5px
+}
+button.OrderSectionCartBtn {
+    float: left;
+    background-color: #000;
+    color: #fff;
+    padding: 3px;
+    font-size: 14px;
+    margin: 5px
+}
+button.OrderCommandBtn {
+    padding: 5px;
+    margin: 5px;
+    width: 50%;
+    font-size: 20px;
+    background-color: #57d600;
+    color: white;
+    border-radius: 10px;
+    border: 0
+}
+div.OrderInfoTitle {
+    color: #808080;
+    font-size: 14px;
+    padding:5px;
+    margin:5px;
+}
+span.OrderInfoValue {
+    color: #000;
+    padding: 5px;
+    margin-top:5px;
+    font-size: 16px;
+    font-weight:bold;
+}
+div.hide {
+  display:none;
+}
+
+div.RoundBoardTitleBarButton {
+    background-color: white;
+    color: #000;
+    padding: 5px;
+    font-size: 16px;
+    border: 1px solid #000;
+    overflow: auto;
+    margin-left: 3px;
+    margin-right: 3px;
+    float: right;
+}
+
+span.RoundBoardToolTipBox {
+    background-color: white;
+    color: #000;
+    padding: 5px;
+    font-size: 16px;
+    border: 1px solid #000;
+    overflow: auto;
+    margin-left: 2px;
+    margin-right: 2px;
+    font-weight: bold;
+}
+
+
+span.RoundBoardInfoBox {
+    background-color: #fff;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #57d600;
+    float: left;
+    margin: 5px;
+    padding: 5px;
+    direction: rtl;
+    color: #000
+}
+
+
+span.RoundBoardDeliveryTipBox {
+    background-color: white;
+    color: #000;
+    font-size: 16px;
+    margin-left:5px;
+    border: 1px solid white;
+    float: right;
+    padding: 5px;
+    font-weight:bold;
+}
+
+
+span.RoundBoardFutureDelivery {
+    background-color: #fff;
+    color: #57d600;
+    font-size: 16px;
+    margin-left: 5px;
+    border: 1px solid #fff;
+    float: right;
+    padding: 5px;
+    font-weight: bold;
+}
+
+
+span.RoundBoardSelectedView {
+    background-color: yellow;
+    color: #000;
+    font-size: 16px;
+    margin-left: 5px;
+    border: 1px solid yellow;
+    float: right;
+    padding: 5px;
+    font-weight: bold;
+}
+
+
+span.RoundBoardAddDeliveryBtn {
+    background-color: #e3e3e3;
+    color: #f00;
+    font-size: 16px;
+    margin-left: 5px;
+    border: 1px solid #e3e3e3;
+    float: right;
+    padding: 5px;
+    font-weight: bold;
+}
+
+span.RoundBoardAddDeliveryActionBtn {
+    background-color: #fff;
+    color: #000;
+    padding: 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #57d600;
+    float: left;
+    margin: 5px;
+    margin-right: 1px;
+    margin-left: 1px
+}
+
+span.RoundBoardPastDelivery {
+    background-color: #fff;
+    color: #f00;
+    font-size: 16px;
+    margin-left: 5px;
+    border: 1px solid #fff;
+    float: right;
+    padding: 5px;
+    font-weight: bold;
+}
+
+
+span.RoundBoardInTransitDelivery {
+    background-color: #afceeb;
+    color: #000;
+    font-size: 16px;
+    margin-left: 5px;
+    border: 1px solid #afceeb;
+    float: right;
+    padding: 5px;
+    font-weight: bold;
+}
+
+span.RoundBoardNoOrdersDeliveryCounter {
+    padding: 1px;
+    background-color: #808080;
+    color: #fff;
+    margin-left: 5px;
+    margin-right: 2px;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+
+span.RoundBoardOrdersDeliveryCounter {
+    padding: 1px;
+    background-color: #57d600;
+    color: #fff;
+    margin-left: 5px;
+    margin-right: 2px;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+span.deliveryToolTipMiniButton {
+    background-color: #fff;
+    color: #000;
+    float: right;
+    margin-left: 5px;
+    margin-right: 5px;
+    border-radius: 5px;
+}
+
+div.deliveryToolTip {
+padding:5px;
+margin:5px;
+border-radius:5px;
+background-color:#000;
+border:0;
+color:#fff;
+float:right;
+}
+
+button.deliveryToolTip {
+padding:5px;
+margin:5px;
+border-radius:5px;
+background-color:#000;
+border:0;
+color:#fff;
+float:right;
+font-size:16px;
+}
+
+
+
+td.RouteHeaderCell {
+    background-color: #000;
+    color: #fff;
+    padding: 5px;
+    margin: 5px;
+}
+td.RouteHeaderCellPale {
+    background-color: yellow;
+    color: #fff;
+    padding: 5px;
+    margin: 5px;
+    border:2px solid #f00;
+    
+}
+td.InDeliveryRouteHeaderCell {
+    background-color: #57d600;
+    color: #fff;
+    padding: 5px;
+    margin: 5px;
+    
+}
+div.RoundScheduledDeliveryEntry {
+    overflow: auto;
+    text-align: center;
+    background-color: #000;
+    color: #fff;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px;
+}
+div.RoundNextScheduledDeliveryEntry {
+    overflow: auto;
+    text-align: center;
+    background-color: #57d600;
+    color: #fff;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px;
+}
+div.RoundNonScheduledDeliveryEntry {
+    overflow:auto;
+    text-align: center;
+    background-color: #e3e3e3;
+    color: #808080;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px;
+}
+button.orderInfoBtn1 {
+    background-color: #808080;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+button.orderInfoBtn2 {
+    background-color: white;
+    border: 1px solid #000;
+    color: #808080;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+button.orderInfoActionBtn {
+    font-size: 11px;
+    float: left;
+    font-size: 16px;
+    padding: 5px;
+    margin-left: 5px;
+    margin-top: 10px;
+    background-color: #fff;
+    color: #000;
+    border: 2px solid #000;
+    border-radius: 5px;
+
+}
+div.ApprovedUnassignedOrderInDelivery {
+    text-align: right;
+    padding: 5px;
+    margin: 5px;
+    float: right;
+    border: 2px solid #000;
+    border-radius: 5px;
+    background-color: #fff;
+    color: black
+}
+div.unApprovedUnassignedOrderInDelivery {
+    text-align: right;
+    padding: 5px;
+    margin: 5px;
+    float: right;
+    border: 1px dotted #f00;
+    border-radius: 5px;
+    background-color: #fff;
+    color: black
+}
+div.scroll {
+ 
+    overflow-x: auto;
+    white-space: nowrap;
+ 
+}
+td.zReportCell {
+    padding: 5px;
+    margin: 5px;
+    border-bottom: 1px dotted #e3e3e3;
+    font-size: 14px;
+}
+td.zReportRowHeader{
+    padding:5px;
+    margin:5px;
+    background-color:#000;
+    color:#fff;
+    font-size:18px;
+}
+button.zReportAction{
+    padding:3px;
+    margin:1px;
+    font-size:12px;
+    color:#f00;
+    border:0
+}
+
+select.zReportAction {
+    padding: 3px;
+    margin: 1px;
+    font-size: 12px;
+    color: #000;
+    
+}
+input.zReportAction {
+    padding: 1px;
+    margin: 0px;
+    font-size: 16px;
+    color: #000;
+    
+}
+
+div.LobbySubBtn {
+    background-color: #fff;
+    color: #000;
+    padding: 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #57d600;
+    overflow: auto;
+    margin: 5px;
+    float: right;
+}
+
+
+div.ProductsListSubProducts {
+    margin: 5px;
+    padding: 5px;
+    color: #fff;
+    background-color: #ff6a00;
+    border-radius: 5px;
+    float: left
+}
+
+td.EnvelopeNotSet {
+    padding: 5px;
+    margin: 5px;
+    text-align: center;
+    background-color: #e3e3e3;
+    color: #808080;
+}
+td.SetEnvelope {
+    padding: 5px;
+    margin: 5px;
+    text-align: center;
+    background-color: #000;
+    color: #fff;
+}
+
+td.DeliveryEnvelopeInTransit {
+    padding: 5px;
+    margin: 5px;
+    text-align: center;
+    background-color: #b200ff;
+    color: #fff;
+}
+
+td.DeliveryOkEnvelope {
+    padding: 5px;
+    margin: 5px;
+    text-align: center;
+    background-color: #57d600;
+    color: #fff;
+}
+
+td.DeliveryNotOkEnvelope {
+    padding: 5px;
+    margin: 5px;
+    text-align: center;
+    background-color: #f00;
+    color: yellow;
+}
+
+
+
+td.NoEnvelope {
+    padding: 5px;
+    margin: 5px;
+    text-align: center;
+    background-color: #e3e3e3;
+    color: #808080;
+}
+
+img.ProdImg_A {
+    height: 50px;
+    max-width: 50px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+    float: right
+}
+img.ProdImg_small {
+    height: 35px;
+    max-width: 35px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+    float: right
+}
+
+td.OrdersViewerCell{
+    padding:5px;
+    margin:5px;
+    font-size:16px;
+    color:#000
+}
+
+div.CatalogPricingOptionSummary {
+    overflow: auto;
+    font-size: 18px;
+    background-color: #afceeb;
+    margin: 5px;
+    text-align: right;
+    border-bottom:1px dotted #808080;
+}
+
+
+div.PricingOptionSummary {
+    overflow: auto;
+    font-size: 18px;
+    background-color: #e3e3e3;
+    margin: 5px;
+    text-align: right;
+    border-bottom:1px dotted #808080;
+}
+
+div.PricingOptionItem {
+    overflow: auto;
+    font-size: 18px;
+    margin: 3px;
+    padding: 3px;
+    text-align: right;
+    float:right
+}
+span.PricingOptionValue {
+    overflow: auto;
+    font-size: 14px;
+    color:#000;
+    font-weight:bold;
+}
+span.PricingOptionLightValue {
+    overflow: auto;
+    font-size: 13px;
+    color: #000;
+    font-weight: normal;
+}
+
+button.PriceOptionsSettings {
+    padding: 5px;
+    margin: 5px;
+    font-size: 12px;
+    float: left
+}
+
+button.PriceOpActionBtn {
+    padding: 5px;
+    margin: 5px;
+    font-size: 12px;
+  
+}
+div.ProdReturnSelectCatRow {
+    overflow: auto;
+    color: #000;
+    font-size: 14px;
+    border-bottom: 1px dotted #e3e3e3;
+}
+div.ProdReturnSelectCatRowSelected {
+    overflow: auto;
+    color: #000;
+    font-size: 14px;
+    border-bottom: 1px dotted #e3e3e3;
+    background-color: #e3e3e3;
+}
+div.ProductRow {
+    overflow: auto;
+    color: #000;
+    font-size: 14px;
+    border-bottom:1px dotted #e3e3e3;
+    padding:5px;
+    
+}
+div.ProductRowSelected {
+    overflow: auto;
+    color: #000;
+    font-size: 14px;
+    border-bottom: 1px dotted #e3e3e3;
+    background-color: #afceeb;
+    padding: 5px;
+}
+
+div.ItemRow {
+    overflow: auto;
+    color: #000;
+    font-size: 14px;
+}
+div.ItemRowSelected {
+    overflow: auto;
+    color: #000;
+    background-color: #afceeb;
+    font-size: 14px;
+}
+
+div.ProdCatSelector {
+    overflow: auto;
+    color: #000;
+    font-size: 14px;
+}
+div.ProdCatSelector_selected {
+    overflow: auto;
+    color: #000;
+    background-color: #e3e3e3;
+    font-size: 14px;
+    font-weight:bold
+}
+
+/*END MY CUSTOM STYLING*/

@@ -1,0 +1,82 @@
+﻿@{
+      if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+      
+
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+var db = Database.Open("irgoon");
+var sqlSelect="SELECT is_admin FROM members WHERE userId=@0";;
+var currentUser = db.QuerySingle(sqlSelect,u_id);
+if(currentUser!=null){
+    if(!currentUser.is_admin){
+        Response.Redirect("~/Main");
+    }
+}
+
+
+sqlSelect = "SELECT * FROM members order by userId";
+var AllUsers = db.Query(sqlSelect);
+
+
+
+
+db.Close();
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+<div class="heart" style="text-align: center;z-index: 99999;position: fixed;bottom: 75px;width: 50%;right: 25%;left: 25%;;text-align: center;opacity: 0.8;background: transparent;" id="ControlButtonDiv">
+              <button id="ControlButton" onclick="controller.close('Info');"  style="border: 0;background-color: #e3e3e3;border-radius: 50%;font-size: 30px;z-index: 99999;padding: 5px;" >
+                       ❎
+              </button>
+</div>
+
+
+
+      
+        <div style="overflow: auto;padding: 5px;">
+        @AllUsers.Count() משתמשים
+        <button style="float: left;background-color: #fff;color: #808080;border: 2px solid #808080;padding: 5px;margin: 5px;font-size: 16px;" onclick="Accordionize('AddUserAcc')">חדש</button>
+        </div>
+        <div style="overflow: auto;">
+        <button class="accordion" id="AddUserAcc" style="display: none"></button>
+        <div class="panel">
+            <div style="overflow: auto;padding: 5px;border: 1px dotted #b200ff">
+            <div style="overflow: auto;float: right;">
+                <input type="text" id="user_nick" name="user_nick" placeholder="שם משתמש" style="font-size: 16px;margin: 5px;padding: 5px;">
+               <button style="padding: 5px;margin: 5px;font-size: 12px;" onclick="AjaxActions('ADDUSER',document.getElementById('user_nick').value,1);">שמירה</button>
+            </div>
+
+                
+            </div>
+        </div>
+        </div>
+    <div style="overflow: auto;" id="ProspectsDataDiv">
+    @foreach(var user in AllUsers){
+        <div style="overflow: auto;padding: 5px;margin: 5px;background-color: #e3e3e3;"  id="prospect_@user.userId">
+        <div style="overflow: auto">
+        <button style="font-size: 12px;margin: 5px;float: left;"  onclick="AjaxActions('RESETPW',@user.userId,1);">איפוס סיסמא</button>
+        <span style="font-size: 16px;font-weight: bold;"><input type="checkbox" style="padding: 5px;margin: 5px;" @if(user.is_active){<text>checked</text>} onclick="AjaxActions('SETACTIVE',@user.userId,'',this.checked);"> @user.username @if(user.is_admin){<span style="color: #b200ff">מנהל</span>}</span>
+        </div>
+         
+
+        
+        </div>
+    }
+    </div>
+    
+
+      
+
+
+</body>
+</html>

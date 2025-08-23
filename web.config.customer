@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+ <configuration>
+ <system.web>
+        <compilation debug="false" targetFramework="4.0" />
+        <customErrors mode="Off" defaultRedirect="/Error" />
+      <authentication mode="Forms">
+          <forms timeout="1440" />
+    </authentication>
+
+    <sessionState timeout="1400" />
+             <httpRuntime executionTimeout="3600" maxRequestLength="512000" />
+
+    </system.web>
+     <system.webServer>
+	 
+
+       
+    </system.webServer>
+    <system.data>
+        <DbProviderFactories>
+            <remove invariant="System.Data.SqlServerCe.4.0" />
+            <add invariant="System.Data.SqlServerCe.4.0" name="Microsoft® SQL Server® Compact 4.0" description=".NET Framework Data Provider for Microsoft SQL Server Compact" type="System.Data.SqlServerCe.SqlCeProviderFactory, System.Data.SqlServerCe, Version=4.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" />
+        </DbProviderFactories>
+    </system.data>
+    <connectionStrings>
+        <add connectionString="data source=132.148.27.215,1443;initial catalog=tlg;user id=tlg;password=lenovoX1" name="tlg" providerName="System.Data.SqlClient" />
+        <add connectionString="data source=132.148.27.215,1443;initial catalog=irgoon;user id=irgoon1;password=lenovoX1;" name="irgoon_new" providerName="System.Data.SqlClient" />
+        <add connectionString="data source=184.168.194.53;initial catalog=irgoon;user id=irgoon;password=lenovoX1" name="irgoon" providerName="System.Data.SqlClient" />
+        
+    </connectionStrings>
+
+ </configuration>
+

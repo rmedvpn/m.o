@@ -1,0 +1,59 @@
+﻿@{
+      if (!WebSecurity.IsAuthenticated){Response.Redirect("~/");}
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+int u_id=WebSecurity.CurrentUserId;
+string username = WebSecurity.CurrentUserName;
+Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+string PageTitle="";
+
+var db = Database.Open("irgoon");
+var sqlSelect="SELECT is_admin FROM members WHERE userId=@0";;
+var currentUser = db.QuerySingle(sqlSelect,u_id);
+if(currentUser!=null){
+    if(!currentUser.is_admin){
+        Response.Redirect("~/Main");
+    }
+}
+
+
+
+db.Close();
+
+ DateTime LastProspectsSyncDate = Convert.ToDateTime(AppFunctions.GetAppProperty("LastProspectsSyncDate"));
+ int LastProspectsSyncBy = Convert.ToInt32(AppFunctions.GetAppProperty("LastProspectsSyncBy"));
+
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+ 
+
+</head>
+<body>
+
+      
+        <div style="overflow: auto;padding: 5px;">
+            <h2>סנכרון נתונים</h2>
+        </div>
+    <div style="overflow: auto;padding: 5px;" >
+
+           <div style="overflow: auto;">
+               <span style="font-size: 12px;color: #b200ff;float: left;">סנכרון אחרון<br>@LastProspectsSyncDate.ToShortDateString() @LastProspectsSyncDate.ToString("HH:mm")</span>
+            <h3>סנכרון רשומות מצטרפים</h3>
+            <textarea name="WebProspects" id="WebProspects" rows="2" placeholder="הדבקת רשומות מצטרפים" style="padding: 5px;font-size: 18px;resize: none;width: 90%;float: right;margin: 5px;" onfocus="this.value='';" onChange="ParsePastedData(document.getElementById('WebProspects').value,'PROSPECTS');"></textarea>
+        </div>
+
+
+
+    </div>
+    
+        <div style="overflow: auto;padding: 5px;" id="ResultsDiv">
+            
+        </div>
+      
+
+
+</body>
+</html>

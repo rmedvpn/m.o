@@ -1,0 +1,480 @@
+﻿@functions {
+    public static string GetEntityTypeByCode(int entity_type)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT entity_title from inv_entity_type Where serial=@0";
+        var entity = db.QuerySingle(sqlSelect,entity_type);
+        db.Close();
+        if (entity!=null){return entity.entity_title;}
+        else {return entity_type.ToString();}
+
+    }
+
+
+
+    public static string GetEntityName(int entity_serial)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT entity_name from inv_Entities Where serial=@0";
+        var entity = db.QuerySingle(sqlSelect,entity_serial);
+        db.Close();
+        if (entity!=null){return entity.entity_name;}
+        else {return entity_serial.ToString();}
+
+    }
+
+    public static int GetEntityType(int entity_serial)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT entity_type from inv_Entities Where serial=@0";
+        var entity = db.QuerySingle(sqlSelect,entity_serial);
+        db.Close();
+        if (entity!=null){return entity.entity_type;}
+        else {return 0;}
+
+    }
+
+    public static int GetEntityUserId(int entity_serial)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT entity_u_id from inv_Entities Where serial=@0";
+        var entity = db.QuerySingle(sqlSelect,entity_serial);
+        db.Close();
+        if (entity!=null){return entity.entity_u_id;}
+        else {return 0;}
+
+    }
+
+    public static int GetProductTopInventory(int p_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT serial from inventory Where p_id=@0 AND top_inventory=0";
+        var rs = db.QuerySingle(sqlSelect,p_id);
+        db.Close();
+        if (rs!=null){return rs.serial;}
+        else {return 0;}
+
+    }
+
+
+
+    public static int CreateInventoryItemAndReturnId (int p_id, int quan, decimal unitCost, int v_id)
+    {
+        var db = Database.Open("op_data");
+        DateTime time_stamp=DateTime.Now;
+        int top_inventory=0;
+
+        var sqlSelect="SELECT serial FROM inventory WHERE v_id=@0 AND p_id=@1 AND top_inventory=0";
+        var item=db.QuerySingle(sqlSelect,v_id,p_id);
+        if(item!=null){
+            top_inventory=item.serial;
+        }
+
+        sqlSelect="INSERT INTO inventory(p_id,add_timestamp,quan,unit_cost,clerk_id,last_transaction_ts,v_id,top_inventory) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
+        db.Execute(sqlSelect,p_id,time_stamp,quan,unitCost,WebSecurity.CurrentUserId,time_stamp,v_id,top_inventory);
+
+        int invItem_serial=0;
+        sqlSelect="SELECT serial FROM inventory WHERE add_timestamp=@0 AND p_id=@1";
+        item=db.QuerySingle(sqlSelect,time_stamp,p_id);
+        db.Close();
+        if (item!=null){
+            invItem_serial=item.serial;
+        }
+        return invItem_serial;
+
+        db.Close();
+    }
+
+    public static void AllocateInventory (int v_id,int invItem_serial, int quan, int entity_id,int entity_type, int p_id,string notes,int entity_u_id=0,int trans_type=2,int source_entity=0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect="SELECT unit_cost FROM inventory WHERE serial=@0 ";
+        var invItem=db.QuerySingle(sqlSelect,invItem_serial);
+        decimal unitcost=0; try{unitcost=invItem.unit_cost;}catch{}
+
+        if(entity_u_id==0){
+            entity_u_id=InventoryFunctions.GetEntityUserId(entity_id);
+        }
+
+        sqlSelect="INSERT INTO inv_transactions(p_id,quan,timestamp,clerk_id,inventory_id,entity_id,notes,entity_type,transaction_type,source_entity,v_id,entity_u_id,unitcost) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12)";
+        db.Execute(sqlSelect,p_id,quan,DateTime.Now,WebSecurity.CurrentUserId,invItem_serial,entity_id,notes,entity_type,trans_type,source_entity,v_id,entity_u_id,unitcost);
+        db.Close();
+
+    }
+
+    public static void InventoryLog (int inventory_id, int clerk_id,string msg,int invitem_serial=0)
+    {
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "INSERT INTO InventoryLog (inventory_id,clerk_id,entry,timestamp,invItem_serial) VALUES (@0,@1,@2,@3,@4) ";
+        db.Execute (sqlSelect,inventory_id,clerk_id,msg,DateTime.Now,invitem_serial);
+        db.Close();
+    }
+
+    public static int GetInventoryEntityForRound (int round_id)
+    {
+        var db = Database.Open("op_data");
+        DateTime time_stamp=DateTime.Now;
+
+        //first check if an inventory entity exists for the round
+        var sqlSelect="";
+        sqlSelect="SELECT title,vendor_id,inv_entity_id FROM rounds WHERE id=@0";
+        var round = db.QuerySingle(sqlSelect,round_id);
+        if(round!=null){
+            int round_inv_entity=0;
+            round_inv_entity=round.inv_entity_id;
+            if(round_inv_entity==0)
+            {
+                DateTime timestamp=DateTime.Now;
+                sqlSelect="INSERT INTO inv_Entities(entity_name,entity_type,created_by,ts,v_id,round_id) VALUES(@0,@1,@2,@3,@4,@5)";
+                db.Execute(sqlSelect,round.title,-2,WebSecurity.CurrentUserId,timestamp,round.vendor_id,round_id);
+                sqlSelect="SELECT serial FROM inv_Entities WHERE round_id=@0 AND ts=@1";
+                var rs=db.QuerySingle(sqlSelect,round_id,timestamp);
+
+                if(rs!=null)
+                {
+                    round_inv_entity= rs.serial;
+                    sqlSelect = "UPDATE rounds SET inv_entity_id=@0 WHERE id=@1";
+                    db.Execute(sqlSelect,round_inv_entity,round_id);
+                }
+            }
+
+            return round_inv_entity;
+
+
+
+
+        }
+        else{
+            return -1;
+        }
+        db.Close();
+    }
+
+
+    public static void updateAvailableQuan (int rec_id,string updatedRecordType="PRODUCT")
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect="";
+        int available_quan=0;
+        switch(updatedRecordType){
+            case "CATALOG":
+                break;
+            case "PRODUCT":
+                if(true){
+                    int p_id=rec_id;
+                    sqlSelect = "select sum(quan) as available_quan from inv_transactions where p_id=@0";
+                    var rs = db.QuerySingle(sqlSelect,p_id);
+                    try{available_quan=rs.available_quan;}catch{}
+                    sqlSelect = "UPDATE products SET available_quan=@0 WHERE p_id=@1";
+                    db.Execute(sqlSelect,available_quan,p_id);
+                }
+                break;
+            case "ROUNDMENUITEMS":
+                //fetch all rounds with this product id in the menu, then recalc inventory for each one.
+                if(true){
+                    int p_id=rec_id;
+                    sqlSelect = "SELECT DISTINCT round_id from roundMenuItems where p_id=@0";
+                    var rs = db.Query(sqlSelect,p_id);
+                    foreach(var round in rs){
+                        InventoryFunctions.reCalcRoundInventory(round.round_id);
+                    }
+                }
+
+                break;
+
+        }
+        db.Close();
+
+    }
+
+    public static void reCalcRoundInventory (int round_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect="";
+
+        //step1: get all inventory entities linked to this round
+        sqlSelect = "SELECT * FROM RoundInventoryEntities WHERE round_id=@0";
+        var RoundInventoryEntities=db.Query(sqlSelect,round_id);
+        //step2: for every entity, load all available products
+        sqlSelect = "SELECT DISTINCT(p_id) FROM inv_transactions WHERE";
+        string conditionSql="";
+        foreach(var roundEntity in RoundInventoryEntities){
+            conditionSql = conditionSql + " entity_id=" + roundEntity.entity_id + " OR";
+        }
+
+        if(conditionSql!=""){
+            conditionSql=conditionSql.Remove(conditionSql.Length-2);
+            sqlSelect = sqlSelect + conditionSql;
+            var entityProducts = db.Query(sqlSelect);
+            foreach(var product in entityProducts){
+                sqlSelect = "SELECT SUM(quan) AS the_quan FROM inv_transactions WHERE (p_id=@0) AND (" + conditionSql + ")";
+                var prodAvailableQuan=db.QuerySingle(sqlSelect,product.p_id);
+                int prodQuan=0;try{prodQuan=prodAvailableQuan.the_quan;}catch{}
+                sqlSelect = "UPDATE roundMenuItems SET available_quan=@0 WHERE round_id=@1 AND p_id=@2";
+                db.Execute(sqlSelect,prodQuan,round_id,product.p_id);
+            }
+        }
+
+        db.Close();
+    }
+
+    public static bool isEntityExist (string entity_name,int entity_type,int v_id=0)
+    {
+        bool ret_val=false;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT serial from inv_Entities WHERE entity_name=@0 AND entity_type=@1 ";
+        if(v_id!=0){
+            sqlSelect = sqlSelect + " AND v_id=@2";
+        }
+        var rs=db.QuerySingle(sqlSelect,entity_name,entity_type,v_id);
+        if(rs!=null){
+            ret_val=true;
+        }
+        db.Close();
+
+        return ret_val;
+    }
+
+    public static int CreateVendorEntity (string entity_name,int entity_type,int v_id,string entity_notes="")
+    {
+        int new_entity_id=0;
+        var db = Database.Open("op_data");
+        var sqlSelect = "INSERT INTO inv_Entities(entity_name,entity_type,entity_notes,created_by,ts,entity_type_str,v_id) VALUES(@0,@1,@2,@3,@4,@5,@6)";
+        db.Execute(sqlSelect,entity_name,entity_type,entity_notes,WebSecurity.CurrentUserId,DateTime.Now,InventoryFunctions.GetEntityTypeByCode(entity_type),v_id);
+        sqlSelect = "SELECT TOP(1) serial FROM inv_Entities WHERE v_id=@0 ORDER BY serial DESC";
+        var newRs=db.QuerySingle(sqlSelect,v_id);
+        try{new_entity_id=newRs.serial;}catch{}
+        if(newRs==null){
+            new_entity_id=-1;
+        }
+        db.Close();
+
+        return new_entity_id;
+    }
+
+
+
+    public static void SetupNewProductInventory (int p_id, int v_id,int invQuan,decimal ItemCost,int entity_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT v_id FROM products WHERE p_id=@0";
+        var vRs=db.QuerySingle(sqlSelect,p_id);
+        if(v_id==0){
+            try{v_id=vRs.v_id;}catch{}
+        }
+        int inventory_id=0;
+        inventory_id = InventoryFunctions.CreateInventoryItemAndReturnId (p_id, invQuan, ItemCost, v_id);
+        string notes="קליטה למלאי";
+        int entity_type=0; entity_type=InventoryFunctions.GetEntityType(entity_id);
+        InventoryFunctions.AllocateInventory (v_id,inventory_id, invQuan,  entity_id, entity_type, p_id,notes,0,0);
+        InventoryFunctions.updateAvailableQuan(p_id,"PRODUCT");
+        InventoryFunctions.updateAvailableQuan(p_id,"ROUNDMENUITEMS");
+        db.Close();
+    }
+
+    public static int GetItemAvailabiltyInRound(int p_id, int round_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int itemQuan = 0;
+
+        sqlSelect = "SELECT * FROM RoundInventoryEntities WHERE is_deleted=0 AND round_id=@0 order by source_priority";
+        var RoundInventoryEntities = db.Query(sqlSelect, round_id);
+        foreach (var ent in RoundInventoryEntities)
+        {
+            sqlSelect = "SELECT SUM(QUAN) as the_quan from inv_transactions WHERE p_id=@0 AND entity_id=@1";
+            var entQuan = db.QuerySingle(sqlSelect, p_id, ent.entity_id);
+            try { itemQuan = itemQuan + entQuan.the_quan; } catch { }
+        }
+        db.Close();
+        return itemQuan;
+    }
+
+    public static bool isItemAvailableInStock(int quan, int p_id, int round_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        bool is_available = false;
+        bool available_flag = false;
+        sqlSelect = "SELECT * FROM RoundInventoryEntities WHERE is_deleted=0 AND round_id=@0 order by source_priority";
+        var RoundInventoryEntities = db.Query(sqlSelect, round_id);
+        foreach (var ent in RoundInventoryEntities)
+        {
+            if (!available_flag)
+            {
+                sqlSelect = "SELECT SUM(QUAN) as the_quan from inv_transactions WHERE p_id=@0 AND entity_id=@1";
+                var entQuan = db.QuerySingle(sqlSelect, p_id, ent.entity_id);
+                int itemQuan = 0; try { itemQuan = entQuan.the_quan; } catch { }
+                if (quan < itemQuan)
+                {
+                    is_available = true;
+                    available_flag = true;
+                }
+            }
+        }
+        db.Close();
+        return is_available;
+    }
+
+    public static void ReserveOrderItem(int orderItem_serial, int order_id = 0, int reserveFromEntity = 0)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int round_id = 0;
+        int reservedQuan = 0;
+        int p_id = 0;
+
+        if (order_id == 0)
+        {
+            sqlSelect = "SELECT order_id FROM orderitems WHERE serial=@0";
+            var tmpOrderRs = db.QuerySingle(sqlSelect, orderItem_serial);
+            try { order_id = tmpOrderRs.order_id; } catch { }
+        }
+
+        sqlSelect = "SELECT round_id FROM MainOrders WHERE order_id=@0";
+        var orderRs = db.QuerySingle(sqlSelect, order_id);
+        try { round_id = orderRs.round_id; } catch { }
+        sqlSelect = "SELECT p_id,quan FROM orderitems WHERE serial=@0";
+        var orderitem = db.QuerySingle(sqlSelect, orderItem_serial);
+        try { p_id = orderitem.p_id; } catch { }
+        try { reservedQuan = orderitem.quan; } catch { }
+        bool is_reserved = false;
+        if (reserveFromEntity == 0)
+        {
+            bool available_flag = false;
+            sqlSelect = "SELECT * FROM RoundInventoryEntities WHERE is_deleted=0 AND round_id=@0 order by source_priority";
+            var RoundInventoryEntities = db.Query(sqlSelect, round_id);
+            foreach (var ent in RoundInventoryEntities)
+            {
+                if (!available_flag)
+                {
+                    reserveFromEntity = 0;
+                    sqlSelect = "SELECT SUM(QUAN) as the_quan from inv_transactions WHERE p_id=@0 AND entity_id=@1";
+                    var entQuan = db.QuerySingle(sqlSelect, p_id, ent.entity_id);
+                    int AvailableEntityitemQuan = 0; try { AvailableEntityitemQuan = entQuan.the_quan; } catch { }
+                    if (reservedQuan < AvailableEntityitemQuan)
+                    {
+                        available_flag = true;
+                        reserveFromEntity = ent.entity_id;
+                    }
+                }
+            }
+        }
+
+        //entity found, now need to find applicable inventory
+        sqlSelect = "SELECT DISTINCT (inventory_id) FROM inv_transactions WHERE entity_id=@0 and p_id=@1 ORDER BY inventory_id";
+        var prodInventories = db.Query(sqlSelect, reserveFromEntity, p_id);
+        foreach (var inventory in prodInventories)
+        {
+            int currInventory_id = inventory.inventory_id;
+            if (!is_reserved && InventoryFunctions.isProductAvailableInEntityInventory(reservedQuan, p_id, reserveFromEntity, inventory.inventory_id))
+            {
+                is_reserved = true;
+                InventoryFunctions.ReserveOrderItemInventory(orderItem_serial, reserveFromEntity, inventory.inventory_id);
+                //reserve item
+            }
+        }
+
+        if (!is_reserved)
+        {
+            //log reservation failure
+        }
+
+        db.Close();
+
+    }
+    public static void UpdateOrderInventoryReservationStatus(int order_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int round_id = 0;
+        sqlSelect = "SELECT serial,inventory_reserved FROM orderitems WHERE p_id<>0 AND order_id=@0";
+        var orderitems = db.Query(sqlSelect, order_id);
+        bool is_reserved = true;
+        if (orderitems.Count() == 0)
+        {
+            is_reserved = false;
+        }
+        else
+        {
+            foreach (var item in orderitems)
+            {
+                if (is_reserved && !item.inventory_reserved)
+                {
+                    is_reserved = false;
+                }
+            }
+        }
+
+        if (is_reserved)
+        {
+            sqlSelect = "UPDATE MainOrders SET inventory_reserved=1 WHERE order_id=@0";
+        }
+        else
+        {
+            sqlSelect = "UPDATE MainOrders SET inventory_reserved=0 WHERE order_id=@0";
+        }
+
+
+        db.Execute(sqlSelect, order_id);
+        db.Close();
+    }
+    public static bool isProductAvailableInEntityInventory(int quan, int p_id, int entity_id, int inventory_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT SUM(QUAN) as the_quan from inv_transactions WHERE p_id=@0 AND entity_id=@1 AND inventory_id=@2";
+        var entQuan = db.QuerySingle(sqlSelect, p_id, entity_id, inventory_id);
+        int itemQuan = 0; try { itemQuan = entQuan.the_quan; } catch { }
+        db.Close();
+        if (quan <= itemQuan)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+
+    }
+    public static void ReserveOrderItemInventory(int orderitem_serial, int entity_id, int inventory_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT order_id,quan,p_id,cost,vendor_id,round_id,reservation_inv_trans_id FROM orderitems WHERE serial=@0 ";
+        var orderitem = db.QuerySingle(sqlSelect, orderitem_serial);
+        sqlSelect = "SELECT TOP(1) * FROM inv_transactions WHERE entity_id=@0 AND inventory_id=@1";
+        var entity = db.QuerySingle(sqlSelect, entity_id, inventory_id);
+        int order_id = 0; try { order_id = orderitem.order_id; } catch { }
+        int reservedQuan = 0; try { reservedQuan = orderitem.quan; } catch { }
+        int round_id = 0; try { round_id = orderitem.round_id; } catch { }
+        int p_id = 0; try { p_id = orderitem.p_id; } catch { }
+        int existing_trans_id = 0; try { existing_trans_id = orderitem.reservation_inv_trans_id; } catch { }
+        string notes = "מלאי שמור לפריט #" + orderitem_serial + " בהזמנה #" + order_id;
+        int entity_type = 0; try { entity_type = entity.entity_type; } catch { }
+        int v_id = 0; try { v_id = entity.v_id; } catch { }
+        int trans_type = 4; //reservation transaction type
+        decimal unitcost = 0; try { unitcost = entity.unitcost; } catch { }
+        DateTime AddTs = DateTime.Now;
+
+        if (existing_trans_id != 0)
+        {
+            sqlSelect = "DELETE FROM inv_transactions WHERE serial=@0";
+            db.Execute(sqlSelect, existing_trans_id);
+        }
+
+        sqlSelect = "INSERT INTO inv_transactions(p_id,quan,timestamp,clerk_id,inventory_id,entity_id,notes,entity_type,transaction_type,source_entity,v_id,unitcost,reserved_for_order,orderitem_id_reserved,reserved_for_round) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14)";
+        db.Execute(sqlSelect, p_id, reservedQuan * -1, AddTs, WebSecurity.CurrentUserId, inventory_id, entity_id, notes, entity_type, trans_type, entity_id, v_id, unitcost, order_id, orderitem_serial, round_id);
+        sqlSelect = "SELECT serial FROM inv_transactions WHERE timestamp=@0";
+        var newTransRs = db.QuerySingle(sqlSelect, AddTs);
+        int trans_id = 0; try { trans_id = newTransRs.serial; } catch { }
+        sqlSelect = "UPDATE orderitems SET inventory_reserved=1,reservation_inv_trans_id=@0 WHERE serial=@1";
+        db.Execute(sqlSelect, trans_id, orderitem_serial);
+
+        db.Close();
+
+    }
+
+}   
+
+   

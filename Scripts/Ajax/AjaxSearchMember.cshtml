@@ -1,0 +1,174 @@
+﻿@{
+    var op_data = Database.Open("op_data");
+    string term = Request["q"];
+    string return_style = Request["a"];
+    int NumberOfResults = 100;
+    string srchQuery = Request["q"];
+    switch (return_style)
+    {
+        case "ApprovalPage":
+        case "CouponsIssue":
+            NumberOfResults = 20;
+            break;
+
+    }
+
+    var sqlSelect = "SELECT  top(@1) serial,member_name,wanum,oc,lo,is_blocked,m_id FROM pb WHERE is_deleted=0 AND (member_name LIKE @0 OR wanum LIKE @0)";
+
+    if (term.StartsWith("0"))
+    {
+        term = term.Substring(1);
+    }
+
+    term = "%" + term + "%";
+    string theHtmlOutput = "";
+    var members = op_data.Query(sqlSelect, term, NumberOfResults);
+
+    if (members.Count() == 0)
+    {
+        <div class="SearchResDiv" style="color:yellow">אין תוצאות</div>
+    }
+    else
+    {
+
+
+
+        foreach (var item in members)
+        {
+            int member_id = item.m_id;
+            string pbname = item.member_name;
+            string wanum = item.wanum;
+            bool is_blocked = item.is_blocked;
+            string boldedQry = "";
+            string boldedName = "";
+            string boldedWanum = "";
+            boldedQry = pbname;
+            boldedName = pbname;
+            boldedWanum = wanum;
+
+            try { boldedWanum = wanum.Substring(boldedWanum.Length - 5); } catch { }
+            int order_count = item.oc;
+
+            boldedQry = boldedQry.Replace(Request["q"], "<B>" + Request["q"] + "</B>");
+            boldedName = boldedName.Replace(Request["q"], "<B>" + Request["q"] + "</B>");
+            boldedWanum = boldedWanum.Replace(Request["q"], "<B>" + Request["q"] + "</B>");
+
+
+            switch (return_style)
+            {
+                case "NewOrder":
+                    <DIV class="NewOrderSearchResDiv" onclick="RepAjaxUpdate('SelectOrderMember', 'NewOrderMemberContainer', '','@item.m_id');">
+
+                        <div class="NewOrderSearchResInfo">
+                            @Html.Raw(boldedName)
+                            <div class="NewOrderSearchResSubtitle">@Html.Raw(boldedWanum)**</div>
+                        </div>
+
+                        @if (is_blocked)
+                        {
+                            <div class="SearchResInfoBoxAlert">
+                                ⛔<br />חסום
+                            </div>
+                        }
+
+                    </DIV>
+                    break;
+
+                case "NewCredit":
+                    <DIV class="NewOrderSearchResDiv" onclick="RepAjaxUpdate('SelectCreditMember', 'NewOrderMemberContainer', '','@item.m_id');">
+
+                        <div class="NewOrderSearchResInfo">
+                            @Html.Raw(boldedName)
+                            <div class="NewOrderSearchResSubtitle">@Html.Raw(boldedWanum)**</div>
+                        </div>
+
+                        @if (is_blocked)
+                        {
+                            <div class="SearchResInfoBoxAlert">
+                                ⛔<br />חסום
+                            </div>
+                        }
+
+                    </DIV>
+                    break;
+
+
+
+                case "CouponsIssue":
+                    <DIV class="CouponIssueSearchResDiv" onclick="AjaxActions('IssueCoupon', '@member_id', 'MainLoader', 'IssueCouponForm', document.getElementById('coupon_id_to_issue').value);">
+
+                        <div class="CouponIssueSearchResInfo">
+                            @Html.Raw(boldedName)
+                            <div class="CouponIssueSearchResSubtitle">@Html.Raw(boldedWanum)**</div>
+                        </div>
+
+
+                    </DIV>
+                    break;
+
+
+                case "ApprovalPage":
+                    <DIV class="PreApprovalSearchResDiv" onclick="AjaxActions('CreateRegistrationPreApprovalToken', '@member_id', 'MainLoader');">
+
+                        <div class="PreApprovalSearchResInfo">
+                            @Html.Raw(boldedName)
+                            <div class="PreApprovalSearchResSubtitle">@Html.Raw(boldedWanum)**</div>
+                        </div>
+
+
+                    </DIV>
+                    break;
+
+
+
+                default:
+                    <DIV class="SearchResDiv" onclick="sbload('MainSb','Caller?p1=Member_Info&p2=@item.m_id')">
+                        <div style="overflow:auto;float:right">
+
+                        </div>
+                        <div class="SearchResInfo" onclick="sbload('MainSb', 'Caller?p1=Member_Info&p2=@item.m_id'); ">
+                            @Html.Raw(boldedName)
+                            <div class="SearchResSubtitle">@Html.Raw(boldedWanum)**</div>
+                        </div>
+                        <img src="wa_icon.jpg" class="SearchResButton" alt="whatsapp" onclick="waLaunch('@wanum');">
+
+                        <div class="SearchResInfoBox">
+                            @order_count<br />הזמנות
+                        </div>
+
+                        @if (is_blocked)
+                        {
+                            <div class="SearchResInfoBoxAlert">
+                                ⛔<br />חסום
+                            </div>
+                        }
+
+                    </DIV>
+                    break;
+            }
+
+
+
+
+        }
+    }
+    if (return_style == "ApprovalPage")
+    {
+        string wanumized = AppFunctions.wanumize(srchQuery);
+        if (AppFunctions.IsValidPhone(srchQuery))
+        {
+            <DIV class="PreApprovalSearchResDiv" onclick="AjaxActions('CreateRegistrationPreApprovalToken', '-1', 'MainLoader',@wanumized);">
+
+                <div class="PreApprovalSearchResInfo">
+                    ניפוק קוד הרשמה למספר @Html.Raw(srchQuery)
+                    
+                </div>
+
+
+            </DIV>
+        }
+    }
+
+    op_data.Close();
+}
+

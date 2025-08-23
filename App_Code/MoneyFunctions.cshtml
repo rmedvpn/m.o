@@ -1,0 +1,404 @@
+﻿@functions {
+
+    public static decimal GetMemberDebt(int member_id = 0, bool due_only = true)
+    {
+        decimal member_debt = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT SUM(amount_due) as amount_due FROM chargebook WHERE is_paid=0 AND m_id=@0 AND current_due_date<=@1";
+        if (!due_only)
+        {
+            sqlSelect = "SELECT SUM(amount_due) as amount_due FROM chargebook WHERE is_paid=0 AND m_id=@0";
+        }
+        var currDueAmount = db.QuerySingle(sqlSelect, member_id, local_time.Date);
+        try { member_debt = currDueAmount.amount_due; } catch { }
+
+        db.Close();
+        return member_debt;
+    }
+
+    public static decimal GetMemberCreditLimit(int member_id = 0)
+    {
+        decimal cur_debt = 0;
+        decimal credit_limit = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT SUM(amount_due) as amount_due FROM chargebook WHERE is_paid=0 AND m_id=@0";
+        var currDueAmount = db.QuerySingle(sqlSelect, member_id);
+        try { cur_debt = currDueAmount.amount_due; } catch { }
+
+        sqlSelect = "SELECT credit_limit FROM pb WHERE m_id=@0";
+        var member = db.QuerySingle(sqlSelect, member_id);
+        try { credit_limit = member.credit_limit; } catch { }
+
+        credit_limit = credit_limit - cur_debt;
+
+        db.Close();
+        return credit_limit;
+    }
+
+    public static int RegisterOrderCredit(int order_id, DateTime due_date, decimal amount, string creditnote, bool is_pending = true)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        int transaction_id = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        string logMsg = "";
+        var u_id = WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+        int member_id = 0;
+        int vendor_id = 0;
+        int t_type = 0;
+
+        var sqlSelect = "SELECT u_id,vendor_id,round_id FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+
+        if (order != null)
+        {
+            member_id = order.u_id;
+
+            DateTime LocalTime = AppFunctions.LocalTime();
+            DateTime default_date = Convert.ToDateTime("1/1/1900");
+            bool next_order_return = false;
+            if (due_date == AppFunctions.GetNorDate())
+            {
+                next_order_return = true;
+            }
+            DateTime nextDueDate = Convert.ToDateTime("1/1/1900"); ;
+            decimal totalDebtAmount = 0;
+
+
+            sqlSelect = "INSERT INTO ChargeBook(ts,m_id,transaction_type,amount,amount_due,rep_id,vendor_id,transaction_notes,original_due_date,current_due_date,credit_ts,next_order_return,order_id,is_pending) ";
+            sqlSelect += " VALUES(@0,@1,@2,@3,@3,@4,@5,@6,@7,@7,@8,@9,@10,@11)";
+            db.Execute(sqlSelect, local_time, member_id, t_type, amount, u_id, vendor_id, creditnote, due_date, local_time, next_order_return, order_id, is_pending);
+
+            sqlSelect = "SELECT serial FROM ChargeBook WHERE ts=@0 AND order_id=@1";
+            var transaction = db.QuerySingle(sqlSelect, local_time, order_id);
+            try { transaction_id = transaction.serial; } catch { }
+
+            sqlSelect = "UPDATE mainorders SET credit_transaction_id=@0 WHERE order_id=@1";
+            db.Execute(sqlSelect, transaction_id, order_id);
+
+            logMsg = "אושר חיוב אשראי בסך " + amount.ToString("C", culture) + " עד לתאריך " + due_date.ToShortDateString();
+            if (next_order_return)
+            {
+                logMsg = " אושר חיוב אשראי בסך " + amount.ToString("C", culture) + " לתשלום בהזמנה הבאה ";
+            }
+
+
+
+            AppFunctions.WriteOrderComment(order_id, logMsg);
+
+            if (!is_pending)
+            {
+                sqlSelect = "SELECT SUM(amount_due) AS the_sum FROM ChargeBook WHERE m_id=@0 AND is_paid=0";
+                var totDebt = db.QuerySingle(sqlSelect, member_id);
+                try { totalDebtAmount = totDebt.the_sum; } catch { }
+
+                if (totalDebtAmount > 0)
+                {
+                    sqlSelect = "SELECT MIN(current_due_date) AS payment_due FROM ChargeBook WHERE m_id=@0 AND is_paid=0";
+                    totDebt = db.QuerySingle(sqlSelect, member_id);
+                    try { nextDueDate = totDebt.payment_due; } catch { }
+                }
+
+                sqlSelect = "UPDATE pb SET debt=@0,due_date=@1,credit_ts=@2,next_order_return=@3 WHERE m_id=@4";
+                db.Execute(sqlSelect, totalDebtAmount, nextDueDate, local_time, next_order_return, member_id);
+
+                logMsg = " נרשם חיוב אשראי בסך " + amount.ToString("C", culture) + " עד לתאריך " + due_date.ToShortDateString();
+                if (next_order_return)
+                {
+                    logMsg = " נרשם חיוב אשראי בסך " + amount.ToString("C", culture) + " לתשלום בהזמנה הבאה ";
+                }
+
+                logMsg += " עבור הזמנה #" + order_id;
+
+                AppFunctions.WriteUserNoteComment(member_id, logMsg);
+            }
+
+        }
+
+
+
+
+
+        db.Close();
+        return transaction_id;
+    }
+
+    public static decimal RoundUpAmount(double amount, double RoundTo = 50)
+    {
+        decimal RoundAmount = 0;
+        double amount_rounded = Math.Floor(amount / RoundTo) * RoundTo;
+        if (amount_rounded != amount && amount_rounded > 0)
+        {
+            amount_rounded = amount_rounded + RoundTo;
+        }
+
+        RoundAmount = Convert.ToDecimal(amount_rounded - amount);
+        return RoundAmount;
+    }
+
+    public static decimal GetOrderItemsCost(int order_id, string ItemsTable = "OrderItems")
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        decimal items_cost = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+        string logMsg = "";
+        var u_id = WebSecurity.CurrentUserId;
+        var db = WebMatrix.Data.Database.Open("op_data");
+
+        var sqlSelect = "SELECT cost,quan FROM " + ItemsTable + " WHERE order_id=@0";
+        var orderItems = db.Query(sqlSelect, order_id);
+
+        foreach(var item in orderItems)
+        {
+            decimal item_cost = item.cost * item.quan;
+            items_cost += item_cost;
+        }
+
+
+
+
+        db.Close();
+        return items_cost;
+    }
+
+    public static decimal GetMemberAvailableMoneyVouchersBalance(int member_id = 0, bool due_only = true)
+    {
+        decimal member_available_balance = 0;
+        DateTime local_time = AppFunctions.LocalTime();
+
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT SUM(available_amount) as voucher_amount FROM moneyvouchers WHERE is_used=0 AND m_id=@0 AND exp_date>@1";
+        var rs = db.QuerySingle(sqlSelect, member_id, local_time);
+        try { member_available_balance = rs.voucher_amount; } catch { }
+        //member_available_balance = rs.voucher_amount;
+
+        db.Close();
+        return member_available_balance;
+    }
+
+
+    /*
+    public static void CartOrderReset(int order_id, int rep_id)
+    {
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM OrderItems WHERE order_id=@0";
+        var orderItems = db.Query(sqlSelect, order_id);
+        sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0";
+        var theOrder = db.QuerySingle(sqlSelect, order_id);
+        sqlSelect = "DELETE FROM mainCart WHERE rep_id=@0 AND order_id=@1";
+        db.Execute(sqlSelect, rep_id, order_id);
+        sqlSelect = "DELETE FROM CartSettings WHERE rep_id=@0 AND order_id=@1";
+        db.Execute(sqlSelect, rep_id, order_id);
+        foreach (var item in orderItems)
+        {
+            sqlSelect = "INSERT INTO MainCart (u_id,item_id,quan,timestamp,price,vendor_id
+     ,round_id,cost,prod_code,itemunit,product_type,item_user_comment,staff_comment,p_id,special_id,description,e_description,title,e_title,spOfferItemId,menuItemId,group_ts,isQuanByOption,QuanOptionId,OptionIdPrice,OptionIdQuan,optionIdAdditional,is_discountable,calc_price,is_charge_waived,waiver_code,is_free_charity,is_paid_charity,order_id,rep_id,is_spOffer,list_price) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36)";
+            db.Execute(sqlSelect, theOrder.u_id, item.item_id, item.quan, DateTime.Now, item.price, item.vendor_id, theOrder.round_id, item.cost, item.prod_code, item.itemunit, item.product_type, item.item_user_comment, item.staff_comment, item.p_id, item.special_id, item.description, item.e_description, item.title, item.e_title, item.spOfferItemId, item.menuItemId, item.group_ts, item.isQuanByOption, item.QuanOptionId, item.OptionIdPrice, item.OptionIdQuan, item.optionIdAdditional, item.is_discountable, item.calc_price, item.is_charge_waived, item.waiver_code, item.is_free_charity, item.is_paid_charity, order_id, u_id, item.is_spOffer, item.list_price);
+        }
+
+        sqlSelect = "INSERT INTO CartSettings(order_id,u_id,rep_id,round_id,ts,is_express,is_pickup,shipping_charge,is_credit,is_paying_debt,is_charity,is_donate,is_refund,credit_amount,return_amount,donate_amount,custom_total,charity_amount,refund_amount,discount_amount,discount_percantage,discount_total,does_discount_includes_sh,does_discount_includes_spItems,discount_title,discount_title_e,pd_discount,discount_id,last_edit_ts,shipping_type,charge_amount,credit_return_date,charge_account_id,charge_account_name) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33)";
+        db.Execute(sqlSelect, theOrder.order_id, theOrder.u_id, u_id, theOrder.round_id, DateTime.Now, theOrder.is_express, theOrder.is_pickup, theOrder.shipping_charge, theOrder.is_credit, theOrder.is_paying_debt, theOrder.is_charity, theOrder.is_donate, theOrder.is_refund, theOrder.credit_amount, theOrder.return_amount, theOrder.donate_amount, theOrder.custom_total, theOrder.charity_amount, theOrder.refund_amount, theOrder.discount_amount, theOrder.discount_percantage, theOrder.discount_total, theOrder.does_discount_includes_sh, theOrder.does_discount_includes_spItems, theOrder.discount_title, theOrder.discount_title_e, theOrder.pd_discount, theOrder.discount_id, DateTime.Now, theOrder.shipping_type, theOrder.charge_amount, theOrder.credit_return_date, theOrder.charge_account_id, theOrder.charge_account_name);
+
+
+
+        db.Close();
+    }
+    public static int CreateOrderEnvelopeId(int order_id, bool is_update = true)
+    {
+        int envelope_id = 0;
+        var u_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT round_id FROM MainOrders WHERE order_id=@0";
+        var Order = db.QuerySingle(sqlSelect, order_id);
+        int round_id = 0; try { round_id = Order.round_id; } catch { }
+        sqlSelect = "SELECT MAX(envelope_id) as envelope_id FROM mainorders WHERE z_id=0 AND round_id=@0";
+        Order = db.QuerySingle(sqlSelect, round_id);
+
+
+        if (Order != null)
+        {
+            int max_envelope_id = Order.envelope_id;
+            envelope_id = max_envelope_id + 1;
+        }
+
+        if (is_update)
+        {
+            sqlSelect = "UPDATE mainorders SET envelope_id=@0 WHERE order_id=@1";
+            db.Execute(sqlSelect, envelope_id, order_id);
+        }
+
+        db.Close();
+        return envelope_id;
+    }
+    public static string UpdatePaymentSettings(int order_id)
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        string theHtmlOutput = "";
+
+        int payment_method = 0; try { payment_method = Convert.ToInt32(Request["payment_method"]); } catch { }
+        bool is_donate = false; if (!Request["is_donation"].IsEmpty()) { is_donate = true; }
+        decimal donate_amount = 0; try { donate_amount = Convert.ToDecimal(Request["donate_amount"]); } catch { }
+        bool is_returning_credit = false; if (!Request["is_returning_credit"].IsEmpty()) { is_returning_credit = true; }
+        decimal debt_return_amount = 0; try { debt_return_amount = Convert.ToDecimal(Request["return_amount"]); } catch { }
+        decimal credit_amount = 0; try { credit_amount = Convert.ToDecimal(Request["credit_amount"]); } catch { }
+        DateTime credit_return_date = local_time; try { credit_return_date = Convert.ToDateTime(Request["credit_return_date"]); } catch { }
+        decimal charge_amount = 0; try { charge_amount = Convert.ToDecimal(Request["charge_amount"]); } catch { }
+        int charge_account_id = 0; try { charge_account_id = Convert.ToInt32(Request["charge_account_id"]); } catch { }
+        string charge_account_name = "";
+        bool is_credit = false;
+        bool is_charge = false;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT actual_pickup_amount,grand_total,CreditCouponsTotal FROM MainOrders WHERE order_id=@0";
+        var order = db.QuerySingle(sqlSelect, order_id);
+
+
+
+        if (order != null)
+        {
+            decimal actual_pickup_amount = order.actual_pickup_amount;
+            decimal grand_total = order.grand_total;
+            decimal CreditCouponsTotal = order.CreditCouponsTotal;
+            switch (payment_method)
+            {
+                case 0:
+                    if (true)
+                    {
+                        theHtmlOutput += "אמצעי תשלום לא זוהה!<br>";
+                    }
+                    break;
+                case 1:
+                    if (true)
+                    {
+
+                        if (is_donate)
+                        {
+                            if (donate_amount <= 0)
+                            {
+                                theHtmlOutput += "חובה להזין סכום תרומה תקין!<br>";
+                            }
+                        }
+                        if (is_returning_credit)
+                        {
+                            if (debt_return_amount <= 0)
+                            {
+                                theHtmlOutput += "חובה להזין סכום החזר חוב תקין!<br>";
+                            }
+                        }
+                    }
+
+                    break;
+                case 2:
+                    if (true)
+                    {
+                        if (credit_amount <= 0)
+                        {
+                            theHtmlOutput += "חובה להזין סכום קרדיט תקין!<br>";
+                        }
+                        if (credit_return_date <= local_time)
+                        {
+                            theHtmlOutput += "חובה להזין תאריך החזרת קרדיט באופן תקין!<br>";
+                        }
+                        if (theHtmlOutput == "")
+                        {
+                            //credit check
+                        }
+
+
+
+                    }
+                    break;
+                case 3:
+                    if (true)
+                    {
+                        if (charge_amount <= 0)
+                        {
+                            theHtmlOutput += "חובה להזין סכום חיוב תקין!<br>";
+                        }
+                        if (charge_account_id == 0)
+                        {
+                            theHtmlOutput += "חובה לבחור חשבון לחיוב!<br>";
+                        }
+
+                        if (theHtmlOutput == "")
+                        {
+                            sqlSelect = "SELECT * FROM ChargeAccounts WHERE account_id=@0";
+                            var chargeAccount = db.QuerySingle(sqlSelect, charge_account_id);
+                            if (chargeAccount == null)
+                            {
+                                theHtmlOutput += " חשבון לחיוב לא קיים!<br>";
+                            }
+                            else
+                            {
+                                charge_account_name = chargeAccount.account_name;
+                            }
+
+                        }
+
+
+                    }
+                    break;
+
+            }
+
+            if (theHtmlOutput == "")
+            {
+
+                switch (payment_method)
+                {
+                    case 1:
+                        actual_pickup_amount = grand_total + debt_return_amount + donate_amount - CreditCouponsTotal;
+                        credit_amount = 0;
+                        charge_amount = 0;
+                        break;
+                    case 2:
+                        is_credit = true;
+                        charge_amount = 0;
+                        donate_amount = 0;
+                        debt_return_amount = 0;
+                        actual_pickup_amount = grand_total - CreditCouponsTotal - credit_amount;
+                        break;
+                    case 3:
+                        is_charge = true;
+                        credit_amount = 0;
+                        donate_amount = 0;
+                        debt_return_amount = 0;
+                        actual_pickup_amount = grand_total - CreditCouponsTotal - charge_amount;
+                        break;
+
+                }
+
+                sqlSelect = "UPDATE MainOrders SET payment_method=@0,is_donate=@1,donate_amount=@2,is_returning_credit=@3,return_amount=@4,credit_amount=@5,is_credit=@6,credit_return_date=@7,charge_amount=@8,is_charge=@9,charge_account_id=@10,actual_pickup_amount=@11,charge_account_name=@12 WHERE order_id=@13";
+                db.Execute(sqlSelect, payment_method, is_donate, donate_amount, is_returning_credit, debt_return_amount, credit_amount, is_credit, credit_return_date, charge_amount, is_charge, charge_account_id, actual_pickup_amount, charge_account_name, order_id);
+                theHtmlOutput = "אפשרות התשלום התעדכנה בהצלחה!";
+
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+        }
+
+
+
+
+
+        db.Close();
+
+        return theHtmlOutput;
+
+
+    }
+    */
+
+}

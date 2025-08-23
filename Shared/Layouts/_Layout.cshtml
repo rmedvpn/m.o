@@ -1,0 +1,26 @@
+﻿@{
+
+    
+ }
+<!DOCTYPE html>
+ <html lang="en">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta charset="utf-8" />
+        <title> @Page.Title</title>
+        <link href="@Href("~/css/FreeStyle.css")" rel="stylesheet" />
+ @RenderSection("head", required: false)
+     </head>
+    <body dir="rtl" style="background-color: #808080;">
+  
+        <div id="page">
+            <div id="content">
+                         
+                    @RenderBody()
+            
+            </div>
+          
+        </div>
+    </body>
+</html>
+
