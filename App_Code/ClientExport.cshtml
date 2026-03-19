@@ -1,0 +1,68 @@
+﻿@functions {
+
+    public static void PushUserDataToClient(int m_id, int site_id = 1,string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+
+
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM pb WHERE m_id=@0 ";
+        var pbEntry = src_db.QuerySingle(sqlSelect,m_id);
+
+        //clear personal info from client
+        sqlSelect = "UPDATE Users SET m_id=@0,order_count=@1,def_area=@2,main_area_id=@3,ranking_score=@4,last_order_ts=@5 WHERE u_id=@6";
+        dest_db.Execute(sqlSelect, pbEntry.m_id, pbEntry.oc, pbEntry.def_area, pbEntry.main_area_id, pbEntry.ranking_score, pbEntry.lo, pbEntry.client_u_id);
+
+        //for every record to be imported:
+
+
+        dest_db.Close();
+        src_db.Close();
+
+    }
+
+    public static void PushOrderDataToClient(int order_id, int site_id = 1,string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+
+
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+        DataFunctions.WriteDebugLine("src order_id: " + order_id);
+
+        var sqlSelect = "SELECT * FROM MainOrders WHERE order_id=@0 ";
+        var order = src_db.QuerySingle(sqlSelect,order_id);
+        DataFunctions.WriteDebugLine("src order_id2: " + order.order_id);
+        DataFunctions.WriteDebugLine("dest order_id: " + order.client_order_id);
+
+        sqlSelect = "UPDATE MainOrders SET main_order_id=@0,order_status=@1,status_change_ts=@2,m_id=@3,is_update=1 WHERE order_id=@4";
+        try
+        {
+            dest_db.Execute(sqlSelect, order.order_id, order.order_status, order.status_change_ts, order.u_id, order.client_order_id);
+        }
+        catch
+        {
+            DataFunctions.WriteDebugLine("ERR IN SQL INSDERT: " );
+        }
+
+        //for every record to be imported:
+
+
+        dest_db.Close();
+        src_db.Close();
+
+    }
+
+
+
+
+
+}
+

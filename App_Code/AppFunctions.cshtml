@@ -161,7 +161,7 @@
         string masked_wanum=wanum;
 
 
-        masked_wanum = masked_wanum.Substring(masked_wanum.Length - maskLength) + "**";
+        try { masked_wanum = masked_wanum.Substring(masked_wanum.Length - maskLength) + "**"; } catch { }
 
 
 

@@ -360,6 +360,12 @@ function PageNavigator(thePage,param1,is_silent,param2) {
             OrdersAutoUpdate = setInterval(function () { RefreshOrdersView(); console.log("."); }, ordersRefreshTimer);
             RepAjaxUpdate("LoadOrdersView", "MainBoardContainer", theLoader, "OrderViewSettings","PROC");
             break;
+
+        case "SITEORDERS":
+            ResetOrderView();
+            OrdersAutoUpdate = setInterval(function () { RefreshOrdersView(); console.log("."); }, ordersRefreshTimer);
+            RepAjaxUpdate("LoadWebOrders", "MainBoardContainer", theLoader, "OrderViewSettings","PROC");
+            break;
         case "WEBORDERS":
             ResetOrderView();
             OrdersAutoUpdate = setInterval(function () { RefreshOrdersView(); console.log("."); }, ordersRefreshTimer);
@@ -505,6 +511,10 @@ function PageNavigator(thePage,param1,is_silent,param2) {
             
 
         ///////////////////////////client data releated page calls
+
+        case "ClientSync":
+            RepAjaxUpdate("ClientSync", "MainBoardContainer", theLoader, param1);
+            break;
 
         case "REGAPREAPPROVAL":
             RepAjaxUpdate("REGAPREAPPROVAL", "MainBoardContainer", theLoader, param1);

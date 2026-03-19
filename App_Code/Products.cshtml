@@ -1252,6 +1252,7 @@ if (viewMode == "PRICE")
     db.Close();
 }
 
+
 @helper LoadSubCatSelector(int main_cat_id, int product_id = 0)
 {
     var db = Database.Open("op_data");
@@ -1364,6 +1365,7 @@ if (viewMode == "PRICE")
     db.Close();
 }
 
+
 @helper EditProductCustomFields(int p_id)
 {
     System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
@@ -1442,6 +1444,7 @@ if (viewMode == "PRICE")
     </div>
     db.Close();
 }
+
 
 @helper ProductCustomFieldEntry(dynamic field, bool is_catalog)
 {
@@ -1656,6 +1659,7 @@ break;
 
 
 }
+
 
 @helper AddProductPricingOption(int product_id, int round_id = 0)
 {
@@ -2223,6 +2227,7 @@ if (product != null)
     db.Close();
 }
 
+
 @helper ProductPricingOptions(int product_id, int round_id = 0)
 {
 var db = Database.Open("op_data");
@@ -2660,6 +2665,9 @@ if (product != null)
     db.Close();
 }
 
+
+
+
 @helper RoundsProductAvailability(int p_id = 0)
 {
     var db = Database.Open("op_data");
@@ -2713,6 +2721,7 @@ if (product != null)
     }
     db.Close();
 }
+
 
 @helper SubProductsForCatalogProduct(int p_id = 0)
 {

@@ -2472,6 +2472,8 @@
     DataFunctions.ImportWebContactForm();
     DataFunctions.ImportWebProspects();
     DataFunctions.ImportOrderFeedBacks();
+    ClientImport.ImportClientUsers();
+    ClientImport.ImportClientOrders();
 
     var sqlSelect = "SELECT COUNT(*) AS the_cnt FROM webOrders WHERE is_deleted=0";
     var rs = op_data.QuerySingle(sqlSelect);

@@ -49,7 +49,7 @@
                     db.Execute(sqlSelect, prospect.prospect_name, prospect.birth_date, prospect.gender, prospect.city, prospect.ref_txt, prospect.occupation, prospect.more_info, prospect.join_reason, prospect.involvement, prospect.notes, user_id, pb_id);
 
                     sqlSelect = "UPDATE phonebook SET user_id=@0,prospect_id=@1,email=@2,birth_date=@3,social1=@4 WHERE serial=@5";
-                    db.Execute(sqlSelect, user_id, prospect_id, email, birthday, social1,  pb_id);
+                    db.Execute(sqlSelect, user_id, prospect_id, email, birthday, social1, pb_id);
 
                     sqlSelect = "UPDATE Prospects SET user_id=@0,pb_id=@1,is_deleted=1 WHERE serial=@2";
                     db.Execute(sqlSelect, user_id, pb_id, prospect_id);
@@ -218,10 +218,10 @@
         }
 
         sqlSelect = "UPDATE irgusers SET avgDaysBetweenOrders=@0,recentAvgDaysBetweenOrders=@1,order_count=@2,recent_order_count=@3 WHERE userId=@4";
-        try { db.Execute(sqlSelect, avgDaysBetweenOrders, recentAvgDaysBetweenOrders, order_count, recent_order_count,  member_id); } catch { }
+        try { db.Execute(sqlSelect, avgDaysBetweenOrders, recentAvgDaysBetweenOrders, order_count, recent_order_count, member_id); } catch { }
 
         sqlSelect = "UPDATE phonebook SET order_count=@0,first_order_ts=@1,last_order_ts=@2 WHERE serial=@3";
-        try { db.Execute(sqlSelect, order_count, first_order_ts, last_order_ts,  pb_id); } catch { }
+        try { db.Execute(sqlSelect, order_count, first_order_ts, last_order_ts, pb_id); } catch { }
 
 
         db.Close();
@@ -277,7 +277,7 @@
         db.Close();
     }
 
-    public static void ImportWebProspects(string src_db_name="m_join",string dest_db_name= "op_data")
+    public static void ImportWebProspects(string src_db_name = "m_join", string dest_db_name = "op_data")
     {
         //open relevant db's
         var dest_db = Database.Open(dest_db_name);
@@ -304,7 +304,7 @@
                 try { dest_db.Execute(sqlSelect, rec.ts, rec.prospect_id, rec.prospect_name, rec.birth_date, rec.gender, rec.city, rec.wanum, rec.email, rec.fb, rec.ref_txt, rec.occupation, rec.more_info, rec.join_reason, rec.involvement, rec.notes, rec.birth_date_str, rec.ts_str, rec.refer_id, rec.uniqe_str, rec.is_finished, rec.finish_ts, rec.is_approved, rec.is_deleted, rec.last_contact, rec.in_review, rec.review_notes, rec.is_by_referal, rec.reachout_attempts, rec.last_reachout_ts, rec.last_reachout_by, rec.reachout_log, rec.is_interesting, rec.next_reachout_ts, rec.m_id, rec.tmpFlg, rec.mark_deletion, rec.invalid_wanum, rec.removal_request, rec.is_contact, rec.deletecode, rec.is_returning, rec.return_ts, rec.join_attempts, rec.is_update, rec.update_ts, rec.delete_ts, rec.pb_id, rec.last_bday_msg, rec.last_bday_msg_by, rec.instagram, rec.tlg_nick, rec.ref_source, rec.fb_friends, rec.insta_friends, rec.ref_source_desc, rec.is_license, rec.license_info, rec.involvement_volunteer, rec.involvement_paid, rec.involvement_social, rec.involvement_other, rec.involvement_other_info, rec.usage_habits, local_time); } catch { is_ok = false; }
 
                 sqlSelect = "SELECT * FROM RawProspects WHERE ts=@0 AND wanum=@1";
-                var rawDupCheck= dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
+                var rawDupCheck = dest_db.QuerySingle(sqlSelect, rec.ts, rec.wanum);
                 if (rawDupCheck == null)
                 {
                     sqlSelect = "INSERT INTO RawProspects(ts,prospect_id,prospect_name,birth_date,gender,city,wanum,email,fb,ref_txt,occupation,more_info,join_reason,involvement,notes,birth_date_str,ts_str,refer_id,uniqe_str,is_finished,finish_ts,is_approved,is_deleted,last_contact,in_review,review_notes,is_by_referal,reachout_attempts,last_reachout_ts,last_reachout_by,reachout_log,is_interesting,next_reachout_ts,m_id,tmpFlg,mark_deletion,invalid_wanum,removal_request,is_contact,deletecode,is_returning,return_ts,join_attempts,is_update,update_ts,delete_ts,pb_id,last_bday_msg,last_bday_msg_by,instagram,tlg_nick,ref_source,fb_friends,insta_friends,ref_source_desc,is_license,license_info,involvement_volunteer,involvement_paid,involvement_social,involvement_other,involvement_other_info,usage_habits,status_change_ts) ";
@@ -327,7 +327,7 @@
 
         sqlSelect = "SELECT prospect_id FROM prospectsapprovals WHERE is_completed=1";
         var prospectsApprovals = src_db.Query(sqlSelect);
-        foreach(var prosApp in prospectsApprovals)
+        foreach (var prosApp in prospectsApprovals)
         {
             sqlSelect = "UPDATE webprospects SET status_code=3 WHERE serial=@0";
             dest_db.Execute(sqlSelect, prosApp.prospect_id);
@@ -545,7 +545,7 @@
                 try { birthday = pbEntry.birth_date; } catch { }
 
                 sqlSelect = "INSERT INTO u_stats(create_ts,pb_id,is_update,wanum,is_new) VALUES(@0,@1,1,@2,1)";
-                try { op_data.Execute(sqlSelect, local_time,pb_id,wanum); } catch { }
+                try { op_data.Execute(sqlSelect, local_time, pb_id, wanum); } catch { }
                 sqlSelect = "SELECT serial FROM u_stats WHERE pb_id=@0 AND create_ts=@1";
                 var tmpRs = op_data.QuerySingle(sqlSelect, pb_id, local_time);
                 try { member_id = tmpRs.serial; } catch { }
@@ -559,13 +559,13 @@
                     if (prospect != null)
                     {
                         sqlSelect = "UPDATE pb SET email=@0,birth_date=@1,social1=@2,social2=@3,telegram_nick=@4,is_update=1,prospect_id=@5,m_id=@6 WHERE serial=@7";
-                        op_data.Execute(sqlSelect, prospect.email, birthday, prospect.fb, prospect.instagram, prospect.tlg_nick, prospect_id, member_id,pb_id);
+                        op_data.Execute(sqlSelect, prospect.email, birthday, prospect.fb, prospect.instagram, prospect.tlg_nick, prospect_id, member_id, pb_id);
 
                         sqlSelect = "UPDATE u_stats SET is_license=@0,license_info=@1,is_update=1 WHERE serial=@2";
                         op_data.Execute(sqlSelect, prospect.is_license, prospect.license_info, member_id);
 
                         sqlSelect = "UPDATE webProspects set is_finished=1,is_deleted=1,is_update=1,pb_id=@0,m_id=@1,status_code=9,status_change_ts=@2 WHERE wanum=@3";
-                        op_data.Execute(sqlSelect, pb_id, member_id, local_time,wanum);
+                        op_data.Execute(sqlSelect, pb_id, member_id, local_time, wanum);
 
                         sqlSelect = "SELECT serial FROM uMeta WHERE pb_id=@0";
                         var dupMetaChk = op_data.QuerySingle(sqlSelect, pb_id);
@@ -592,7 +592,7 @@
 
     }
 
-    public static int CreatePbEntry(string member_name,string wanum)
+    public static int CreatePbEntry(string member_name, string wanum)
     {
         DateTime local_time = AppFunctions.LocalTime();
         int u_id = WebSecurity.CurrentUserId;
@@ -654,12 +654,12 @@
 
             sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
             var member = dest_db.QuerySingle(sqlSelect, rec.wanum);
-            try { m_id = member.m_id;pb_id = member.serial; } catch { }
+            try { m_id = member.m_id; pb_id = member.serial; } catch { }
 
             bool is_ok = true;
             sqlSelect = "INSERT INTO ContactForm(ts,nick_name,wanum,subject,message,rep_id,is_closed,close_ts,closed_by,lang,cus_refresh,cus_refresh_ts,cus_refresh_by,m_id,pb_id,contactActionCode) ";
             sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15)";
-            try { dest_db.Execute(sqlSelect, rec.ts, rec.nick_name, rec.wanum, rec.subject, rec.message, rec.rep_id, rec.is_closed, rec.close_ts, rec.closed_by, rec.lang, rec.cus_refresh, rec.cus_refresh_ts, rec.cus_refresh_by,m_id,pb_id,rec.contactActionCode); } catch { is_ok = false; }
+            try { dest_db.Execute(sqlSelect, rec.ts, rec.nick_name, rec.wanum, rec.subject, rec.message, rec.rep_id, rec.is_closed, rec.close_ts, rec.closed_by, rec.lang, rec.cus_refresh, rec.cus_refresh_ts, rec.cus_refresh_by, m_id, pb_id, rec.contactActionCode); } catch { is_ok = false; }
 
             if (is_ok)
             {
@@ -691,7 +691,7 @@
 
         foreach (var prospect in WebProspects)
         {
-            DataFunctions.WriteDebugLine("phase--" + prospect.serial) ;
+            DataFunctions.WriteDebugLine("phase--" + prospect.serial);
             int newProspectId = 0;
             DataFunctions.WriteDebugLine("phase@");
             newProspectId = createDbRecord(op_data, prospect, "rawProspects", true);
@@ -709,7 +709,7 @@
         {
 
             int newProspectId = 0;
-            newProspectId = createDbRecord(op_data, prospect, "rawProspects",true);
+            newProspectId = createDbRecord(op_data, prospect, "rawProspects", true);
             if (newProspectId > 0)
             {
                 DataFunctions.WriteDebugLine("DEL-B" + wanumize);
@@ -856,7 +856,7 @@
         var op_data = Database.Open("op_data");
 
         var sqlSelect = "SELECT * FROM weborders WHERE serial=@0";
-        var rec = op_data.QuerySingle(sqlSelect,order_id);
+        var rec = op_data.QuerySingle(sqlSelect, order_id);
         int round_id = 0; round_id = rec.menu_id;
         DateTime ts = rec.ts;
         sqlSelect = "SELECT vendor_id,round_type FROM rounds where id=@0";
@@ -905,9 +905,9 @@
             string nick_name = rec.nick_name;
             if (nick_name == "")
             { try { nick_name = AppFunctions.GetMemberName(rec.u_id); } catch { } }
-            if (ship_name == "" && nick_name!="") { ship_name = nick_name; }
+            if (ship_name == "" && nick_name != "") { ship_name = nick_name; }
             sqlSelect = "SET IDENTITY_INSERT MainOrders ON;INSERT INTO MainOrders(order_id,u_id, UserName, ship_reciepient, ship_address, ship_phone, ship_city, timestamp, order_status, round_id, vendor_id, is_express, is_donate, donate_amount, wanum, is_postponed, is_pickup, rep_id, requested_delivery_date,orderpw,nick_name,orderBody,notes_count,board_color,is_new_member,full_name,email,ref_source,ref_source_desc,birth_date,ref_id,aff_id,is_ship_phone,ship_name,shipping_date,shipping_time,order_type) VALUES(@0,@1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12, @13, @14, @15, @16, @17, @18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36)";
-            op_data.Execute(sqlSelect, order_id, rec.m_id, nick_name, ship_name, rec.address, ship_phone, rec.city, rec.ts, order_status, rec.menu_id, vendor_id, is_express, is_donate, rec.donation, rec.wanum, rec.is_postponed, is_pickup, rec.rep_id, rec.shipping_date, rec.orderpw, rec.nick_name, rec.orderBody, rec.notes_count, rec.board_color, rec.is_new_member, rec.full_name, rec.email, rec.ref_source, rec.ref_source_desc, rec.birth_date, rec.ref_id, rec.aff_id, rec.is_ship_phone, rec.ship_name, rec.shipping_date, rec.shipping_time,order_type);
+            op_data.Execute(sqlSelect, order_id, rec.m_id, nick_name, ship_name, rec.address, ship_phone, rec.city, rec.ts, order_status, rec.menu_id, vendor_id, is_express, is_donate, rec.donation, rec.wanum, rec.is_postponed, is_pickup, rec.rep_id, rec.shipping_date, rec.orderpw, rec.nick_name, rec.orderBody, rec.notes_count, rec.board_color, rec.is_new_member, rec.full_name, rec.email, rec.ref_source, rec.ref_source_desc, rec.birth_date, rec.ref_id, rec.aff_id, rec.is_ship_phone, rec.ship_name, rec.shipping_date, rec.shipping_time, order_type);
         }
 
 
@@ -917,13 +917,17 @@
 
     }
 
+
+
+
+
     public static void updateRoundsActiveOrdersCount()
     {
-        var op_data = Database.Open("op_data");
+        var op_data = WebMatrix.Data.Database.Open("op_data");
 
         var sqlSelect = "SELECT * FROM rounds";
         var rounds = op_data.Query(sqlSelect);
-        foreach(var round in rounds)
+        foreach (var round in rounds)
         {
             int round_id = round.id;
             sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM mainorders WHERE round_id=@0";
@@ -931,8 +935,10 @@
             int orders_count = 0; try { orders_count = order.the_cnt; } catch { }
             if (orders_count > 0)
             {
+                op_data.Execute("EXEC sys.sp_set_session_context @key = N'skip_sync', @value = 1;");
                 sqlSelect = "UPDATE rounds SET active_orders=@0 WHERE id=@1";
                 op_data.Execute(sqlSelect, orders_count, round_id);
+                op_data.Execute(" EXEC sys.sp_set_session_context @key = N'skip_sync', @value = NULL;");
 
             }
         }
@@ -1079,9 +1085,11 @@
 
     }
 
-    public static void SyncRoundsDataAcrossSystems(string syncWhat="ACTIVE")
+    public static void SyncRoundsDataAcrossSystems(string syncWhat = "ACTIVE")
     {
         var op_data = Database.Open("op_data");
+        op_data.Execute("EXEC sys.sp_set_session_context @key = N'skip_sync', @value = 1;");
+
         var m_join = Database.Open("m_join");
         var sqlSelect = "";
         sqlSelect = "SELECT id From rounds WHERE is_active=1 AND is_setup=1 AND is_deleted=0 ORDER BY sort_order";
@@ -1121,8 +1129,10 @@
             */
 
             sqlSelect = "SET IDENTITY_INSERT dbo.rounds ON; INSERT INTO Rounds(id, Title, Description, e_Title, e_Desc, vendor_id, round_type,sort_order,is_active,is_express,is_pickup) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,1,@8,@9)";
-            m_join.Execute(sqlSelect, rec.id, rec.Title, rec.Description, rec.e_Title, rec.e_Desc, rec.vendor_id, rec.round_type,rec.sort_order, rec.is_express, rec.is_pickup);
+            m_join.Execute(sqlSelect, rec.id, rec.Title, rec.Description, rec.e_Title, rec.e_Desc, rec.vendor_id, rec.round_type, rec.sort_order, rec.is_express, rec.is_pickup);
         }
+
+        op_data.Execute(" EXEC sys.sp_set_session_context @key = N'skip_sync', @value = NULL;");
         op_data.Close();
         m_join.Close();
     }
@@ -1171,7 +1181,7 @@
     }
 
 
-    public static int CreateZReport(int round_id,DateTime z_date)
+    public static int CreateZReport(int round_id, DateTime z_date)
     {
         DateTime LocalTime = AppFunctions.LocalTime();
         int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
@@ -1187,7 +1197,7 @@
         sqlSelect = "UPDATE ZReports SET is_active=0 WHERE round_id=@0";
         op_data.Execute(sqlSelect, round_id);
         sqlSelect = "INSERT INTO ZReports(round_id,z_date,open_ts,open_by,is_active,vendor_id) values(@0,@1,@2,@3,@4,@5)";
-        op_data.Execute(sqlSelect,  round_id, z_date, LocalTime, u_id, 1,vendor_id);
+        op_data.Execute(sqlSelect, round_id, z_date, LocalTime, u_id, 1, vendor_id);
         sqlSelect = "SELECT serial FROM ZReports WHERE round_id=@0 AND open_ts=@1 AND is_active=1";
         var newZ = op_data.QuerySingle(sqlSelect, round_id, LocalTime);
         int new_z_serial = 0;
@@ -1261,7 +1271,7 @@
     }
 
 
-    public static void CreateProductCopy(dynamic rec, int p_id,int vendor_id, bool is_pricing=true,bool is_pictures=true)
+    public static void CreateProductCopy(dynamic rec, int p_id, int vendor_id, bool is_pricing = true, bool is_pictures = true)
     {
         ProductsFunctions.CreateProductCopy(rec, p_id, vendor_id, is_pricing, is_pictures);
     }

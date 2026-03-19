@@ -1,4 +1,6 @@
-﻿@helper RegistrationPreApproval()
+﻿@using WebMatrix.Data
+
+@helper RegistrationPreApproval()
 {
     var db = Database.Open("op_data");
     var sqlSelect = "";
@@ -35,44 +37,44 @@
     if (preApprovals.Count() == 0)
     {
         <div class="B" style="color:yellow">אין תוצאות</div>
-}
-else
-{
-    foreach (var item in preApprovals)
+    }
+    else
     {
-        int serial = item.serial;
-        int lang = item.lang;
-        int member_id = item.member_id;
-        DateTime create_ts = item.create_ts;
-        string wanum = item.wanum;
-        string member_nick = item.member_nick;
-        string telegram_nick = item.telegram_nick;
-        string email = item.email;
-        string pa_code = item.pa_code;
-        string member_color = "#000";
-        if (member_id <= 0)
+        foreach (var item in preApprovals)
         {
-            member_color = "#e3e3e3";
-        }
+            int serial = item.serial;
+            int lang = item.lang;
+            int member_id = item.member_id;
+            DateTime create_ts = item.create_ts;
+            string wanum = item.wanum;
+            string member_nick = item.member_nick;
+            string telegram_nick = item.telegram_nick;
+            string email = item.email;
+            string pa_code = item.pa_code;
+            string member_color = "#000";
+            if (member_id <= 0)
+            {
+                member_color = "#e3e3e3";
+            }
 
 
-<div class="B" style="border-bottom:1px dotted #e3e3e3;">
-    <div class="A" style="float:right">@create_ts.ToShortDateString()</div>
-    <div class="A" style="float:right">@pa_code</div>
-    <div class="A" style="float:right;color:@member_color">
-        @member_nick
-        
-
-    </div>
-
- 
-
-    <div class="A" style="float:left">
-        <button type="button" class="A" onclick="CompletePreApproval(@serial, '@pa_code');">שליחת הודעה</button>
-    </div>
+            <div class="B" style="border-bottom:1px dotted #e3e3e3;">
+                <div class="A" style="float:right">@create_ts.ToShortDateString()</div>
+                <div class="A" style="float:right">@pa_code</div>
+                <div class="A" style="float:right;color:@member_color">
+                    @member_nick
 
 
-</div>
+                </div>
+
+
+
+                <div class="A" style="float:left">
+                    <button type="button" class="A" onclick="CompletePreApproval(@serial, '@pa_code');">שליחת הודעה</button>
+                </div>
+
+
+            </div>
         }
     }
 
@@ -91,7 +93,7 @@ else
     var db = Database.Open("op_data");
     var client_db = Database.Open("zion");
     var sqlSelect = "";
-    sqlSelect = "SELECT * from userprofile ORDER BY last_online DESC";
+    sqlSelect = "SELECT * from Users ORDER BY last_online DESC";
     var online_users = client_db.Query(sqlSelect);
 
 
@@ -120,9 +122,9 @@ else
                 {
                     foreach (var item in online_users)
                     {
-                        int u_id = item.userId;
+                        int u_id = 0; try { u_id = item.u_id; } catch { }
                         //int lang = item.lang;
-                        int member_id = item.member_id;
+                        int member_id = 0; try { member_id = item.m_id; } catch { }
                         DateTime last_online = DefTime;
                         try { last_online = item.last_online; } catch { }
 
@@ -150,7 +152,7 @@ else
                             }
                             else
                             {
-                                <td class="CA_cell" style="width: 100px; color: #e3e3e3; font-size: 14px;">אורח</td>
+                                <td class="CA_cell" style="width: 100px; color: #e3e3e3; font-size: 14px;">תייר</td>
                             }
 
                             <td class="CA_cell" style="width:200px;color: #000000">@UserName</td>
@@ -172,6 +174,212 @@ else
 
     client_db.Close();
     db.Close();
+}
+
+
+@helper ClientSync()
+{
+
+    /*Tables To sync
+    TABLES TO PUSH TO CLIENT
+
+        * properties table->full sync, very rare updates
+    AppOrderStatuses
+    AppRoundTypes
+    AppServicesArea
+    discounts
+
+    *orders related table
+    MainOrders->partial sync only for required info, very frequent
+    orderitems->full sync when needed
+
+
+    memberDiscounts
+
+
+    //product related
+    categories
+    ProductImages
+    ProductPricingOptions
+    Products
+    ProductsCustomFields
+    productTags
+
+
+    //rounds & outposts related
+    Rounds
+    roundAreas
+    roundMenuItems
+    roundMenuItemsPricingOptions
+
+    //specialoffers
+    SpecialOffers
+    SpecialOffersItems
+    SpOfferRoundsAvailability
+    spOfferTypes
+    coupons
+
+
+    UserPreApprovals
+    users
+    WebProspects
+
+
+
+
+
+
+    categories
+    ProductImages
+    ProductPricingOptions
+    Products
+    ProductsCustomFields
+    productTags
+
+
+
+    */
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime DefTime = Convert.ToDateTime("1/1/1900");
+    var src_db = Database.Open("op_data");
+    var dest_db = Database.Open("zion");
+    var sqlSelect = "";
+
+
+    int Rounds_ChangesCount = 0; try { Rounds_ChangesCount = checkUpdateableColumnsForTable(src_db, "rounds"); } catch { Rounds_ChangesCount = -1; }
+    int roundAreas_ChangesCount = 0; try { roundAreas_ChangesCount = checkUpdateableColumnsForTable(src_db, "roundAreas"); } catch { roundAreas_ChangesCount = -1; }
+    int roundMenuItems_ChangesCount = 0; try { roundMenuItems_ChangesCount = checkUpdateableColumnsForTable(src_db, "roundMenuItems"); } catch { roundMenuItems_ChangesCount = -1; }
+    int roundMenuItemsPricingOptions_ChangesCount = 0; try { roundMenuItemsPricingOptions_ChangesCount = checkUpdateableColumnsForTable(src_db, "roundMenuItemsPricingOptions"); } catch { roundMenuItemsPricingOptions_ChangesCount = -1; }
+
+    int SpecialOffers_ChangesCount = 0; try { SpecialOffers_ChangesCount = checkUpdateableColumnsForTable(src_db, "SpecialOffers"); } catch { SpecialOffers_ChangesCount = -1; }
+    int SpecialOffersItems_ChangesCount = 0; try { SpecialOffersItems_ChangesCount = checkUpdateableColumnsForTable(src_db, "SpecialOffersItems"); } catch { SpecialOffersItems_ChangesCount = -1; }
+    int SpOfferRoundsAvailability_ChangesCount = 0; try { SpOfferRoundsAvailability_ChangesCount = checkUpdateableColumnsForTable(src_db, "SpOfferRoundsAvailability"); } catch { SpOfferRoundsAvailability_ChangesCount = -1; }
+    int spOfferTypes_ChangesCount = 0; try { spOfferTypes_ChangesCount = checkUpdateableColumnsForTable(src_db, "spOfferTypes"); } catch { spOfferTypes_ChangesCount = -1; }
+    int coupons_ChangesCount = 0; try { coupons_ChangesCount = checkUpdateableColumnsForTable(src_db, "coupons"); } catch { coupons_ChangesCount = -1; }
+
+    int categories_ChangesCount = 0; try { categories_ChangesCount = checkUpdateableColumnsForTable(src_db, "categories"); } catch { categories_ChangesCount = -1; }
+    int ProductImages_ChangesCount = 0; try { ProductImages_ChangesCount = checkUpdateableColumnsForTable(src_db, "ProductImages"); } catch { ProductImages_ChangesCount = -1; }
+    int ProductPricingOptions_ChangesCount = 0; try { ProductPricingOptions_ChangesCount = checkUpdateableColumnsForTable(src_db, "ProductPricingOptions"); } catch { ProductPricingOptions_ChangesCount = -1; }
+    int ProductsCustomFields_ChangesCount = 0; try { ProductsCustomFields_ChangesCount = checkUpdateableColumnsForTable(src_db, "ProductsCustomFields"); } catch { ProductsCustomFields_ChangesCount = -1; }
+    int productTags_ChangesCount = 0; try { productTags_ChangesCount = checkUpdateableColumnsForTable(src_db, "productTags"); } catch { productTags_ChangesCount = -1; }
+    int Products_ChangesCount = 0; try { Products_ChangesCount = checkUpdateableColumnsForTable(src_db, "Products"); } catch { Products_ChangesCount = -1; }
+
+
+
+    <div class="A" style="direction:rtl">
+        <div class="A">
+            <h2>סנכרון אתר לקוחות</h2>
+        </div>
+        <div class="A">
+            <h2>Rounds Related</h2>
+            <table class="A" style="width:500px;background-color:#e3e3e3" border="1">
+                <tr>
+                    <td></td>
+                    <td>ROUNDS</td>
+                    <td>@Rounds_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>roundAreas</td>
+                    <td>@roundAreas_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>roundMenuItems</td>
+                    <td>@roundMenuItems_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>roundMenuItemsPricingOptions</td>
+                    <td>@roundMenuItemsPricingOptions_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+
+            </table>
+        </div>
+        <div class="A">
+            <h2>SpecialOffers Related</h2>
+            <table class="A" style="width:500px;background-color:#e3e3e3" border="1">
+                <tr>
+                    <td></td>
+                    <td>SpecialOffers</td>
+                    <td>@SpecialOffers_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>SpecialOffersItems</td>
+                    <td>@SpecialOffersItems_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>SpOfferRoundsAvailability</td>
+                    <td>@SpOfferRoundsAvailability_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>spOfferTypes</td>
+                    <td>@spOfferTypes_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>coupons</td>
+                    <td>@coupons_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+
+            </table>
+        </div>
+        <div class="A">
+            <h2>Products Related</h2>
+            <table class="A" style="width:500px;background-color:#e3e3e3" border="1">
+                <tr>
+                    <td></td>
+                    <td>Products</td>
+                    <td>@Products_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>categories</td>
+                    <td>@categories_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>ProductPricingOptions</td>
+                    <td>@ProductPricingOptions_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>ProductsCustomFields</td>
+                    <td>@ProductsCustomFields_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>productTags</td>
+                    <td>@productTags_ChangesCount</td>
+                    <td><button class="A">סנכרון</button></td>
+                </tr>
+
+            </table>
+        </div>
+    </div>
+    <div class="A" style="height:200px;">&nbsp;</div>
+
+
+
+
+    dest_db.Close();
+    src_db.Close();
 }
 
 @helper Prospects(string showWhat = "NEW")
@@ -222,7 +430,8 @@ else
     sqlSelect = "SELECT count(*) as the_cnt FROM webprospects";
     var pendingWebProspects = clientDB.QuerySingle(sqlSelect);
     int prospectCnt = 0; prospectCnt = webProspects.Count();
-    int pendingProspectCnt = 0; pendingProspectCnt = pendingWebProspects.the_cnt;
+    int pendingProspectCnt = 0;
+    pendingProspectCnt = pendingWebProspects.the_cnt;
 
     sqlSelect = "SELECT count(*) as the_cnt FROM webprospects WHERE is_approved=1";
     var ApprovedWebProspects = clientDB.QuerySingle(sqlSelect);
@@ -822,10 +1031,222 @@ else
     op_data.Close();
 }
 
+@helper SiteOrders(string showWhat = "ALL")
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int round_id = 0;
+    int requested_z_id = 0;
+
+
+    var u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("zion");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+
+
+    sqlSelect = "SELECT TOP (200) * FROM MainOrders  ORDER BY order_id desc"; // order by is_approved, order_id DESC";
+    var order_data = db.Query(sqlSelect);
+    int orders_counter = 0; try { orders_counter = order_data.Count(); } catch { }
+
+
+
+
+
+    <input type="hidden" name="IsInline" id="IsInline" value="1"><div style="text-align: right;font-size: 16px;width: 100%;height: 100%;overflow: auto;">
+        <div style="position: fixed;display: none;z-index: 500000;width: 100%;height: 100%;background-color: #e3e3e3;opacity: 0.5;text-align: center;" id="RoundBoardLoader">
+            <div class="cssload-loading"></div>
+        </div>
+        <div style="max-height: 95%;overflow: auto;direction:rtl">
+            <div class="B">
+                <div style="overflow: auto;background-color: #808080;color: yellow;padding: 5px;">
+                    <span style="font-size: 30px;float: right">
+                        <b>הזמנות אתר</b>
+                    </span>
+                </div>
+            </div>
+
+
+            @if (orders_counter > 0)
+            {
+                <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #808080;direction:rtl " id="round_board_container">
+                    <center>
+                        <table style="font-size: 16px; border-collapse: collapse; background-color: white;width:90% ">
+                            <tr style=";font-size:18px;">
+                                <td class="header">#</td>
+                                <td class="header"></td>
+                                <td class="header">ערוץ</td>
+                                <td class="header">הזמנה</td>
+                                <td class="header">שם</td>
+                                <td class="header">עיר</td>
+                                <td class="header">סטטוס</td>
+                                <td class="header"></td>
+
+                            </tr>
+                            @if (order_data.Count() != 0)
+                            {
+                                foreach (var order in order_data)
+                                {
+                                    if (true)
+                                    {
+                                        string colorPickerClass = "";
+                                        string colorPickerIcon = "";
+                                        string order_type = ""; try { order_type = order.order_type; } catch { }
+                                        bool is_postponed = false; try { is_postponed = order.is_postponed; } catch { }
+                                        string round_short_title = ""; try { round_short_title = order.round_title; } catch { }
+                                        round_id = order.round_id;
+                                        if (round_short_title == "")
+                                        {
+                                            sqlSelect = "SELECT short_title FROM rounds WHERE id=@0";
+                                            var round = db.QuerySingle(sqlSelect, round_id);
+                                            round_short_title = ""; try { round_short_title = round.short_title; } catch { }
+                                        }
+                                        switch (order_type)
+                                        {
+                                            case "ROUND":
+                                                if (true)
+                                                {
+                                                    colorPickerIcon = "🚚";
+
+                                                }
+                                                break;
+                                            case "PICKUP":
+                                                if (true)
+                                                {
+                                                    colorPickerIcon = "🏠";
+
+                                                }
+                                                break;
+                                            case "EXPRESS":
+                                                if (true)
+                                                {
+                                                    colorPickerIcon = "🛵";
+
+                                                }
+                                                break;
+                                        }
+
+                                        <tr id="entry_@order.order_id">
+                                            <td class="OrdersViewerCell">
+                                                @order.order_id
+                                            </td>
+                                            <td class="OrdersViewerCell">
+                                                @colorPickerIcon
+                                            </td>
+
+
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+
+                                                <div style="overflow: auto; font-size: 16px;color:#000">
+                                                    @if (round_id > 0)
+                                                    {
+                                                        <b>@round_short_title</b>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span style="color:#f00"><b>לא הוגדר</b></span>
+                                                    }
+
+                                                    <div class="B" style="display:none">
+                                                        <span class="MiniTag">#@order.order_id</span>
+                                                        <span class="PrplMiniTag">@AppFunctions.FormatRelativeDate(order.requested_delivery_date)</span>
+                                                    </div>
+                                                </div>
+
+
+                                            </td>
+
+
+
+
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+
+                                                <div style="overflow:auto;font-size:12px;color:#000">
+                                                    @if (order.timestamp.Date == local_time.Date)
+                                                    {
+                                                        int min_ago = 0; min_ago = Convert.ToInt32(AppFunctions.HowManyMinutesAgoWas(order.timestamp));
+                                                        <div style="overflow:auto;font-size:16px;color:#000">
+                                                            <b>@order.timestamp.ToString("HH:mm")</b> <span class="GrayMiniTag">היום</span>
+
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div style="overflow:auto;font-size:12px;color:#000">
+                                                            <b>@order.timestamp.ToShortDateString()</b>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
+
+
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+                                                <b>@order.username</b>
+                                                <div class="B" style="display:none;"><span class="MiniTag">@order.ship_city</span></div>
+                                            </td>
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+                                                <b>@order.ship_city</b>
+                                            </td>
+
+                                            <td class="OrdersViewerCell" onclick="MiscActions('HighlightEntry',@order.order_id);sbload('GenSb','Caller?p1=BoardOrderInfo&p2=@order.order_id');">
+                                                <div style="font-size:14px;overflow:auto;color:#000"><b>@NewAppFunctions.GetTitleById("OrderStatus", order.order_status)</b></div>
+                                                <div style="font-size:12px;overflow:auto;display:none">@Order.RoundBoardEntryActions(order.order_id, order.order_status)</div>
+                                            </td>
+
+                                            <td style=""></td>
+
+                                        </tr>
+                                        <tr><td colspan="999" style="background-color:#808080;height:2px;"> </td></tr>
+
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="999">-- אין הזמנות להצגה --</td></tr>
+                            }
+                            <tr>
+                                <td colspan="999" style="height: 50px;">&nbsp;</td>
+                            </tr>
+                        </table>
+                    </center>
+                </div>
+            }
+            else
+            {
+                <div style="overflow: auto; -webkit-overflow-scrolling: touch; background-color: #e3e3e3;direction:rtl;color:#808080 " id="round_board_container">
+                    <center>
+                        <h1>אין הזמנות</h1>
+                    </center>
+                </div>
+            }
+
+        </div>
+
+
+        <div style="overflow:auto;height:250px;">&nbsp;</div>
+
+    </div>
+
+
+    db.Close();
+}
+
+
 
 @functions {
 
+    public static int checkUpdateableColumnsForTable(Database db, string tblName)
+    {
 
+
+        int cnt = 0;
+        var sqlSelect = "SELECT COUNT(*) AS the_cnt from " + tblName + " WHERE is_update=1";
+        var rs = db.QuerySingle(sqlSelect, tblName);
+        try { cnt = rs.the_cnt; } catch { cnt = -1; }
+
+        return cnt;
+    }
 
     public static string CreateRegistrationPreApprovalToken()
     {
@@ -838,9 +1259,9 @@ else
         int lang = 1;
         string wanum = ""; try { wanum = Request["param1"]; } catch { }
 
-        DataFunctions.WriteDebugLine("member_id1 " + member_id);
-        DataFunctions.WriteDebugLine("prospect_id1 " + prospect_id);
-        DataFunctions.WriteDebugLine("wanum1 " + wanum);
+   //     DataFunctions.WriteDebugLine("member_id1 " + member_id);
+   //     DataFunctions.WriteDebugLine("prospect_id1 " + prospect_id);
+   //     DataFunctions.WriteDebugLine("wanum1 " + wanum);
 
 
         string telegram_nick = "";
@@ -912,9 +1333,9 @@ else
         if (theHtmlOutput == "")
         {
 
-            DataFunctions.WriteDebugLine("member_id " + member_id);
-            DataFunctions.WriteDebugLine("wanum " + wanum);
-            DataFunctions.WriteDebugLine("member_nick " + member_nick);
+          //  DataFunctions.WriteDebugLine("member_id " + member_id);
+          //  DataFunctions.WriteDebugLine("wanum " + wanum);
+          //  DataFunctions.WriteDebugLine("member_nick " + member_nick);
 
             sqlSelect = "INSERT INTO UserPreApprovals (member_id, wanum, telegram_nick, email, member_nick, create_ts,created_by,pa_code,lang) VALUES (@0, @1, @2, @3, @4, @5,@6,@7,@8)";
             db.Execute(sqlSelect, member_id, wanum, telegram_nick, email, member_nick, local_time, u_id, pa_code, lang);
@@ -1017,6 +1438,7 @@ else
         // 9) older than 3 months
         return "לפני הרבה זמן";
     }
+
 
 
 

@@ -236,6 +236,48 @@
             break;
 
 
+        case "LoadWebOrders":
+            if (true)
+            {
+
+                string showWhat = Request["showWhat"];
+                string sortDir = Request["sortDir"];
+                string sortBy = Request["sortBy"];
+                string nextSortDir = Request["nextSortDir"];
+                string param2 = Request["param2"];
+
+                if (!param2.IsEmpty())
+                {
+
+                    switch (param2)
+                    {
+                        case "PROC":
+                        case "NEW":
+                        case "FUTURE":
+
+                            showWhat = param2;
+                            break;
+                        default:
+                            sortBy = param2;
+                            break;
+                    }
+
+
+                }
+
+                bool switch_dir = false;
+                if (!Request["param3"].IsEmpty())
+                {
+                    switch_dir = true;
+                }
+                <div style="overflow:auto;background-color:aquamarine;display:none">
+                    @showWhat, @sortBy, @sortDir, @nextSortDir, @switch_dir
+                </div>
+                @ClientApp.SiteOrders(showWhat);
+            }
+            break;
+
+
         case "ZCLOSE":
             if (true)
             {
@@ -1242,6 +1284,12 @@
 
         case "ONLINEUSERS":
             <div style="color:#000;">@ClientApp.ClientUsers()</div>
+            break;
+
+
+
+        case "ClientSync":
+            <div style="color:#000;">@ClientApp.ClientSync()</div>
             break;
 
 

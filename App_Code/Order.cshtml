@@ -1,304 +1,320 @@
 ﻿@helper RoundBoardEntry(dynamic order, string order_mode = "NEW", bool is_multi_select_mode = false)
 {
-    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-    var op_data = Database.Open("op_data");
-    var sqlSelect = "";
-    int round_id = order.round_id;
-    string round_short_title = ""; try { round_short_title = order.round_title; } catch { }
-    if (round_short_title == "")
-    {
-        sqlSelect = "SELECT short_title FROM rounds WHERE id=@0";
-        var round = op_data.QuerySingle(sqlSelect, round_id);
-        round_short_title = ""; try { round_short_title = round.short_title; } catch { }
-    }
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+var op_data = Database.Open("op_data");
+var sqlSelect = "";
+int round_id = order.round_id;
+string round_short_title = ""; try { round_short_title = order.round_title; } catch { }
+if (round_short_title == "")
+{
+    sqlSelect = "SELECT short_title FROM rounds WHERE id=@0";
+    var round = op_data.QuerySingle(sqlSelect, round_id);
+    round_short_title = ""; try { round_short_title = round.short_title; } catch { }
+}
 
+string wanum = ""; try { wanum = order.wanum; } catch { }
+string wanumMask = ""; try { wanumMask = order.wanum; } catch { }
+try { wanumMask = wanumMask.Substring(wanumMask.Length - 6) + "***"; } catch { }
+DateTime local_time = AppFunctions.LocalTime();
 
-    string wanumMask = order.wanum;
-    try { wanumMask = wanumMask.Substring(wanumMask.Length - 6) + "***"; } catch { }
-    DateTime local_time = AppFunctions.LocalTime();
-
-    string ts = "";
-    int member_id = order.u_id;
-    string rawColor = "#ffffff";
-    string board_color = "#ffffff";
-
-    bool is_member = true;
-
-    board_color = order.board_color;
-
-    if (member_id == 0)
-    {
-        is_member = false;
-        board_color = "#ffcccc";
-    }
-
-    string member_name = order.nick_name;
-    DateTime requested_delivery_date = local_time;
-    DateTime scheduled_delivery_start = local_time;
-    try { requested_delivery_date = order.requested_delivery_date; } catch { }
-    try { scheduled_delivery_start = order.scheduled_delivery_start; } catch { }
-    bool isExistingMember = false;
-    string memberIcon = "⚠️";
-    string rowBgCol = "#ffffcc";
-    string VerificationNeededBgColor = "#e3e4e5";
-    string alert_color = "";
-    int notes_count = order.notes_count;
-    bool is_notes = false;
-    bool is_new_member = order.is_new_member;
-    bool is_verification_needed = false;
-    bool is_manual_verification = order.is_manual_verification;
-    bool is_ship_phone = order.is_ship_phone;
-    string ship_phone = order.ship_phone;
-    string ship_name = order.ship_name;
-    string copaste_ship_phone = ship_phone;
-    bool is_postponed = order.is_postponed;
-    bool is_processed = order.is_processed;
-    bool is_cancelled = order.is_cancelled;
-    bool is_deleted = order.is_deleted;
-    bool is_main_page_request = false; if (order_mode == "MAIN") { is_main_page_request = true; }
-    int order_status = order.order_status;
-    int active_delivery_id = 0; try { active_delivery_id = order.active_delivery_id; } catch { }
-    string round_title = ""; try { round_title = order.round_title; } catch { }
-    string order_actions = "";
-    string order_type = order.order_type;
-    try { copaste_ship_phone = copaste_ship_phone.Substring(1); } catch { }
-
-    string order_amount_color = "#000";
-    decimal order_amount = order.after_roundup_total;
-    string order_amount_txt = "";
-    string order_amount_txt_class = "";
-    decimal return_amount = order.return_amount;
-    string return_amount_txt = "";
-    string return_amount_txt_class = "";
-
-    string envelope_class = "SetEnvelope";
-
-    if (order.envelope_id <= 0)
-    {
-        envelope_class = "EnvelopeNotSet";
-    }
-
-    if (order.is_charge_waived)
-    {
-        order_amount = order.waived_charge_sh;
-        order_amount_txt = "ללא חיוב";
-        order_amount_txt_class = "RedMiniTag";
-    }
-
-    if (order.is_cost_charge)
-    {
-        order_amount_txt = "מחיר עלות";
-        order_amount_txt_class = "PrplMiniTag";
-    }
-
-    if (return_amount > 0)
-    {
-        return_amount_txt = "החזר חוב";
-
-    }
+string ts = "";
+int member_id = order.u_id;
+string rawColor = "#ffffff";
+string board_color = "#ffffff";
+bool is_member = true;
+int order_id = 0; try { order_id = order.order_id; } catch { }
 
 
 
+try { board_color = order.board_color; } catch { }
 
-    if (notes_count > 0)
-    {
-        is_notes = true;
-    }
+if (member_id <= 0)
+{
+    is_member = false;
+    board_color = "#ffcccc";
+}
+
+string member_name = ""; try { member_name = order.username; } catch { }
+DateTime requested_delivery_date = local_time;
+DateTime scheduled_delivery_start = local_time;
+try { requested_delivery_date = order.requested_delivery_date; } catch { }
+try { scheduled_delivery_start = order.scheduled_delivery_start; } catch { }
+bool isExistingMember = false;
+string memberIcon = "⚠️";
+string rowBgCol = "#ffffcc";
+string VerificationNeededBgColor = "#e3e4e5";
+string alert_color = "";
+int notes_count = 0; try { notes_count = order.notes_count; } catch { }
+bool is_notes = false;
+bool is_new_member = false;  try { is_new_member = order.is_new_member; } catch { }
+bool is_verification_needed = false;
+bool is_manual_verification = false; try { is_manual_verification = order.is_manual_verification; } catch { }
+bool is_ship_phone = false; try { is_ship_phone = order.is_ship_phone; } catch { }
+string ship_phone = ""; try { ship_phone = order.ship_phone; } catch { }
+string ship_name = ""; try { ship_name = order.ship_name; } catch { }
+
+string copaste_ship_phone = ship_phone;
+bool is_postponed = false; try {is_postponed = order.is_postponed;} catch { }
+bool is_processed = false; try {is_processed = order.is_processed;} catch { }
+bool is_cancelled = false; try {is_cancelled = order.is_cancelled;} catch { }
+bool is_deleted = false; try { is_deleted = order.is_deleted; } catch { }
+bool is_main_page_request = false; if (order_mode == "MAIN") { is_main_page_request = true; }
+int order_status = 0; try { order_status = order.order_status; } catch { }
+int active_delivery_id = 0; try { active_delivery_id = order.active_delivery_id; } catch { }
+string round_title = ""; try { round_title = order.round_title; } catch { }
+string order_actions = "";
+string order_type = ""; try { order_type = order.order_type; } catch { }
+try { copaste_ship_phone = copaste_ship_phone.Substring(1); } catch { }
+
+string order_amount_color = "#000";
+decimal order_amount = 0; try { order_amount = order.after_roundup_total; } catch { }
+string order_amount_txt = "";
+string order_amount_txt_class = "";
+decimal return_amount = 0; try { return_amount = order.return_amount; } catch { }
+string return_amount_txt = "";
+string return_amount_txt_class = "";
+
+string envelope_class = "SetEnvelope";
+
+int envelope_id = 0; try { envelope_id = order.envelope_id; } catch { }
+int delivery_id = 0; try { delivery_id = order.delivery_id; } catch { }
+bool is_charge_waived = false; try { is_charge_waived = order.is_charge_waived; } catch { }
+bool is_cost_charge = false; try { is_cost_charge = order.is_cost_charge; } catch { }
+bool is_dispatched = false; try { is_dispatched = order.is_dispatched; } catch { }
+
+if (envelope_id <= 0)
+{
+    envelope_class = "EnvelopeNotSet";
+}
+
+if (is_charge_waived)
+{
+    order_amount = 0; try { order_amount = order.waived_charge_sh; } catch { }
+    order_amount_txt = "ללא חיוב";
+    order_amount_txt_class = "RedMiniTag";
+}
+
+if (is_cost_charge)
+{
+    order_amount_txt = "מחיר עלות";
+    order_amount_txt_class = "PrplMiniTag";
+}
+
+if (return_amount > 0)
+{
+    return_amount_txt = "החזר חוב";
+
+}
 
 
-    bool isCart = false;
-    sqlSelect = "SELECT serial FROM cartsettings WHERE order_id=@0";
-    var isCartRs = op_data.QuerySingle(sqlSelect, order.order_id);
-    if (isCartRs != null) { isCart = true; }
 
-    if (member_id == 0 || member_name == "")
+
+if (notes_count > 0)
+{
+    is_notes = true;
+}
+
+
+bool isCart = false;
+sqlSelect = "SELECT serial FROM cartsettings WHERE order_id=@0";
+var isCartRs = op_data.QuerySingle(sqlSelect, order_id);
+if (isCartRs != null) { isCart = true; }
+
+if (member_id <= 0 || member_name == "")
+{
+
+    dynamic member;
+    if (member_id <= 0)
     {
         sqlSelect = "SELECT serial,m_id,member_name FROM pb WHERE wanum=@0";
-        var member = op_data.QuerySingle(sqlSelect, order.wanum);
-        if (member != null)
-        {
-            isExistingMember = true;
-            member_id = member.m_id;
-            member_name = member.member_name;
-            sqlSelect = "UPDATE mainorders SET u_id=@0,nick_name=@1,ship_reciepient=@1,username=@1 WHERE order_id=@2";
-            op_data.Execute(sqlSelect, member_id, member_name, order.order_id);
-        }
-        if (member_id == 0)
-        {
-            is_verification_needed = true;
-            if (member_name == "")
-            {
-                member_name = order.full_name;
-            }
-
-        }
+        member = op_data.QuerySingle(sqlSelect, wanum);
+        try { member_id = member.m_id; } catch { }
+        try { member_name = member.member_name; } catch { }
     }
     else
+    {
+        sqlSelect = "SELECT serial,m_id,member_name FROM pb WHERE m_id=@0";
+        member = op_data.QuerySingle(sqlSelect, member_id);
+        try { member_name = member.member_name; } catch { }
+    }
+
+    if (member != null)
     {
         isExistingMember = true;
     }
+}
+else
+{
+    isExistingMember = true;
+}
 
-    if (isExistingMember)
+if (isExistingMember)
+{
+    memberIcon = "✅";
+    rowBgCol = "#e3e3e3";
+    is_verification_needed = false;
+}
+else
+{
+    is_new_member = true;
+}
+if (is_new_member)
+{
+    is_verification_needed = true;
+}
+
+string display_wanum = wanum;
+
+string copPaste_wanum = wanum;
+
+if (copPaste_wanum.StartsWith("972"))
+{
+
+    try { copPaste_wanum = copPaste_wanum.Substring(3); } catch { }
+}
+
+
+try { display_wanum = display_wanum.Substring(display_wanum.Length - 4) + "****"; } catch { }
+
+if (is_manual_verification)
+{
+    is_verification_needed = false;
+}
+
+if (requested_delivery_date.Date > local_time.Date)
+{
+    is_postponed = true;
+}
+else
+{
+    is_postponed = false;
+}
+
+
+if (is_verification_needed && order_mode != "ORDER") { order_mode = "VERIFY"; board_color = "#ffcccc"; }
+//   if (is_postponed && is_processed) { order_mode = "FUTURE"; board_color = "#57d600"; }
+//   if (!is_postponed && is_processed) { order_mode = "PROC"; board_color = "#123456"; }
+
+
+//if (member_name == "") { member_name = order.full_name; }
+
+if (order_status < 1 && order_mode != "ORDER")
+{
+    order_actions = "נא להוסיף פריטים להזמנה ולאשר";
+    order_mode = "PRE";
+    if (board_color == "")
     {
-        memberIcon = "✅";
-        rowBgCol = "#e3e3e3";
-        is_verification_needed = false;
+        board_color = "#bfffb8";
+    }
+}
+
+if (order_status == -2 && order_mode != "ORDER")
+{
+    order_actions = "נא לוודא מלאי";
+    order_mode = "PROC";
+    if (board_color == "")
+    {
+        board_color = "#b9e0fc";
     }
 
-    if (is_new_member)
+}
+
+
+if (is_cancelled || is_deleted)
+{
+    if (order_mode != "ORDER")
     {
-        is_verification_needed = true;
-    }
-
-    string display_wanum = order.wanum;
-
-    string copPaste_wanum = order.wanum;
-
-    if (copPaste_wanum.StartsWith("972"))
-    {
-        copPaste_wanum = copPaste_wanum.Substring(3);
-    }
-    display_wanum = display_wanum.Substring(display_wanum.Length - 4) + "****";
-
-    if (is_manual_verification)
-    {
-        is_verification_needed = false;
-    }
-
-    if (requested_delivery_date.Date > local_time.Date)
-    {
-        is_postponed = true;
-    }
-    else
-    {
-        is_postponed = false;
-    }
-
-
-    if (is_verification_needed && order_mode != "ORDER") { order_mode = "VERIFY"; board_color = "#ffcccc"; }
-    //   if (is_postponed && is_processed) { order_mode = "FUTURE"; board_color = "#57d600"; }
-    //   if (!is_postponed && is_processed) { order_mode = "PROC"; board_color = "#123456"; }
-
-
-    //if (member_name == "") { member_name = order.full_name; }
-
-    if (order_status < 1 && order_mode != "ORDER")
-    {
-        order_actions = "נא להוסיף פריטים להזמנה ולאשר";
-        order_mode = "PRE";
+        order_mode = "DELETED";
         if (board_color == "")
         {
-            board_color = "#bfffb8";
+            board_color = "#ffcccc";
         }
     }
 
-    if (order_status == -2 && order_mode != "ORDER")
-    {
-        order_actions = "נא לוודא מלאי";
-        order_mode = "PROC";
-        if (board_color == "")
+
+}
+if (board_color == "") { board_color = "#ffffff"; }
+
+if (is_main_page_request) { order_mode = "MAIN"; }
+
+
+
+switch (order_mode)
+{
+
+
+    case "NEW":
+    case "PROC":
+    case "DELETED":
+    case "PRE":
+        if (true)
         {
-            board_color = "#b9e0fc";
-        }
-
-    }
-
-
-    if (is_cancelled || is_deleted)
-    {
-        if (order_mode != "ORDER")
-        {
-            order_mode = "DELETED";
-            if (board_color == "")
+            string colorPickerClass = "";
+            string colorPickerIcon = "";
+            switch (order_type)
             {
-                board_color = "#ffcccc";
-            }
-        }
+                case "ROUND":
+                    if (true)
+                    {
+                        colorPickerClass = "GrayRoundButton";
+                        colorPickerIcon = "✉️";
 
-
-    }
-    if (board_color == "") { board_color = "#ffffff"; }
-
-    if (is_main_page_request) { order_mode = "MAIN"; }
-
-
-
-    switch (order_mode)
-    {
-
-
-        case "NEW":
-        case "PROC":
-        case "DELETED":
-        case "PRE":
-            if (true)
-            {
-                string colorPickerClass = "";
-                string colorPickerIcon = "";
-                switch (order_type)
-                {
-                    case "ROUND":
-                        if (true)
+                        if (is_dispatched)
                         {
-                            colorPickerClass = "GrayRoundButton";
-                            colorPickerIcon = "✉️";
+                            envelope_class = "DeliveryEnvelopeInTransit";
+                            colorPickerIcon = "⛟";
 
-                            if (order.is_dispatched)
+                        }
+                        else
+                        {
+                            if (active_delivery_id == delivery_id && active_delivery_id > 0)
                             {
-                                envelope_class = "DeliveryEnvelopeInTransit";
-                                colorPickerIcon = "⛟";
+                                colorPickerClass = "DeliveryOkRoundButton";
+                                envelope_class = "DeliveryOkEnvelope";
 
                             }
                             else
                             {
-                                if (active_delivery_id == order.delivery_id && active_delivery_id > 0)
-                                {
-                                    colorPickerClass = "DeliveryOkRoundButton";
-                                    envelope_class = "DeliveryOkEnvelope";
-
-                                }
-                                else
-                                {
-                                    envelope_class = "DeliveryNotOkEnvelope";
-                                }
+                                envelope_class = "DeliveryNotOkEnvelope";
                             }
-
                         }
-                        break;
-                    case "PICKUP":
-                        if (true)
-                        {
-                            colorPickerClass = "PrplRoundButton";
-                            colorPickerIcon = "🏠";
 
-                        }
-                        break;
-                    case "EXPRESS":
-                        if (true)
-                        {
-                            colorPickerClass = "GreenRoundButton";
-                            colorPickerIcon = "🛵";
+                    }
+                    break;
+                case "PICKUP":
+                    if (true)
+                    {
+                        colorPickerClass = "PrplRoundButton";
+                        colorPickerIcon = "🏠";
 
-                        }
-                        break;
-                }
-                if (is_postponed)
-                {
-                    colorPickerClass = "PostponedRoundButton";
-                }
-                if (order.envelope_id <= 0)
-                {
-                    envelope_class = "NoEnvelope";
-                    colorPickerIcon = "❓❔❓";
+                    }
+                    break;
+                case "EXPRESS":
+                    if (true)
+                    {
+                        colorPickerClass = "GreenRoundButton";
+                        colorPickerIcon = "🛵";
+
+                    }
+                    break;
+            }
+            if (is_postponed)
+            {
+                colorPickerClass = "PostponedRoundButton";
+            }
+            if (envelope_id <= 0)
+            {
+                envelope_class = "NoEnvelope";
+                colorPickerIcon = "❓❔❓";
 
 
-                }
+            }
 
                 <tr id="entry_@order.order_id" style="background-color:@board_color">
                     <td class="@envelope_class" onclick="document.getElementById('boardColorpicker_@order.order_id').click();">
-                        @if (order.envelope_id > 0)
+                        @if (envelope_id > 0)
                         {
-                            <span class="B" style="font-size:24px;float:right"><b>@colorPickerIcon @order.envelope_id </b></span>
+                            <span class="B" style="font-size:24px;float:right"><b>@colorPickerIcon @envelope_id </b></span>
                         }
                         else
                         {
@@ -677,17 +693,18 @@
                 </tr>
                 <tr><td colspan="999" style="background-color:#808080;height:2px;"> </td></tr>
 
-            }
-            break;
+        }
+        break;
 
 
-        case "VERIFY":
-            if (true)
+    case "VERIFY":
+        if (true)
+        {
+            if (member_name == "")
             {
-                if (member_name == "")
-                {
-                    member_name = order.full_name;
-                }
+                try { member_name = order.full_name; } catch { }
+
+            }
 
                 <tr id="entry_@order.order_id" style="border-bottom: 1px dotted #000;background-color:@VerificationNeededBgColor">
                     <td>
@@ -847,8 +864,7 @@
                 break;
         }
 
-        <div style="display:none">
-        </div>
+        <div style="display:none"> </div>
 
     </div>
 
@@ -927,44 +943,6 @@
         }
     </div>
 
-
-
-    /*
-    switch (order_status)
-    {
-    case 0:
-<div style="overflow:auto;padding:1px;margin:1px;font-size:16px;display:none"></div>
-<div id="statusActionsDiv_@order_id">
-
-<select style="padding: 5px; margin: 5px; font-size: 16px;" id="actionSelector_@order_id" onchange="MiscActions('ORDERBOARDENTRYACTIONS', this.value, '@order_id')">
-<option value=""></option>
-<option value="APPROVE"></option>
-<option value="DENY"></option>
-<option value="TRANSFER"></option>
-</select>
-
-<div style="display:none">
-<button type="button" style="padding: 5px; margin: 5px; font-size: 16px; border: 1px solid #f00; color: #f00; background-color: white; border-radius: 5px; "></button>
-<button type="button" style="padding: 5px; margin: 5px; font-size: 16px; border: 1px solid #57d600;color:#57d600; background-color: white;border-radius:5px;" onclick="hideElement('statusActionsDiv_@order_id'); showElement('statusActionsApproval_@order_id');"></button>
-</div>
-
-</div>
-<div id="statusActionsApproval_@order_id" style="display:none">
-<input type="text" style="padding:5px;margin:5px;font-size:16px;width:30px" id="eta_@order_id">
-<button type="button" style="padding: 5px; margin: 5px; font-size: 16px; border: 1px solid #57d600; color: #57d600; background-color: white; border-radius: 5px;" onclick=" AjaxActions('REPORDERAPPROVAL', '@order_id', '', 'SET_ETA', document.getElementById('eta_@order_id').value); "></button>
-<button type="button" style="padding: 5px; margin: 5px; font-size: 16px; border: 1px solid #f00; color: #f00; background-color: white; border-radius: 5px;" onclick=" MiscActions('ORDERBOARDENTRYACTIONS', 'RESET', '@order_id');"></button>
-</div>
-
-break;
-case 1:
-<div>
-<input type="text" style="padding:5px;margin:5px;font-size:16px;width:30px">
-<button type="button" style="padding:5px;margin:5px;font-size:16px;border:0;background:transparent;"></button>
-</div>
-
-break;
-}
-*/
 }
 @helper RoundBoardEntryActions_bck(int order_id, int order_status)
 {

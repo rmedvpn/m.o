@@ -1,0 +1,397 @@
+﻿@functions {
+
+    public static void ImportClientUsers(string src_db_name = "zion", string dest_db_name = "op_data")
+    {
+
+        int site_id = 1;
+        //
+        //if src_db_name != "zion"{site_id = ?? ;}
+        //
+        //
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        DateTime local_time = Convert.ToDateTime("1/1/1900"); try { local_time = AppFunctions.LocalTime(); } catch { }
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM Users WHERE is_update=1 ORDER BY u_id ";
+        var users = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var user in users)
+        {
+            bool is_ok = true;
+
+            sqlSelect = "SELECT serial FROM ClientUsers WHERE site_id=@0 AND u_id=@1";
+            var isExists = dest_db.QuerySingle(sqlSelect, site_id, user.u_id);
+            if (isExists == null)
+            {
+
+                int m_id = 0; try { m_id = user.m_id; } catch { }
+                string wanum = user.wanum;
+                try { wanum = AppFunctions.wanumize(wanum); } catch { }
+                string member_nick = user.member_nick;
+
+
+                if (m_id <= 0)
+                {
+                    sqlSelect = "SELECT serial,m_id FROM pb WHERE wanum=@0";
+                    var pbEntry = dest_db.QuerySingle(sqlSelect, wanum);
+                    try { m_id = pbEntry.m_id; } catch { }
+                }
+
+                sqlSelect = "INSERT INTO ClientUsers (u_id,site_id,UserName,ts,m_id,SessionVersion,IsBlocked,BlockUntilUtc,last_online,force_logout,member_nick,full_name,wanum,telegram_nick,email,last_login,last_logout,last_order_ts,def_area,main_area_id,ranking_score,is_vip,order_count,referals_count,last_donation_ts,donations_count,total_donation_amount,refered_by,birth_date,lang_code,is_team,is_update,sync_needed,wanum_mask,email_mask,tlg_mask) ";
+                sqlSelect += " VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35) ";
+                dest_db.Execute(sqlSelect, user.u_id, site_id, user.UserName, user.ts, m_id, user.SessionVersion, user.IsBlocked, user.BlockUntilUtc, user.last_online, user.force_logout, user.member_nick, user.full_name, wanum, user.telegram_nick, user.email, user.last_login, user.last_logout, user.last_order_ts, user.def_area, user.main_area_id, user.ranking_score, user.is_vip, user.order_count, user.referals_count, user.last_donation_ts, user.donations_count, user.total_donation_amount, user.refered_by, user.birth_date, user.lang_code, user.is_team, user.is_update, user.sync_needed, user.wanum_mask, user.email_mask, user.tlg_mask);
+
+
+                //clear personal info from client
+                sqlSelect = "UPDATE Users SET wanum='',telegram_nick='',email='',birth_date='1/1/1900',is_update=0 WHERE u_id=@0";
+                src_db.Execute(sqlSelect, user.u_id);
+
+            }
+            else
+            {
+
+                //update user record code
+            }
+
+
+
+        }
+
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+
+    public static void ImportClientOrders(string src_db_name = "zion", string dest_db_name = "op_data")
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defTime = Convert.ToDateTime("1/1/1900");
+
+
+        //open relevant db's
+        var dest_db = Database.Open(dest_db_name);
+        var src_db = Database.Open(src_db_name);
+        int site_id = 1; //if(src_db_name != "zion"){site_id = ??;}
+
+
+        //get all records to be imported
+        var sqlSelect = "SELECT * FROM MainOrders WHERE main_order_id=0 ORDER BY order_id";
+        var ClientOrders = src_db.Query(sqlSelect);
+
+        //for every record to be imported:
+        foreach (var rec in ClientOrders)
+        {
+           // DataFunctions.WriteDebugLine("imporrting order: " + rec.order_id);
+
+
+            bool is_ok = true;
+
+            sqlSelect = "SELECT order_id FROM ClientOrders WHERE order_id=@0 AND site_id=@1 ";
+            var dupCheck = dest_db.QuerySingle(sqlSelect, rec.order_id, site_id);
+            if (dupCheck == null)
+            {
+                DataFunctions.WriteDebugLine("adding order: " + rec.order_id);
+                string wanum = "";
+                string ship_phone = ""; try { ship_phone = AppFunctions.wanumize(rec.ship_phone); } catch { }
+                int m_id = 0;
+
+                DateTime shipping_date = defTime;
+                DateTime round_scheduled_start = local_time.Date;
+                DateTime requested_delivery_date = local_time.Date;
+                DateTime scheduled_delivery_start = defTime;
+                string shipping_time = "";
+                string requested_delivery_window_start_hour = "00:00";
+                string requested_delivery_window_end_hour = "23:59";
+                string order_type = ""; try { order_type = rec.order_type; } catch { }
+                int round_id = 0; try { round_id = rec.round_id; } catch { }
+
+                sqlSelect = "SELECT vendor_id,round_type,active_delivery_id,round_start,estimated_duration,title,express_eta_min,main_z_id,z_serial FROM rounds where id=@0";
+                var round = dest_db.QuerySingle(sqlSelect, round_id);
+                int vendor_id = 0; try { vendor_id = round.vendor_id; } catch { }
+                int round_type = 0; try { round_type = round.round_type; } catch { }
+                int main_z_id = 0; try { main_z_id = round.main_z_id; } catch { }
+                int z_serial = 0; try { z_serial = round.z_serial; } catch { }
+                int delivery_id = 0; try { delivery_id = round.active_delivery_id; } catch { }
+                string ship_name = rec.nick_name; try { delivery_id = round.active_delivery_id; } catch { }
+
+
+                int order_status = -1;
+                bool is_express = false;
+                bool is_donate = false;
+                bool is_pickup = false;
+
+                sqlSelect = "SELECT * FROM OrderItems WHERE order_id=@0 order by serial";
+                var OrderItems = src_db.Query(sqlSelect, rec.order_id);
+
+                if (rec.m_id <= 0)
+                {
+                    //
+
+                    m_id = ClientImport.RegisterClientUserAsMember(rec.u_id);
+
+
+                }
+                else
+                {
+                    m_id = rec.m_id;
+                }
+
+                sqlSelect = "SELECT m_id,wanum FROM pb WHERE site_id=@0 AND client_u_id=@1";
+                var member = dest_db.QuerySingle(sqlSelect, site_id, rec.u_id);
+                try { wanum = member.wanum; } catch { }
+
+                if (String.IsNullOrEmpty(ship_phone))
+                {
+                    ship_phone = wanum;
+                }
+
+
+                /*
+                  try { shipping_date = rec.shipping_date; } catch { }
+  if (shipping_date == defTime)
+  { //no shipping date provided in orde
+      shipping_date = local_time;
+  }
+  try { requested_delivery_date = shipping_date; } catch { }
+
+  if (order_type == "ROUND" && round_id > 0)
+  {
+
+      DateTime round_start = local_time;
+      DateTime round_end = local_time;
+      int estimated_duration = 0;
+      try { round_start = round.round_start; } catch { }
+      try { estimated_duration = round.estimated_duration; } catch { }
+      if (estimated_duration == 0)
+      {
+          try { estimated_duration = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultRoundDuration")); } catch { }
+      }
+      try { round_end = round_start.AddMinutes(estimated_duration); } catch { }
+      requested_delivery_window_start_hour = round_start.ToString("HH:mm");
+      requested_delivery_window_end_hour = round_end.ToString("HH:mm");
+  }
+
+  if (order_type == "EXPRESS")
+  {
+      int express_eta_min = 0;
+      try { express_eta_min = round.express_eta_min; } catch { }
+      if (express_eta_min == 0)
+      {
+          try { express_eta_min = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultExpressEtaMinutes")); } catch { }
+      }
+
+      requested_delivery_window_start_hour = local_time.ToString("HH:mm");
+      requested_delivery_window_end_hour = local_time.AddMinutes(express_eta_min).ToString("HH:mm");
+
+  }
+
+  if (order_type == "PICKUP")
+  {
+      int pu_eta = 0;
+      int pu_idle_min = 0;
+      try { pu_eta = round.pu_eta; } catch { }
+      try { pu_idle_min = round.pu_idle_min; } catch { }
+      if (pu_eta == 0)
+      {
+          try { pu_eta = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultPickupEtaMinutes")); } catch { }
+      }
+      if (pu_idle_min == 0)
+      {
+          try { pu_idle_min = Convert.ToInt32(AppFunctions.GetAppProperty("DefaultPickupIdlenessMinutes")); } catch { }
+      }
+
+      requested_delivery_window_start_hour = local_time.AddMinutes(pu_eta).ToString("HH:mm");
+      requested_delivery_window_end_hour = local_time.AddMinutes(pu_eta + pu_idle_min).ToString("HH:mm");
+
+  }
+
+                */
+
+
+
+
+
+
+                sqlSelect = "INSERT INTO ClientOrders (site_id,order_id,u_id,UserName,ship_reciepient,ship_address,ship_city,ship_phone,ship_notes,order_status,round_id,timestamp,vendor_id,is_express,credit_amount,return_amount,order_title,donate_amount,is_approved,payment_method,community_notes,discount_amount,discount_percantage,does_discount_includes_sh,does_discount_includes_spItems,discount_title,discount_title_e,pd_discount,discount_total,pickup_total,is_pickup,is_route,status_change_ts,order_total,shipping_charge,charity_amount,order_type,local_u_id,delivery_id,scheduled_delivery_start,requested_delivery_window_start_hour,requested_delivery_window_end_hour,z_id,z_serial,wanum) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44)";
+                dest_db.Execute(sqlSelect, site_id, rec.order_id, m_id, rec.UserName, rec.ship_reciepient, rec.ship_address, rec.ship_city, rec.ship_phone, rec.ship_notes, rec.order_status, rec.round_id, rec.timestamp, rec.vendor_id, rec.is_express, rec.credit_amount, rec.return_amount, rec.order_title, rec.donate_amount, rec.is_approved, rec.payment_method, rec.community_notes, rec.discount_amount, rec.discount_percantage, rec.does_discount_includes_sh, rec.does_discount_includes_spItems, rec.discount_title, rec.discount_title_e, rec.pd_discount, rec.discount_total, rec.pickup_total, rec.is_pickup, rec.is_route, rec.status_change_ts, rec.order_total, rec.shipping_charge, rec.charity_amount,rec.order_type,rec.u_id, delivery_id, scheduled_delivery_start, requested_delivery_window_start_hour, requested_delivery_window_end_hour, main_z_id, z_serial,wanum);
+                sqlSelect = "INSERT INTO MainOrders (site_id,client_order_id,u_id,UserName,ship_reciepient,ship_address,ship_city,ship_phone,ship_notes,order_status,round_id,timestamp,vendor_id,is_express,credit_amount,return_amount,order_title,donate_amount,is_approved,payment_method,community_notes,discount_amount,discount_percantage,does_discount_includes_sh,does_discount_includes_spItems,discount_title,discount_title_e,pd_discount,discount_total,pickup_total,is_pickup,is_route,status_change_ts,order_total,shipping_charge,charity_amount,order_type,local_u_id,delivery_id,scheduled_delivery_start,requested_delivery_window_start_hour,requested_delivery_window_end_hour,z_id,z_serial,wanum) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44)";
+
+                dest_db.Execute(sqlSelect, site_id, rec.order_id, m_id, rec.UserName, rec.ship_reciepient, rec.ship_address, rec.ship_city, rec.ship_phone, rec.ship_notes, rec.order_status, rec.round_id, rec.timestamp, rec.vendor_id, rec.is_express, rec.credit_amount, rec.return_amount, rec.order_title, rec.donate_amount, rec.is_approved, rec.payment_method, rec.community_notes, rec.discount_amount, rec.discount_percantage, rec.does_discount_includes_sh, rec.does_discount_includes_spItems, rec.discount_title, rec.discount_title_e, rec.pd_discount, rec.discount_total, rec.pickup_total, rec.is_pickup, rec.is_route, rec.status_change_ts, rec.order_total, rec.shipping_charge, rec.charity_amount,rec.order_type, rec.u_id, delivery_id, scheduled_delivery_start, requested_delivery_window_start_hour, requested_delivery_window_end_hour, main_z_id, z_serial,wanum);
+
+                sqlSelect = "SELECT order_id FROM MainOrders WHERE site_id=@0 AND client_order_id=@1";
+                var newOrder = dest_db.QuerySingle(sqlSelect, site_id, rec.order_id);
+                int main_order_id = 0; try { main_order_id = newOrder.order_id; } catch { }
+
+                sqlSelect = "UPDATE ClientOrders SET main_order_id=@0 WHERE order_id=@1 AND site_id=@2";
+                dest_db.Execute(sqlSelect, main_order_id, rec.order_id, site_id);
+
+                foreach (var item in OrderItems)
+                {
+                    sqlSelect = "INSERT INTO ClientOrderItems(main_order_id,site_id,order_id,p_id,quan,price,item_id,cost,prod_code,itemunit,product_type,item_user_comment,staff_comment,item_status,special_id,description,e_description,title,e_title,group_ts,isQuanByOption,QuanOptionId,OptionIdPrice,OptionIdQuan,optionIdAdditional,is_discountable,calc_price,is_charge_waived,waiver_code,is_free_charity,is_paid_charity,round_id,vendor_id,u_id,local_u_id) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34)";
+                    dest_db.Execute(sqlSelect, main_order_id, site_id, rec.order_id, item.P_id, item.quan, item.price, item.item_id, item.cost, item.prod_code, item.itemunit, item.product_type, item.item_user_comment, item.staff_comment, 1, item.special_id, item.description, item.e_description, item.title, item.e_title, item.group_ts, item.isQuanByOption, item.QuanOptionId, item.OptionIdPrice, item.OptionIdQuan, item.optionIdAdditional, item.is_discountable, item.calc_price, item.is_charge_waived, item.waiver_code, item.is_free_charity, item.is_paid_charity, item.round_id, item.vendor_id, m_id, item.u_id);
+
+                    sqlSelect = "INSERT INTO orderitems(client_order_id,site_id,order_id,p_id,quan,price,item_id,cost,prod_code,itemunit,product_type,item_user_comment,staff_comment,item_status,special_id,description,e_description,title,e_title,group_ts,isQuanByOption,QuanOptionId,OptionIdPrice,OptionIdQuan,optionIdAdditional,is_discountable,calc_price,is_charge_waived,waiver_code,is_free_charity,is_paid_charity,round_id,vendor_id,u_id,local_u_id) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34)";
+                    dest_db.Execute(sqlSelect, rec.order_id, site_id, main_order_id, item.P_id, item.quan, item.price, item.item_id, item.cost, item.prod_code, item.itemunit, item.product_type, item.item_user_comment, item.staff_comment, 1, item.special_id, item.description, item.e_description, item.title, item.e_title, item.group_ts, item.isQuanByOption, item.QuanOptionId, item.OptionIdPrice, item.OptionIdQuan, item.optionIdAdditional, item.is_discountable, item.calc_price, item.is_charge_waived, item.waiver_code, item.is_free_charity, item.is_paid_charity, item.round_id, item.vendor_id, m_id, item.u_id);
+
+                }
+                DataFunctions.WriteDebugLine("NewOrderId: " + rec.order_id);
+                ClientExport.PushOrderDataToClient(main_order_id);
+
+            }
+
+
+
+
+
+        }
+        // DataFunctions.updateRoundsActiveOrdersCount();
+        dest_db.Close();
+        src_db.Close();
+
+
+
+    }
+
+    public static int RegisterClientUserAsMember(int client_u_id,int site_id=1)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defTime = Convert.ToDateTime("1/1/1900");
+        int rep_id = WebSecurity.CurrentUserId;
+        int u_id = 0;
+        int m_id = 0;
+
+        bool is_existing = false;
+
+        var op_data = Database.Open("op_data");
+
+        var sqlSelect = "SELECT * FROM ClientUsers WHERE site_id=@0 AND u_id=@1";
+        var ClientUser = op_data.QuerySingle(sqlSelect, site_id, client_u_id);
+        if (ClientUser != null)
+        {
+            string wanum = ClientUser.wanum;
+            string telegram_nick = ""; try { telegram_nick = ClientUser.telegram_nick; } catch { }
+            string email = ""; try { email = ClientUser.email; } catch { }
+            string UserName = ""; try { UserName = ClientUser.UserName; } catch { }
+            string member_nick = ""; try { member_nick = ClientUser.member_nick; } catch { }
+            string full_name = ""; try { full_name = ClientUser.full_name; } catch { }
+            DateTime birth_date = defTime; try { birth_date = ClientUser.birth_date; } catch { }
+            int def_area = 0; try { def_area = ClientUser.def_area; } catch { }
+            int main_area_id = 0; try { main_area_id = ClientUser.main_area_id; } catch { }
+            int pb_id = 0;
+
+
+            sqlSelect = "SELECT m_id FROM pb WHERE wanum=@0";
+            var pbEntry = op_data.QuerySingle(sqlSelect, wanum);
+            if (pbEntry == null)
+            {
+                sqlSelect = "INSERT INTO pb(member_name,wanum,create_ts,created_by,is_update,is_main,last_change_ts,is_new,anniversary_ts,UserName,email,telegram_nick,birth_date,full_name,def_area,main_area_id,site_id,client_u_id) VALUES(@0,@1,@2,@3,@4,@5,@6,1,@2,@7,@8,@9,@10,@11,@12,@13,@14,@15)";
+                op_data.Execute(sqlSelect, member_nick, wanum, local_time, rep_id, 1, 1, local_time, UserName, email, telegram_nick, birth_date, full_name, def_area, main_area_id, site_id, client_u_id);
+
+                sqlSelect = "SELECT serial FROM pb WHERE site_id=@0 AND client_u_id=@1";
+                var newPbEntry = op_data.QuerySingle(sqlSelect, site_id, client_u_id);
+                if (newPbEntry != null)
+                {
+                    pb_id = newPbEntry.serial;
+                    sqlSelect = "INSERT INTO u_stats(create_ts,pb_id,is_update,wanum,is_new) VALUES(@0,@1,1,@2,1)";
+                    try { op_data.Execute(sqlSelect, local_time, pb_id, wanum); } catch { }
+                    sqlSelect = "SELECT serial FROM u_stats WHERE pb_id=@0 AND create_ts=@1";
+                    var newUStatsEntry = op_data.QuerySingle(sqlSelect, pb_id, local_time);
+                    if (newUStatsEntry != null)
+                    {
+                        m_id = newUStatsEntry.serial;
+                        sqlSelect = "UPDATE pb SET m_id=@0 WHERE serial=@1";
+                        op_data.Execute(sqlSelect, m_id, pb_id);
+
+                    }
+                    else
+                    {
+                        m_id = -3;
+                    }
+                }
+
+            }
+            else
+            {
+                m_id = pbEntry.m_id;
+                sqlSelect = "UPDATE pb SET username=@0,client_u_id=@1,email=@2,telegram_nick=@3,birth_date=@4,full_name=@5,def_area=@6,main_area_id=@7 WHERE wanum=@8";
+                op_data.Execute(sqlSelect, UserName, client_u_id, email, telegram_nick, birth_date, full_name, def_area, main_area_id, wanum);
+                //if member exists in phone book need to do the link
+
+
+
+            }
+
+            if (m_id > 0)
+            {
+                DataFunctions.UpdateMemberStats(m_id);
+                ClientExport.PushUserDataToClient(m_id);
+            }
+
+
+        }
+        else
+        {
+            m_id = -2;
+        }
+
+
+
+
+        op_data.Close();
+        return m_id;
+
+    }
+
+
+    public static int CreatePbEntryAndReturnMemberId(string member_name, string wanum)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebSecurity.CurrentUserId;
+        int member_id = 0;
+        int pb_id = 0;
+        bool is_existing = false;
+        var op_data = Database.Open("op_data");
+        var sqlSelect = "SELECT * FROM pb WHERE wanum=@0";
+        var pbEntry = op_data.QuerySingle(sqlSelect, wanum);
+
+        if (pbEntry == null)
+        {
+            sqlSelect = "INSERT INTO pb(member_name,wanum,create_ts,created_by,is_update,is_main,last_change_ts,is_new,anniversary_ts) VALUES(@0,@1,@2,@3,@4,@5,@6,1,@2)";
+            op_data.Execute(sqlSelect, member_name, wanum, local_time, u_id, 1, 1, local_time);
+            sqlSelect = "SELECT * FROM pb WHERE wanum=@0 AND create_ts=@1";
+            var newPbEntry = op_data.QuerySingle(sqlSelect, wanum, local_time);
+            if (newPbEntry != null)
+            {
+                pb_id = newPbEntry.serial;
+                sqlSelect = "INSERT INTO u_stats(create_ts,pb_id,is_update,wanum,is_new) VALUES(@0,@1,1,@2,1)";
+                try { op_data.Execute(sqlSelect, local_time, pb_id, wanum); } catch { }
+                sqlSelect = "SELECT serial FROM u_stats WHERE pb_id=@0 AND create_ts=@1";
+                var newUStatsEntry = op_data.QuerySingle(sqlSelect, pb_id, local_time);
+                if (newUStatsEntry != null)
+                {
+                    member_id = newUStatsEntry.serial;
+                    sqlSelect = "UPDATE pb SET m_id=@0 WHERE serial=@1";
+                    op_data.Execute(sqlSelect, member_id, pb_id);
+                    DataFunctions.UpdateMemberStats(member_id);
+                }
+            }
+
+        }
+
+        op_data.Close();
+        return member_id;
+
+    }
+
+
+
+}
+
+}
