@@ -40,10 +40,37 @@
 
             break;
 
-        case "SyncCLientSites":
+        case "SyncAgent":
             if (true)
             {
 
+                string req_action = theValue;
+
+
+                switch (req_action)
+                {
+                    case "RMI":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncRoundMenuItems();
+                        }
+                        break;
+                    case "RMIPO":
+                        if (true)
+                        {
+                            //theHtmlOutput = SyncFunctions.SyncRoundMenuItems();
+                        }
+                        break;
+                    case "PROD":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncProducts();
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
 
                 //  theHtmlOutput = SyncFunctions.CopyFullRoundsInfo();
                 //theHtmlOutput = SyncFunctions.CopyFullRoundMenuItemsInfo();
@@ -61,8 +88,9 @@
                 //theHtmlOutput = SyncFunctions.CopyFullspOfferTypesInfo();
                 //theHtmlOutput = SyncFunctions.CopyFullAppPropertiesInfo();
                 //theHtmlOutput = SyncFunctions.CopyFullAppOrdertatusesInfo();
-                theHtmlOutput = SyncFunctions.CopyFullAppServicesAreaInfo();
-                theHtmlOutput = SyncFunctions.SyncRoundAreas();
+                //  theHtmlOutput = SyncFunctions.CopyFullAppServicesAreaInfo();
+                //  theHtmlOutput = SyncFunctions.SyncRoundAreas();
+               // theHtmlOutput = SyncFunctions.SyncProductCategories();
 
             }
 

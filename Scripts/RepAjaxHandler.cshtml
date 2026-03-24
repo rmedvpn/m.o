@@ -538,7 +538,7 @@
                 int v_id = 0; try { v_id = Convert.ToInt32(Request["param2"]); } catch { }
                 if (showWhat == "") { showWhat = "CATALOG"; }
                 <div style="direction:rtl;display:none">AdminPages2.AllProducts(showWhat)</div>
-                <div style="direction:rtl">@Products.AllProducts(showWhat)</div>
+                <div style="direction:rtl">@Products.AllProducts(showWhat,v_id)</div>
 
             }
             break;
@@ -614,8 +614,10 @@
         case "LoadProductsList":
             if (true)
             {
+                int vendor_id = 0;
                 string listType = ""; listType = Request["param1"];
-                <div style="direction:rtl">@Products.AllProducts(listType)</div>
+                try { vendor_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div style="direction:rtl">@Products.AllProducts(listType, vendor_id)</div>
             }
             break;
 

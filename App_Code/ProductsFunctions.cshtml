@@ -21,6 +21,7 @@
         int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["main_cat_id"]); } catch { }
         int sub_cat_id = 0; try { sub_cat_id = Convert.ToInt32(Request["sub_cat_id"]); } catch { }
         int itemunit_type = 0; try { itemunit_type = Convert.ToInt32(Request["itemunit_type"]); } catch { }
+        int strain_type = 0; try { strain_type = Convert.ToInt32(Request["strain_type"]); } catch { }
         bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
         bool CharityOffersOk = false; if (!Request["CharityOffersOk"].IsEmpty()) { CharityOffersOk = true; }
         int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["maxInCart"]); } catch { }
@@ -98,8 +99,19 @@
             if (product.is_catalog) { is_catalog = true; }
             string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type); } catch { }
             string itemunit_e = ""; try { itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2); } catch { }
-            sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24 WHERE p_id=@25";
-            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, p_id);
+
+            string strain_type_title = "";
+            string strain_type_title_e = "";
+
+            if (strain_type > 0)
+            {
+                try { strain_type_title = NewAppFunctions.GetTitleById("StrainType", strain_type); } catch { }
+                try { strain_type_title_e = NewAppFunctions.GetTitleById("StrainType", strain_type, 2); } catch { }
+            }
+
+
+            sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24,strain_type=@25,strain_type_title=@26,strain_type_title_e=@27 WHERE p_id=@28";
+            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type , strain_type_title, strain_type_title_e, p_id);
 
 
             sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
@@ -126,11 +138,11 @@
                 //update sub products?
                 foreach (var chProd in childProducts)
                 {
-                    sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24 WHERE p_id=@25";
-                    db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, chProd.p_id);
+                    sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24,strain_type=@25,strain_type_title=@26,strain_type_title_e=@27 WHERE p_id=@28";
+                    db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type, strain_type_title, strain_type_title_e, chProd.p_id);
 
-                    sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22 WHERE p_id=@23";
-                    db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, chProd.p_id);
+                    sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22,strain_type=@23,strain_type_title=@24,strain_type_title_e=@25 WHERE p_id=@26";
+                    db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, strain_type, strain_type_title, strain_type_title_e, chProd.p_id);
 
 
                 }
@@ -140,7 +152,12 @@
                 //update menuitems
 
             }
+            else
+            {
+                sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22,strain_type=@23,strain_type_title=@24,strain_type_title_e=@25 WHERE p_id=@26";
+                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, strain_type, strain_type_title, strain_type_title_e, p_id);
 
+            }
 
             theHtmlOutput = " 👌 המוצר התעדכן בהצלחה ";
 
@@ -274,7 +291,6 @@
 
         if (is_catalog)
         {
-            DataFunctions.WriteDebugLine("asdasdasddasas");
             sqlSelect = "SELECT distinct p_id FROM products WHERE catalog_p_id=@0";
             var ProductsToUpdate = db.Query(sqlSelect, p_id);
 
@@ -285,7 +301,6 @@
                 var dupCheck = db.QuerySingle(sqlSelect, pricingOptionId,product.p_id);
                 if (dupCheck == null)
                 {
-                    DataFunctions.WriteDebugLine("asdasdasddasas123123");
 
                     //insert new option
                     sqlSelect = "INSERT INTO ProductPricingOptions(p_id,round_id,price,quan,each_additional,optionCommision,AdditionalUnitCommision,isPriceBinding,catalog_p_id,catalog_option_id,is_catalog,manually_created,ts,created_by,is_protected,is_activated,is_spOffer,is_discountable,is_fav) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18)";
@@ -293,7 +308,6 @@
                 }
                 else
                 {
-                    DataFunctions.WriteDebugLine("asdasdasddasasAAAAAAAAAA");
 
                     sqlSelect = "UPDATE ProductPricingOptions SET price=@0,each_additional=@1,optionCommision=@2,AdditionalUnitCommision=@3,isPriceBinding=@4,is_protected=@5,is_activated=@6,is_spOffer=@7,is_discountable=@8,is_fav=@9 WHERE serial=@10";
                     db.Execute(sqlSelect, PriceOption.price, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable, PriceOption.is_fav, dupCheck.serial);
@@ -424,7 +438,7 @@
 
 
 
-                    /*
+
                     //update lowest unit price field in applicable menus
                     if (menu_id != 99999)
                     {
@@ -464,7 +478,7 @@
                         }
 
                     }
-                    */
+
 
                 }
                 else
@@ -673,34 +687,34 @@
         set_to = !set_to;
 
 
-       
-                try { pricingOptionId = Convert.ToInt32(Request["param1"]); } catch { }
-                try { p_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+        try { pricingOptionId = Convert.ToInt32(Request["param1"]); } catch { }
+        try { p_id = Convert.ToInt32(Request["param2"]); } catch { }
 
 
-                sqlSelect = "SELECT is_Catalog FROM products WHERE p_id=@0";
-                var product = db.QuerySingle(sqlSelect, p_id);
-                try { is_Catalog = product.is_Catalog; } catch { }
+        sqlSelect = "SELECT is_Catalog FROM products WHERE p_id=@0";
+        var product = db.QuerySingle(sqlSelect, p_id);
+        try { is_Catalog = product.is_Catalog; } catch { }
 
-                sqlSelect = "UPDATE ProductPricingOptions SET is_fav=@0 WHERE serial=@1";
-                db.Execute(sqlSelect, set_to, pricingOptionId);
-                if (is_Catalog)
-                {
-                          ProductsFunctions.SyncProductPriceOption(pricingOptionId);
-                }
+        sqlSelect = "UPDATE ProductPricingOptions SET is_fav=@0 WHERE serial=@1";
+        db.Execute(sqlSelect, set_to, pricingOptionId);
+        if (is_Catalog)
+        {
+            ProductsFunctions.SyncProductPriceOption(pricingOptionId);
+        }
 
 
-                if (set_to)
-                {
-                    theHtmlOutput = " 👌 אפשרות המחיר סומנה כמועדפת " ;
-                }
-                else
-                {
-                    theHtmlOutput = " 👌 אפשרות המחיר סומנה כלא מועדפת ";
-                }
+        if (set_to)
+        {
+            theHtmlOutput = " 👌 אפשרות המחיר סומנה כמועדפת " ;
+        }
+        else
+        {
+            theHtmlOutput = " 👌 אפשרות המחיר סומנה כלא מועדפת ";
+        }
 
-                db.Close();
-                
+        db.Close();
+
         //   theHtmlOutput = " 👌 אפשרות המחיר נמחקה " + set_to;
         return theHtmlOutput ;
     }
@@ -899,8 +913,10 @@
             decimal price = 0;
             int available_quan = 0;
             int itemunit_type = 0;
+            int strain_type = 0;
             try { cost = Convert.ToDecimal(Request["cost"]); } catch { cost = -1; }
             try { price = Convert.ToDecimal(Request["price"]); } catch { price = -1; }
+            try { strain_type = Convert.ToInt32(Request["strain_type"]); } catch { strain_type = 0; }
 
             bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
             bool CharityOffersOk = false; if (!Request["CharityOffersOk"].IsEmpty()) { CharityOffersOk = true; }
@@ -963,8 +979,18 @@
 
                 string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type); } catch { }
                 string itemunit_e = ""; try { itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2); } catch { }
-                sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,prod_code=@6,maincat_id=@7,sub_cat_id=@8,clerk_id=@9,last_change_ts=@10,is_active=@11,sell_1s=@12,sell_3s=@13,sell_5s=@14,last_change_by=@9,itemunit=@15,itemunit_e=@16,cost=@17,price=@18,spOfferCatId=@19,V_id=@20,available_quan=@21,strain=@22,strain_e=@23,is_strain_ok=@24,thc=@25,cbd=@26,max_in_cart=@27,is_discountable=@28,CharityOffersOk=@29,init_complete=1,is_setup=1 WHERE p_id=@30";
-                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, prod_code, main_cat_id, sub_cat_id, u_id, UpdateTs, is_active, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, vendor_id, available_quan, strain, strain_e, is_strain_ok, thc, cbd, max_in_cart, is_discountable, CharityOffersOk, p_id);
+
+                string strain_type_title = "";
+                string strain_type_title_e = "";
+
+                if (strain_type > 0)
+                {
+                    try { strain_type_title = NewAppFunctions.GetTitleById("StrainType", strain_type); } catch { }
+                    try { strain_type_title_e = NewAppFunctions.GetTitleById("StrainType", strain_type, 2); } catch { }
+                }
+
+                sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,prod_code=@6,maincat_id=@7,sub_cat_id=@8,clerk_id=@9,last_change_ts=@10,is_active=@11,sell_1s=@12,sell_3s=@13,sell_5s=@14,last_change_by=@9,itemunit=@15,itemunit_e=@16,cost=@17,price=@18,spOfferCatId=@19,V_id=@20,available_quan=@21,strain=@22,strain_e=@23,is_strain_ok=@24,thc=@25,cbd=@26,max_in_cart=@27,is_discountable=@28,CharityOffersOk=@29,init_complete=1,strain_type=@30,strain_type_title=@31,strain_type_title_e=@32,is_setup=1 WHERE p_id=@33";
+                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, prod_code, main_cat_id, sub_cat_id, u_id, UpdateTs, is_active, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, vendor_id, available_quan, strain, strain_e, is_strain_ok, thc, cbd, max_in_cart, is_discountable, CharityOffersOk, strain_type , strain_type_title , strain_type_title_e, p_id);
 
 
 

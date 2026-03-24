@@ -1769,4 +1769,30 @@ div.ProdCatSelector_selected {
     font-weight:bold
 }
 
+select.StdSelect {
+    float: left;
+    font-size: 16px;
+    border: 0;
+    background-color: #e3e3e3;
+    color: #808080;
+    padding: 5px;
+    margin: 5px;
+}
+
+span.StdTitle {
+  
+    font-size: 24px;
+    color: #4800ff;
+
+}
+
+button.StdBtn {
+    font-size: 16px;
+    border: 1px solid #808080;
+    background-color: #e3e3e3;
+    color: #808080;
+    padding: 5px;
+    margin: 5px;
+    float: left
+}
 /*END MY CUSTOM STYLING*/

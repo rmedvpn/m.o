@@ -298,6 +298,21 @@
                         break;
                 }
                 break;
+            case "StrainType":
+                switch (lang)
+                {
+                    case 1:
+                        sqlSelect = "SELECT title AS the_label FROM StrainTypes WHERE strain_type=@0";
+                        break;
+                    case 2:
+                        sqlSelect = "SELECT title_e AS the_label FROM StrainTypes WHERE strain_type=@0";
+                        break;
+
+                    default:
+                        sqlSelect = "SELECT title AS the_label FROM ItemUnitTypes WHERE id=@0";
+                        break;
+                }
+                break;
             case "Round":
                 sqlSelect = "SELECT title AS the_label FROM rounds WHERE id=@0";
                 break;

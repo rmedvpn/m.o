@@ -1,5 +1,19 @@
 ﻿@functions {
 
+    public static void ClearRowUpdateFlag(string dbName, string tableName, string keyColumn, int keyValue)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+
+        var db = Database.Open(dbName);
+        string sessioncontextOn = "EXEC sys.sp_set_session_context @key = N'skip_sync', @value = 1; ";
+        string sessioncontextOff = "EXEC sys.sp_set_session_context @key=N'skip_sync', @value=NULL;";
+        //  db.Execute("EXEC sys.sp_set_session_context @key=N'skip_sync', @value=1;");
+        string sql = sessioncontextOn + "UPDATE " + tableName + " SET is_update=0, last_update_ts=@0 WHERE " + keyColumn + "=@1;" + sessioncontextOff;
+        db.Execute(sql, local_time, keyValue);
+        //  db.Execute("EXEC sys.sp_set_session_context @key=N'skip_sync', @value=NULL;");
+    }
+
+
     public static void PushUserDataToClient(int m_id, int site_id = 1,string src_db_name = "op_data", string dest_db_name = "zion")
     {
 

@@ -269,6 +269,7 @@
     <div class="A" style="direction:rtl">
         <div class="A">
             <h2>סנכרון אתר לקוחות</h2>
+            <button type="button" onclick="AjaxActions('SyncCLientSites');">סנכרן</button>
         </div>
         <div class="A">
             <h2>Rounds Related</h2>
@@ -289,13 +290,13 @@
                     <td></td>
                     <td>roundMenuItems</td>
                     <td>@roundMenuItems_ChangesCount</td>
-                    <td><button class="A">סנכרון</button></td>
+                    <td><button class="A" onclick="AjaxActions('SyncAgent', 'RMI');">סנכרון</button></td>
                 </tr>
                 <tr>
                     <td></td>
                     <td>roundMenuItemsPricingOptions</td>
                     <td>@roundMenuItemsPricingOptions_ChangesCount</td>
-                    <td><button class="A">סנכרון</button></td>
+                    <td><button class="A" onclick="AjaxActions('SyncAgent', 'RMIPO');">סנכרון</button></td>
                 </tr>
 
             </table>
@@ -343,7 +344,7 @@
                     <td></td>
                     <td>Products</td>
                     <td>@Products_ChangesCount</td>
-                    <td><button class="A">סנכרון</button></td>
+                    <td><button class="A" onclick="AjaxActions('SyncAgent', 'PROD');">סנכרון</button></td>
                 </tr>
                 <tr>
                     <td></td>
