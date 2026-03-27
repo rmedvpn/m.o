@@ -40,10 +40,16 @@ try { inActiveCnt = cntRS.the_cnt; } catch { }
 sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM DeletedProducts";
 cntRS = db.QuerySingle(sqlSelect);
 try { deletedCnt = cntRS.the_cnt; } catch { }
+
+if(listType=="VENDOR" && vendor_id == 0)
+{
+    listType = "ACTIVE";
+}
+
 switch (listType)
 {
     case "ACTIVE":
-        sqlSelect = "SELECT * FROM products WHERE (is_active=1 OR is_setup=0) AND is_catalog=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
+        sqlSelect = "SELECT * FROM products WHERE (is_active=1 AND is_setup=1) AND is_catalog=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
         listTitle = "כל המוצרים הפעילים";
         itemsCnt = activeCnt;
         break;
@@ -100,7 +106,21 @@ int cur_sub_cat = -1;
 
                 @if (showAddBtn)
                 {
-                    <button type="button" class="StdBtn" onclick="AjaxActions('AddProduct', 'ACTIVE'); AdjustMainView();">+ מוצר חדש</button>
+                    switch (listType)
+                    {
+                        case "VENDOR":
+                            <button type="button" class="StdBtn" onclick="AjaxActions('AddProduct', 'VENDOR','',@vendor_id);currentProductsView = 'VENDOR'; AdjustMainView();">+ הוספת מוצר</button>
+                            break;
+                        case "CATALOG":
+                            <button type="button" class="StdBtn" onclick="AjaxActions('AddProduct', 'CATALOG'); AdjustMainView();">+ מוצר קטלוגי חדש</button>
+                            break;
+                        default:
+                            break;
+                    }
+
+
+                    <button type="button" class="StdBtn" onclick="sbload('GenSb','Caller?p1=AddNewProduct');AdjustMainView();">+ מוצר חדש</button>
+
                 }
 
                 <button type="button" style="float: left;font-size: 16px;border: 0;background-color:#e3e3e3;color: #808080;padding: 5px;margin: 5px;display:none;" onclick="RepAjaxUpdate('LoadProductsList','MainBoardContainer','MainLoader','DELETED');currentProductsView = 'DELETED';"><span style="float:left;background-color: #fff;color: #808080;margin-right: 5px;margin-left: 5px;padding-left: 5px;padding-right: 5px"> <b>@deletedCnt</b> </span>מחוקים</button>
@@ -109,18 +129,6 @@ int cur_sub_cat = -1;
                 <button type="button" style="float: left;font-size: 16px;border: 0;background-color:#808080;color: #fff;padding: 5px;margin: 5px;display:none;" onclick="RepAjaxUpdate('LoadProductsList','MainBoardContainer','MainLoader','INACTIVE');currentProductsView = 'INACTIVE';"> <span style="float:left;background-color: #fff;color: #808080;margin-right: 5px;margin-left: 5px;padding-left: 5px;padding-right: 5px"> <b>@inActiveCnt</b> </span>לא פעילים</button>
 
                 <span class="StdTitle">@listTitle</span> <span class="MiniTag">@itemsCnt מוצרים</span>
-
-                @switch (listType)
-                {
-                    case "ACTIVE":
-                        <button type="button" style="font-size: 16px;border: 0;background-color:#000;color: #fff;padding: 5px;margin: 5px;float: right" onclick="AjaxActions('AddProduct', 'ACTIVE'); AdjustMainView();"><span style="float:left;background-color: #fff;color: #000;margin-right: 5px;margin-left: 5px;padding-left: 5px;padding-right: 5px"> <b>+</b> </span></button>
-                        break;
-                    case "CATALOG":
-                        <button type="button" style="font-size: 16px;border: 0;background-color:#000;color: #fff;padding: 5px;margin: 5px;float: right" onclick="AjaxActions('AddProduct', 'CATALOG');AdjustMainView();"><span style="float:left;background-color: #fff;color: #000;margin-right: 5px;margin-left: 5px;padding-left: 5px;padding-right: 5px"> <b>+</b> </span></button>
-                        break;
-                    default:
-                        break;
-                }
 
 
 
@@ -322,7 +330,7 @@ int cur_sub_cat = -1;
     db.Close();
 }
 
-@helper ProductEdit(int product_id,string viewMode="")
+@helper ProductEditSwitch(int product_id,string viewMode="")
 {
     var db = Database.Open("op_data");
     var sqlSelect = "SELECT is_catalog,is_setup FROM products WHERE p_id=@0";
@@ -370,6 +378,209 @@ int cur_sub_cat = -1;
 
     db.Close();
 }
+
+
+
+@helper AddNewProduct()
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+var db = Database.Open("op_data");
+int product_id = 0;
+var sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+bool is_catalog = false;
+bool is_setup = false;
+int itemunit_type = 0;
+sqlSelect = "SELECT * from ItemUnitTypes";
+var itemUnitTypes = db.Query(sqlSelect);
+string itemunit = "";
+
+sqlSelect = "SELECT * from StrainTypes ORDER BY strain_type";
+var StrainTypes = db.Query(sqlSelect);
+int strain_type = 0;  
+string strain_type_title = "";  
+
+
+sqlSelect = "SELECT * FROM categories WHERE is_maincat=1";
+var MainCategories = db.Query(sqlSelect);
+
+sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1";
+var spOfferCategries = db.Query(sqlSelect);
+
+sqlSelect = "SELECT * FROM vendors WHERE is_active=1";
+var Vendors = db.Query(sqlSelect);
+
+bool sell_1s = false; 
+bool sell_3s = false; 
+bool sell_5s = false; 
+int sell_inXs = 0;    
+
+string sell_1s_display_state = "none";
+string sell_Xs_display_state = "block";
+
+if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"; }
+
+    <div style="overflow: auto;text-align: right;background-color: #fff">
+        <div style="overflow: auto;font-size: 24px;color: #000;">
+            <div style="overflow: auto">
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרת מוצר חדש</div>
+      
+            </div>
+            <div style="overflow: auto">
+            </div>
+
+
+        </div>
+        <form id="AddNewProduct">
+            <div style="overflow: auto;color: #000">
+                <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000">
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                            סוג המוצר
+                            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="product_type" name="product_type">
+                                <option value="1">תבנית מוצר</option>
+                                <option value="2">מוצר מדף קטלוגי </option>
+                                <option value="3">מוצר ספק </option>
+                            </select>
+                        </div>
+                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                            קטגוריה ראשית
+                            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="main_cat_id" name="main_cat_id" onchange="RepAjaxUpdate('LoadSubCat', 'SubCatContainer', 'SubCatLoader', this.value); RepAjaxUpdate('LoadTags', 'CatTagsContainer', 'SubCatLoader', this.value,@product_id)">
+                                <option>נא לבחור </option>
+                                @foreach (var cat in MainCategories)
+                                {
+                                    <option value="@cat.id" >@cat.title</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="spinner" style="text-align: center;display: none;float: left" id="SubCatLoader">
+                            <div class="bounce1"></div>
+                            <div class="bounce2"></div>
+                            <div class="bounce3"></div>
+                        </div>
+                    </div>
+                    <div style="overflow: auto">
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;" id="SubCatContainer">
+                            
+                        </div>
+                    </div>
+
+
+                    <div style="overflow: auto">
+                        <div style="float: right;border-bottom: 1px dotted #000" id="CatTagsContainer">
+                          
+                        </div>
+                    </div>
+
+
+                    <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000;" id="selectItemUnitDiv">
+                        <span>
+                            יח מידה
+                            <span style="float: left;font-weight: bold">
+                                @if (itemunit_type == 0)
+                                {
+                                    <select style="padding: 5px;margin: 5px;font-size: 16px;" id="itemunit_type" name="itemunit_type" onchange="if(this.value==''){hideElement('ProductEditInfoDiv_@product_id');}else{showElement('ProductEditInfoDiv_@product_id');var itemunittitle=this.options[this.selectedIndex].text;for(var i = 1; i <= 5; i++) { document.getElementById('itemunit' + i).innerHTML = itemunittitle;}}">
+                                        <option value="">נא לבחור</option>
+                                        @foreach (var item in itemUnitTypes)
+                                        {
+                                            <option value="@item.id">@item.title</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input type="hidden" id="itemunit_type" name="itemunit_type" value="@itemunit_type">
+                                    <span style="color: #000">@itemunit</span>
+                                }
+                            </span>
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="ProductEditInfoDiv_@product_id" style="display: none;">
+                <div style="background-color: #e3e3e3;overflow: auto">
+                    <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold">
+                        <div style="overflow: auto;font-size: 14px;">כותרת עברית<br><input type="text" id="title" name="title" style="width: 90%;padding: 5px;margin: 5px;;font-size: 16px;"        ></div>
+                        <div style="overflow: auto;font-size: 14px;">English title<br><input type="text" id="e_title" name="e_title" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;"      ></div>
+                        <div style="overflow: auto;font-size: 14px;">תאור המוצר<br><textarea id="description" name="description" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;resize: none;"></textarea></div>
+                        <div style="overflow: auto;font-size: 14px;">Product Description<br><textarea id="e_desc" name="e_desc" style="width: 90%;padding: 5px;margin: 5px;font-size: 16px;resize: none;"></textarea></div>
+                    </div>
+                    <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold;font-size: 18px;">
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            סוג צמח
+                            <span style="float: left">
+                                <select name="strain_type" id="strain_type"  style="padding: 5px;font-size: 16px;margin: 5px;">
+                                    <option></option>
+                                    @foreach(var s in StrainTypes)
+    {
+                                        <option value="@s.strain_type">@s.title</option>
+    }
+
+                                </select>
+
+
+                            </span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מחיר מחירון<span style="float: left"><input type="text" id="price" name="price" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;" > (₪/<span id="itemunit1">@itemunit</span>)</span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מחיר עלות <span style="float: left"><input type="text" id="cost" name="cost" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;"> (₪/<span id="itemunit2">@itemunit</span>)</span>
+                        </div>
+                    </div>
+
+                    <div style="overflow: auto;font-size: 18px;padding: 5px;background-color: #fff">
+
+
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            הנחות <span style="float: left"><input type="checkbox" id="is_discountable" name="is_discountable" style="width: 20px;height: 20px;margin: 5px;"></span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            קהילה <span style="float: left"><input type="checkbox" id="CharityOffersOk" name="CharityOffersOk" style="width: 20px;height: 20px;margin: 5px;"></span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            מקס יח בהזמנה <span style="float: left"><input type="text" id="max_in_cart" name="max_in_cart" style="width: 30px;padding: 5px;font-size: 16px;margin: 5px;" > <span id="itemunit5">@itemunit</span></span>
+                        </div>
+                        <div style="overflow: auto;border-bottom: 1px dotted #000;">
+                            <div style="overflow: auto;color: #000;font-size: 18px;display: @sell_1s_display_state;" id="sell_all_div">
+                                <input type="checkbox" id="sell_1s" name="sell_1s" style="height: 25px;width: 25px;" onclick="hideElement('sell_all_div');showElement('sell_pre_pack');document.getElementById('sell_1s_ph').checked=false;" checked>
+                                נמכר במכפלות של 1 <span id="itemunit3">@itemunit</span>
+                            </div>
+
+                            <div style="overflow: auto;color: #000;font-size: 18px;display: @sell_Xs_display_state;" id="sell_pre_pack">
+                                מכירה במכפלות של<br>
+                                <input type="checkbox" style="height: 20px;width: 20px;" id="sell_1s_ph" onclick="hideElement('sell_pre_pack');showElement('sell_all_div');document.getElementById('sell_1s').checked=true;"> 1
+                                <input type="checkbox" id="sell_3s" name="sell_3s" style="height: 25px;width: 25px;" @if (sell_3s) { <text> checked </text> }> 3
+                                <input type="checkbox" id="sell_5s" name="sell_5s" style="height: 25px;width: 25px;" @if (sell_5s) { <text> checked </text> }> 5
+                                /
+                                <input type="text" style="width: 30px;padding: 5px;font-size: 18px;text-align: center" onfocus="this.value='';" placeholder="x" id="sell_inXs" name="sell_inXs" @if (sell_inXs > 0) { <TEXT></TEXT> }>
+                                <span id="itemunit4">@itemunit</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div style="overflow: auto;text-align: center">
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProduct', '','', '0');">ביטול</button>
+
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddNewProduct', '','','AddNewProduct');">שמירת שינויים</button>
+            </div>
+
+        </form>
+
+
+        <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+    </div>
+    db.Close();
+}
+
 
 @helper EditCatalogProduct(int product_id,string viewMode="")
 {
@@ -591,6 +802,12 @@ if (viewMode == "PRICE")
                             /
                             <input type="text" style="width: 30px;padding: 5px;font-size: 18px;text-align: center" onfocus="this.value='';" placeholder="x" id="sell_inXs" name="sell_inXs" @if (sell_inXs > 0) { <text> value="@sell_inXs" </text> }>
                             <span id="itemunit4">@itemunit</span>
+                        </div>
+                        <div style="overflow: auto;color: #000;font-size: 18px;">
+
+                            <input type="checkbox" style="height: 25px; width: 25px; " id="is_generic" name="is_generic"> מוצר מדף
+
+
                         </div>
                     </div>
 
@@ -1197,45 +1414,53 @@ if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"
 
 @helper ProductSetup(int product_id)
 {
-    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-    var db = Database.Open("op_data");
-    var sqlSelect = "SELECT * FROM products WHERE p_id=@0";
-    var product = db.QuerySingle(sqlSelect, product_id);
-    bool is_catalog = false;
-    try { is_catalog = product.is_catalog; } catch { }
-    bool is_setup = false;
-    try { is_setup = product.is_setup; } catch { }
-    int itemunit_type = 0;
-    try { itemunit_type = product.itemunit_type; } catch { }
-    sqlSelect = "SELECT * from ItemUnitTypes";
-    var itemUnitTypes = db.Query(sqlSelect);
-    string itemunit = "";
-    itemunit = product.itemunit;
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+var product = db.QuerySingle(sqlSelect, product_id);
+bool is_catalog = false;
+try { is_catalog = product.is_catalog; } catch { }
+bool is_setup = false;
+try { is_setup = product.is_setup; } catch { }
+int itemunit_type = 0;
+try { itemunit_type = product.itemunit_type; } catch { }
+sqlSelect = "SELECT * from ItemUnitTypes";
+var itemUnitTypes = db.Query(sqlSelect);
+string itemunit = "";
+itemunit = product.itemunit;
 
-    sqlSelect = "SELECT * FROM categories WHERE is_maincat=1";
-    var MainCategories = db.Query(sqlSelect);
+int vendor_id = 0; try { vendor_id = product.v_id; } catch { }
+string vendor_name = "";
+if (vendor_id > 0)
+{
+    try { vendor_name = AppFunctions.GetVendorTitleById(vendor_id); } catch { }
+}
 
-    sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1";
-    var spOfferCategries = db.Query(sqlSelect);
 
-    sqlSelect = "SELECT * FROM vendors WHERE is_active=1";
-    var Vendors = db.Query(sqlSelect);
+sqlSelect = "SELECT * FROM categories WHERE is_maincat=1";
+var MainCategories = db.Query(sqlSelect);
 
-    bool sell_1s = false; try { sell_1s = product.sell_1s; } catch { }
-    bool sell_3s = false; try { sell_3s = product.sell_3s; } catch { }
-    bool sell_5s = false; try { sell_5s = product.sell_5s; } catch { }
-    int sell_inXs = 0; try { sell_inXs = product.sell_inXs; } catch { }
+sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1";
+var spOfferCategries = db.Query(sqlSelect);
 
-    string sell_1s_display_state = "none";
-    string sell_Xs_display_state = "block";
+sqlSelect = "SELECT * FROM vendors WHERE is_active=1";
+var Vendors = db.Query(sqlSelect);
 
-    if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"; }
+bool sell_1s = false; try { sell_1s = product.sell_1s; } catch { }
+bool sell_3s = false; try { sell_3s = product.sell_3s; } catch { }
+bool sell_5s = false; try { sell_5s = product.sell_5s; } catch { }
+int sell_inXs = 0; try { sell_inXs = product.sell_inXs; } catch { }
+
+string sell_1s_display_state = "none";
+string sell_Xs_display_state = "block";
+
+if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"; }
 
     <div style="overflow: auto;text-align: right;background-color: #fff">
         <div style="overflow: auto;font-size: 24px;color: #000;">
             <div style="overflow: auto">
-                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרת @product.title <span style="font-size: 12px; color: yellow; margin-right: 10px;">מוצר #@product.p_id </span></div>
-                <div style="color: #000;background-color: #ffffcc;overflow: auto;padding: 5px;border: 2px solid #b200ff">
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">@vendor_name - הגדרת @product.title <span style="float:left;font-size: 12px; color: yellow; margin-left: 30px;">מוצר #@product.p_id </span></div>
+                <div style="color: #000;background-color: #ffffcc;overflow: auto;padding: 5px;border: 2px solid #b200ff;display:none;">
                     הגדרה ראשונית למוצר
                     <div class="spinner" style="text-align: center;display: none;float: left" id="ProdLoader">
                         <div class="bounce1"></div>
@@ -1247,23 +1472,46 @@ if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"
             <div style="overflow: auto">
             </div>
         </div>
+        <div class="Spacer50"></div>
+        <div class="B" style="overflow: auto;text-align:center">
+            <button type="button" style="margin: 5px; padding: 5px;; width: 90%; font-size: 22px; " onclick="MiscActions('SelectEntry','Prod_@product.p_id');sbload('GenSb','Caller?p1=AddVendorProduct&p2=@product.p_id');AdjustMainView();">
+                הוספת מוצר חדש
+            </button>
+        </div>
+        <div class="Spacer10"></div>
+        <div class="B" style="font-size:28px;padding:5px;margin:5px;text-align:center"><b> או </b></div>
+        <div class="Spacer10"></div>
+        <div class="B" style="overflow: auto;text-align:center">
+            <button type="button" style="margin: 5px; padding: 5px; width: 90%; font-size: 22px;" onclick="toggle_visibility('CreateFromCatalogDiv');">
+                יצירה מהקטלוג
+            </button>
+        </div>
+
+
         <form id="SelectCatalogProduct">
-            <div style="overflow: auto;color: #000">
-                <div style="overflow: auto;font-size: 18px;border-bottom: 1px dotted #000">
+            <div style="overflow: auto;color: #000;display:none;padding:5px;margin:5px;" id="CreateFromCatalogDiv">
+                <div style="overflow: auto;font-size: 18px;">
                     <div style="overflow: auto">
-                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
-                            בחירת ספק
-                            <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="vendor_id" name="vendor_id" onchange="RepAjaxUpdate('LoadVendorInvEntities', 'vendorInventoryEntitiesDiv', 'ProdLoader', this.value);">
-                                <option>נא לבחור </option>
-                                @foreach (var vendor in Vendors)
-                                {
-                                    <option value="@vendor.vendor_id">@vendor.vendor_name</option>
-                                }
-                            </select>
+                        @if (vendor_id == 0)
+                        {
+                            <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                                בחירת ספק
+                                <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="vendor_id" name="vendor_id" onchange="RepAjaxUpdate('LoadVendorInvEntities', 'vendorInventoryEntitiesDiv', 'ProdLoader', this.value);">
+                                    <option>נא לבחור </option>
+                                    @foreach (var vendor in Vendors)
+                                    {
+                                        <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                    }
+                                </select>
 
-                        </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" name="vendor_id" id="vendor_id" value="@vendor_id" />
+                        }
 
-                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000">
+                        <div style="overflow: auto;width: 100%;border-bottom: 1px dotted #000;font-size:22px;">
                             קטגוריה ראשית
                             <select style="padding: 5px;margin: 5px;font-size: 16px;float: left" id="main_cat_id" name="main_cat_id" onchange="if (this.value != '') { RepAjaxUpdate('LoadProductCatalog', 'CatalogProductsDiv', 'ProdLoader', this.value); } else { document.getElementById('CatalogProductsDiv').innerHTML = ''; }">
                                 <option value="">נא לבחור </option>
@@ -1274,6 +1522,9 @@ if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"
                             </select>
 
                         </div>
+
+
+
                         <div style="overflow: auto;" id="CatalogProductsDiv">
                         </div>
                         <div style="overflow: auto;display: none;background-color: #e3e3e3" id="setupConfirmDiv">
@@ -2879,14 +3130,13 @@ if (product != null)
                         try { vendor_name = AppFunctions.GetVendorTitleById(product.v_id); } catch { }
                         <div style="overflow: auto;border-bottom:1px dotted #808080;font-size: 18px;color: #000;background-color: #fff">
                             <div style="overflow: auto;">
-                                <button style="float: left;background:transparent;border:0;font-size: 16px;margin-left:10px;" onclick="sbload('SubMenuLeft','Caller?p1=ProductEdit&p2=@product.p_id');">⚙️</button>
+                                <button style="float: left;background:transparent;border:0;font-size: 16px;margin-left:10px;" onclick="sbload('SubMenuLeft','Caller?p1=AddVendorProduct&p2=@product.p_id');">⚙️</button>
                                 <div style="overflow:auto">
                                     <div style="float: right; padding: 5px; margin: 5px; font-size: 12px; color: #808080">#@product.p_id </div>
                                     <div style="overflow:auto;">
                                         <span style="font-size:14px;color:#000"><b>@product.title</b></span>
                                         <div style="overflow:auto;padding: 2px;margin:2px;font-size:12px;color:#b200ff">@vendor_name</div>
                                     </div>
-
                                 </div>
 
 

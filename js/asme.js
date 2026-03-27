@@ -446,7 +446,8 @@ function PageNavigator(thePage,param1,is_silent,param2) {
             break;
 
         case "PRODUCTS":
-            RepAjaxUpdate("PRODUCTS", "MainBoardContainer", theLoader, currentProductsView);
+            console.log("currentProductsView " + currentProductsView + " param1 " + param1);
+            RepAjaxUpdate("PRODUCTS", "MainBoardContainer", theLoader, currentProductsView, param1);
             break;
         case "CATMANAGER":
             RepAjaxUpdate("CATMANAGER", "MainBoardContainer", theLoader, currentProductsView);
@@ -1018,7 +1019,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                             var resArr = theRes.split("!$!");
                         }
 
-                        PageNavigator('PRODUCTS');
+                        PageNavigator('PRODUCTS',param1);
                         sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + resArr[0]);
                         AdjustMainView();
                         Notify(resArr[1]);

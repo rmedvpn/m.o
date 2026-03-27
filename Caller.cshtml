@@ -367,10 +367,22 @@
 
             break;
 
+        case "AddNewProduct":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@Products.AddNewProduct()</div>
+            break;
+
         case "ProductEdit":
             Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
             <div style="display:none">AdminPages2.ProductEdit(param2)</div>
-            <div>@Products.ProductEdit(param2, PARAM3)</div>
+            <div>@Products.ProductEditSwitch(param2, PARAM3)</div>
+            break;
+
+
+        case "AddVendorProduct":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div style="display:none">AdminPages2.ProductEdit(param2)</div>
+            <div>@Products.EditProduct(param2, PARAM3)</div>
             break;
 
         case "CatInfo":

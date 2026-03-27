@@ -1795,4 +1795,20 @@ button.StdBtn {
     margin: 5px;
     float: left
 }
+
+div.Spacer10{
+    height:10px;
+    overflow:auto;
+}
+
+div.Spacer50{
+    height:50px;
+    overflow:auto;
+}
+
+div.Spacer100{
+    height:100px;
+    overflow:auto;
+}
+
 /*END MY CUSTOM STYLING*/

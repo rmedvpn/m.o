@@ -90,7 +90,7 @@
                 //theHtmlOutput = SyncFunctions.CopyFullAppOrdertatusesInfo();
                 //  theHtmlOutput = SyncFunctions.CopyFullAppServicesAreaInfo();
                 //  theHtmlOutput = SyncFunctions.SyncRoundAreas();
-               // theHtmlOutput = SyncFunctions.SyncProductCategories();
+                // theHtmlOutput = SyncFunctions.SyncProductCategories();
 
             }
 
@@ -4353,18 +4353,25 @@
                 var sqlSelect = "";
 
                 int p_id = 0;
+
+                int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["param1"]); } catch { }
+                try { } catch { }
                 string tmpTilte = "מוצר חדש";
                 string tmpTilte_e = "New Product";
                 DateTime AddTs = DateTime.Now;
                 if (theValue == "CATALOG")
                 {
+                    tmpTilte = "מוצר קטלוגי חדש";
+                    tmpTilte_e = "New Catalog Product";
                     sqlSelect = "INSERT INTO products(title,e_title,Description,e_desc,add_timestamp,clerk_id,is_active,last_change_ts,itemunit_type,is_catalog) VALUES(@0,@1,@2,@3,@4,@5,0,@4,0,1)";
                 }
                 else
                 {
-                    sqlSelect = "INSERT INTO products(title,e_title,Description,e_desc,add_timestamp,clerk_id,is_active,last_change_ts,itemunit_type) VALUES(@0,@1,@2,@3,@4,@5,0,@4,0)";
+                    tmpTilte = "מוצר חדש";
+                    tmpTilte_e = "New Product"; 
+                    sqlSelect = "INSERT INTO products(title,e_title,Description,e_desc,add_timestamp,clerk_id,is_active,last_change_ts,itemunit_type,v_id) VALUES(@0,@1,@2,@3,@4,@5,0,@4,0,@6)";
                 }
-                db.Execute(sqlSelect, tmpTilte, tmpTilte_e, "", "", AddTs, u_id);
+                db.Execute(sqlSelect, tmpTilte, tmpTilte_e, "", "", AddTs, u_id,vendor_id);
                 sqlSelect = "SELECT p_id FROM products WHERE add_timestamp=@0";
                 var newProduct = db.QuerySingle(sqlSelect, AddTs);
                 try { p_id = newProduct.p_id; } catch { }
