@@ -67,6 +67,12 @@
                             theHtmlOutput = SyncFunctions.SyncProducts();
                         }
                         break;
+                    case "PPO":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncProductPricingOptions();
+                        }
+                        break;
 
                     default:
                         break;
@@ -4386,6 +4392,14 @@
                 db.Close();
                 theHtmlOutput = "!$!" + p_id + "!$!👌 מוצר חדש נוצר בהצלחה";
             }
+            break;
+
+        case "AddNewProduct":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.AddNewProduct();
+            }
+
             break;
 
         case "SetupCatalogProduct":

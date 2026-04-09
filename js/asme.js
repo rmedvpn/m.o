@@ -645,6 +645,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "CloseMainZ":
             case "CreateOrderReturn":
             case "CreateReplacementOrder":
+            case "AddNewProduct":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1023,6 +1024,25 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + resArr[0]);
                         AdjustMainView();
                         Notify(resArr[1]);
+                        noti_break = true;
+                        break;
+
+                    case "AddNewProduct":
+                        if (theRes.startsWith("!$!")) {
+                            theRes = theRes.substring(3);
+                            
+                            Notify(theRes);
+                            console.log('resArr[1]:' + theRes)
+                        }
+                        else {
+                            PageNavigator('PRODUCTS', param2);
+                      //      sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + resArr[0]);
+                        //    AdjustMainView();
+                            Notify(theRes);
+                            console.log('theRes:' + theRes)
+                        }
+                        
+                        
                         noti_break = true;
                         break;
 
@@ -2341,6 +2361,54 @@ function MiscActions(theAction,param1,param2,param3) {
             setElementClass('itemRowAll', 'ItemRow');
             hideElement('PartialReturnDiv');
             break;
+
+
+        case "AddProductSelector":
+            switch (param1) {
+                case "":
+                    hideElement('OptVendor');
+                    hideElement('OptCat');
+                    hideElement('ProductAddDiv');
+                    hideElement('ProductImportDiv');
+
+                    break;
+                case "CATALOG":
+                    hideElement('OptVendor');
+                    hideElement('ProductImportDiv');
+                    showElement('OptCat');
+                    showElement('ProductAddDiv');
+                    break;
+                case "IMPORT":
+                    hideElement('OptCat');
+                    hideElement('ProductAddDiv');
+                    showElement('OptVendor');
+                    showElement('ProductImportDiv');
+                    break;
+                case "VENDOR":
+                    hideElement('OptCat');
+                    hideElement('ProductImportDiv');
+                    showElement('OptVendor');
+                    showElement('ProductAddDiv');
+              
+                    break;
+
+            }
+            break;
+
+
+        case "ProductEditSelector":
+
+            hideElement('ActiveProductsDiv');
+            hideElement('ProductSettingsDiv');
+            hideElement('ProductPricingDiv');
+            hideElement('ProductCustomFieldsDiv');
+            hideElement('RoundsProductsDiv');
+            hideElement('ProductEditInfoDiv');
+            hideElement('ProductImagesContainer');
+            showElement(param2);
+
+            break;
+
 
 
         case "":

@@ -378,6 +378,18 @@
             <div>@Products.ProductEditSwitch(param2, PARAM3)</div>
             break;
 
+        case "EditProduct":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div style="display:none">AdminPages2.ProductEdit(param2)</div>
+            <div>@Products.EditProduct(param2, PARAM3)</div>
+            break;
+
+        case "EditCatalogProduct":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div style="display:none">AdminPages2.ProductEdit(param2)</div>
+            <div>@Products.EditCatalogProduct(param2, PARAM3)</div>
+            break;
+
 
         case "AddVendorProduct":
             Layout = "~/Shared/Layouts/_MiniLayout.cshtml";

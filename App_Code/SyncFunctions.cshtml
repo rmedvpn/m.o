@@ -752,6 +752,56 @@ id, order_status, heb_status, eng_status
 
     }
 
+
+    public static string SyncProductPricingOptions(int ppo_serial=0, string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+        DateTime local_time = AppFunctions.LocalTime();
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        int rep_id = u_id;
+        string theHtmlOutput = "not ok";
+
+        var src_db = Database.Open(src_db_name);
+        var dest_db = Database.Open(dest_db_name);
+
+        var sqlSelect = "SELECT * FROM ProductPricingOptions WHERE is_update=1 AND serial=@0 ORDER BY serial";
+        if (ppo_serial == 0){sqlSelect = "SELECT * FROM ProductPricingOptions WHERE is_update=1 ORDER BY serial"; }
+        if (ppo_serial == -1){sqlSelect = "SELECT * FROM ProductPricingOptions ORDER BY serial"; }
+
+        var productpricingoptions = src_db.Query(sqlSelect, ppo_serial);
+
+        foreach(var item in productpricingoptions)
+        {
+            sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE serial=@0";
+            var dupChk = dest_db.QuerySingle(sqlSelect, item.serial);
+            if (dupChk == null)
+            {
+                dest_db.Execute("SET IDENTITY_INSERT ProductPricingOptions ON");
+
+                sqlSelect = "INSERT INTO ProductPricingOptions (serial) VALUES (@0)";
+                dest_db.Execute(sqlSelect, item.serial);
+                dest_db.Execute("SET IDENTITY_INSERT ProductPricingOptions OFF");
+            }
+
+            sqlSelect = "UPDATE ProductPricingOptions SET p_id=@0,round_id=@1,price=@2,quan=@3,each_additional=@4,is_discountable=@5,optionCommision=@6,AdditionalUnitCommision=@7,isPriceBinding=@8,catalog_p_id=@9,catalog_option_id=@10,is_catalog=@11,manually_created=@12,ts=@13,created_by=@14,is_protected=@15,is_activated=@16,is_unBinded=@17,is_deleted=@18,deleted_by=@19,delete_ts=@20,is_spOffer=@21,is_fav=@22 WHERE serial=@23";
+            dest_db.Execute(sqlSelect, item.p_id, item.round_id, item.price, item.quan, item.each_additional, item.is_discountable, item.optionCommision, item.AdditionalUnitCommision, item.isPriceBinding, item.catalog_p_id, item.catalog_option_id, item.is_catalog, item.manually_created, item.ts, item.created_by, item.is_protected, item.is_activated, item.is_unBinded, item.is_deleted, item.deleted_by, item.delete_ts, item.is_spOffer, item.is_fav, item.serial);
+
+            ClientExport.ClearRowUpdateFlag(src_db_name, "ProductPricingOptions", "serial", item.serial);
+
+
+
+        }
+
+
+
+        theHtmlOutput = "ok";
+        src_db.Close();
+        dest_db.Close();
+
+        return theHtmlOutput;
+
+    }
+
     public static string SyncRoundMenuItems(int round_id=0, string src_db_name = "op_data", string dest_db_name = "zion")
     {
         System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");

@@ -1806,9 +1806,140 @@ div.Spacer50{
     overflow:auto;
 }
 
+div.Spacer20{
+    height:20px;
+    overflow:auto;
+}
+
 div.Spacer100{
     height:100px;
     overflow:auto;
 }
 
+
+div.ProdViewInfo {
+    overflow: auto;
+    padding: 1px;
+    margin: 1px;
+    font-size: 24px;
+    font-weight:bold;
+}
+div.ProdViewTitle {
+    overflow: auto;
+    padding: 1px;
+    margin: 1px;
+    font-size: 12px;
+    color:#808080;
+}
+
+div.ProductTag {
+    background-color: #afceeb;
+    padding: 3px;
+    margin: 3px;
+    font-weight: bold;
+    font-size: 16px;
+    color: #000;
+    border: 0;
+    border-radius:5px;
+   
+}
+span.ProductTag {
+    background-color: #57d600;
+    padding: 2px;
+    margin: 5px;
+    font-weight: bold;
+    font-size: 16px;
+    color: #000;
+    border: 0;
+   
+}
+
+div.ProdPriceOption {
+    overflow:auto;
+    margin:1px;
+    padding:1px;
+    border-bottom:1px dotted #e3e3e3;
+    font-size:18px;
+    text-align:center;
+}
+div.PPOItem {
+    float:right;
+}
+div.PPOValue {
+    float: left;
+    font-weight:bold;
+}
+div.PPOInfo {
+
+    color: #ff6a00;
+    font-size: 12px;
+ 
+}
+div.ProductViewImagesContainer {
+   overflow:auto;
+   text-align:center;
+   padding:5px;
+}
+img.ProductViewPrimaryImage {
+    height: 200px;
+    max-width: 200px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+}
+img.ProductViewNoImage {
+    max-height: 200px;
+    idth: 200px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+}
+img.ProductViewSmallImage {
+    height: 50px;
+    max-width: 50px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+}
+
+span.ProductViewImageSpan{
+    padding:0;
+}
+div.ProdViewItem {
+    overflow: auto;
+    padding: 1px;
+    margin: 1px;
+    font-size: 16px;
+    color: #000;
+    border-bottom: 1px dotted #e3e3e3;
+}
+span.PPOInfoSpan {
+    float: left;
+    font-weight:bold;
+}
+div.PviewTag {
+    background-color: #fff;
+    padding: 5px;
+    margin: 5px;
+    border-radius:5px;
+    border:1px solid #57d600;
+    font-size: 14px;
+    color: #000;
+    float:right;
+    
+}
+div.ProdViewDesc {
+    overflow: auto;
+    padding: 5px;
+    margin: 5px;
+    font-size: 14px;
+    color:#808080;
+
+}
+span.PViewGenericFlag {
+    float: right;
+   
+    font-size: 22px;
+
+}
 /*END MY CUSTOM STYLING*/
