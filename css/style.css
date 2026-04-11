@@ -1942,4 +1942,103 @@ span.PViewGenericFlag {
     font-size: 22px;
 
 }
+input.ProdEditTb {
+    width: 95%;
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left
+}
+input.ProdEditTbSmall {
+    padding: 5px;
+
+    font-size: 16px;
+    float: left;
+    width:40px;
+    text-align:center;
+}
+input.ProdEditCb {
+    width: 20px;
+    height: 20px;
+    margin:5px;
+    float:left;
+    
+}
+textarea.ProdEditTb {
+    width: 95%;
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left;
+    resize:none;
+}
+textarea.ProdEditTb1 {
+    width: 95%;
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left;
+    resize:none;
+}
+textarea.ProdEditSNShow {
+    width: 95%;
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left;
+    resize: none;
+    display: block;
+}
+textarea.ProdEditSNhide {
+    width: 95%;
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left;
+    resize:none;
+    display:none;
+    background-color:#e3e3e3;
+    
+}
+select.ProdEditSelect {
+    padding: 5px;
+    margin: 5px;
+    font-size: 16px;
+    float: left;
+    text-align: left
+}
+span.ProdEditSmallSpan{
+    font-size:11px;
+    color:#808080;
+    font-weight:bold;
+    margin:0;
+    float:left;
+  
+}
+button.ProductTagSelected {
+    background-color: #57d600;
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    color: #fff;
+    border: 0;
+    float: right;
+}
+button.ProductTagUnSelected {
+    background-color: #e3e3e3;
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    color: #808080;
+    border: 0;
+    float: right;
+}
+div.HtmlDescContainer {
+    padding: 5px;
+    margin: 10px;
+    border: 1px dotted #e3e3e3;
+    border-radius:5px;
+    overflow:auto;
+
+}
 /*END MY CUSTOM STYLING*/

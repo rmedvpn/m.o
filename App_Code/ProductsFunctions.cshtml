@@ -12,8 +12,8 @@
         bool is_active = false;
         string title = Request["title"];
         string e_title = Request["e_title"];
-        string description = Request["description"];
-        string e_desc = Request["e_desc"];
+        string description = Request.Unvalidated["description"];
+        string e_desc = Request.Unvalidated["e_desc"];
         decimal cost = 0; try { cost = Convert.ToDecimal(Request["cost"]); } catch {  }
         decimal price = 0; try { price = Convert.ToDecimal(Request["price"]); } catch { }
         decimal commision_rate = 0; try { commision_rate = Convert.ToDecimal(Request["commision_rate"]); } catch { commision_rate = -1; }

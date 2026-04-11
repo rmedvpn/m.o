@@ -31,7 +31,7 @@
      <link rel="stylesheet" href="~/Css/slidebars.css">
      <link rel="stylesheet" href="~/Css/style_sb.css">
      <link rel="stylesheet" href="~/Css/toastify.css">
-
+     <link rel="stylesheet" href="lib/summernote/summernote-lite.min.css" />
 
 
 
@@ -39,6 +39,7 @@
      <script type="text/javascript" src="js/asme.js"></script>
      <script type="text/javascript" src="js/toastify.js"></script>
      <script type="text/javascript" src="js/ImageTools.js"></script>
+
 
      <script>
          function startTime() {
@@ -104,7 +105,7 @@
 
 
      </div>
-     <div style="overflow: auto; padding: 4px; padding-left: 10px; padding-right: 10px; position: fixed; bottom: 0; background-color: #808080;z-index:99999;width:100%  "  id="RoundStatsContainer">
+     <div style="overflow: auto; padding: 4px; padding-left: 10px; padding-right: 10px; position: fixed; bottom: 0; background-color: #808080;z-index:99999;width:100%  " id="RoundStatsContainer">
          @tmpit.RoundStats()
      </div>
 
@@ -273,6 +274,22 @@
      <script src="js/jquery-3.2.1.min.js"></script>
      <script src="js/slidebars.js"></script>
      <script src="js/sb_scripts.js"></script>
+
+     <script>
+         window._savedModule = window.module;
+         window._savedExports = window.exports;
+         window.module = undefined;
+         window.exports = undefined;
+     </script>
+
+     <script src="/lib/summernote/summernote-lite.min.js"></script>
+
+     <script>
+         window.module = window._savedModule;
+         window.exports = window._savedExports;
+     </script>
+
+
      <input type="file" name="image" id="filebox" accept="image/jpeg" style="display: none;">
      <input type="file" name="image" id="picfilebox" accept="image/jpeg" style="display: none;">
 
@@ -309,5 +326,8 @@
          controller.init();
      </script>
 
+     <script>
+
+     </script>
  </body>
 </html>

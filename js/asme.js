@@ -2409,8 +2409,64 @@ function MiscActions(theAction,param1,param2,param3) {
 
             break;
 
+        case "InitMce":
+            if (true) {
+                tinymce.remove();
 
+                tinymce.init({
+                    selector: '.ProdEditTb1',
+                    height: 400,
+                    menubar: false,
+                    plugins: 'lists link table code',
+                    toolbar: 'undo redo | bold italic underline | fontsizeselect | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link | code',
+                    license_key: 'gpl'
+                });
+        
+            }
+            break;
+        case "InitSN":
+            {
+                let sNFldName = "#" + param1;
 
+                $(sNFldName).show();
+
+                $(sNFldName).summernote({
+                    placeholder: '?',
+                    disableDragAndDrop: true,
+                    shortcuts: false,
+                    spellCheck: false,
+                    disableResizeEditor: true,
+                    height: 300,
+                    toolbar: [
+                        ['font', ['bold', 'underline', 'size']],
+                        ['fontsize', ['fontsize']],
+                        ['color', ['forecolor', 'backcolor']],
+                        ['para', ['ul', 'paragraph']],
+                        ['table', ['table']]
+                    ]
+                });
+
+                hideElement(param1 + 'View');
+                hideElement(param1 + '_edit_btn');
+                showElement(param1 + '_cancel_btn');
+            }
+            break;
+
+        case "CancelSN":
+            {
+                let sNFldName = "#" + param1;
+                let sNRestoreFldName = param1 + "_save";
+
+                $(sNFldName).summernote('destroy');
+                $(sNFldName).hide();
+
+                document.getElementById(param1).value = document.getElementById(sNRestoreFldName).value;
+
+                hideElement(param1 + '_cancel_btn');
+                showElement(param1 + '_edit_btn');
+                showElement(param1 + 'View');
+            }
+            break;
         case "":
             // controller.open('msngr');
             //   currentlyOpenSidebar = 'msngr';
@@ -2448,13 +2504,14 @@ function ProductCatSelector(cat_id) {
     var selectedElement = document.getElementById("cat_btn_" + cat_id);
 
 
-    if (selectedElement.style.backgroundColor == "rgb(87, 214, 0)") {
-        selectedElement.style.backgroundColor = "rgb(227, 227, 227)";
+    let isSelected = selectedElement.classList.toggle('ProductTagSelected');
+
+    selectedElement.classList.toggle('ProductTagUnSelected', !isSelected);
+
+    if (isSelected) {
+        SelectedCatField.value += "##" + cat_id + "##";
+    } else {
         SelectedCatField.value = SelectedCatField.value.replace("##" + cat_id + "##", "");
-    }
-    else {
-        selectedElement.style.backgroundColor = "rgb(87, 214, 0)";
-        SelectedCatField.value = SelectedCatField.value + "##" + cat_id + "##";
     }
 
 }
