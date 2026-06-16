@@ -356,6 +356,17 @@
 
             break;
 
+        case "VendorMenuEdit":
+            if (true)
+            {
+                Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+                string viewMode = "GENERAL";
+                if (!PARAM3.IsEmpty()) { viewMode = PARAM3; }
+                <div style="direction:rtl">@Menus.VendorMenuEdit(param2, viewMode)</div>
+            }
+
+            break;
+
         case "RoundCP":
             if (true)
             {
@@ -376,6 +387,11 @@
             Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
             <div style="display:none">AdminPages2.ProductEdit(param2)</div>
             <div>@Products.ProductEditSwitch(param2, PARAM3)</div>
+            break;
+        case "ViewProduct":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div style="display:none">AdminPages2.ProductEdit(param2)</div>
+            <div>@Products.ViewProduct(param2, PARAM3)</div>
             break;
 
         case "EditProduct":
@@ -417,7 +433,7 @@
 
         case "MenuItemEdit":
             Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
-            <div>@AdminPages2.RoundMenuItemEdit(param2)</div>
+            <div>@Products.RoundMenuItemEdit(param2)</div>
             break;
 
 

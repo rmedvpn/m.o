@@ -1,0 +1,1421 @@
+﻿@helper MenusAdmin(string showWhat = "ACTIVE", int vendor_id = 0)
+{
+    if (showWhat == "") { showWhat = "ACTIVE"; }
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    string txtHeader = "תפריטים ";
+    sqlSelect = "SELECT * FROM rounds WHERE round_type=5 AND is_deleted=0 ";
+    if (vendor_id != 0)
+    {
+        sqlSelect = sqlSelect + " AND vendor_id=@0";
+        txtHeader = txtHeader + "- לספק " + AppFunctions.GetVendorTitleById(vendor_id);
+    }
+
+    sqlSelect = sqlSelect + " order by vendor_id,round_type,sort_order"; //" order by is_setup DESC,round_type,vendor_id DESC,id DESC";
+    var Rounds = db.Query(sqlSelect, vendor_id);
+    sqlSelect = "SELECT * FROM vendors";
+    var vendors = db.Query(sqlSelect);
+
+    <div style="overflow: auto;direction:rtl">
+        <input type="hidden" id="showWhat" value="@showWhat">
+        <div style="overflow: auto;padding: 5px;">
+            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="Accordionize('AddRoundAcc')">חדש</button>
+            <select style="font-size: 16px;margin: 5px;padding: 5px;float: left" name="showing_vendor" id="showing_vendor" onChange="RepAjaxUpdate('MENUSADMIN', 'MainBoardContainer', 'MainLoader', document.getElementById('showWhat').value, this.value);">
+                <option value="0">כל הספקים</option>
+                @foreach (var vendor in vendors)
+                {
+                    <option value="@vendor.vendor_id" @if (vendor.vendor_id == vendor_id) { <TEXT> selected</TEXT>}>@vendor.vendor_name </option>
+                }
+            </select>
+            <div style="font-size: 20px;float: right;color: #000">@txtHeader</div>
+        </div>
+        <div style="overflow: auto;">
+            <button class="accordion" id="AddRoundAcc" style="display: none"></button>
+            <div class="panel">
+                <form id="AddNewRound">
+                    <div style="overflow: auto;padding: 5px;border: 1px dotted #b200ff">
+                        <div style="overflow: auto;float: right;">
+                            <input type="text" id="title" name="title" placeholder="שם התפריט" style="font-size: 16px;margin: 5px;padding: 5px;float: right">
+                            <input type="text" id="title_e" name="title_e" placeholder="In English" style="font-size: 16px;margin: 5px;padding: 5px;float: right">
+
+                            <select style="font-size: 16px;margin: 5px;padding: 5px;float: right" name="vendor_id" id="vendor_id">
+                                <option value="">נא לבחור</option>
+                                @foreach (var vendor in vendors)
+                                {
+                                    <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                }
+                            </select>
+                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;" onclick="AjaxActions('AddNewRound', '','', 'AddNewRound'); document.getElementById('AddNewRound').reset();">שמירה</button>
+                        </div>
+
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div style="overflow: auto;clear: both;">
+            @foreach (var round in Rounds)
+            {
+                string bgRawColor = "#000";
+                bool is_setup = round.is_setup;
+                bool is_active = round.is_active;
+                if (!round.is_setup)
+                {
+                    bgRawColor = "#f00";
+                }
+
+                string round_vendor_name = "";
+                round_vendor_name = AppFunctions.GetVendorTitleById(round.vendor_id);
+
+                <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;background-color:#fff;color: #000;border-bottom: 1px dashed #000" id="RoundDiv_@round.id">
+                    <div style="overflow: auto;float: right;background-color: #fff;color: #808080;padding: 5px;margin: 5px;width: 40px;text-align: center;border-radius: 5px;font-size: 14px">
+                        @if (round.is_setup && is_active)
+                        {
+                            <span style="color: #57d600">פעיל</span>
+                        }
+                        else
+                        {
+                            if (!is_setup)
+                            {
+                                <span style="color: #808080">לא מוגדר</span>
+                            }
+                            if (!is_active && is_setup)
+                            {
+                                <span style="color: #f00">לא פעיל</span>
+                            }
+
+
+                        }
+                    </div>
+                    <div style="overflow: auto;float: right;background-color: #fff;color: #808080;padding: 5px;margin: 5px;width: 120px;text-align: center;border-radius: 5px;font-size: 14px">@round_vendor_name</div>
+                    <div style="overflow: auto;float: right;background-color: #57d600;color: #fff;padding: 5px;margin: 5px;width: 120px;text-align: center;border-radius: 5px;font-size: 14px;font-weight:bold;">תפריט <span style="margin-right:5px;font-size:11px;">#@round.id</span></div>
+
+                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #808080" onclick="MiscActions('SelectEntry','RoundDiv_@round.id');sbload('GenSb','Caller?p1=VendorMenuEdit&p2=@round.id');AdjustMainView();">הגדרות</button>
+                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #808080" onclick="MiscActions('SelectEntry','RoundDiv_@round.id');sbload('GenSb','Caller?p1=EditRoundMenu&p2=@round.id');AdjustMainView();">תפריט</button>
+                    <div style="overflow: auto;padding: 5px;font-size: 20px;">@round.title </div>
+                </div>
+            }
+        </div>
+
+
+        <div style="overflow:auto;height:250px;">&nbsp;</div>
+
+
+    </div>
+    db.Close();
+}
+
+
+@helper VendorMenuEdit(int round_id, string viewMode = "GENERAL")
+{
+    <div>@Menus.VendorMenuControlPanel(round_id, viewMode)</div>
+}
+
+@helper VendorMenuControlPanel(int round_id, string viewMode = "GENERAL")
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM rounds WHERE id=@0 ";
+    var round = db.QuerySingle(sqlSelect, round_id);
+    if (round != null)
+    {
+        bool is_setup = round.is_setup;
+        bool is_active = round.is_active;
+        bool is_deleted = round.is_deleted;
+        bool in_delivery_mode = round.in_delivery_mode;
+        int vendor_id = round.vendor_id;
+        int round_type = round.round_type;
+
+        <input type="hidden" name="sRound_id" id="sRound_id" value="@round_id">
+        <div style="padding: 0;margin: 0;overflow: auto;direction:rtl">
+
+            <div style="background-color:  #000; overflow: auto; font-size: 24px; color: #fff;">
+
+                @round.title <span style="font-size:12px;">#@round.id</span>
+                @if (!is_active)
+                {<span style="font-size:12px;margin-right:10px;background-color:#f00;color:yellow;padding:2px;"><b>לא פעיל</b></span>}
+                <select name="viewType" style="padding: 3px;margin: 3px;font-size: 16px;float: left;margin-left: 10px;" onchange="RepAjaxUpdate('MenuSettingsView', 'GenSbContent', 'GenSbLoader',@round_id, this.value)">
+
+                    <option value="GENERAL" @if (viewMode == "GENERAL") { <text> selected</text>}>הגדרות כלליות</option>
+                    <option value="FULLFILMENT" @if (viewMode == "FULLFILMENT") { <text> selected</text>}>הגדרות אספקה</option>
+                </select>
+            </div>
+
+            <div style="text-align: right;font-size: 18px;padding: 0;margin: 0;color: #000;min-height: 600px;overflow: auto;background-color: #fff">
+
+
+                @if (is_deleted)
+                {
+                    <div style="overflow: auto;background-color:yellow;padding: 5px;margin: 5px;border: 2px solid #f00">
+                        <div style="overflow: auto">
+                            התפריט נמחק!
+
+                        </div>
+
+                    </div>
+                }
+
+                @if (!is_setup)
+                {
+                    <div style="overflow: auto;background-color:#ffcccc;padding: 5px;margin: 5px;border: 2px solid #f00">
+                        <div style="overflow: auto">
+                            הפעלת ערוץ זה במערכת לא הושלמה!<div style="overflow: auto;font-size: 12px;">הערוץ '@round.title' לא מוצג כעת במערכת</div>
+                            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #e3e3e3;color: #000;float: left" onclick="AjaxActions('RoundFinishSetup', @round_id,'', 'RoundBasicInfo');">הפעלה</button>
+                        </div>
+
+                    </div>
+                }
+
+
+
+                <div style="overflow: auto" id="CurViewDiv">
+
+                    @switch (viewMode)
+                    {
+
+                        case "GENERAL":
+                            <div style="overflow: auto;">
+                                @AdminPages2.RoundGeneralSettings(round_id)
+                            </div>
+                            <div style="overflow: auto; display: none">
+                                Rounds.RoundDispatchSettings(round_id)
+                            </div>
+                            break;
+                        case "INVENTORY":
+                            <div style="overflow: auto">
+                                <div style="overflow: auto">
+                                    <div style="background-color: #fff;" id="RoundInventorySourcesDiv">
+                                        AdminRounds.RoundInventorySources(round_id)
+                                    </div>
+                                </div>
+                            </div>
+                            break;
+                        case "SCHEDULE":
+                            <div style="overflow: auto;">
+                                <input type="hidden" id="RoundScheduleReload" value="1" />
+                                <input type="hidden" id="RoundScheduleReloadId" value="@round_id" />
+                                <div style="background-color: #fff;" id="RoundScheduleDiv">
+                                    @Rounds.RoundSchedule(round_id)
+                                </div>
+                                <div style="background-color: #fff;display: none" id="RoundEditScheduleDiv">
+                                    @Rounds.RoundEditSchedule(round_id)
+                                </div>
+                            </div>
+
+                            break;
+                        case "ROUND":
+                            <div style="overflow: auto;">
+                                @Rounds.RoundDispatchSettings(round_id)
+                            </div>
+                            break;
+                        case "TEAM":
+                            <div style="overflow: auto;">
+                                <div style="overflow: auto;" id="RoundTeamSettingsDiv">
+                                    @Rounds.RoundTeamSettings(round_id, vendor_id)
+                                </div>
+                            </div>
+                            break;
+                        case "DELIVERY":
+                            <div style="overflow: auto;">
+                                <div style="overflow: auto;;padding: 5px;font-size: 18px;font-weight: bold;border-bottom: 1px dotted #000;background-color: #ffffcc">
+                                    ניהול משלוחים
+                                    <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;" onclick="Accordionize('AddRoundDeliveryAcc');">הוספת משלוח</button>
+                                </div>
+
+                                <div style="overflow: auto" id="RoundSettingsDeliveriesDiv">
+
+                                    AdminRounds.RoundSettingsDeliveries(round_id)
+
+
+                                </div>
+
+                            </div>
+                            break;
+
+                        case "FULLFILMENT":
+                            <div style="overflow: auto;">
+                                @Menus.VendorMenuFullfilment(round_id)
+                            </div>
+                            break;
+
+                        default:
+                            <div style="overflow: auto;">
+                                vmn: @viewMode
+                            </div>
+                            break;
+
+                    }
+
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+            <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+        </div>
+
+    }
+    else
+    {
+        Response.Write("round: " + round_id);
+    }
+
+    db.Close();
+}
+
+@helper VendorMenuFullfilment(int round_id)
+{
+DateTime local_time = AppFunctions.LocalTime(); ;
+DateTime defTime = Convert.ToDateTime("1/1/1900");
+
+var db = WebMatrix.Data.Database.Open("op_data");
+var sqlSelect = "";
+sqlSelect = "SELECT * FROM RoundsSchedules WHERE round_id=@0 ORDER BY DayOfWeek,next_scheduled_launch";
+var RoundSchedule = db.Query(sqlSelect, round_id);
+sqlSelect = "SELECT * FROM Rounds WHERE id=@0 ";
+var round = db.QuerySingle(sqlSelect, round_id);
+sqlSelect = "SELECT TOP(1) schedule_id FROM RoundsSchedules WHERE round_id=@0 AND next_scheduled_launch>@1 ORDER BY next_scheduled_launch";
+var nextSchedule = db.QuerySingle(sqlSelect, round_id, local_time);
+int active_delivery_id = 0; try { active_delivery_id = round.active_delivery_id; } catch { }
+int round_type = 0; try { round_type = round.round_type; } catch { }
+int next_schedule_id = 0; try { next_schedule_id = nextSchedule.schedule_id; } catch { }
+
+sqlSelect = "SELECT * from AppServicesArea WHERE is_active=1 AND is_main_area=1";
+var MainServiceAreas = db.Query(sqlSelect);
+
+
+string icon = "";
+
+    <div class="B">
+        <div style="overflow: auto;padding: 5px;font-size: 18px;font-weight: bold;border-bottom: 1px dotted #000;background-color: #ffffcc">
+            הגדרות אספקה
+            <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;" onclick="showElement('RoundEditScheduleDiv');hideElement('RoundScheduleDiv');">⚙️ עריכה</button>
+            <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;" onclick="AjaxActions('CreateDeliveriesForAllSchedulesInRound', '@round_id','MainLoader', '@round_id','SCHEDULE');">📅 יצירת משלוחים</button>
+        </div>
+
+        <div class="B" style="text-align:right">
+            <select class="A" style="text-align: right; font-size: 18px; font-weight: bold" onchange="hideElement('AddRoundOption'); hideElement('AddExpressOption'); hideElement('AddPickupOption'); showElement('Add' + this.value + 'Option');">
+                <option value=""> נא לבחור את צורת האספקה</option>
+                <option value="Round"> סבב חלוקה</option>
+                <option value="Express"> משלוח אקספרס</option>
+                <option value="Pickup"> איסוף עצמי</option>
+            </select>
+        </div>
+
+        <div class="A" id="AddRoundOption" style="display:none">
+            <form id="RoundDeliveriesInfo">
+                <input type="hidden" name="service_option_type" value="1" />
+                <div class="B">
+                    <div style="overflow:auto;text-align: right;">
+
+                        <div class="PropRow">
+                            <span class="PropTitle">כותרת</span>
+
+                            <span class="PropValue"><input type="text" class="PropTextBox" id="title_h" name="title_h"></span>
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">Title</span>
+
+                            <span class="PropValue"><input type="text" class="PropTextBox" id="title_e" name="title_e"></span>
+                        </div>
+                        <div class="PropRow">
+
+                            <div class="B">
+                                <span class="PropTitle">הנחיות משלוח</span>
+                            </div>
+                            <div class="B">
+                                <textarea id="shipping_instructions" name="shipping_instructions" class="PropTextBox" style="width:100%;float:left"></textarea>
+
+                            </div>
+                        </div>
+                        <div class="PropRow">
+                            <div class="B">
+                                <span class="PropTitle">Delivery Information</span>
+                            </div>
+
+                            <div class="B">
+                                <textarea id="shipping_instructions_e" name="shipping_instructions_e" class="PropTextBox" style="width:100%;float:left"></textarea>
+
+                            </div>
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">עלות משלוח</span>
+                            <span class="PropValue"><input type="text" id="shipping_charge" name="shipping_charge" class="PropTextBox" onfocus="this.value='';" style="width: 40px; ">₪</span>
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">חינם מעל</span>
+                            <span class="PropValue"><input type="text" id="free_shipping_marker" name="free_shipping_marker" class="PropTextBox" onfocus="this.value='';" style="width: 40px;">₪</span>
+                        </div>
+                        <div class="Spacer20"></div>
+                        <div class="B" style="background-color:#e3e3e3;padding:5px;">
+                            <span class="PropTitle">לוח זמנים</span>
+
+                            <div class="A">
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_sun" onclick="setElementVisibility('sun_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום ראשון</span>
+                                    <div id="sun_hours_div" style="display:none;float:left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="sun_start_time" name="sun_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="sun_end_time" name="sun_end_time"></span>
+                                    </div>
+
+                                </div>
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_mon" onclick="setElementVisibility('mon_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום שני</span>
+                                    <div id="mon_hours_div" style="display: none; float: left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="mon_start_time" name="mon_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="mon_end_time" name="mon_end_time"></span>
+
+                                    </div>
+                                </div>
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_tue" onclick="setElementVisibility('tue_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום שלישי</span>
+                                    <div id="tue_hours_div" style="display: none; float: left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="tue_start_time" name="tue_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="tue_end_time"   name="tue_end_time"></span>
+
+                                    </div>
+
+                                </div>
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_wed" onclick="setElementVisibility('wed_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום רביעי</span>
+                                    <div id="wed_hours_div" style="display: none; float: left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="wed_start_time" name="wed_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="wed_end_time"   name="wed_end_time"></span>
+
+                                    </div>
+
+                                </div>
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_thu" onclick="setElementVisibility('thu_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום חמישי</span>
+                                    <div id="thu_hours_div" style="display: none; float: left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="thu_start_time" name="thu_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="thu_end_time"   name="thu_end_time"></span>
+
+                                    </div>
+
+                                </div>
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_fri" onclick="setElementVisibility('fri_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום שישי</span>
+                                    <div id="fri_hours_div" style="display: none; float: left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="fri_start_time" name="fri_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="fri_end_time"   name="fri_end_time"></span>
+
+                                    </div>
+
+                                </div>
+                                <div class="PropRow">
+                                    <input type="checkbox" class="A" name="is_sat" onclick="setElementVisibility('sat_hours_div', this.checked);" />
+                                    <span class="PropTitle">יום שבת</span>
+                                    <div id="sat_hours_div" style="display: none; float: left">
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="sat_start_time" name="sat_start_time"></span>
+                                        <span class="TimeProp_Value"><input type="time" class="TimeTextBox" id="sat_end_time" name="sat_end_time"></span>
+
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+
+
+
+                        </div>
+
+                        <div class="Spacer20"></div>
+                        <div class="PropRow" style="display:none">
+                            <span class="PropTitle">סגירה הבאה להזמנות</span>
+
+                            <span class="PropValue"><input type="date" class="PropTextBox" id="start_date" name="start_date"></span>
+                            <span class="PropValue"><input type="time" class="PropTextBox" id="start_time" name="start_time"></span>
+                        </div>
+                        <div class="PropRow" style="display:none">
+                            <span class="PropTitle">זמן מסלול מוערך</span>
+
+                            <span class="PropValue">
+                                <input type="text" class="PropTextBox" style="width: 40px;" id="estimated_duration" name="estimated_duration">
+                                <select class="PropSelect" style="width: 65px;" id="estimated_round_time_unit" name="estimated_round_time_unit">
+                                    <option value="m">דקות</option>
+                                    <option value="h">שעות</option>
+                                </select>
+
+                            </span>
+                        </div>
+                        <div class="PropRow" style="display:none">
+                            <span class="PropTitle">זמן הכנה ליציאה</span>
+
+                            <span class="PropValue">
+                                <input type="text" class="PropTextBox" style="width: 40px;" id="min_to_dispatch" name="min_to_dispatch">
+                                דקות
+
+                            </span>
+                        </div>
+
+
+
+
+                        <div class="PropRow">
+                            <span class="PropTitle">משלוחים לאזורים</span>
+                            <input type="text" name="ServiceSelectedAreas" id="ServiceSelectedAreas" />
+                            <div class="A">
+                                <span class="PropTitle">
+                                    הוספת אזור
+                                </span>
+                                <span class="PropValue">
+                                    
+                                    <select class="PropSelect" id="delivery_add_area" name="delivery_add_area" onchange="MiscActions('AddAreaToServiceOption',this.value);">
+                                        <option value="0"> נא לבחור אזור</option>
+                                        @foreach (var MainServiceArea in MainServiceAreas)
+                                        {
+                                            sqlSelect = "SELECT * FROM AppServicesArea WHERE main_area_id=@0";
+                                            var subAreas = db.Query(sqlSelect, MainServiceArea.id);
+                                            <option value="@MainServiceArea.id" @if (MainServiceArea.id == round.pickup_area) { <text> selected </text> }> @MainServiceArea.title</option>
+                                            foreach (var subArea in subAreas)
+                                            {
+                                                <option value="@subArea.id" @if (subArea.id == round.pickup_area) { <text> selected </text> }> ---@subArea.title</option>
+                                            }
+                                        }
+                                    </select>
+
+                                </span>
+                            </div>
+
+                            <div class="A">
+                                @foreach (var item in MainServiceAreas)
+                                {
+                                    bool is_available = false;
+                                    string Area_Css_class = "PropTag";
+                                    string AreaOptionsDisplayState = "none;";
+                                    string sh_value = "";
+                                    string fsm_value = "";
+
+                                    sqlSelect = "SELECT * FROM AppServicesArea WHERE main_area_id=@0";
+                                    var subAreas = db.Query(sqlSelect, item.id);
+
+                                    sqlSelect = "SELECT * from roundAreas WHERE round_id=@0 AND area_id=@1";
+                                    var curArea = db.QuerySingle(sqlSelect, round_id, item.id);
+
+                                    if (curArea != null)
+                                    {
+                                        is_available = true;
+                                        Area_Css_class = "GreenPropTag";
+                                        AreaOptionsDisplayState = "block;";
+                                        if (curArea.shipping_charge > 0)
+                                        {
+                                            sh_value = String.Format("{0:0.00}", curArea.shipping_charge);
+                                        }
+                                        if (curArea.free_shipping_marker > 0)
+                                        {
+                                            fsm_value = String.Format("{0:0.00}", curArea.free_shipping_marker);
+                                        }
+
+                                    }
+
+
+                                    <div class="B">
+                                        <div class="@Area_Css_class" id="AreaInfoDiv_@item.id" onclick="Accordionize('SubAreasForArea_@item.id');" style="display:none">
+                                            <input type="hidden" id="RoundAreaMainId_@item.id" name="RoundAreaMainId_@item.id" value="@item.id" />
+
+                                            
+                                            <div class="PropTagTitle">
+
+                                                <input type="checkbox" class="A" id="RoundasdArea_@item.id" name="RoundArea_@item.id" style="float:right;display:none" @if (is_available) { <text> checked </text> }
+                                                       onclick="if (this.checked) {setElementClass('AreaInfoDiv_@item.id','GreenPropTag'); } else {setElementClass('AreaInfoDiv_@item.id','PropTag'); } setElementVisibility('AreaOptions_@item.id', this.checked);" />
+                                                🌐 @item.title
+                                            </div>
+                                            <div id="AreaOptions_@item.id">
+                                                
+                                                <div class="PropTagBox">
+                                                    <button type="button" class="AddAreaBtn" style="float:left;" onclick="MiscActions('RemoveAreaFromServiceOption',@item.id);" >❎</button>
+                                                </div>
+                                                <div class="PropTagBox">
+                                                    <input type="text" class="PropTextBox" placeholder="חינם מעל" style="width:50px;" id="RoundArea_SHFSM_@item.id" name="RoundArea_SHFSM_@item.id" value="@fsm_value" onfocus="this.value = '';" />₪
+                                                </div>
+                                                <div class="PropTagBox">
+                                                    <input type="text" class="PropTextBox" placeholder="דמי משלוח" style="width:50px;" id="RoundArea_SH_@item.id" name="RoundArea_SH_@item.id" value="@sh_value" onfocus="this.value = '';" />₪
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <button class="Accordion" id="SubAreasForArea_@item.id" style="display:none"></button>
+                                        <div class="B">
+                                            <div class="B" id="AreaInfoDiv_@item.id" style="display:none;">
+                                                <input type="checkbox" class="A" id="RoundArea_@item.id" name="RoundArea_@item.id" style="float:right" @if (is_available) { <text> checked </text> }
+                                                       onclick="if (this.checked) {setElementClass('AreaInfoDiv_@item.id','GreenPropTag'); } else {setElementClass('AreaInfoDiv_@item.id','PropTag'); } setElementVisibility('AreaOptions_@item.id', this.checked);" />
+                                                כל אזור @item.title
+                                            </div>
+                                            @foreach (var subArea in subAreas)
+                                            {
+                                                DataFunctions.WriteDebugLine("SUB AREA: " + subArea.title + " id: " + subArea.id);
+                                                is_available = false;
+                                                Area_Css_class = "PropTag";
+                                                AreaOptionsDisplayState = "none;";
+                                                sh_value = "";
+                                                fsm_value = "";
+
+
+
+                                                sqlSelect = "SELECT * from roundAreas WHERE round_id=@0 AND area_id=@1";
+                                                var curSubArea = db.QuerySingle(sqlSelect, round_id, subArea.id);
+
+                                                if (curSubArea != null)
+                                                {
+                                                    is_available = true;
+                                                    Area_Css_class = "BluePropTag";
+                                                    AreaOptionsDisplayState = "block;";
+                                                    if (curSubArea.shipping_charge > 0)
+                                                    {
+                                                        try { sh_value = String.Format("{0:0.00}", curSubArea.shipping_charge); } catch { }
+
+                                                    }
+                                                    if (curSubArea.free_shipping_marker > 0)
+                                                    {
+                                                        try { fsm_value = String.Format("{0:0.00}", curSubArea.free_shipping_marker); } catch { }
+
+                                                    }
+
+                                                }
+
+
+                                                <div class="@Area_Css_class" id="AreaInfoDiv_@subArea.id" style="display:none">
+                                                    <input type="hidden" id="RoundAreaMainId_@subArea.id" name="RoundAreaMainId_@subArea.id" value="@item.id" />
+
+
+                                                    <div class="PropTagTitle">
+                                                        <input type="checkbox" class="A" id="RoundArea_@subArea.id" name="RoundArea_@subArea.id" style="float:right;display:none" @if (is_available) { <text> checked </text> }
+                                                               onclick="if (this.checked) {setElementClass('AreaInfoDiv_@subArea.id','BluePropTag'); } else {setElementClass('AreaInfoDiv_@subArea.id','PropTag'); } setElementVisibility('AreaOptions_@subArea.id', this.checked);" />
+                                                        📍@subArea.title
+                                                    </div>
+                                                    <div id="AreaOptions_@subArea.id">
+                                                        <div class="PropTagBox">
+                                                            <button type="button" class="AddAreaBtn" style="float:left;" onclick="MiscActions('RemoveAreaFromServiceOption',@subArea.id);" >❎</button>
+                                                        </div>
+                                                        <div class="PropTagBox">
+                                                            <input type="text" class="PropTextBox" placeholder="חינם מעל" style="width:50px;" id="RoundArea_SHFSM_@subArea.id" name="RoundArea_SHFSM_@subArea.id" value="@fsm_value" onfocus="this.value = '';" />₪
+                                                        </div>
+                                                        <div class="PropTagBox">
+                                                            <input type="text" class="PropTextBox" placeholder="דמי משלוח" style="width:50px;" id="RoundArea_SH_@subArea.id" name="RoundArea_SH_@subArea.id" value="@sh_value" onfocus="this.value = '';" />₪
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                            }
+                                        </div>
+
+                                    </div>
+
+
+                                }
+
+
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="Spacer100"></div>
+
+                    <div style="overflow: auto;text-align: center">
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddMenuFullfilmentOption', '@round_id', '','RoundDeliveriesInfo', 'ROUND');">שמירת שינויים</button>
+                    </div>
+                    <div class="Spacer100"></div>
+                </div>
+
+
+
+
+            </form>
+        </div>
+
+        <div class="PropSection" style="display:none" id="AddExpressOption">
+            <form id="RoundExpressServiceSettings">
+                <input type="hidden" name="service_option_type" value="2" />
+                <div class="B" id="DeliverySettings">
+                    <div class="B">
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                התחייבות להגעה תוך
+                            </span>
+                            <span class="PropValue">
+                                <input type="text" class="PropTextBox" style="width: 40px;" name="express_eta_min" id="express_eta_min">
+                                <SELECT class="PropSelect" name="express_eta_type" id="express_eta_type">
+                                    <option value="1">דקות</option>
+                                    <option value="2">שעות</option>
+                                </SELECT>
+                            </span>
+
+
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                משלוח חינם במקרה איחור
+                            </span>
+
+                            <span class="PropValue">
+                                <input type="checkbox" class="A" name="is_sh_late_waiver" id="is_sh_late_waiver" @if (round.is_sh_late_waiver) { <text> checked </text> }>
+                            </span>
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                הנחה במקרה איחור
+                            </span>
+
+                            <span class="PropValue">
+                                <input type="text" class="PropTextBox" style="width: 40px;" name="sh_late_discount" id="sh_late_discount">₪
+                            </span>
+
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                מחיר למשלוח
+                            </span>
+
+                            <span class="PropValue">
+
+                                <input type="text" class="PropTextBox" style="width: 40px;" onfocus="this.value='';" id="shipping_charge" name="shipping_charge">₪
+                            </span>
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                מינימום למשלוח
+                            </span>
+                            <span class="PropValue">
+
+                                <input type="text" class="PropTextBox" style="width: 40px;" onfocus="this.value='';" id="min_shipping_marker" name="min_shipping_marker">₪
+                            </span>
+                        </div>
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                משלוח חינם בהזמנות מעל
+                            </span>
+                            <span class="PropValue">
+
+                                <input type="text" class="PropTextBox" style="width: 40px;" onfocus="this.value='';" id="free_shipping_marker" name="free_shipping_marker">₪
+                            </span>
+                        </div>
+                        <div class="PropRow">
+                            <div class="B">
+                                <span class="PropTitle">
+                                    הוראות קבלת משלוח
+                                </span>
+                            </div>
+                            <div class="B">
+                                <textarea class="PropTextBox" placeholder="למשל: משלוחים כל יום בין 8 בבוקר ל4 אחהצ. משלוח תוך 90 דקות בהתחייבות" id="shipping_instructions" name="shipping_instructions" rows="3"></textarea>
+                            </div>
+
+
+                        </div>
+                        <div class="PropRow">
+                            <div class="B">
+                                <span class="PropTitle">
+                                    Delivery Instructions
+                                </span>
+                            </div>
+                            <div class="B">
+                                <textarea placeholder="English Please" class="PropTextBox" id="shipping_instructions_e" name="shipping_instructions_e" rows="3"></textarea>
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                    <div class="PropRow">
+                        <span class="PropTitle">משלוחים לאזורים</span>
+
+                        <div class="A">
+                            @foreach (var item in MainServiceAreas)
+                            {
+                                bool is_available = false;
+                                string Area_Css_class = "PropTag";
+                                string AreaOptionsDisplayState = "none;";
+                                string sh_value = "";
+                                string fsm_value = "";
+                                string eta_value = "";
+                                string min_value = "";
+                                sqlSelect = "SELECT * FROM AppServicesArea WHERE main_area_id=@0";
+                                var subAreas = db.Query(sqlSelect, item.id);
+
+                                sqlSelect = "SELECT * from roundAreas WHERE round_id=@0 AND area_id=@1";
+                                var curArea = db.QuerySingle(sqlSelect, round_id, item.id);
+
+                                if (curArea != null)
+                                {
+                                    is_available = true;
+                                    Area_Css_class = "GreenPropTag";
+                                    AreaOptionsDisplayState = "block;";
+                                    if (curArea.shipping_charge > 0)
+                                    {
+                                        sh_value = String.Format("{0:0.00}", curArea.shipping_charge);
+                                    }
+                                    if (curArea.free_shipping_marker > 0)
+                                    {
+                                        fsm_value = String.Format("{0:0.00}", curArea.free_shipping_marker);
+                                    }
+                                    if (curArea.express_eta_min > 0)
+                                    {
+                                        eta_value = curArea.express_eta_min.ToString();
+                                    }
+                                    if (curArea.min_shipping_marker > 0)
+                                    {
+                                        min_value = String.Format("{0:0}", curArea.min_shipping_marker);
+
+                                    }
+                                }
+
+
+                                <div class="B" style="background-color:#e3e3e3;padding:5px;margin:5px;border-radius:5px;">
+                                    <div class="@Area_Css_class" id="AreaInfoDiv_@item.id">
+                                        <input type="hidden" id="RoundAreaMainId_@item.id" name="RoundAreaMainId_@item.id" value="@item.id" />
+
+
+                                        <div class="PropTagTitle">
+                                            <input type="checkbox" class="A" id="RoundArea_@item.id" name="RoundArea_@item.id" style="float:right" @if (is_available) { <text> checked </text> }
+                                                   onclick="if (this.checked) {setElementClass('AreaInfoDiv_@item.id','GreenPropTag'); } else {setElementClass('AreaInfoDiv_@item.id','PropTag'); } setElementVisibility('AreaOptions_@item.id', this.checked);" />
+                                            @item.title
+                                        </div>
+                                        <div style="display:@AreaOptionsDisplayState" id="AreaOptions_@item.id">
+                                            <div class="PropTagBox">
+                                                <input type="text" class="PropTextBox" placeholder="חינם מעל" style="width: 40px;" id="RoundArea_SHFSM_@item.id" name="RoundArea_SHFSM_@item.id" value="@fsm_value" onfocus="this.value = '';" />₪
+                                            </div>
+                                            <div class="PropTagBox">
+                                                <input type="text" class="PropTextBox" placeholder="דמי משלוח" style="width: 40px;" id="RoundArea_SH_@item.id" name="RoundArea_SH_@item.id" value="@sh_value" onfocus="this.value = '';" />₪
+                                            </div>
+                                            <div class="PropTagBox">
+
+                                                <input type="text" class="PropTextBox" placeholder="מינימום" style="width: 40px; " id="RoundArea_MIN_@item.id" name="RoundArea_MIN_@item.id" value="@min_value" onfocus="this.value = ''; document.getElementById('RoundArea_@item.id').checked = true;" />₪
+                                            </div>
+                                            <div class="PropTagBox">
+
+                                                <input type="text" class="PropTextBox" placeholder="זמן הגעה" style="width:40px;" id="RoundArea_ETA_@item.id" name="RoundArea_ETA_@item.id" value="@eta_value" onfocus="this.value = ''; document.getElementById('RoundArea_@item.id').checked = true;" />דק
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+
+                                    <button class="Accordion" id="SubAreasForArea_@item.id" style="display:none"></button>
+                                    <div class="B">
+                                        @foreach (var subArea in subAreas)
+                                        {
+
+                                            is_available = false;
+                                            Area_Css_class = "PropTag";
+                                            AreaOptionsDisplayState = "none;";
+                                            sh_value = "";
+                                            fsm_value = "";
+                                            eta_value = "";
+                                            min_value = "";
+
+
+                                            sqlSelect = "SELECT * from roundAreas WHERE round_id=@0 AND area_id=@1";
+                                            var curSubArea = db.QuerySingle(sqlSelect, round_id, subArea.id);
+
+                                            if (curSubArea != null)
+                                            {
+                                                is_available = true;
+                                                Area_Css_class = "BluePropTag";
+                                                AreaOptionsDisplayState = "block;";
+                                                if (curSubArea.shipping_charge > 0)
+                                                {
+                                                    try { sh_value = String.Format("{0:0.00}", curSubArea.shipping_charge); } catch { }
+
+                                                }
+                                                if (curSubArea.free_shipping_marker > 0)
+                                                {
+                                                    try { fsm_value = String.Format("{0:0.00}", curSubArea.free_shipping_marker); } catch { }
+
+                                                }
+                                                if (curSubArea.express_eta_min > 0)
+                                                {
+                                                    eta_value = curSubArea.express_eta_min.ToString();
+                                                }
+                                                if (curSubArea.min_shipping_marker > 0)
+                                                {
+                                                    min_value = String.Format("{0:0}", curSubArea.min_shipping_marker);
+
+                                                }
+                                            }
+
+
+                                            <div class="@Area_Css_class" id="AreaInfoDiv_@subArea.id" style="margin-right:25px;">
+                                                <input type="hidden" id="RoundAreaMainId_@subArea.id" name="RoundAreaMainId_@subArea.id" value="@item.id" />
+
+
+                                                <div class="PropTagTitle">
+                                                    <input type="checkbox" class="A" id="RoundArea_@subArea.id" name="RoundArea_@subArea.id" style="float:right" @if (is_available) { <text> checked </text> }
+                                                           onclick="if (this.checked) {setElementClass('AreaInfoDiv_@subArea.id','BluePropTag'); } else {setElementClass('AreaInfoDiv_@subArea.id','PropTag'); } setElementVisibility('AreaOptions_@subArea.id', this.checked);" />
+                                                    @subArea.title
+                                                </div>
+                                                <div style="display:@AreaOptionsDisplayState" id="AreaOptions_@subArea.id">
+                                                    <div class="PropTagBox">
+                                                        <input type="text" class="PropTextBox" placeholder="חינם מעל" style="width: 40px;" id="RoundArea_SHFSM_@subArea.id" name="RoundArea_SHFSM_@subArea.id" value="@fsm_value" onfocus="this.value = '';" />₪
+                                                    </div>
+                                                    <div class="PropTagBox">
+                                                        <input type="text" class="PropTextBox" placeholder="דמי משלוח" style="width: 40px;" id="RoundArea_SH_@subArea.id" name="RoundArea_SH_@subArea.id" value="@sh_value" onfocus="this.value = '';" />₪
+                                                    </div>
+                                                    <div class="PropTagBox">
+
+                                                        <input type="text" class="PropTextBox" placeholder="מינימום" style="width: 40px; " id="RoundArea_MIN_@subArea.id" name="RoundArea_MIN_@subArea.id" value="@min_value" onfocus="this.value = ''; document.getElementById('RoundArea_@subArea.id').checked = true;" />₪
+                                                    </div>
+                                                    <div class="PropTagBox">
+
+                                                        <input type="text" class="PropTextBox" placeholder="זמן הגעה" style="width:40px;" id="RoundArea_ETA_@subArea.id" name="RoundArea_ETA_@subArea.id" value="@eta_value" onfocus="this.value = ''; document.getElementById('RoundArea_@subArea.id').checked = true;" />דק
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                        }
+                                    </div>
+
+                                </div>
+
+
+                            }
+
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="B" style="text-align:center">
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="showElement('RoundDispatchInfo');hideElement('RoundDispatchSettings');">ביטול עריכה</button>
+
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff" onclick="AjaxActions('SaveRoundExpressSettings', '@round_id', 'MainLoader','RoundExpressServiceSettings', 'ROUND');">שמירת שינויים</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="PropSection" id="AddPickupOption" style="display:none">
+            <form id="RoundPickupSettings">
+                <input type="hidden" name="service_option_type" value="3" />
+                <div class="B" style="border:0;">
+
+                    <div class="B">
+                        <div class="B" style="border:0;">
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    אוספים מאזור
+                                </span>
+                                <span class="PropValue">
+                                    <select class="PropSelect" id="pickup_area" name="pickup_area">
+                                        <option value="0"> נא לבחור אזור</option>
+                                        @foreach (var MainServiceArea in MainServiceAreas)
+                                        {
+                                            sqlSelect = "SELECT * FROM AppServicesArea WHERE main_area_id=@0";
+                                            var subAreas = db.Query(sqlSelect, MainServiceArea.id);
+                                            <option value="@MainServiceArea.id" @if (MainServiceArea.id == round.pickup_area) { <text> selected </text> }> @MainServiceArea.title</option>
+                                            foreach (var subArea in subAreas)
+                                            {
+                                                <option value="@subArea.id" @if (subArea.id == round.pickup_area) { <text> selected </text> }> ---@subArea.title</option>
+                                            }
+                                        }
+                                    </select>
+
+                                </span>
+                            </div>
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    מקום איסוף
+                                </span>
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" name="gen_pu_loc" id="gen_pu_loc">
+                                </span>
+
+
+                            </div>
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    Location
+                                </span>
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" name="gen_pu_loc_e" id="gen_pu_loc_e">
+                                </span>
+
+
+                            </div>
+
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    כתובת ניווט
+                                </span>
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" id="pu_loc_address" name="pu_loc_address">
+                                </span>
+
+
+                            </div>
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    GPS Address
+                                </span>
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" id="pu_loc_address_e" name="pu_loc_address_e">
+                                </span>
+
+
+                            </div>
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    עיר / ישוב
+                                </span>
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" id="pickup_city" name="pickup_city">
+                                </span>
+
+
+                            </div>
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    City
+                                </span>
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" id="pickup_city_e" name="pickup_city_e">
+                                </span>
+
+
+                            </div>
+                            <div class="PropRow">
+                                <span class="PropTitle">
+                                    מוכן לאיסוף תוך
+                                </span>
+
+                                <span class="PropValue">
+                                    <input type="text" class="PropTextBox" style="width:50px;" name="pu_lead_time" id="pu_lead_time">
+                                    <SELECT class="PropSelect" name="pickup_ready_type" id="pickup_ready_type">
+                                        <option value="1">דקות</option>
+                                        <option value="2">שעות</option>
+                                    </SELECT>
+                                </span>
+                            </div>
+
+
+                        </div>
+
+
+
+                        <div class="PropRow">
+                            <div class="B">
+                                <span class="PropTitle">
+                                    הוראות לקבלת איסוף
+                                </span>
+                            </div>
+                            <div class="B">
+                                <textarea class="PropTextBox" placeholder="למשל: משלוחים כל יום בין 8 בבוקר ל4 אחהצ. משלוח תוך 90 דקות בהתחייבות" id="pickup_instructions" name="pickup_instructions" rows="3"></textarea>
+                            </div>
+
+
+
+                        </div>
+                        <div class="PropRow">
+                            <div class="B">
+                                <span class="PropTitle">
+                                    Pickup Instructions
+                                </span>
+                            </div>
+                            <div class="B">
+                                <textarea class="PropTextBox" placeholder="English Please" id="pickup_instructions_e" name="pickup_instructions_e" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div style="overflow: auto;text-align: center">
+                            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff" onclick="AjaxActions('SaveRoundPickupSettings', '@round_id','MainLoader', 'RoundPickupSettings', 'ROUND');">שמירת שינויים</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+
+    </div>
+
+    <div style="overflow: auto;display:none">
+        <div style="overflow: auto;padding: 5px;font-size: 18px;font-weight: bold;border-bottom: 1px dotted #000;background-color: #ffffcc">
+            לוח זמנים
+            <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;" onclick="showElement('RoundEditScheduleDiv');hideElement('RoundScheduleDiv');">⚙️ עריכה</button>
+            <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;" onclick="AjaxActions('CreateDeliveriesForAllSchedulesInRound', '@round_id','MainLoader', '@round_id','SCHEDULE');">📅 יצירת משלוחים</button>
+        </div>
+
+        <div class="A">
+            @foreach (var sched in RoundSchedule)
+            {
+                int schedule_id = sched.schedule_id;
+                sqlSelect = "SELECT serial,scheduled_start FROM deliveries WHERE schedule_id=@0 ORDER BY scheduled_start";
+                icon = "";
+                string txt_color = "#000";
+                if (sched.next_scheduled_launch < local_time)
+                {
+                    txt_color = "#f00";
+                }
+                <div style="padding: 0;margin: 0;overflow: auto;border-bottom: 1px dashed #e3e3e3" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, @sched.next_delivery_id);">
+                    <div style="overflow: auto; float: right">
+                        <div class="B" style="float:right">
+                            <div class="B" style="padding: 3px;margin: 3px;">
+                                <b>@icon יום @NewAppFunctions.strDayOfWeekFromInt(sched.dayOfWeek)</b>
+                            </div>
+                            @if (sched.next_scheduled_launch != defTime)
+                            {
+                                <div class="B" style="padding: 3px;margin: 3px;font-size: 12px;color:@txt_color">📅 @sched.next_scheduled_launch.ToShortDateString()</div>
+                            }
+                            else
+                            {
+                                <div class="B" style="padding: 3px;margin: 3px;font-size: 12px;">⚠️ <span style="color:#f00">טרם נקבע משלוח למועד זה</span></div>
+                            }
+
+                        </div>
+                        <div class="B" style="float:right">
+                            @if (next_schedule_id == sched.schedule_id)
+                            {
+                                <div class="B" style="padding: 5px; margin: 5px; background-color: #b200ff; color: #fff; border-radius: 5px; font-size: 12px; ">
+                                    <b>המשלוח הבא</b>
+                                </div>
+                            }
+                        </div>
+                        <div class="B" style="float:right">
+                            @if (sched.next_delivery_id == active_delivery_id && active_delivery_id > 0)
+                            {
+                                <div class="B" style="padding: 5px; margin: 5px; background-color: #57d600;color:#fff;border-radius:5px;font-size:12px;">
+                                    <b>המשלוח הפעיל</b>
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                    <div style="overflow: auto;float: left;">
+                        <div style="float: left; padding: 3px; margin: 3px; text-align: center"><span style="font-size: 12px;">שעת יציאה</span><br>@sched.round_start.ToString("HH:mm")</div>
+                        <div style="float: left; padding: 3px; margin: 3px; text-align: center"><span style="font-size: 12px;">סגירת הזמנות</span><br>@sched.round_order_close.ToString("HH:mm")</div>
+                        @if (sched.next_delivery_id > 0)
+                        {
+                            <div style="float: left; padding: 3px; margin: 3px; text-align: center"><span style="font-size: 12px;">#משלוח</span><br>@sched.next_delivery_id</div>
+                        }
+                        else
+                        {
+                            <div style="float: left;padding: 3px;margin: 3px;text-align:center">
+                                <span style="font-size: 12px;">#משלוח</span><br>
+                                <button type="button" style="padding: 1px; margin: 1px; font-size: 12px; color: #f00; padding-left: 3px; padding-right: 3px;" onclick="AjaxActions('AddDeliveryToSchedule',@round_id,'MainLoader',  @sched.schedule_id, 'SCHEDULE');">יצירה</button>
+                            </div>
+
+
+                        }
+
+                    </div>
+
+                </div>
+            }
+        </div>
+
+
+
+
+        <div style="height: 150px;overflow: auto;">&nbsp;</div>
+    </div>
+
+
+    <div style="overflow: auto;display:none">
+        <div style="overflow: auto;;padding: 5px;font-size: 18px;font-weight: bold;border-bottom: 1px dotted #000;background-color: #ffffcc">
+            שעות פתיחה
+            <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;display:none" onclick="">🥸 איפוס לברירת מחדל</button>
+            <button type="button" style="float: left;padding: 2px;margin: 2px;background-color: #000;color: #fff;font-size: 16px;" onclick="showElement('RoundEditScheduleDiv');hideElement('RoundScheduleDiv');">⚙️ עריכה</button>
+        </div>
+
+        <div class="A">
+
+
+
+
+            @for (int dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++)
+            {
+
+                sqlSelect = "SELECT * FROM RoundsSchedules WHERE DayOfWeek=@0 AND round_id=@1 ORDER BY express_open,pickup_open";
+                var schedule = db.Query(sqlSelect, dayOfWeek, round_id);
+                icon = "";
+                string txt_color = "#000";
+
+                <div style="padding: 0;margin: 0;overflow: auto;border-bottom: 1px dashed #e3e3e3">
+                    <div style="overflow: auto;">
+                        <div class="B" style="padding: 3px;margin: 3px;float:right">
+                            <b>@icon יום @NewAppFunctions.strDayOfWeekFromInt(dayOfWeek)</b>
+
+                        </div>
+                        @if (schedule.Count() > 0)
+                        {
+
+                            <div class="B" style="float:left">
+                                @foreach (var sched in schedule)
+                                {
+                                    DateTime defDate = Convert.ToDateTime("1/1/1900");
+                                    bool is_express = true;
+                                    DateTime opening_hour = defDate;
+                                    DateTime closing_hour = defDate;
+                                    try { opening_hour = sched.express_open; } catch { }
+                                    try { closing_hour = sched.express_close; } catch { }
+                                    if (opening_hour == defDate)
+                                    {
+                                        try { opening_hour = sched.pickup_open; } catch { }
+                                        try { closing_hour = sched.pickup_close; } catch { }
+                                        is_express = false;
+                                    }
+                                    <div class="B">
+                                        <div style="float: left; padding: 3px; margin: 3px; text-align: center"><span style="font-size: 12px;">שעת סגירה</span><br>@closing_hour.ToString("HH:mm")</div>
+
+                                        <div style="float: left; padding: 3px; margin: 3px; text-align: center"><span style="font-size: 12px;">שעת פתיחה</span><br>@opening_hour.ToString("HH:mm")</div>
+                                        @if (is_express)
+                                        {
+                                            <div style="float: left;padding: 3px;margin: 3px;"><br>🛵</div>
+                                        }
+                                        else
+                                        {
+                                            <div style="float: left;padding: 3px;margin: 3px;"><br>🏠</div>
+                                        }
+
+                                    </div>
+                                }
+
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="B" style="float:left">
+                                <div class="B" style="padding: 3px; margin: 3px; color: #f00;">
+                                    סגור
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+        <div style="height: 150px;overflow: auto;">&nbsp;</div>
+    </div>
+
+
+
+    db.Close();
+}
+
+
+@functions{
+
+    public static string AddMenuFullfilmentOption()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["value"]); } catch { }
+        int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+
+        int service_option_type = 0; try { service_option_type = Convert.ToInt32(Request["service_option_type"]); } catch { }
+        string title_h = ""; title_h = Request["title_h"];
+        string title_e = ""; title_e = Request["title_e"];
+        string shipping_instructions = ""; shipping_instructions = Request["shipping_instructions"];
+        string shipping_instructions_e = ""; shipping_instructions_e = Request["shipping_instructions_e"];
+
+        decimal shipping_charge = 0; try { shipping_charge = Convert.ToDecimal(Request["shipping_charge"]); } catch { }
+        decimal free_shipping_marker = 0; try { free_shipping_marker = Convert.ToDecimal(Request["free_shipping_marker"]); } catch { }
+
+        string ServiceSelectedAreas = ""; ServiceSelectedAreas = Request["ServiceSelectedAreas"];
+
+        bool is_sun = false; if (!Request["is_sun"].IsEmpty()) { is_sun = true; }
+        bool is_mon = false; if (!Request["is_mon"].IsEmpty()) { is_mon = true; }
+        bool is_tue = false; if (!Request["is_tue"].IsEmpty()) { is_tue = true; }
+        bool is_wed = false; if (!Request["is_wed"].IsEmpty()) { is_wed = true; }
+        bool is_thu = false; if (!Request["is_thu"].IsEmpty()) { is_thu = true; }
+        bool is_fri = false; if (!Request["is_fri"].IsEmpty()) { is_fri = true; }
+        bool is_sat = false; if (!Request["is_sat"].IsEmpty()) { is_sat = true; }
+
+        DateTime sun_start_time = defDate; try { sun_start_time = Convert.ToDateTime(Request["sun_start_time"]); } catch { }
+        DateTime mon_start_time = defDate; try { mon_start_time = Convert.ToDateTime(Request["mon_start_time"]); } catch { }
+        DateTime tue_start_time = defDate; try { tue_start_time = Convert.ToDateTime(Request["tue_start_time"]); } catch { }
+        DateTime wed_start_time = defDate; try { wed_start_time = Convert.ToDateTime(Request["wed_start_time"]); } catch { }
+        DateTime thu_start_time = defDate; try { thu_start_time = Convert.ToDateTime(Request["thu_start_time"]); } catch { }
+        DateTime fri_start_time = defDate; try { fri_start_time = Convert.ToDateTime(Request["fri_start_time"]); } catch { }
+        DateTime sat_start_time = defDate; try { sat_start_time = Convert.ToDateTime(Request["sat_start_time"]); } catch { }
+
+        DateTime sun_end_time = defDate; try { sun_end_time = Convert.ToDateTime(Request["sun_end_time"]); } catch { }
+        DateTime mon_end_time = defDate; try { mon_end_time = Convert.ToDateTime(Request["mon_end_time"]); } catch { }
+        DateTime tue_end_time = defDate; try { tue_end_time = Convert.ToDateTime(Request["tue_end_time"]); } catch { }
+        DateTime wed_end_time = defDate; try { wed_end_time = Convert.ToDateTime(Request["wed_end_time"]); } catch { }
+        DateTime thu_end_time = defDate; try { thu_end_time = Convert.ToDateTime(Request["thu_end_time"]); } catch { }
+        DateTime fri_end_time = defDate; try { fri_end_time = Convert.ToDateTime(Request["fri_end_time"]); } catch { }
+        DateTime sat_end_time = defDate; try { sat_end_time = Convert.ToDateTime(Request["sat_end_time"]); } catch { }
+
+
+
+        int min_to_dispatch = 0; try { min_to_dispatch = Convert.ToInt32(Request["min_to_dispatch"]); } catch { }
+        DateTime expected_end_ts = Convert.ToDateTime("1/1/1970");
+
+
+
+        if (service_option_type == 0) { theHtmlOutput = theHtmlOutput + "שגיאה לא ידועה, לא ניתן להמשיך<BR>"; }
+        if (title_h == "") { theHtmlOutput = theHtmlOutput + "חובה להזין כותרת לאפשרות האספקה<BR>"; }
+        if (title_e == "") { theHtmlOutput = theHtmlOutput + "חובה להזין כותרת באנגלית לאפשרות האספקה<BR>"; }
+
+
+
+
+
+
+        switch (service_option_type)
+        {
+            case 1: //round delivery option
+                if (true)
+                {
+
+                    if (!is_sun && !is_mon && !is_tue && !is_wed && !is_thu && !is_fri && !is_sat ) { theHtmlOutput = theHtmlOutput + "חובה להזין לפחות מועד אחד בלוח הזמנים<BR>"; }
+                    else
+                    {
+                        if (is_sun)
+                        {
+                            if (sun_start_time == defDate || sun_start_time == defDate || sun_end_time < sun_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום ראשון!<BR>"; }
+                        }
+                        if (is_mon)
+                        {
+                            if (mon_start_time == defDate || mon_end_time == defDate || mon_end_time < mon_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום שני!<BR>"; }
+                        }
+                        if (is_tue)
+                        {
+                            if (tue_start_time == defDate || tue_end_time == defDate || tue_end_time < tue_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום שלישי!<BR>"; }
+                        }
+                        if (is_wed)
+                        {
+                            if (wed_start_time == defDate || wed_end_time == defDate || wed_end_time < wed_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום רביעי!<BR>"; }
+                        }
+                        if (is_thu)
+                        {
+                            if (thu_start_time == defDate || thu_end_time == defDate || thu_end_time < thu_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום חמישי!<BR>"; }
+                        }
+                        if (is_fri)
+                        {
+                            if (fri_start_time == defDate || fri_end_time == defDate || fri_end_time < fri_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום שישי!<BR>"; }
+                        }
+                        if (is_sat)
+                        {
+                            if (sat_start_time == defDate || sat_end_time == defDate || sat_end_time < sat_start_time)
+                            { theHtmlOutput = theHtmlOutput + "חובה להזין זמן יציאה וזמן סיום תקינים ליום שבת!<BR>"; }
+                        }
+
+                    }
+
+
+                    if (ServiceSelectedAreas == "") { theHtmlOutput = theHtmlOutput + "חובה לבחור לפחות אזור אחד<BR>"; }
+                }
+                break;
+            case 2: //express delivery option
+                if (true)
+                {
+                    if (ServiceSelectedAreas == "") { theHtmlOutput = theHtmlOutput + "חובה לבחור לפחות אזור אחד<BR>"; }
+                }
+                break;
+            case 3: //self pickup delivery option
+                if (true)
+                {
+                    ///
+                }
+                break;
+        }
+
+
+        if (theHtmlOutput == "")
+        {
+
+            /*
+            var db = Database.Open("op_data");
+            var sqlSelect = "";
+
+            sqlSelect = "SELECT next_scheduled_delivery FROM rounds WHERE id=@0";
+            var round = db.QuerySingle(sqlSelect, round_id);
+            //try { next_scheduled_delivery = round.next_scheduled_delivery; } catch { }
+
+            sqlSelect = "UPDATE rounds SET shipping_charge=@0,start_date=@1,start_time=@2,round_start=@3,estimated_duration=@4,estimated_end_time=@5,shipping_instructions=@6,shipping_instructions_e=@7,info_update_ts=@8,info_update_by=@9,free_shipping_marker=@10,order_close_hour=@11,min_to_dispatch=@12 WHERE id=@13";
+            //db.Execute(sqlSelect, shipping_charge, start_date, start_time, round_start, estimated_duration, expected_end_ts, shipping_instructions, shipping_instructions_e, local_time, rep_id, free_shipping_marker, order_close_hour, min_to_dispatch, round_id);
+            sqlSelect = "SELECT * from AppServicesArea WHERE is_active=1";
+            var ServiceAreas = db.Query(sqlSelect);
+            foreach (var area in ServiceAreas)
+            {
+                string curAreaFld = "RoundArea_" + area.id;
+                string curAreaFreeShippingMarkerFld = "RoundArea_SHFSM_" + area.id;
+                string curAreaShippingChargeFld = "RoundArea_SH_" + area.id;
+                string curAreaMainAreaIdFld = "RoundAreaMainId_" + area.id;
+                decimal area_shipping_charge = 0;
+                decimal area_free_shipping_marker = 0;
+                int main_area_id = 0;
+                bool is_main_area = false;
+                sqlSelect = "DELETE FROM RoundAreas WHERE round_id=@0 AND area_id=@1";
+                db.Execute(sqlSelect, round_id, area.id);
+                if (!Request[curAreaFld].IsEmpty())
+                {
+
+                    try { area_shipping_charge = Convert.ToDecimal(Request[curAreaShippingChargeFld]); } catch { }
+                    try { area_free_shipping_marker = Convert.ToDecimal(Request[curAreaFreeShippingMarkerFld]); } catch { }
+                    try { main_area_id = Convert.ToInt32(Request[curAreaMainAreaIdFld]); } catch { }
+                    if (area.id == main_area_id)
+                    {
+                        is_main_area = true;
+                    }
+                    sqlSelect = "INSERT INTO RoundAreas(round_id,area_id,shipping_charge,free_shipping_marker,main_area_id,is_main_area) VALUES(@0,@1,@2,@3,@4,@5)";
+                    db.Execute(sqlSelect, round_id, area.id, area_shipping_charge, area_free_shipping_marker, main_area_id, is_main_area);
+
+                }
+            }
+
+
+
+            sqlSelect = "UPDATE mainorders SET requested_delivery_date=@0 WHERE round_id=@1 ";//AND requested_delivery_date=@2";
+            db.Execute(sqlSelect, round_start, round_id, next_scheduled_delivery);
+
+
+
+            db.Close();
+
+            theHtmlOutput = "👌 השינויים נשמרו!";
+            */
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+        return theHtmlOutput;
+    }
+
+
+}

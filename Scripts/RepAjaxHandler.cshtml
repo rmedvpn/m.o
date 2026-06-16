@@ -521,6 +521,16 @@
             }
             break;
 
+        case "MENUSADMIN":
+            if (true)
+            {
+                string showWhat = ""; showWhat = Request["param1"];
+                int v_id = 0; try { v_id = Convert.ToInt32(Request["param2"]); } catch { }
+                <div>@Menus.MenusAdmin(showWhat, v_id)</div>
+
+            }
+            break;
+
 
         case "RoundSettingsView":
             if (true)
@@ -528,6 +538,14 @@
                 int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
                 string viewMode = Request["param2"];
                 <div>@Rounds.RoundControlPanel(round_id, viewMode)</div>
+            }
+            break;
+        case "MenuSettingsView":
+            if (true)
+            {
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string viewMode = Request["param2"];
+                <div>@Menus.VendorMenuControlPanel(round_id, viewMode)</div>
             }
             break;
 

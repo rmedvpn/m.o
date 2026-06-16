@@ -1097,6 +1097,11 @@ span.PropValue {
     font-size: 14px;
     color: #808080
 }
+span.TimeProp_Value {
+    
+    font-size: 14px;
+    color: #808080
+}
 div.PropTag {
     overflow: auto;
     font-size: 14px;
@@ -1185,6 +1190,14 @@ textarea.PropTextBox {
     resize: none;
     width: 90%;
 }
+input.TimeTextBox {
+    font-size: 16px;
+    padding: 3px;
+    margin: 1px;
+    border: 0;
+    background-color: #fff;
+    color: #000;
+}
 select.PropSelect {
     font-size: 16px;
     padding: 3px;
@@ -1192,6 +1205,13 @@ select.PropSelect {
     border: 0;
     background-color: #e3e3e3;
     color: #000;
+}
+button.AddAreaBtn {
+    font-size: 13px;
+    padding: 3px;
+    margin: 1px;
+    border: 0;
+    background-color: #e3e3e3;
 }
 div.OrderSection {
     overflow: auto;
@@ -1821,8 +1841,9 @@ div.ProdViewInfo {
     overflow: auto;
     padding: 1px;
     margin: 1px;
-    font-size: 24px;
+    font-size: 18px;
     font-weight:bold;
+    color:#000;
 }
 div.ProdViewTitle {
     overflow: auto;
@@ -2024,6 +2045,15 @@ button.ProductTagSelected {
     border: 0;
     float: right;
 }
+    button.ProductTagSelected:hover {
+        background-color: #e3e3e3;
+        padding: 5px;
+        margin: 5px;
+        font-size: 18px;
+        color: #808080;
+        border: 0;
+        float: right;
+    }
 button.ProductTagUnSelected {
     background-color: #e3e3e3;
     padding: 5px;
@@ -2033,6 +2063,15 @@ button.ProductTagUnSelected {
     border: 0;
     float: right;
 }
+    button.ProductTagUnSelected:hover {
+        background-color: #57d600;
+        padding: 5px;
+        margin: 5px;
+        font-size: 18px;
+        color: #fff;
+        border: 0;
+        float: right;
+    }
 div.HtmlDescContainer {
     padding: 5px;
     margin: 10px;
@@ -2040,5 +2079,60 @@ div.HtmlDescContainer {
     border-radius:5px;
     overflow:auto;
 
+}
+div.VendorProductTopBar {
+    color: #fff;
+    background-color: #808080;
+    overflow: auto;
+    padding: 5px;
+    font-size:24px;
+}
+div.CatalogProductTopBar {
+    color: #fff;
+    background-color: #000;
+    overflow: auto;
+    padding: 5px;
+    font-size: 24px;
+}
+span.ProductTopBarSubTitle {
+    font-size: 18px;
+    color: #e3e3e3;
+    margin: 5px;
+    float:left;
+}
+select.ProductTopBarSelect {
+    float: left;
+    margin: 0;
+    margin-left: 30px;
+    font-size:18px;
+    padding:5px;
+    font-weight:bold;
+    
+
+}
+div.ProductTagNone{
+    overflow:auto;
+    font-size:14px;
+    color:#e3e3e3;
+    font-weight:normal;
+}
+div.ProdViewMenus{
+    padding:5px;
+    margin:5px;
+    font-size:18px;
+    border-bottom:1px dotted #e3e3e3;
+
+}
+button.ProdViewAddPricingOpt {
+    font-size: 16px;
+    float: left;
+    
+}
+div.ProdEditSection{
+    overflow:auto;
+    padding:5px;
+    margin:5px;
+    border-radius:5px;
+    background-color:#fff;
 }
 /*END MY CUSTOM STYLING*/

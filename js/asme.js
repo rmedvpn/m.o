@@ -433,6 +433,9 @@ function PageNavigator(thePage,param1,is_silent,param2) {
         case "ROUNDSADMIN":
             RepAjaxUpdate("ROUNDSADMIN", "MainBoardContainer", theLoader, param1);
             break;
+        case "MENUSADMIN":
+            RepAjaxUpdate("MENUSADMIN", "MainBoardContainer", theLoader, param1);
+            break;
 
         case "DEVFORM":
             RepAjaxUpdate("DEVFORM", "MainBoardContainer", theLoader, param1);
@@ -606,6 +609,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "SaveRoundDeliveriesInfo":
             case "SetupCatalogProduct":
             case "UpdateCatalogProduct":
+            case "UpdateProduct":
             case "AddCustomProductField":
             case "UpdateProductCustomField":
             case "AddPricingOption":
@@ -646,6 +650,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "CreateOrderReturn":
             case "CreateReplacementOrder":
             case "AddNewProduct":
+            case "AddMenuFullfilmentOption":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1049,6 +1054,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "SetupCatalogProduct":
                     case "ActivateCatalogProduct":
                     case "UpdateCatalogProduct":
+                    case "UpdateProduct":
                     case "ActivateProduct":
                     case "SetupProductFromCatalog":
                         if (!theRes.startsWith("!$!")) {
@@ -2399,6 +2405,7 @@ function MiscActions(theAction,param1,param2,param3) {
         case "ProductEditSelector":
 
             hideElement('ActiveProductsDiv');
+            hideElement('ProductMenusDiv');
             hideElement('ProductSettingsDiv');
             hideElement('ProductPricingDiv');
             hideElement('ProductCustomFieldsDiv');
@@ -2406,6 +2413,35 @@ function MiscActions(theAction,param1,param2,param3) {
             hideElement('ProductEditInfoDiv');
             hideElement('ProductImagesContainer');
             showElement(param2);
+
+            break;
+
+        case "AddAreaToServiceOption":
+
+            if (true) {
+                let ServiceArea = document.getElementById('ServiceSelectedAreas');
+                if (ServiceArea) {
+                    if (!ServiceArea.value.includes("##" + param1 + "##")) {
+                        ServiceArea.value += "##" + param1 + "##";
+                        showElement('AreaInfoDiv_' + param1);
+                    }
+                    
+                    document.getElementById("delivery_add_area").selectedIndex = 0;
+                }
+
+            }
+         
+            break;
+        case "RemoveAreaFromServiceOption":
+            if (true) {
+                let ServiceArea = document.getElementById('ServiceSelectedAreas');
+                if (ServiceArea) {
+                    ServiceArea.value = ServiceArea.value.replace("##" + param1 + "##", "");
+                    hideElement('AreaInfoDiv_' + param1);
+                }
+            }
+           
+       
 
             break;
 

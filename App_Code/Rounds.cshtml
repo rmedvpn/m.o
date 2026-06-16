@@ -409,6 +409,12 @@
                     🚚 קו חלוקה
                 </span>
             }
+            @if (round_type == 5)
+            {
+                <span style="float: left; background-color: #fff; border: 2px solid #57d600; color: #000; font-size: 16px; padding: 5px; margin: 5px;border-radius:5px;">
+                    🚚 תפריט
+                </span>
+            }
 
 
             @if (round_type == 4)
@@ -453,6 +459,7 @@
                 @switch (round_type)
                 {
                     case 1: //delivery route
+                    case 5: //delivery route
                         <div class="PropSection" id="RoundRouteSettingsView">
                             <div style="overflow:auto;text-align: right;">
 
