@@ -320,6 +320,9 @@
             case "Round_Short":
                 sqlSelect = "SELECT short_title AS the_label FROM rounds WHERE id=@0";
                 break;
+            case "FulfillmentOption":
+                sqlSelect = "SELECT title_h AS the_label FROM FullfilmentOptionTypes WHERE id=@0";
+                break;
 
             case "Cat":
                 sqlSelect = "SELECT title AS the_label FROM categories WHERE id=@0";

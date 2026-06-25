@@ -1151,6 +1151,15 @@ div.PropTagBox {
     background-color: #fff;
     color: #808080;
 }
+div.AreaPropTagBox {
+    float: left;
+    font-size: 11px;
+    padding: 1px;
+    margin: 1px;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #808080;
+}
 div.PropTagTitle {
     float: right;
     padding: 3px;
@@ -1190,6 +1199,10 @@ textarea.PropTextBox {
     resize: none;
     width: 90%;
 }
+    textarea.PropTextBox::placeholder {
+        font-size: 11px;
+    }
+
 input.TimeTextBox {
     font-size: 16px;
     padding: 3px;
@@ -1197,6 +1210,17 @@ input.TimeTextBox {
     border: 0;
     background-color: #fff;
     color: #000;
+}
+
+button.TimeCopyBtn {
+    font-size: 16px;
+    padding: 4px;
+    margin: 1px;
+    border: 0;
+    background-color: #fff;
+    color: #000;
+    float:left;
+    border-radius:50%;
 }
 select.PropSelect {
     font-size: 16px;
@@ -2134,5 +2158,29 @@ div.ProdEditSection{
     margin:5px;
     border-radius:5px;
     background-color:#fff;
+}
+div.ErrMsg{
+    text-align:center;
+    font-size:14px;
+    color:#f00;
+}
+div.ServiceOptionRow{
+    overflow:auto;
+    font-size:18px;
+    padding:5px;
+    margin:5px;
+    background-color:#e3e3e3;
+}
+div.ServiceOptionTitle {
+    overflow: auto;
+    text-align: right;
+    font-size: 24px;
+    font-weight: bold;
+
+}
+button.EditMenuOptionsBtn {
+    float: left;
+    margin:5px;
+    padding:5px;
 }
 /*END MY CUSTOM STYLING*/

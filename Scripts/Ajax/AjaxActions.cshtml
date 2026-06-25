@@ -49,6 +49,12 @@
 
                 switch (req_action)
                 {
+                    case "ROUNDS":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncRoundInfo();
+                        }
+                        break;
                     case "RMI":
                         if (true)
                         {
@@ -59,6 +65,18 @@
                         if (true)
                         {
                             //theHtmlOutput = SyncFunctions.SyncRoundMenuItems();
+                        }
+                        break;
+                    case "RoundAreas":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncRoundAreas();
+                        }
+                        break;
+                    case "RFO":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncRoundFullfilmentOptions();
                         }
                         break;
                     case "PROD":
@@ -4033,13 +4051,9 @@
                 theHtmlOutput = "ערוץ המכירה הופעל בהצלחה!";
                 logMsg = "הפעולה בוצעה בהצלחה!";
                 /*   int entLinkSerial=0; try{entLinkSerial=Convert.ToInt32(Request["param1"]);}catch{}
-
-
                    InventoryFunctions.reCalcRoundInventory(round_id);*/
-
                 // AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
             }
-
             break;
 
 
@@ -4290,6 +4304,16 @@
             }
             break;
 
+        case "UpdateFullfilmentOption":
+
+            if (true)
+            {
+
+                theHtmlOutput = Menus.UpdateFullfilmentOption();
+
+            }
+            break;
+
 
         case "DeleteProduct":
             if (true)
@@ -4382,7 +4406,7 @@
                 else
                 {
                     tmpTilte = "מוצר חדש";
-                    tmpTilte_e = "New Product"; 
+                    tmpTilte_e = "New Product";
                     sqlSelect = "INSERT INTO products(title,e_title,Description,e_desc,add_timestamp,clerk_id,is_active,last_change_ts,itemunit_type,v_id) VALUES(@0,@1,@2,@3,@4,@5,0,@4,0,@6)";
                 }
                 db.Execute(sqlSelect, tmpTilte, tmpTilte_e, "", "", AddTs, u_id,vendor_id);
@@ -8132,6 +8156,41 @@
             }
             break;
 
+        case "AddNewVendorMenu":
+            if (true)
+            {
+                theHtmlOutput = Menus.AddNewVendorMenu();
+            }
+            break;
+        case "MenuFinishSetup":
+            if (theHtmlOutput == "")
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "0";
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["value"]); } catch { }
+
+                sqlSelect = "SELECT id FROM RoundFullfilmentOptions WHERE is_active=1 AND round_id=@0 ";
+                var serviceChk = db.QuerySingle(sqlSelect, round_id);
+
+                if (serviceChk == null)
+                {
+                    theHtmlOutput = "!$!לא ניתן להפעיל את התפריט ללא אפשרויות אספקה מוגדרות!";
+
+                }
+                else
+                {
+                    sqlSelect = "UPDATE rounds SET round_status=1,is_setup=1,is_active=1 WHERE id=@0";
+                    db.Execute(sqlSelect, round_id);
+                    theHtmlOutput = "התפריט הופעל בהצלחה!";
+                    logMsg = "התפריט הופעל בהצלחה!";
+                    // AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
+
+                }
+                /*   int entLinkSerial=0; try{entLinkSerial=Convert.ToInt32(Request["param1"]);}catch{}
+                   InventoryFunctions.reCalcRoundInventory(round_id);*/
+
+            }
+            break;
     }
 
 

@@ -29,6 +29,8 @@
         bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
         bool CharityOffersOk = false; if (!Request["CharityOffersOk"].IsEmpty()) { CharityOffersOk = true; }
         bool is_generic = false; if (!Request["is_generic"].IsEmpty()) { is_generic = true; }
+        bool sub_rmi_overwrite = false; if (!Request["sub_rmi_overwrite"].IsEmpty()) { sub_rmi_overwrite = true; }
+        bool sub_products_overwrite = false; if (!Request["sub_products_overwrite"].IsEmpty()) { sub_products_overwrite = true; }
 
 
         int sell_inXs = 0; try { sell_inXs = Convert.ToInt32(Request["sell_inXs"]); } catch { }
@@ -134,22 +136,33 @@
 
             if (is_catalog)
             {
-                sqlSelect = "SELECT * FROM products WHERE catalog_overwrite=1 AND  catalog_p_id=@0";
-                var childProducts = db.Query(sqlSelect, p_id);
-
-
-                //update sub products?
-                foreach (var chProd in childProducts)
+                if (sub_rmi_overwrite || sub_products_overwrite)
                 {
-                    sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24,strain_type=@25,strain_type_title=@26,strain_type_title_e=@27 WHERE p_id=@28";
-                    //          db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type, strain_type_title, strain_type_title_e, chProd.p_id);
+                    sqlSelect = "SELECT * FROM products WHERE catalog_overwrite=1 AND  catalog_p_id=@0";
+                    var childProducts = db.Query(sqlSelect, p_id);
 
-                    sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22,strain_type=@23,strain_type_title=@24,strain_type_title_e=@25 WHERE p_id=@26";
-                    //          db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, strain_type, strain_type_title, strain_type_title_e, chProd.p_id);
+
+                    //update sub products?
+                    foreach (var chProd in childProducts)
+                    {
+                        if (sub_products_overwrite)
+                        {
+                            sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24,strain_type=@25,strain_type_title=@26,strain_type_title_e=@27,is_generic=@28 WHERE p_id=@29";
+                            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type, strain_type_title, strain_type_title_e, is_generic, chProd.p_id);
+                        }
+
+                        if (sub_rmi_overwrite)
+                        {
+                            sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22,strain_type=@23,strain_type_title=@24,strain_type_title_e=@25,is_generic=@26 WHERE p_id=@27";
+                            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, strain_type, strain_type_title, strain_type_title_e, is_generic, chProd.p_id);
+                        }
+
+
+
+                    }
 
 
                 }
-
 
 
                 //update menuitems
@@ -157,8 +170,12 @@
             }
             else
             {
-                sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22,strain_type=@23,strain_type_title=@24,strain_type_title_e=@25 WHERE p_id=@26";
-                //         db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, strain_type, strain_type_title, strain_type_title_e, p_id);
+                if (sub_rmi_overwrite)
+                {
+                    sqlSelect = "UPDATE roundmenuitems SET  title=@0,title_e=@1 ,Description=@2 ,desc_e=@3 ,itemunit_type=@4 ,sell_inXs=@5 ,maincat_id=@6 ,sub_cat_id=@7 ,clerk_id=@8 ,last_change_ts=@9 ,sell_1s=@10 ,sell_3s=@11 ,sell_5s=@12 ,last_change_by=@13 ,itemunit=@14 ,itemunit_e=@15 ,cost=@16 ,price=@17 ,spOfferCatId=@18 ,max_in_cart=@19 ,is_discountable=@20 ,CharityOffersOk=@21 ,prod_code=@22,strain_type=@23,strain_type_title=@24,strain_type_title_e=@25,is_generic=@26 WHERE p_id=@27";
+                    db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, sell_1s, sell_3s, sell_5s, u_id, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, prod_code, strain_type, strain_type_title, strain_type_title_e, is_generic, p_id);
+                }
+
 
             }
 

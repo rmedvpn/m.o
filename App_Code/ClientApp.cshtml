@@ -248,6 +248,7 @@
 
     int Rounds_ChangesCount = 0; try { Rounds_ChangesCount = checkUpdateableColumnsForTable(src_db, "rounds"); } catch { Rounds_ChangesCount = -1; }
     int roundAreas_ChangesCount = 0; try { roundAreas_ChangesCount = checkUpdateableColumnsForTable(src_db, "roundAreas"); } catch { roundAreas_ChangesCount = -1; }
+    int RoundFullfilmentOptions_ChangesCount = 0; try { RoundFullfilmentOptions_ChangesCount = checkUpdateableColumnsForTable(src_db, "RoundFullfilmentOptions"); } catch { RoundFullfilmentOptions_ChangesCount = -1; }
     int roundMenuItems_ChangesCount = 0; try { roundMenuItems_ChangesCount = checkUpdateableColumnsForTable(src_db, "roundMenuItems"); } catch { roundMenuItems_ChangesCount = -1; }
     int roundMenuItemsPricingOptions_ChangesCount = 0; try { roundMenuItemsPricingOptions_ChangesCount = checkUpdateableColumnsForTable(src_db, "roundMenuItemsPricingOptions"); } catch { roundMenuItemsPricingOptions_ChangesCount = -1; }
 
@@ -278,13 +279,19 @@
                     <td></td>
                     <td>ROUNDS</td>
                     <td>@Rounds_ChangesCount</td>
-                    <td><button class="A">סנכרון</button></td>
+                    <td><button class="A" onclick="AjaxActions('SyncAgent', 'ROUNDS');">סנכרון</button></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>RoundFullfilmentOptions</td>
+                    <td>@RoundFullfilmentOptions_ChangesCount</td>
+                    <td><button class="A" onclick="AjaxActions('SyncAgent', 'RFO');">סנכרון</button></td>
                 </tr>
                 <tr>
                     <td></td>
                     <td>roundAreas</td>
                     <td>@roundAreas_ChangesCount</td>
-                    <td><button class="A">סנכרון</button></td>
+                    <td><button class="A" onclick="AjaxActions('SyncAgent', 'RoundAreas');">סנכרון</button></td>
                 </tr>
                 <tr>
                     <td></td>

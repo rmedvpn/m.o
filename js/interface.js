@@ -445,7 +445,10 @@ function copyTextAreaToClipBoard(theTextArea){
   
 
     }
-
+function autoResizeTextArea(el) {
+    el.style.height = "auto";      // reset height
+    el.style.height = el.scrollHeight + "px";
+}
 function AdjustMainView(floatDir, ForceAction) {
     floatDir = floatDir || "right";
     ForceAction = ForceAction || "";

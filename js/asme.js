@@ -651,6 +651,8 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "CreateReplacementOrder":
             case "AddNewProduct":
             case "AddMenuFullfilmentOption":
+            case "UpdateFullfilmentOption":
+            case "AddNewVendorMenu":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -997,13 +999,22 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         
                         sbload('GenSb', 'Caller?p1=RoundEdit&p2=' + value + '&p3=' + param2);
                         break;
+                    case "MenuFinishSetup":
+                    case "DeActivateRound":
+                        
+                        sbload('GenSb', 'Caller?p1=VendorMenuEdit&p2=' + value );
+                        break;
                     case "SortRoundOrder":
                     case "AddNewRound":
 
                         PageNavigator('ROUNDSADMIN');
                         break;
+                    case "AddNewVendorMenu":
 
-                    case "DeActivateRound":
+                        PageNavigator('MENUSADMIN');
+                        break;
+
+                    case "DeActivateRound_old":
                     case "DeleteRound":
                         
                         sbload('GenSb', 'Caller?p1=RoundEdit&p2=' + value + '&p3=' + param2);
@@ -1421,6 +1432,20 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "CreateRegistrationPreApprovalToken":
                         if (!theRes.startsWith("!$!")) {
                             RepAjaxUpdate('PreApprovals', 'PreApprovalListDiv', 'MainLoader');
+                        }
+                        break;
+
+
+                        
+                    case "AddMenuFullfilmentOption":
+                    case "UpdateFullfilmentOption":
+                        if (!theRes.startsWith("!$!")) {
+                            sbload('GenSb', 'Caller?p1=VendorMenuEdit&p2=' + value);
+                        }
+                        else {
+                            document.getElementById('FulfilmentOptionErrMsg').innerHTML = theRes.replace("!$!", "");
+                            showElement('FulfilmentOptionErrDiv');
+                            noti_break = true;
                         }
                         break;
 
@@ -2415,6 +2440,62 @@ function MiscActions(theAction,param1,param2,param3) {
             showElement(param2);
 
             break;
+        case "LoadFulfillmentOption":
+            if (true) {
+                hideElement('FulfilmentOptionErrDiv');
+
+                let x = document.getElementById('ServiceSelectedAreas').value;
+                let Areas = x.split("##");
+                
+                
+                console.log('FullfilmentOptionType: ' + param1);
+                switch (param1) {
+                
+                    case "1":
+                        hideElement('ExpDeliveryInfoDiv');
+                        hideElement('ExpressTimelineHeaderDiv');
+                        hideElement('PickupTimelineHeaderDiv');
+                        hideElement('PickupInfoDiv');
+                        for (const area of Areas) {
+                            if (area.trim() !== "" && !isNaN(area)) {
+                               
+                                hideElement('RoundArea_ETA_DIV_' + area);
+                            }
+                        }
+                        showElement('DeliveryAreasDiv');
+                        showElement('RoundTimelineHeaderDiv');
+                        showElement('DeliveryInfoDiv');
+                        break;
+                    case "2":
+                        hideElement('PickupTimelineHeaderDiv');
+                        hideElement('RoundTimelineHeaderDiv');
+                        hideElement('PickupInfoDiv');
+                        for (const area of Areas) {
+                            if (area.trim() !== "" && !isNaN(area)) {
+                                
+                                showElement('RoundArea_ETA_DIV_' + area);
+                            }
+                        }
+                        showElement('DeliveryAreasDiv');
+                        showElement('ExpressTimelineHeaderDiv');
+                        showElement('DeliveryInfoDiv');
+                        showElement('ExpDeliveryInfoDiv');
+                        break;
+                    case "3":
+                        hideElement('ExpressTimelineHeaderDiv');
+                        hideElement('RoundTimelineHeaderDiv');
+                        hideElement('DeliveryInfoDiv');
+                        hideElement('DeliveryAreasDiv');
+                        showElement('PickupTimelineHeaderDiv');
+                        showElement('PickupInfoDiv');
+                        break;
+                }
+
+            }
+
+            break;
+
+
 
         case "AddAreaToServiceOption":
 
@@ -2444,6 +2525,70 @@ function MiscActions(theAction,param1,param2,param3) {
        
 
             break;
+
+        case "AutoFillServiceOptionTime":
+            if (true) {
+                let start_time;
+                let end_time;
+
+                switch (param1) {
+                    case 1:
+                        start_time = document.getElementById('sun_start_time').value;
+                        end_time = document.getElementById('sun_end_time').value;
+                        break;
+                    case 2:
+                        start_time = document.getElementById('mon_start_time').value;
+                        end_time = document.getElementById('mon_end_time').value;
+                        break;
+                    case 3:
+                        start_time = document.getElementById('tue_start_time').value;
+                        end_time = document.getElementById('tue_end_time').value;
+                        break;
+                    case 4:
+                        start_time = document.getElementById('wed_start_time').value;
+                        end_time = document.getElementById('wed_end_time').value;
+                        break;
+                    case 5:
+                        start_time = document.getElementById('thu_start_time').value;
+                        end_time = document.getElementById('thu_end_time').value;
+                        break;
+                    case 6:
+                        start_time = document.getElementById('fri_start_time').value;
+                        end_time = document.getElementById('fri_end_time').value;
+                        break;
+                    case 7:
+                        start_time = document.getElementById('sat_start_time').value;
+                        end_time = document.getElementById('sat_end_time').value;
+                        break;
+                }
+
+                document.getElementById('sun_start_time').value = start_time;
+                document.getElementById('mon_start_time').value = start_time;
+                document.getElementById('tue_start_time').value = start_time;
+                document.getElementById('wed_start_time').value = start_time;
+                document.getElementById('thu_start_time').value = start_time;
+                document.getElementById('fri_start_time').value = start_time;
+                document.getElementById('sat_start_time').value = start_time;
+
+                document.getElementById('sun_end_time').value = end_time;
+                document.getElementById('mon_end_time').value = end_time;
+                document.getElementById('tue_end_time').value = end_time;
+                document.getElementById('wed_end_time').value = end_time;
+                document.getElementById('thu_end_time').value = end_time;
+                document.getElementById('fri_end_time').value = end_time;
+                document.getElementById('sat_end_time').value = end_time;
+
+
+
+            }
+
+
+
+            break;
+
+
+
+
 
         case "InitMce":
             if (true) {
