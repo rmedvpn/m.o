@@ -767,7 +767,7 @@
             }
 
 
-
+            ProductsFunctions.CalcProdLowestCost(p_id);
         }
         else
         {
@@ -857,6 +857,7 @@
             theHtmlOutput = " 👌 אפשרות המחיר הופסקה ";
         }
 
+        ProductsFunctions.CalcProdLowestCost(p_id);
 
         return theHtmlOutput;
     }
@@ -1037,6 +1038,8 @@
             sqlSelect = "INSERT INTO productPricingOptions(p_id, round_id, price, quan, each_additional, is_discountable, optionCommision, AdditionalUnitCommision, isPriceBinding, catalog_p_id, catalog_option_id, is_catalog, manually_created, ts, created_by, is_protected, is_activated, is_unBinded, is_deleted, deleted_by, delete_ts,is_fav) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21)";
             db.Execute(sqlSelect, dest_p_id, rec.round_id, rec.price, rec.quan, rec.each_additional, rec.is_discountable, rec.optionCommision, rec.AdditionalUnitCommision, rec.isPriceBinding, rec.catalog_p_id, rec.catalog_option_id, rec.is_catalog, rec.manually_created, local_time, rec.created_by, rec.is_protected, rec.is_activated, rec.is_unBinded, rec.is_deleted, rec.deleted_by, rec.delete_ts, rec.is_fav);
         }
+        ProductsFunctions.CalcProdLowestCost(dest_p_id);
+
         db.Close();
         return;
     }
@@ -1222,6 +1225,8 @@
                 }
 
                 db.Close();
+                ProductsFunctions.CalcProdLowestCost(p_id);
+
                 theHtmlOutput = " 👌 המוצר התעדכן בהצלחה ";
             }
             else
@@ -1437,6 +1442,35 @@
         return FieldValue;
     }
 
+
+
+    public static void CalcProdLowestCost(int p_id,int round_id=0)
+    {
+        string theHtmlOutput = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0";
+        if (round_id > 0)
+        {
+            sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND (round_id=99999 OR round_id=@1)";
+        }
+        var pricing = db.QuerySingle(sqlSelect, p_id,round_id);
+        decimal curLowestUnitPrice = 0; try { curLowestUnitPrice = pricing.curLowestUnitPrice; } catch { }
+        if (round_id == 0)
+        {
+            sqlSelect = "UPDATE products SET curLowestUnitPrice=@0 WHERE p_id=@1";
+        }
+        else
+        {
+            sqlSelect = "UPDATE roundMenuItems SET curLowestUnitPrice=@0 WHERE p_id=@1 AND round_id=@2";
+        }
+        db.Execute(sqlSelect, curLowestUnitPrice, p_id, round_id);
+
+        db.Close();
+ //       DataFunctions.WriteDebugLine("curLowestUnitPrice " + curLowestUnitPrice + "p_id " + p_id);
+
+    }
 
 
     public static string someFunction()

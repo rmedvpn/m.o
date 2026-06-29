@@ -92,7 +92,7 @@
                     <div style="overflow: auto;float: right;background-color: #57d600;color: #fff;padding: 5px;margin: 5px;width: 120px;text-align: center;border-radius: 5px;font-size: 14px;font-weight:bold;">תפריט <span style="margin-right:5px;font-size:11px;">#@round.id</span></div>
 
                     <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #808080" onclick="MiscActions('SelectEntry','RoundDiv_@round.id');sbload('GenSb','Caller?p1=VendorMenuEdit&p2=@round.id');AdjustMainView();">הגדרות</button>
-                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #808080" onclick="MiscActions('SelectEntry','RoundDiv_@round.id');sbload('GenSb','Caller?p1=EditRoundMenu&p2=@round.id');AdjustMainView();">תפריט</button>
+                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #808080" onclick="MiscActions('SelectEntry','RoundDiv_@round.id');sbload('GenSb','Caller?p1=EditMenuItems&p2=@round.id');AdjustMainView();">תפריט</button>
                     <div style="overflow: auto;padding: 5px;font-size: 20px;">@round.title </div>
                 </div>
             }
@@ -111,6 +111,184 @@
 {
     <div>@Menus.VendorMenuControlPanel(round_id, viewMode)</div>
 }
+
+
+@helper EditMenuItems(int round_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM rounds WHERE id=@0 ";
+    var round = db.QuerySingle(sqlSelect, round_id);
+    int vendor_id = 0; try { vendor_id = round.vendor_id; } catch { }
+    string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+
+    <div style="padding: 0;margin: 0;;overflow: auto;background-color: #fff;direction:rtl">
+        <div style="background-color:  #000; overflow: auto; font-size: 24px; color: #fff;">
+            #@round.id @round.title - תפריט
+        </div>
+
+        <div style="overflow: auto;">
+            <input type="hidden" name="RoundToUpdate" id="RoundToUpdate" value="@round_id">
+            <div style="overflow: auto;background-color: #e3e3e3;padding: 5px;font-size: 18px;font-weight: bold;color: #000" onclick="Accordionize('round_menu')">
+                ספק: @vendor_name
+                <div class="spinner" style="text-align: center;display: none;float: left" id="RoundMenuLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+
+            </div>
+            <button class="accordion" onclick=" Accordionize('round_menu');" id="round_menu" style="display: none"></button>
+            <div style="padding: 0;margin: 0;overflow: auto">
+                <div style="overflow: auto;" id="RoundMenuDiv">
+                    @Menus.MenuItems(round_id)
+                </div>
+            </div>
+        </div>
+        <div style="overflow: auto;">
+            <div style="overflow: auto;background-color: #e3e3e3;padding: 5px;margin: 5px;">
+                <div style="overflow: auto;background-color: #e3e3e3;padding: 5px;font-size: 18px;font-weight: bold;color: #000">
+                    מבצעים
+                    <div class="spinner" style="text-align: center;display: none;float: left" id="RoundSpLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                </div>
+
+            </div>
+            <div style="padding: 0;margin: 0;overflow: auto;">
+                <div style="overflow: auto;padding: 5px;margin: 5px;" id="RoundSpecialsDiv">
+                    @NewAppHelpers.RoundSpecials(round_id)
+                </div>
+            </div>
+        </div>
+
+        <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+    </div>
+
+}
+
+@helper MenuItems(int round_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from roundMenuItems WHERE  is_deleted=0 AND round_id=@0 ORDER BY p_id";
+    var roundMenuItems = db.Query(sqlSelect, round_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int vendor_id = 0;
+    sqlSelect = "SELECT vendor_id FROM rounds where id=@0";
+    var roundInfo = db.QuerySingle(sqlSelect, round_id);
+    vendor_id = roundInfo.vendor_id;
+    sqlSelect = "SELECT * FROM products where is_active=1 AND v_id=@0";
+    var vendorsProducts = db.Query(sqlSelect, vendor_id);
+    <div style="overflow: auto;">
+        <div style="overflow: auto">
+            <select style="font-size: 16px;padding: 5px;margin: 5px;" onchange="AjaxActions('AddProductToRound', @round_id,'', this.value);">
+                <option>נא לבחור מוצר להוספה ממוצרי הספק..</option>
+                <option value="-1">הוספת כל מוצרי הספק לתפריט</option>
+                @foreach (var product in vendorsProducts)
+                {
+                    sqlSelect = "SELECT id FROM roundMenuItems WHERE p_id=@0 AND round_id=@1";
+                    var isInMenuCheck = db.QuerySingle(sqlSelect, product.p_id, round_id);
+                    if (isInMenuCheck == null)
+                    {
+                        <option value="@product.p_id">@product.title</option>
+                    }
+                }
+            </select>
+        </div>
+
+        @foreach (var item in roundMenuItems)
+        {
+            bool is_featured = false; try { is_featured = item.is_featured; } catch { }
+            string favRes = "false";
+            if (is_featured)
+            {
+                favRes = "true";
+            }
+            sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0 AND (round_id=@1 OR round_id=99999) ORDER BY quan";
+            var PricingOptions = db.Query(sqlSelect, item.p_id, item.round_id);
+            <div style="overflow: auto;padding: 3px;border-bottom: 1px dotted #000;margin: 3px">
+                <div style="overflow: auto;color: #000 ">
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">⚙️</button>
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="Accordionize('menuItemAcc_@item.id');toggle_visibility('delItem_@item.id');">💡</button>
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left;display: none" id="delItem_@item.id" onclick="AjaxActions('RemoveMenuItemFromRound', @round_id,'',@item.id);">🗑️</button>
+
+                    <div class="B" style="cursor:pointer; vertical-align: middle;float:right " onclick="AjaxActions('MenuItemIsFeaturedToggle','@favRes','MainLoader',@item.id,@round_id);">
+                        @if (is_featured)
+                        {
+                            <span style="font-size: 30px; margin: 5px; margin-top: 10px;float:right ">
+                                ❤️
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="font-size:30px;margin:5px;margin-top:10px;">
+                                🤍
+                            </span>
+                        }
+
+                    </div>
+
+                    <img style="max-height: 50px;width: 50px;border-radius: 10px;margin: 5px;float: right;" src="ImgViewer?size=tn&p_id=@item.p_id&theTime=@DateTime.Now" alt="אלט" />
+                    <div style="padding: 5px;margin: 5px;font-size: 18px;color: #000;float: right">
+                        @item.Title<br>
+                        <div style="overflow: auto;font-size: 14px;color: #808080">
+                            <div style="float: right">
+                                <span> @item.price.ToString("C", culture) ל<span>@item.itemunit</span></span><br>
+                                <span style="color: #57d600">
+                                    @item.available_quan @item.itemunit במלאי <span>@item.ordered_quan @item.itemunit מוזמן</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="overflow: auto;color: #000">
+                    <button style="display: none" class="Accordion" id="menuItemAcc_@item.id"></button>
+                    <div class="panel" style="padding: 0;margin: 0">
+                        <h2>מחירון מוצר</h2>
+                        <div style="overflow: auto;font-size: 16px;;margin: 5px;text-align: right;border-bottom: 1px dotted #e3e3e3">
+                            <div style="overflow: auto;">
+                                <div style="font-size: 14px;;overflow: auto">
+                                    <span style="padding: 5px;float: right;width: 100px;font-size: 16px;"><b>1 @item.itemunit</b></span>
+                                    <span style="padding: 5px;float: right"><b>@item.price.ToString("C", culture)</b> </span>
+                                    <span style="padding: 5px;font-size: 12px;color: #b200ff;float: left;display: none">
+                                        עמלה item.optionCommision.ToString("C",culture)<br>+ priceOption.AdditionalUnitCommision.ToString("C",culture) ל<span>@item.itemunit</span>
+                                    </span>
+
+                                </div>
+                            </div>
+
+
+                        </div>
+
+                        @foreach (var priceOption in PricingOptions)
+                        {
+                            string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", item.itemtype_id); } catch { }
+                            <div style="overflow: auto;font-size: 16px;;margin: 5px;text-align: right;;border-bottom: 1px dotted #e3e3e3">
+                                <div style="overflow: auto;">
+                                    <div style="font-size: 14px;;overflow: auto">
+                                        <span style="padding: 5px;float: right;width: 100px;font-size: 16px;"><b>@Convert.ToInt32(priceOption.quan) @item.itemunit</b></span>
+                                        <span style="padding: 5px;float: right"><b>@priceOption.price.ToString("C", culture)</b><br><span style="font-size: 12px;color: #808080;">+ @priceOption.each_additional.ToString("C", culture) ל<span>@item.itemunit</span></span></span>
+
+                                        <span style="padding: 5px;font-size: 12px;color: #b200ff;float: left">עמלה @priceOption.optionCommision.ToString("C", culture)<br>+ @priceOption.AdditionalUnitCommision.ToString("C", culture) ל<span>@item.itemunit</span></span>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        }
+    </div>
+
+    db.Close();
+}
+
+
 
 @helper VendorMenuControlPanel(int round_id, string viewMode = "GENERAL")
 {
@@ -1732,6 +1910,8 @@
                 }
             }
 
+            Menus.UpdateMenuStatsAndParams(round_id);
+
             db.Close();
 
             theHtmlOutput = "👌 השינויים נשמרו!";
@@ -2041,6 +2221,8 @@
                 }
             }
 
+            Menus.UpdateMenuStatsAndParams(round_id);
+
             db.Close();
 
             theHtmlOutput = "👌 השינויים נשמרו!";
@@ -2108,6 +2290,113 @@
 
         }
         return theHtmlOutput;
+    }
+
+
+    public static void UpdateMenuStatsAndParams(int round_id)
+    {
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+
+
+        bool is_route = false;
+        bool is_pickup = false;
+        bool is_express = false;
+        int ActiveSpOffersCount = 0;
+        int ActiveProductsCount = 0;
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT TOP(1) id FROM RoundFullfilmentOptions WHERE is_active=1 AND is_route=1 AND round_id=@0";
+        var chkRs = db.QuerySingle(sqlSelect, round_id);
+        if (chkRs != null) { is_route = true; }
+
+        sqlSelect = "SELECT TOP(1) id FROM RoundFullfilmentOptions WHERE is_active=1 AND is_express=1 AND round_id=@0";
+        chkRs = db.QuerySingle(sqlSelect, round_id);
+        if (chkRs != null) { is_express = true; }
+
+        sqlSelect = "SELECT TOP(1) id FROM RoundFullfilmentOptions WHERE is_active=1 AND is_pickup=1 AND round_id=@0";
+        chkRs = db.QuerySingle(sqlSelect, round_id);
+        if (chkRs != null) { is_pickup = true; }
+
+        sqlSelect = "SELECT COUNT(id) AS the_cnt FROM RoundMenuItems WHERE is_active=1 AND round_id=@0";
+        chkRs = db.QuerySingle(sqlSelect, round_id);
+        try { ActiveProductsCount = chkRs.the_cnt; } catch { }
+
+        sqlSelect = "SELECT COUNT(id) AS the_cnt FROM SpOfferRoundsAvailability WHERE is_active=1 AND round_id=@0";
+        chkRs = db.QuerySingle(sqlSelect, round_id);
+        try { ActiveSpOffersCount = chkRs.the_cnt; } catch { }
+
+        sqlSelect = "UPDATE ROUNDS set is_route=@0,is_express=@1,is_pickup=@2,ActiveProductsCount=@3,ActiveSpOffersCount=@4 WHERE id=@5";
+        db.Execute(sqlSelect, is_route, is_express, is_pickup, ActiveProductsCount, ActiveSpOffersCount, round_id);
+
+        db.Close();
+    }
+
+    public static string MenuItemIsFeaturedToggle()
+    {
+        string theHtmlOutput = "";
+        int u_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int MenuItemId = 0;
+        int round_id = 0;
+        bool set_to = false;
+        bool is_Catalog = false;
+
+        try { set_to = Convert.ToBoolean(theValue); } catch { }
+
+        set_to = !set_to;
+        try { MenuItemId = Convert.ToInt32(Request["param1"]); } catch { }
+        try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+
+
+        sqlSelect = "UPDATE RoundMenuItems SET is_featured=@0 WHERE id=@1";
+        db.Execute(sqlSelect, set_to, MenuItemId);
+
+        if (set_to)
+        {
+            theHtmlOutput = " 👌 המוצר יוצג בדף הראשי ";
+        }
+        else
+        {
+            theHtmlOutput = " 👌 המוצר לא יוצג בדף הראשי ";
+        }
+
+
+        Menus.CreateFeaturedItemsString(round_id);
+
+        db.Close();
+
+        //   theHtmlOutput = " 👌 אפשרות המחיר נמחקה " + set_to;
+        return theHtmlOutput;
+    }
+    
+
+    public static void CreateFeaturedItemsString(int round_id)
+    {
+
+        string FeaturedItemsString = "";
+        string FeaturedItemsString_e = "";
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT p_id,title,title_e,curLowestUnitPrice,itemunit,itemunit_e FROM RoundMenuItems WHERE is_active=1 AND is_featured=1 AND round_id=@0";
+        var items = db.Query(sqlSelect, round_id);
+
+        foreach(var item in items)
+        {
+            FeaturedItemsString += item.p_id + "##" + item.title +   "##"  + item.curLowestUnitPrice +   "##"  + item.itemunit + "$$";
+            FeaturedItemsString_e += item.p_id + "##" + item.title_e + "##"  + item.curLowestUnitPrice+ "##"  + item.itemunit_e + "$$";
+        }
+
+          sqlSelect = "UPDATE ROUNDS set FeaturedItemsString=@0,FeaturedItemsString_e=@1 WHERE id=@2";
+          db.Execute(sqlSelect, FeaturedItemsString, FeaturedItemsString_e, round_id);
+
+        db.Close();
     }
 
 

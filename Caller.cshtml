@@ -127,9 +127,12 @@
             {
                 Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
                 string StartsWith = ""; StartsWith = Request["StartsWith"];
-                int min_order_count = 0; try { min_order_count = Convert.ToInt32(Request["min_order_count"]); } catch { };
-                DateTime max_order_date = DateTime.Now; try { max_order_date = Convert.ToDateTime(Request["max_order_date"]); } catch { };
-                DateTime min_order_date = DateTime.Now; try { min_order_date = Convert.ToDateTime(Request["min_order_date"]); } catch { };
+                int min_order_count = 0; try { min_order_count = Convert.ToInt32(Request["min_order_count"]); } catch { }
+                ;
+                DateTime max_order_date = DateTime.Now; try { max_order_date = Convert.ToDateTime(Request["max_order_date"]); } catch { }
+                ;
+                DateTime min_order_date = DateTime.Now; try { min_order_date = Convert.ToDateTime(Request["min_order_date"]); } catch { }
+                ;
                 bool unassigned_only = true; if (Request["unassigned_only"].IsEmpty()) { unassigned_only = false; }
                 <div>@AppPages.MembersListPreview(StartsWith, min_order_count, max_order_date, min_order_date, unassigned_only) </div>
 
@@ -431,6 +434,8 @@
             <div>@AdminPages2.EditRoundMenu(param2)</div>
             break;
 
+
+
         case "MenuItemEdit":
             Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
             <div>@Products.RoundMenuItemEdit(param2)</div>
@@ -535,9 +540,13 @@
             break;
 
         case "EditMenuFullfilmentOption":
-            <div>@Menus.EditMenuFullfilmentOption(param2,param3)</div>
+            <div>@Menus.EditMenuFullfilmentOption(param2, param3)</div>
             break;
 
+        case "EditMenuItems":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@Menus.EditMenuItems(param2)</div>
+            break;
 
 
     }

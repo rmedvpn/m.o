@@ -1449,7 +1449,12 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         }
                         break;
 
-                        
+                    case "MenuItemIsFeaturedToggle":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param2);
+                        }
+                        break;
+
                         
                 }
 

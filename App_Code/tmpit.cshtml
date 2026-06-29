@@ -4571,7 +4571,17 @@ bool is_multi_select_mode = false;
     {
         if (true)
         {
-            rebuildZreports();
+
+            var db = WebMatrix.Data.Database.Open("op_data");
+            var sqlSelect = "select p_id from products";
+            var products = db.Query(sqlSelect);
+            foreach (var p in products)
+            {
+                ProductsFunctions.CalcProdLowestCost(p.p_id);
+            }
+
+            db.Close();
+            //rebuildZreports();
 
             /*
             DateTime local_time = AppFunctions.LocalTime();

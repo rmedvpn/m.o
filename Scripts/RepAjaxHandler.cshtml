@@ -556,7 +556,7 @@
                 int v_id = 0; try { v_id = Convert.ToInt32(Request["param2"]); } catch { }
                 if (showWhat == "") { showWhat = "CATALOG"; }
                 <div style="direction:rtl;display:none">AdminPages2.AllProducts(showWhat)</div>
-                <div style="direction:rtl">@Products.AllProducts(showWhat,v_id)</div>
+                <div style="direction:rtl">@Products.AllProducts(showWhat, v_id)</div>
 
             }
             break;
@@ -1310,6 +1310,15 @@
 
         case "ClientSync":
             <div style="color:#000;">@ClientApp.ClientSync()</div>
+            break;
+
+        case "EditMenuItems":
+            if (true)
+            {
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="color:#000;">@Menus.MenuItems(round_id)</div>
+            }
+
             break;
 
 

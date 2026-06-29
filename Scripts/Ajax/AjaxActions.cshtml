@@ -29,7 +29,7 @@
     switch (theField)
     {
         case "tmpAction":
-            if (false)
+            if (true)
             {
                 tmpit.tmpAction();
 
@@ -89,6 +89,24 @@
                         if (true)
                         {
                             theHtmlOutput = SyncFunctions.SyncProductPricingOptions();
+                        }
+                        break;
+                    case "SpecialOffers":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncSpOffers();
+                        }
+                        break;
+                    case "SpecialOffersItems":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncSpOfferItems();
+                        }
+                        break;
+                    case "SpOfferRoundsAvailability":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncSpOfferRoundAvailability();
                         }
                         break;
 
@@ -5610,6 +5628,9 @@
                     db.Execute(sqlSelect, menuItem_id);
                     sqlSelect = "DELETE FROM roundMenuItemsPricingOptions WHERE p_id=@0 AND round_id=@1";
                     db.Execute(sqlSelect, p_id, round_id);
+
+                    Menus.UpdateMenuStatsAndParams(round_id);
+
                     theHtmlOutput = "הפעולה בוצעה בהצלחה!";
                     logMsg = "הפעולה בוצעה בהצלחה!";
                     // AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
@@ -5644,6 +5665,7 @@
                         int Available_quan = 0;
                         sqlSelect = "INSERT INTO roundMenuItems(title,title_e,Description,desc_e,sell_inXs,maincat_id,sub_cat_id,sell_1s,sell_3s,sell_5s,last_change_ts,last_change_by,round_id,p_id,clerk_id,timestamp,vendor_id,available_quan,price,cost,itemunit,product_type,itemunit_type,itemunit_e,spOfferCatId,max_in_cart,is_discountable,CharityOffersOk,is_active,catalog_p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,1,@28) ";
                         db.Execute(sqlSelect, UpdatedProduct.title, UpdatedProduct.e_title, UpdatedProduct.Description, UpdatedProduct.e_desc, UpdatedProduct.sell_inXs, UpdatedProduct.maincat_id, UpdatedProduct.sub_cat_id, UpdatedProduct.sell_1s, UpdatedProduct.sell_3s, UpdatedProduct.sell_5s, UpdateTs, u_id, round_id, p_id, u_id, UpdateTs, UpdatedProduct.v_id, Available_quan, UpdatedProduct.price, UpdatedProduct.cost, UpdatedProduct.itemunit, UpdatedProduct.product_type, UpdatedProduct.itemunit_type, UpdatedProduct.itemunit_e, UpdatedProduct.spOfferCatId, UpdatedProduct.max_in_cart, UpdatedProduct.is_discountable, UpdatedProduct.CharityOffersOk, UpdatedProduct.catalog_p_id);
+
                         theHtmlOutput = "הפעולה בוצעה בהצלחה!";
                         logMsg = "הפעולה בוצעה בהצלחה!";
                         // AppFunctions.WriteLog ("USERS", u_id,logMsg,0);
@@ -5675,6 +5697,9 @@
                     logMsg = "הפעולה בוצעה בהצלחה!";
 
                 }
+
+                Menus.UpdateMenuStatsAndParams(round_id);
+
                 db.Close();
 
             }
@@ -8162,6 +8187,17 @@
                 theHtmlOutput = Menus.AddNewVendorMenu();
             }
             break;
+
+        case "MenuItemIsFeaturedToggle":
+            if (true)
+            {
+                theHtmlOutput = Menus.MenuItemIsFeaturedToggle();
+            }
+
+
+            break;
+
+
         case "MenuFinishSetup":
             if (theHtmlOutput == "")
             {
