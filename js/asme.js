@@ -653,6 +653,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddMenuFullfilmentOption":
             case "UpdateFullfilmentOption":
             case "AddNewVendorMenu":
+            case "AddProductOption":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);

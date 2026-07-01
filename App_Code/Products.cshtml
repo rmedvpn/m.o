@@ -719,6 +719,7 @@ if (is_catalog) {
                 <option value="ProductEditInfoDiv">מידע כללי</option>
                 <option value="ProductImagesContainer">תמונות</option>
                 <option value="ProductPricingDiv">מחירון</option>
+                <option value="ProductCustomFieldsDiv">אפשרויות מוצר</option>
                 <option value="ProductMenusDiv">תפריטים</option>
                 @if (is_catalog)
                 {
@@ -1135,10 +1136,10 @@ if (is_catalog) {
 
         <div style="overflow: auto;color: #000;padding: 5px;font-weight: bold;font-size: 18px;display: none" id="ProductCustomFieldsDiv">
             <div class="ProdViewInfo" style="display:none">
-                שדות מידע
+                אפשרויות מוצר
 
             </div>
-            @Products.EditProductCustomFields(product_id)
+            @Products.EditProductOptions(product_id)
         </div>
 
 
@@ -3356,6 +3357,131 @@ if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"
             {
                 <div style="overflow: auto;" id=customFieldDiv_@field.id>
                     @Products.ProductCustomFieldEntry(field, is_catalog)
+                </div>
+            }
+
+        </div>
+    </div>
+    db.Close();
+}
+
+
+@helper EditProductOptions(int p_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM  ProductOptions WHERE p_id=@0  ORDER BY sort_order";
+    var ProductOptions = db.Query(sqlSelect, p_id);
+
+
+    <div>
+
+        <div style="overflow: auto;text-align: center">
+        
+            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: left;border: 0;display: none" onclick="AjaxActions('ActivateProductCustomField','@p_id','', document.getElementById('field_id').value);">הוספה</button>
+            <div class="spinner" style="text-align: center;display: none;float: left" id="CustomFieldLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+
+        </div>
+        <div style="overflow: auto;">
+            <div style="overflow: auto;background-color: #fff">
+                <button type="button" class="A" style="float:left" onclick="Accordionize('AddProdOptionAcc');">➕</button>
+            <h3>אפשרויות מוצר</h3></div>
+
+            <button class="Accordion" style="display: none" id="AddProdOptionAcc"></button>
+            <div class="panel" style="padding: 0;margin: 0">
+                <form id="Add_Product_Option">
+                    <input type="hidden" name="p_id" id="p_id" value="@p_id">
+                    <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                        הוספת אפשרות למוצר
+                    </div>
+                    <div style="overflow: auto;">
+                        <div class="B">
+                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_title" id="prod_option_title" placeholder="כותרת / שאלה">
+
+                        </div>
+                        <div class="B">
+                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_title_e" id="prod_option_title_e" placeholder="Title">
+
+                        </div>
+                        <div class="A">
+                            <input type="checkbox" class="A" name="is_required" id="is_required" onclick="setElementDisablity('min_choices', !this.checked);" />
+                            חובת בחירה
+                            <span style="float:left;" id="min_choice_span">
+                                לפחות
+                                <input type="text" id="min_choices" name="min_choices" disabled style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;width:30px;" value="1" placeholder="?">
+                                אפשרויות
+
+                            </span>
+                        </div>
+                        <div class="A">
+                            <input type="checkbox" class="A" name="is_limited" id="is_limited" onclick="setElementDisablity('max_choices', !this.checked);" />
+
+                            הגבלת בחירה
+                            <span style="float:left;" id="max_choice_span">
+                                עד
+                                <input type="text" id="max_choices" name="max_choices" disabled style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;width:30px;" placeholder="?">
+                                אפשרויות
+
+                            </span>
+
+                        </div>
+
+                    </div>
+                    <div style="overflow: auto;text-align: center;padding: 5px;">
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');document.getElementById('Add_Product_Field').reset();">ביטול</button>
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductOption', '@p_id','', 'Add_Product_Option');">הוספת אפשרות</button>
+                    </div>
+                </form>
+            </div>
+
+
+
+            @foreach (var opt in ProductOptions)
+            {
+                <div style="overflow: auto;">
+                    <button type="button" style="float:left;font-size:12px;padding:2px;margin:2px;" onclick="Accordionize('AddProdOptionItemAcc_@opt.option_id');">הוספת תשובה</button>
+                    @opt.title_h
+                </div>
+                <div class="B">
+                    <button class="Accordion" style="display: none" id="AddProdOptionItemAcc_@opt.option_id"></button>
+                    <div class="panel" style="padding: 0;margin: 0">
+                        <form id="Add_Product_Option">
+                            <input type="hidden" name="p_id"  value="@p_id">
+                            <input type="hidden" name="option_id"  value="@opt.option_id">
+                            <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                                הוספת תשובה לאפשרות המוצר @opt.title_h
+                            </div>
+                            <div style="overflow: auto;">
+                                <div class="B">
+                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_item_title"  placeholder="כותרת / שאלה">
+
+                                </div>
+                                <div class="B">
+                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_item_title_e" placeholder="Title">
+
+                                </div>
+                                <div class="A">
+                                    עלות
+                                    <span style="float:left;" id="min_choice_span">
+                                        <input type="text" id="option_price" name="option_price" style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;width:30px;" >
+                                        ₪
+
+                                    </span>
+                                </div>
+                        
+
+                            </div>
+                            <div style="overflow: auto;text-align: center;padding: 5px;">
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');document.getElementById('Add_Product_Field').reset();">ביטול</button>
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductOption', '@p_id','', 'Add_Product_Option');">הוספת אפשרות</button>
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
             }
 

@@ -2367,13 +2367,14 @@
 
 
         Menus.CreateFeaturedItemsString(round_id);
+        Menus.CreateMenuItemPriceOptionsString(MenuItemId);
 
         db.Close();
 
         //   theHtmlOutput = " 👌 אפשרות המחיר נמחקה " + set_to;
         return theHtmlOutput;
     }
-    
+
 
     public static void CreateFeaturedItemsString(int round_id)
     {
@@ -2393,8 +2394,60 @@
             FeaturedItemsString_e += item.p_id + "##" + item.title_e + "##"  + item.curLowestUnitPrice+ "##"  + item.itemunit_e + "$$";
         }
 
-          sqlSelect = "UPDATE ROUNDS set FeaturedItemsString=@0,FeaturedItemsString_e=@1 WHERE id=@2";
-          db.Execute(sqlSelect, FeaturedItemsString, FeaturedItemsString_e, round_id);
+        sqlSelect = "UPDATE ROUNDS set FeaturedItemsString=@0,FeaturedItemsString_e=@1 WHERE id=@2";
+        db.Execute(sqlSelect, FeaturedItemsString, FeaturedItemsString_e, round_id);
+
+        db.Close();
+    }
+
+    public static void CreateMenuItemPriceOptionsString(int menuItemId)
+    {
+
+        string PricingOptionsString = "";
+        string PricingOptionsString_e = "";
+        string itemunit = "";
+        string itemunit_e = "";
+
+        int p_id = 0;
+        int round_id = 0;
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT id,p_id,round_id,itemunit,itemunit_e FROM RoundMenuItems WHERE id=@0";
+        var MenuItem = db.QuerySingle(sqlSelect, menuItemId);
+
+        try { p_id = MenuItem.p_id; } catch { }
+        try { round_id = MenuItem.round_id; } catch { }
+        try { itemunit = MenuItem.itemunit; } catch { }
+        try { itemunit_e = MenuItem.itemunit_e; } catch { }
+
+        if(p_id>0 && round_id > 0)
+        {
+            sqlSelect = "SELECT price,quan,is_spOffer FROM ProductPricingOptions WHERE p_id=@0 AND (round_id='99999' OR round_id=@1) ORDER BY quan";
+            var priceOptions = db.Query(sqlSelect, p_id, round_id);
+            foreach (var item in priceOptions)
+            {
+                string isSpOfferSt = "0";
+                string priceOptStr = item.price.ToString("0.00");
+                if (item.is_spOffer)
+                {
+                    isSpOfferSt = "1";
+                }
+
+                PricingOptionsString += isSpOfferSt + "##" + item.quan + "##" + priceOptStr +  "$$";
+                
+            }
+
+
+            sqlSelect = "UPDATE RoundMenuItems set PricingOptionsString=@0 WHERE id=@1";
+              db.Execute(sqlSelect, PricingOptionsString, menuItemId);
+            //DataFunctions.WriteDebugLine("PricingOptionsString" + PricingOptionsString);
+        }
+
+
+
+
 
         db.Close();
     }

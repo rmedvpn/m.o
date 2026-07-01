@@ -4573,11 +4573,11 @@ bool is_multi_select_mode = false;
         {
 
             var db = WebMatrix.Data.Database.Open("op_data");
-            var sqlSelect = "select p_id from products";
+            var sqlSelect = "select id from roundMenuItems";
             var products = db.Query(sqlSelect);
             foreach (var p in products)
             {
-                ProductsFunctions.CalcProdLowestCost(p.p_id);
+                Menus.CreateMenuItemPriceOptionsString(p.id);
             }
 
             db.Close();
