@@ -3442,30 +3442,41 @@ if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"
 
             @foreach (var opt in ProductOptions)
             {
+
+                sqlSelect = "SELECT * FROM ProductOptionsItems WHERE option_id=@0";
+                var optionItems = db.Query(sqlSelect, opt.option_id);
                 <div style="overflow: auto;">
                     <button type="button" style="float:left;font-size:12px;padding:2px;margin:2px;" onclick="Accordionize('AddProdOptionItemAcc_@opt.option_id');">הוספת תשובה</button>
                     @opt.title_h
+                    <div class="A">
+                        @foreach(var optItem in optionItems)
+        {
+            <div class="B">
+                @optItem.title_h
+            </div>
+        }
+                    </div>
                 </div>
                 <div class="B">
                     <button class="Accordion" style="display: none" id="AddProdOptionItemAcc_@opt.option_id"></button>
                     <div class="panel" style="padding: 0;margin: 0">
-                        <form id="Add_Product_Option">
+                        <form id="Add_Product_Option_item_@opt.option_id">
                             <input type="hidden" name="p_id"  value="@p_id">
                             <input type="hidden" name="option_id"  value="@opt.option_id">
                             <div style="overflow: auto;font-weight: bold;font-size: 16px">
-                                הוספת תשובה לאפשרות המוצר @opt.title_h
+                                <span style="color:#808080;">@opt.title_h</span>  - הוספת תשובה
                             </div>
                             <div style="overflow: auto;">
                                 <div class="B">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_item_title"  placeholder="כותרת / שאלה">
+                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_item_title"  placeholder="תשובה">
 
                                 </div>
                                 <div class="B">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_item_title_e" placeholder="Title">
+                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="prod_option_item_title_e" placeholder="Answer">
 
                                 </div>
                                 <div class="A">
-                                    עלות
+                                    עלות נוספת
                                     <span style="float:left;" id="min_choice_span">
                                         <input type="text" id="option_price" name="option_price" style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;width:30px;" >
                                         ₪
@@ -3477,7 +3488,7 @@ if (sell_1s) { sell_1s_display_state = "block;"; sell_Xs_display_state = "none;"
                             </div>
                             <div style="overflow: auto;text-align: center;padding: 5px;">
                                 <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');document.getElementById('Add_Product_Field').reset();">ביטול</button>
-                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductOption', '@p_id','', 'Add_Product_Option');">הוספת אפשרות</button>
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductOptionitem', '@p_id','', 'Add_Product_Option_item_@opt.option_id',@opt.option_id);">הוספת אפשרות</button>
                             </div>
                         </form>
                     </div>
