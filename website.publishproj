@@ -19,7 +19,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
     <ProjectGuid>{c0a6d3e9-64fe-4f78-b96e-acbec02d9c96}</ProjectGuid>
     <SourceWebPhysicalPath>$(MSBuildThisFileDirectory)</SourceWebPhysicalPath>
     <SourceWebVirtualPath>/m.o</SourceWebVirtualPath>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <SourceWebProject>
     </SourceWebProject>
     <SourceWebMetabasePath>
