@@ -1323,6 +1323,17 @@
 
 
 
+        case "ProductOptions":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="color:#000;">@Products.EditProductOptions(p_id)</div>
+            }
+
+            break;
+
+
+
         ////////////////////////////////////
 
         default:

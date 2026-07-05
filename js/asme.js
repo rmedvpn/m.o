@@ -655,6 +655,8 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddNewVendorMenu":
             case "AddProductOption":
             case "AddProductOptionitem":
+            case "EditProductOptionitem":
+            case "UpdateProductOption":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1100,6 +1102,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         //Notify(this.responseText, 1);
                         RepAjaxUpdate('ActivateProductCustomField', 'ProductCustomFieldsDiv', 'CustomFieldLoader', value, param1);
                         break;
+              
 
                     case "DeleteProductField":
                         //Notify(this.responseText, 1);
@@ -1457,7 +1460,33 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         }
                         break;
 
-                        
+                    
+                    case "ProdOptionItemMove":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param2);
+                        }
+                       
+                        break;
+
+                    case "AddProductOptionitem":
+                    case "DeleteProductOptionitem":
+                    case "UpdateProductOption":
+                    case "DeleteProductOption":
+                    case "AddProductOption":
+                    case "ProdOptionMove":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', value);
+                        }
+                       
+                        break;
+
+                    case "EditProductOptionitem":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param3);
+                        }
+                       
+                        break;
+
                 }
 
 
@@ -2441,6 +2470,7 @@ function MiscActions(theAction,param1,param2,param3) {
             hideElement('ProductSettingsDiv');
             hideElement('ProductPricingDiv');
             hideElement('ProductCustomFieldsDiv');
+            hideElement('ProductOptionsDiv');
             hideElement('RoundsProductsDiv');
             hideElement('ProductEditInfoDiv');
             hideElement('ProductImagesContainer');
