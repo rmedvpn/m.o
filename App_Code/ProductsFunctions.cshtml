@@ -1900,6 +1900,114 @@
     }
 
 
+
+    public static string MarkProductDeleted()
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string theHtmlOutput = "";
+        int rep_id = WebSecurity.CurrentUserId;
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        sqlSelect = "UPDATE products SET is_deleted=1,delete_ts=@1,deleted_by=@2,is_active=0 WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+        sqlSelect = "UPDATE SpecialOffersItems SET is_deleted=1,delete_ts=@1,deleted_by=@2 WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+        sqlSelect = "UPDATE RoundMenuItems SET is_deleted=1,delete_ts=@1,deleted_by=@2 WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+
+        sqlSelect = "UPDATE ProductImages SET is_deleted=1,delete_ts=@1,deleted_by=@2 WHERE product_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+        sqlSelect = "UPDATE productTags SET is_deleted=1,delete_ts=@1,deleted_by=@2 WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+
+        sqlSelect = "UPDATE ProductsCustomFields SET is_deleted=1,delete_ts=@1,deleted_by=@2 WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+        sqlSelect = "UPDATE ProductPricingOptions SET is_deleted=1,delete_ts=@1,deleted_by=@2 WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id, local_time, rep_id);
+
+
+
+        /*   
+
+
+
+
+
+
+                sqlSelect = "DELETE FROM ProductsCustomFields WHERE p_id=@0";
+                db.Execute(sqlSelect, p_id);
+
+                sqlSelect = "DELETE FROM ProductPricingOptions WHERE p_id=@0";
+                db.Execute(sqlSelect, p_id);
+
+                //backup & delete product data
+                sqlSelect = "INSERT INTO DeletedProducts(p_id,v_id,title,price,cost,Description,product_type,prod_code,e_title,e_desc,cat_id,add_timestamp,itemunit_type,clerk_id,maincat_id,sub_cat_id,delete_timestamp,is_catalog,is_setup,catalog_p_id) ";
+                sqlSelect = sqlSelect + " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19)";
+                db.Execute(sqlSelect, product.p_id, product.v_id, product.title, product.price, product.cost, product.Description, product.product_type, product.prod_code, product.e_title, product.e_desc, product.cat_id, product.add_timestamp, product.itemunit_type, product.clerk_id, product.maincat_id, product.sub_cat_id, DateTime.Now, product.is_catalog, product.is_setup, product.catalog_p_id);
+                //delete product
+                sqlSelect = "DELETE FROM products WHERE p_id=@0";
+                db.Execute(sqlSelect, p_id);
+        */
+
+        theHtmlOutput = " 👌 המוצר נמחק מהמערכת ";
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+    public static void CleanUpOfDeletedProducts()
+    {
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "";
+
+        sqlSelect = "SELECT p_id FROM products WHERE is_deleted=1 OR is_catalog=0 ORDER BY p_id";
+        var products = db.Query(sqlSelect);
+
+        foreach (var p in products)
+        {
+
+            sqlSelect = "DELETE FROM products WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM SpecialOffersItems WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM RoundMenuItems WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM ProductImages  WHERE product_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM ProductsCustomFields  WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM ProductPricingOptions  WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+            sqlSelect = "DELETE FROM productOptions WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+           
+            sqlSelect = "DELETE FROM productOptionsItems WHERE p_id=@0";
+            db.Execute(sqlSelect, p.p_id);
+
+
+        }
+
+        db.Close();
+    }
+
+
     public static string someFunction()
     {
         string theHtmlOutput = "";

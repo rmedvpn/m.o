@@ -381,6 +381,11 @@
 
             break;
 
+        case "EditProductTypesSettings":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@Products.EditProductTypesSettings()</div>
+            break;
+
         case "AddNewProduct":
             Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
             <div>@Products.AddNewProduct()</div>

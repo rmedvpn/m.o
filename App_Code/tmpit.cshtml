@@ -4572,12 +4572,48 @@ bool is_multi_select_mode = false;
         if (true)
         {
 
+            ProductsFunctions.CleanUpOfDeletedProducts();
+
+            /*product table cleanup
+
+            get all deleted products
+            delete product
+
+            
+
             var db = WebMatrix.Data.Database.Open("op_data");
-            var sqlSelect = "select id from roundMenuItems";
+            var sqlSelect = "";
+
+            sqlSelect = "SELECT p_id FROM products WHERE is_deleted=1 OR is_catalog=0 ORDER BY p_id";
             var products = db.Query(sqlSelect);
+
             foreach (var p in products)
             {
-                Menus.CreateMenuItemPriceOptionsString(p.id);
+
+                sqlSelect = "DELETE FROM products WHERE p_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+                sqlSelect = "DELETE FROM SpecialOffersItems WHERE p_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+                sqlSelect = "DELETE FROM RoundMenuItems WHERE p_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+
+                sqlSelect = "DELETE FROM ProductImages  WHERE product_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+                sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+
+                sqlSelect = "DELETE FROM ProductsCustomFields  WHERE p_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+                sqlSelect = "DELETE FROM ProductPricingOptions  WHERE p_id=@0";
+                db.Execute(sqlSelect, p.p_id);
+
+
             }
 
             db.Close();

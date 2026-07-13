@@ -1026,6 +1026,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
 
                         break;
                         
+                    case "MarkProductDeleted":
                     case "DeleteProduct":
 
                         PageNavigator('PRODUCTS');

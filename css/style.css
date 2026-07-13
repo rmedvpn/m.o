@@ -1914,6 +1914,28 @@ div.PPOValue {
     float: left;
     font-weight:bold;
 }
+div.PPOEdit {
+    float: left;
+    font-weight: bold;
+
+}
+button.PPOBtn {
+   background:transparent;
+   font-size:16px;
+   border:0;
+   float:left;
+}
+button.PPOBtn1 {
+    background: transparent;
+    font-size: 16px;
+    border: 0;
+}
+input.PPOTB {
+    padding: 1px;
+    background-color: #e3e3e3;
+    font-size: 16px;
+    border: 0;
+}
 div.PPOInfo {
 
     color: #ff6a00;
@@ -1988,26 +2010,30 @@ span.PViewGenericFlag {
 
 }
 input.ProdEditTb {
-    width: 95%;
-    padding: 5px;
-    margin: 5px;
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
     font-size: 16px;
     float: left
 }
 input.ProdEditTbSmall {
-    padding: 5px;
-
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
     font-size: 16px;
     float: left;
-    width:40px;
-    text-align:center;
+    width: 80px;
+    text-align:left;
 }
 input.ProdEditCb {
-    width: 20px;
-    height: 20px;
-    margin:5px;
-    float:left;
-    
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
+    height: 16px;
+    width: 16px;
+    float: left;
 }
 textarea.ProdEditTb {
     width: 95%;
@@ -2046,8 +2072,10 @@ textarea.ProdEditSNhide {
     
 }
 select.ProdEditSelect {
-    padding: 5px;
-    margin: 5px;
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
     font-size: 16px;
     float: left;
     text-align: left
@@ -2113,7 +2141,7 @@ div.VendorProductTopBar {
 }
 div.CatalogProductTopBar {
     color: #fff;
-    background-color: #000;
+    background-color: #4800ff;
     overflow: auto;
     padding: 5px;
     font-size: 24px;
@@ -2155,9 +2183,6 @@ button.ProdViewAddPricingOpt {
 div.ProdEditSection{
     overflow:auto;
     padding:5px;
-    margin:5px;
-    border-radius:5px;
-    background-color:#fff;
 }
 div.ErrMsg{
     text-align:center;
@@ -2182,5 +2207,68 @@ button.EditMenuOptionsBtn {
     float: left;
     margin:5px;
     padding:5px;
+}
+
+div.ProdEditMenuAddImgDiv {
+
+  
+}
+input.ProdEditMenuAddImgBtn {
+    padding: 5px;
+    float: right;
+    border-radius: 10px;
+    margin: 1px;
+    margin-top:4px;
+    font-weight: bold;
+    font-size: 24px;
+    height: 50px;
+    width: 50px;
+    color:#808080;
+    border:2px solid #808080;
+}
+div.ProdEditMenuImgDiv {
+    padding: 1px;
+    margin:3px;
+    float: right;
+}
+div.ProdEditMenuImgDiv_Sel {
+    padding: 1px;
+    margin: 3px;
+    float: right;
+    background-color: yellow;
+}
+div.ProdEditMenuSubTitle {
+    position:relative;
+    top:-20px;
+  padding:1px;
+  margin:1px;
+  font-size:16px;
+  text-align:center;
+
+ 
+}
+img.ProdEditMenuImg {
+    height: 50px;
+    max-width: 50px;
+    border-radius: 10px;
+    margin: 1px;
+    cursor:pointer;
+}
+
+div.prodSectionTitle{
+    overflow:auto;
+    background-color:#e3e3e3;
+    padding:5px;
+    text-align:right;
+}
+div.prodSection {
+    overflow: auto;
+    background-color: #fff;
+   
+}
+div.PviewTagEmpty{
+    padding:5px;
+    font-size:16px;
+    color:#e3e3e3;
 }
 /*END MY CUSTOM STYLING*/
