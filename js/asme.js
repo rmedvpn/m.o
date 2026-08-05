@@ -1500,20 +1500,21 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "AddProductTag":
                     case "ProductTagMove":
                         if (!theRes.startsWith("!$!")) {
-                            RepAjaxUpdate('ProductTagsRefresh', 'CustomFieldsProdType_' + value, 'MainLoader', value,param3);
+                            RepAjaxUpdate('ProductTagsRefresh', 'ProductTagsProdType_' + value, 'MainLoader', value, param3);
+
                         }
                        
                         break;
 
                     case "UpdateProductTag":
                         if (!theRes.startsWith("!$!")) {
-                            RepAjaxUpdate('ProductTagsRefresh', 'CustomFieldsProdType_' + param2, 'MainLoader', param2, param3);
+                            RepAjaxUpdate('ProductTagsRefresh', 'ProductTagsProdType_' + param2, 'MainLoader', param2, param3);
                         }
 
                         break;
                     case "DeleteProductTag":
                         if (!theRes.startsWith("!$!")) {
-                            RepAjaxUpdate('ProductTagsRefresh', 'CustomFieldsProdType_' + param1, 'MainLoader', param1, param3);
+                            RepAjaxUpdate('ProductTagsRefresh', 'ProductTagsProdType_' + param1, 'MainLoader', param1, param3);
                         }
 
                         break;
@@ -2828,6 +2829,66 @@ function ProductCatSelector(cat_id) {
 
 }
 
+function ProductTagFavChanged(cat_id, checked) {
+
+    // Only react when the checkbox becomes checked
+    if (!checked)
+        return;
+
+    var selectedElement = document.getElementById("cat_btn_" + cat_id);
+    var SelectedCatField = document.getElementById("SelectedCat");
+
+    if (!selectedElement.classList.contains("ProductTagSelected")) {
+
+        selectedElement.classList.remove("ProductTagUnSelected");
+        selectedElement.classList.add("ProductTagSelected");
+
+        SelectedCatField.value += "##" + cat_id + "##";
+    }
+}
+
+function ProductTagSelectChanged(cat_id, selectElement) {
+    if (selectElement.value == "-1") {
+        ProductTagUnselect(cat_id);
+        selectElement.selectedIndex = 0;
+        selectElement.blur();
+    } else {
+        ProductTagSelect(cat_id);
+    }
+} function ProductTagSelect(cat_id) {
+
+    var SelectedCatField = document.getElementById("SelectedCat");
+    var selectedElement = document.getElementById("cat_btn_" + cat_id);
+    var marker = "##" + cat_id + "##";
+
+    selectedElement.classList.remove("ProductTagUnSelected");
+    selectedElement.classList.add("ProductTagSelected");
+
+    if (SelectedCatField.value.indexOf(marker) == -1)
+        SelectedCatField.value += marker;
+}
+
+function ProductTagUnselect(cat_id) {
+    var SelectedCatField = document.getElementById("SelectedCat");
+    var selectedElement = document.getElementById("cat_btn_" + cat_id);
+    var hiddenField = document.getElementById("is_cat_" + cat_id);
+    var marker = "##" + cat_id + "##";
+
+    selectedElement.classList.remove("ProductTagSelected");
+    selectedElement.classList.add("ProductTagUnSelected");
+    SelectedCatField.value = SelectedCatField.value.replace(marker, "");
+    hiddenField.value = "no";
+}
+
+function ProductTagFavChanged(cat_id, checked) {
+    if (checked)
+        ProductTagSelect(cat_id);
+}
+
+function ProductTagSelectChanged(cat_id, value) {
+    if (value != "")
+        ProductTagSelect(cat_id);
+}
 function ProductImageUpload(theBlob) {
     var p_id = document.getElementById('upload_p_id').value;
     var theHandler = "Scripts/Ajax/AjaxActions";

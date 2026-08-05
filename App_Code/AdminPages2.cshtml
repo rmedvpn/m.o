@@ -2420,119 +2420,162 @@ if (is_subcat)
 
         <div style="overflow: auto;clear: both;">
             @if (!is_subcat)
-    {
-        <div class="B">
-            <div style="overflow: auto;padding: 5px;margin: 5px;">
-                <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
-                    תתי קטגוריות
-                    <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSubCatAcc');">הוספה</button>
-                </div>
-                <div style="overflow: auto">
-                    <button class="Accordion" style="display: none;" id="AddSubCatAcc"></button>
-                    <div class="panel" style="padding: 0;margin: 0">
-                        <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
-                            <form id="Add_Sub_Cat">
-                                <input type="hidden" name="sub_cat_type" value="SUBCAT">
-                                <div style="overflow: auto;font-weight: bold;font-size: 16px">
-                                    הוספת תת קטגוריה
+            {
+                <div class="B">
+                    <div style="overflow: auto;padding: 5px;margin: 5px;">
+                        <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
+                            תתי קטגוריות
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSubCatAcc');">הוספה</button>
+                        </div>
+                        <div style="overflow: auto">
+                            <button class="Accordion" style="display: none;" id="AddSubCatAcc"></button>
+                            <div class="panel" style="padding: 0;margin: 0">
+                                <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
+                                    <form id="Add_Sub_Cat">
+                                        <input type="hidden" name="sub_cat_type" value="SUBCAT">
+                                        <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                                            הוספת תת קטגוריה
+                                        </div>
+                                        <div style="overflow: auto;">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
+                                        </div>
+                                        <div style="overflow: auto;text-align: center;padding: 5px;">
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddSubCatAcc');">ביטול</button>
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Sub_Cat', 'SUBCAT'); document.getElementById('Add_Sub_Cat').reset();">הוספת תת קטגוריה</button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <div style="overflow: auto;">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
+                            </div>
+                        </div>
+                        <div style="overflow: auto;; direction: rtl" id="SUBCATLISTDIV">
+                            @NewAppHelpers.SubCatList(cat_id, "SUBCAT")
+
+                        </div>
+
+                    </div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;">
+                        <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
+                            קטגוריות מבצעים
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">הוספה</button>
+                        </div>
+                        <div style="overflow: auto">
+                            <button class="Accordion" style="display: none;" id="AddSpOfferCatAcc"></button>
+                            <div class="panel" style="padding: 0;margin: 0">
+                                <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
+                                    <form id="Add_Sp_Offer_Cat">
+                                        <input type="hidden" name="sub_cat_type" value="SPOFFER">
+                                        <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                                            הוספת קטגורית מבצעים
+                                        </div>
+                                        <div style="overflow: auto;">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
+                                        </div>
+                                        <div style="overflow: auto;text-align: center;padding: 5px;">
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">ביטול</button>
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Sp_Offer_Cat', 'SPOFFER'); document.getElementById('Add_Sp_Offer_Cat').reset();">הוספת קטגורית מבצעים</button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <div style="overflow: auto;text-align: center;padding: 5px;">
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddSubCatAcc');">ביטול</button>
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Sub_Cat', 'SUBCAT'); document.getElementById('Add_Sub_Cat').reset();">הוספת תת קטגוריה</button>
-                                </div>
-                            </form>
+                            </div>
+                        </div>
+                        <div style="overflow: auto;; direction: rtl" id="SPOFFERLISTDIV">
+                            @NewAppHelpers.SubCatList(cat_id, "SPOFFER")
                         </div>
                     </div>
-                </div>
-                <div style="overflow: auto;; direction: rtl" id="SUBCATLISTDIV">
-                    @NewAppHelpers.SubCatList(cat_id, "SUBCAT")
-
-                </div>
-
-            </div>
-            <div style="overflow: auto;padding: 5px;margin: 5px;">
-                <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
-                    קטגוריות מבצעים
-                    <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">הוספה</button>
-                </div>
-                <div style="overflow: auto">
-                    <button class="Accordion" style="display: none;" id="AddSpOfferCatAcc"></button>
-                    <div class="panel" style="padding: 0;margin: 0">
-                        <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
-                            <form id="Add_Sp_Offer_Cat">
-                                <input type="hidden" name="sub_cat_type" value="SPOFFER">
-                                <div style="overflow: auto;font-weight: bold;font-size: 16px">
-                                    הוספת קטגורית מבצעים
-                                </div>
-                                <div style="overflow: auto;">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
-                                </div>
-                                <div style="overflow: auto;text-align: center;padding: 5px;">
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">ביטול</button>
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Sp_Offer_Cat', 'SPOFFER'); document.getElementById('Add_Sp_Offer_Cat').reset();">הוספת קטגורית מבצעים</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div style="overflow: auto;; direction: rtl" id="SPOFFERLISTDIV">
-                    @NewAppHelpers.SubCatList(cat_id, "SPOFFER")
-                </div>
-            </div>
 
 
-        </div>
-    }
+                </div>
+            }
 
-            <div style="overflow: auto;padding: 5px;margin: 5px;">
-                <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
+
+            <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
+                <div class="B">
+                    <button type="button" class="ProdSettingsAddBtn" style="float:left" onclick="Accordionize('AddTagCatAcc_@cat_id');">➕</button>
+
                     תגיות
-                    <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddTagCatAcc');">הוספה</button>
                 </div>
-                <div style="overflow: auto">
-                    <button class="Accordion" style="display: none;" id="AddTagCatAcc"></button>
-                    <div class="panel" style="padding: 0;margin: 0">
-                        <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
-                            <form id="Add_Tag_Cat">
-                                <input type="hidden" name="sub_cat_type" value="TAG">
+                <div class="B">
+                    <div class="A" style="color:#000;background-color:#fff;">
 
-                                <div style="overflow: auto;font-weight: bold;font-size: 16px">
-                                    הוספת תגית
+                        <div style="overflow: auto">
+                            <button class="Accordion" style="display: none;" id="AddTagCatAcc_@cat_id"></button>
+                            <div class="panel" style="padding: 0;margin: 0">
+
+                                <div class="B">
+                                    <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
+                                        <form id="Add_Tag_@cat_id">
+                                            <input type="hidden" name="cat_id" id="cat_id" value="@cat_id">
+                                            <div class="B">
+
+                                                הוספת תגית לקטגוריית @Category.title
+                                            </div>
+                                            <div class="B">
+                                                <div class="B">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_title" id="custom_tag_title" placeholder="תגית">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_e_title" id="custom_tag_e_title" placeholder="Tagit">
+                                                    <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="tagType" id="tagType" onchange="    if (this.value == 2) { showElement('Add_Tag_List_Div_@cat_id'); } else { hideElement('Add_Tag_List_Div_@cat_id'); } FixAccordion('AddTagCatAcc_@cat_id');">
+                                                        <option value="1">תגית רגילה</option>
+                                                        <option value="2">תגית בחירה</option>
+
+                                                    </select>
+                                                </div>
+                                                <div class="B" id="Add_Tag_List_Div_@cat_id" style="display:none;">
+                                                    <div class="B">
+
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title" id="0_add_tag_list_title_@cat_id" placeholder="עברית">
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title_e" id="0_add_tag_list_title_e_@cat_id" placeholder="אנגלית">
+                                                        <button class="A" type="button" style="float:right" onclick="    MiscActions('AddToCustomFieldSelectList', '0_add_tag_list_title_@cat_id', '0_add_tag_list_title_e_@cat_id', '0_tag_values_list_@cat_id')">הוספה</button>
+                                                        <button class="A" type="button" style="float:right" onclick="    MiscActions('ResetCustomFieldSelectList', '0_tag_values_list_@cat_id')">איפוס</button>
+                                                    </div>
+                                                    <div class="B">
+                                                        <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_tag_values_list_@cat_id" disabled></textarea>
+                                                        <textarea style="display:none;" name="values_list" id="0_tag_values_list_@cat_id"></textarea>
+                                                    </div>
+
+
+
+                                                </div>
+                                                <div class="B">
+
+                                                    <div class="B" style="float:left">
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddTagCatAcc_@cat_id'); document.getElementById('Add_Tag_@cat_id').reset();">ביטול</button>
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductTag', '@cat_id', 'MainLoader', 'Add_Tag_@cat_id','', 'CAT'); document.getElementById('Add_Tag_@cat_id').reset();">הוספת שדה</button>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+
+                                        </form>
+                                    </div>
+
                                 </div>
-                                <div style="overflow: auto;">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
-                                </div>
-                                <div style="overflow: auto;text-align: center;padding: 5px;">
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddTagCatAcc');">ביטול</button>
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Tag_Cat', 'TAG'); document.getElementById('Add_Tag_Cat').reset();">הוספת תגית</button>
-                                </div>
-                            </form>
+
+
+                            </div>
                         </div>
+
+                        <div class="Spacer10"></div>
+                        <div class="B" id="ProductTagsProdType_@cat_id">
+                            @Products.LoadCustomTagList(cat_id, "CAT")
+                        </div>
+
                     </div>
-                </div>
-                <div style="overflow: auto; direction: rtl" id="TAGLISTDIV">
-                    @NewAppHelpers.SubCatList(cat_id, "TAG")
 
                 </div>
-
-
             </div>
 
 
 
             <div class="B">
-              
+
 
                 <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
                     <div class="B">
-                        <button type="button" class="A" style="float:left" onclick="    Accordionize('AddProdFieldAcc_@cat_id');">➕ שדה</button>
-                      
+                        <button type="button" class="ProdSettingsAddBtn" onclick="Accordionize('AddProdFieldAcc_@cat_id');">➕</button>
+
                         שדות מידע
                     </div>
 
@@ -2540,13 +2583,13 @@ if (is_subcat)
                     <div class="B">
 
                         <div class="A" style="color:#000;background-color:#fff;">
-                          
+
                             <div style="overflow: auto">
                                 <button class="Accordion" style="display: none;" id="AddProdFieldAcc_@cat_id"></button>
                                 <div class="panel" style="padding: 0;margin: 0">
                                     <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
                                         <form id="Add_Field_@cat_id">
-                                            
+
                                             <div class="B">
                                                 הוספת שדה מידע לקטגוריה @Category.title
                                             </div>
@@ -2579,7 +2622,7 @@ if (is_subcat)
 
                                                 </div>
                                                 <div class="B">
-                                                   
+
                                                     <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
                                                         @if (!is_subcat)
                                                         {
@@ -2591,8 +2634,9 @@ if (is_subcat)
                                                                 }
                                                             </select>
                                                         }
-                                                        else{
-                                                        <input type="hidden" name="cat_id" value="@cat_id" />
+                                                        else
+                                                        {
+                                                            <input type="hidden" name="cat_id" value="@cat_id" />
                                                         }
                                                     </div>
                                                     <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">

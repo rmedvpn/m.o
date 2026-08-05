@@ -2304,54 +2304,64 @@ select.ProdCustomFldSelect {
 button.ProductTagSelected {
     background-color: #57d600;
     padding: 5px;
-    margin: 5px;
     font-size: 18px;
-    color: #fff;
+    color: #000;
     border: 0;
-    float: right;
+}
+button.ProductTagBtn {
+    background: transparent;
+    padding: 5px;
+    font-size: 18px;
+    border: 0;
 }
 
     button.ProductTagSelected:hover {
         background-color: #e3e3e3;
         padding: 5px;
-        margin: 5px;
         font-size: 18px;
         color: #808080;
         border: 0;
-        float: right;
     }
+
 
 button.ProductTagUnSelected {
     background-color: #e3e3e3;
     padding: 5px;
-    margin: 5px;
     font-size: 18px;
     color: #808080;
     border: 0;
-    float: right;
 }
 
     button.ProductTagUnSelected:hover {
         background-color: #57d600;
         padding: 5px;
-        margin: 5px;
         font-size: 18px;
         color: #fff;
         border: 0;
-        float: right;
     }
 
+
+div.ProductTagDiv {
+    background-color: #e3e3e3;
+    font-size: 18px;
+    color: #808080;
+    border: 0;
+    float: right;
+    margin:5px;
+}
 div.ProductTagSelected {
+    overflow:auto;
     background-color: #57d600;
     padding: 5px;
     margin: 5px;
     font-size: 18px;
-    color: #fff;
+    color: #000;
     border: 0;
     float: right;
 }
 
     div.ProductTagSelected:hover {
+        overflow: auto;
         background-color: #e3e3e3;
         padding: 5px;
         margin: 5px;
@@ -2362,6 +2372,7 @@ div.ProductTagSelected {
     }
 
 div.ProductTagUnSelected {
+    overflow: auto;
     background-color: #e3e3e3;
     padding: 5px;
     margin: 5px;
@@ -2372,28 +2383,48 @@ div.ProductTagUnSelected {
 }
 
     div.ProductTagUnSelected:hover {
+        overflow: auto;
         background-color: #57d600;
+        color: #fff;
         padding: 5px;
         margin: 5px;
-
         border: 0;
         float: right;
     }
+
 button.ProductTagFavBtn {
     padding: 0;
-    margin: 0;
+    margin-right: 5px;
     border: 0;
     background: transparent;
     font-size: 18px;
-    color: #fff;
+    color: #000;
 }
+
+
+    button.ProductTagFavBtn:hover {
+        padding: 0;
+        margin-right: 5px;
+        border: 0;
+        background: transparent;
+        font-size: 18px;
+        color: yellow;
+    }
+
 button.ProductTagBtn {
     padding: 0;
     margin: 0;
     border: 0;
     background: transparent;
     font-size: 18px;
-    color: #fff;
+    
+}
+select.ProductTagSelect {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    font-size: 18px;
 }
 
 button.ProdSettingsAddBtn{
@@ -2404,4 +2435,12 @@ button.ProdSettingsAddBtn{
     background:transparent;
     border:0;
 }
+
+div.blankData{
+    overflow:auto;
+    font-size:14px;
+    color:#808080;
+    background-color:#fff;
+}
+
 /*END MY CUSTOM STYLING*/
