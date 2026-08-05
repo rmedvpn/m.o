@@ -2351,19 +2351,25 @@
         <div style="overflow: auto;clear: both;">
             @foreach (var cat in MainCategories)
             {
+                sqlSelect = "SELECT * FROM categories WHERE maincat_id=@0 AND is_subcat=1 AND is_deleted=0";
+                var subCategories = db.Query(sqlSelect, cat.id);
 
                 <div style="overflow: auto;padding: 5px;font-size: 18px;color: #000;border-bottom: 1px dashed #000;background-color: #e3e3e3" id="catDiv_@cat.id">
-                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="Accordionize('menuAcc_@cat.id');">פרטים</button>
+                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="Accordionize('menuAcc_@cat.id');">תתי קטגוריה</button>
                     <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@cat.id');AdjustMainView();">עריכה</button>
                     <div style="overflow: auto;"> @cat.id - @cat.title</div>
                     <div style="overflow: auto;clear: both;">
                         <button style="display: none" id="menuAcc_@cat.id"></button>
                         <div class="panel" style="padding: 0;margin: 0">
                             <div style="overflow: auto;padding: 5px;background-color: #ffffcc;color: #000">
-                                <div style="overflow: auto;">
-                                    <div style="overflow: auto;color: #b200ff;font-size: 14px;font-weight: bold">שם / Title</div>
-                                    <div style="overflow: auto;font-size: 18px;">@cat.title / @cat.e_title</div>
-
+                                <div class="B">
+                                    @foreach(var subcat in subCategories) { 
+                                        <div class="B">
+                                            
+                                            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@subcat.id');AdjustMainView();">עריכה</button>
+                                            <div style="overflow: auto;"> @subcat.id - @subcat.title</div>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -2380,24 +2386,31 @@
 
 @helper CatInfo(int cat_id)
 {
-    var db = Database.Open("op_data");
-    var sqlSelect = "SELECT * FROM categories WHERE id=@0";
-    var Category = db.QuerySingle(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1";
-    var SubCats = db.Query(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1";
-    var spOfferCats = db.Query(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
-    var CatTags = db.Query(sqlSelect, cat_id);
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM categories WHERE id=@0";
+var Category = db.QuerySingle(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1";
+var SubCats = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1";
+var spOfferCats = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
+var CatTags = db.Query(sqlSelect, cat_id);
 
-    sqlSelect = "SELECT * FROM CustomProductFieldsType";
-    var customProductFieldTypes = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM CustomProductFieldsType";
+var customProductFieldTypes = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM  CustomFields WHERE cat_id=@0 AND is_active=1 ORDER BY sort_order";
+var customFields = db.Query(sqlSelect, cat_id);
+string fieldNamePrefix = "0_" + cat_id;
 
-
-
+bool is_subcat = false; try { is_subcat = Category.is_subcat; } catch { }
+string PageHdr = "הגדרות קטגוריה ראשית";
+if (is_subcat)
+    {
+        PageHdr = "הגדרות תת הקטגוריה";
+    }
     <div style="overflow: auto;background-color: #fff;min-height: 500px;">
         <div style="overflow: auto;padding: 5px;font-size: 20px;color: #000;font-weight: bold">
-            הגדרות קטגוריה ראשית
+            @PageHdr
         </div>
 
         <div style="overflow: auto;padding: 5px;margin: 5px;font-weight: bold;direction:rtl" id="catDiv_@Category.id">
@@ -2406,6 +2419,9 @@
 
 
         <div style="overflow: auto;clear: both;">
+            @if (!is_subcat)
+    {
+        <div class="B">
             <div style="overflow: auto;padding: 5px;margin: 5px;">
                 <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
                     תתי קטגוריות
@@ -2468,6 +2484,11 @@
                     @NewAppHelpers.SubCatList(cat_id, "SPOFFER")
                 </div>
             </div>
+
+
+        </div>
+    }
+
             <div style="overflow: auto;padding: 5px;margin: 5px;">
                 <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
                     תגיות
@@ -2503,59 +2524,111 @@
 
             </div>
 
-            <div style="overflow: auto; padding: 5px; margin: 5px;; direction: rtl">
-                <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
-                    שדות מידע
-                    <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');">הוספה</button>
-                </div>
-                <div style="overflow: auto">
-                    <button class="Accordion" style="display: none;" id="AddProdFieldAcc"></button>
-                    <div class="panel" style="padding: 0;margin: 0">
-                        <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
-                            <form id="Add_Product_Field">
-                                <input type="hidden" name="cat_id" id="name=" cat_id" value="@cat_id">
-                                <div style="overflow: auto;font-weight: bold;font-size: 16px;text-align:center">
-                                    הוספת שדה מידע
-                                </div>
-                                <div style="overflow: auto;padding-right:15px;">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="custom_field_title" id="custom_field_title" placeholder="שם השדה">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title">
-                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" name="custom_fieldName" id="custom_fieldName" placeholder="Field Name">
-                                    <select style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" name="fieldType" id="fieldType">
-                                        <option value="">נא לבחור סוג שדה</option>
-                                        @foreach (var item in customProductFieldTypes)
-                                        {
-                                            <option value="@item.id">@item.title</option>
-                                        }
-                                    </select>
-                                    <select style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;" name="fieldCat" id="fieldCat">
-                                        <option value="@cat_id">הוספה לקטגוריה ראשית</option>
-                                        @foreach (var item in SubCats)
-                                        {
-                                            <option value="@item.id">הוספת לתת הקטגוריה @item.title</option>
-                                        }
-                                    </select>
-                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px">
-                                        <input type="checkbox" id="is_required" name="is_required"> שדה חובה
-                                    </div>
-                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px">
-                                        <input type="checkbox" id="is_activated" name="is_activated"> מופעל כברירת מחדל
-                                    </div>
 
-                                </div>
-                                <div style="overflow: auto;text-align: center;padding: 5px;">
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');document.getElementById('Add_Product_Field').reset();">ביטול</button>
-                                    <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductField', @cat_id,'', 'Add_Product_Field', 'CAT'); document.getElementById('Add_Product_Field').reset(); Accordionize('AddProdFieldAcc');">הוספת שדה</button>
-                                </div>
-                            </form>
-                        </div>
+
+            <div class="B">
+              
+
+                <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
+                    <div class="B">
+                        <button type="button" class="A" style="float:left" onclick="    Accordionize('AddProdFieldAcc_@cat_id');">➕ שדה</button>
+                      
+                        שדות מידע
                     </div>
+
+
+                    <div class="B">
+
+                        <div class="A" style="color:#000;background-color:#fff;">
+                          
+                            <div style="overflow: auto">
+                                <button class="Accordion" style="display: none;" id="AddProdFieldAcc_@cat_id"></button>
+                                <div class="panel" style="padding: 0;margin: 0">
+                                    <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
+                                        <form id="Add_Field_@cat_id">
+                                            
+                                            <div class="B">
+                                                הוספת שדה מידע לקטגוריה @Category.title
+                                            </div>
+                                            <div class="B">
+                                                <div class="B">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_title" id="custom_field_title" placeholder="שם השדה">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title">
+                                                    <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="fieldType" id="fieldType" onchange="    if (this.value == 8) { showElement('Add_Select_List_Div_@cat_id'); } else { hideElement('Add_Select_List_Div_@cat_id'); } FixAccordion('AddProdFieldAcc_@cat_id');">
+                                                        <option value="">נא לבחור סוג שדה</option>
+                                                        @foreach (var item in customProductFieldTypes)
+                                                        {
+                                                            <option value="@item.id">@item.title</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                                <div class="B" id="Add_Select_List_Div_@cat_id" style="display:none;">
+                                                    <div class="B">
+
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title" id="0_add_to_select_list_title_@cat_id" placeholder="עברית">
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title_e" id="0_add_to_select_list_title_e_@cat_id" placeholder="אנגלית">
+                                                        <button class="A" type="button" style="float:right" onclick=" MiscActions('AddToCustomFieldSelectList', '0_add_to_select_list_title_@cat_id', '0_add_to_select_list_title_e_@cat_id', '0_values_list_@cat_id')">הוספה</button>
+                                                        <button class="A" type="button" style="float:right" onclick="MiscActions('ResetCustomFieldSelectList', '0_values_list_@cat_id')">איפוס</button>
+                                                    </div>
+                                                    <div class="B">
+                                                        <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_values_list_@cat_id" disabled></textarea>
+                                                        <textarea style="display:none;" name="values_list" id="0_values_list_@cat_id"></textarea>
+                                                    </div>
+
+
+
+                                                </div>
+                                                <div class="B">
+                                                   
+                                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
+                                                        @if (!is_subcat)
+                                                        {
+                                                            <select style="font-size: 16px;padding: 5px;" name="cat_id" id="cat_id">
+                                                                <option value="@cat_id">הוספה לקטגוריה ראשית</option>
+                                                                @foreach (var item in SubCats)
+                                                                {
+                                                                    <option value="@item.id">הוספת לתת הקטגוריה @item.title</option>
+                                                                }
+                                                            </select>
+                                                        }
+                                                        else{
+                                                        <input type="hidden" name="cat_id" value="@cat_id" />
+                                                        }
+                                                    </div>
+                                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
+                                                        <input type="checkbox" id="is_required" name="is_required"> שדה חובה
+                                                    </div>
+                                                    <div style="overflow: auto; font-size: 16px; padding: 5px; margin: 5px; float: right">
+                                                        <input type="checkbox" id="is_editable" name="is_editable"> ניתן לעריכה
+                                                    </div>
+                                                    <div class="B" style="float:left">
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc_@cat_id'); document.getElementById('Add_Field_@cat_id').reset();">ביטול</button>
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductField', '@cat_id', 'MainLoader', 'Add_Field_@cat_id', '','CAT'); document.getElementById('Add_Field_@cat_id').reset();">הוספת שדה</button>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="Spacer10"></div>
+                            <div class="B" id="CustomFieldsProdType_@cat_id">
+                                @Products.LoadCustomFieldsList(cat_id, "CAT")
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
                 </div>
 
-                <div style="overflow: auto;; direction: rtl" id="CUSTOMFIELDSDIV">
-                    @NewAppHelpers.CustomProductFieldsList(cat_id)
-
-                </div>
 
             </div>
             <div class="Spacer100"></div>

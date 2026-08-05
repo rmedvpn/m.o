@@ -1840,6 +1840,17 @@ button.StdBtn {
     float: left
 }
 
+div.Spacer5{
+    height:5px;
+    overflow:auto;
+}
+
+div.Spacer5W{
+    height:5px;
+    overflow:auto;
+    background-color:#fff;
+}
+
 div.Spacer10{
     height:10px;
     overflow:auto;
@@ -2088,42 +2099,7 @@ span.ProdEditSmallSpan{
     float:left;
   
 }
-button.ProductTagSelected {
-    background-color: #57d600;
-    padding: 5px;
-    margin: 5px;
-    font-size: 18px;
-    color: #fff;
-    border: 0;
-    float: right;
-}
-    button.ProductTagSelected:hover {
-        background-color: #e3e3e3;
-        padding: 5px;
-        margin: 5px;
-        font-size: 18px;
-        color: #808080;
-        border: 0;
-        float: right;
-    }
-button.ProductTagUnSelected {
-    background-color: #e3e3e3;
-    padding: 5px;
-    margin: 5px;
-    font-size: 18px;
-    color: #808080;
-    border: 0;
-    float: right;
-}
-    button.ProductTagUnSelected:hover {
-        background-color: #57d600;
-        padding: 5px;
-        margin: 5px;
-        font-size: 18px;
-        color: #fff;
-        border: 0;
-        float: right;
-    }
+
 div.HtmlDescContainer {
     padding: 5px;
     margin: 10px;
@@ -2270,5 +2246,162 @@ div.PviewTagEmpty{
     padding:5px;
     font-size:16px;
     color:#e3e3e3;
+}
+
+div.ProdCustomFld{
+    float:left;
+    overflow:auto;
+       
+}
+
+input.ProdCustomFldShortText {
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
+    font-size: 16px;
+    float: left;
+    text-align: left;
+    width:50px;
+}
+input.ProdCustomFldDate {
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
+    font-size: 16px;
+    float: left;
+    text-align: left width: 100px;
+}
+input.ProdCustomFldCheckBox {
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
+    font-size: 16px;
+    float: left;
+    text-align: left
+}
+input.ProdCustomFldLongText {
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
+    font-size: 16px;
+    float: left;
+    text-align: left width: 100px;
+}
+select.ProdCustomFldSelect {
+    padding: 2px;
+    background-color: #e3e3e3;
+    color: #000;
+    border: 0;
+    font-size: 16px;
+    float: left;
+    text-align: left
+}
+
+button.ProductTagSelected {
+    background-color: #57d600;
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    color: #fff;
+    border: 0;
+    float: right;
+}
+
+    button.ProductTagSelected:hover {
+        background-color: #e3e3e3;
+        padding: 5px;
+        margin: 5px;
+        font-size: 18px;
+        color: #808080;
+        border: 0;
+        float: right;
+    }
+
+button.ProductTagUnSelected {
+    background-color: #e3e3e3;
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    color: #808080;
+    border: 0;
+    float: right;
+}
+
+    button.ProductTagUnSelected:hover {
+        background-color: #57d600;
+        padding: 5px;
+        margin: 5px;
+        font-size: 18px;
+        color: #fff;
+        border: 0;
+        float: right;
+    }
+
+div.ProductTagSelected {
+    background-color: #57d600;
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    color: #fff;
+    border: 0;
+    float: right;
+}
+
+    div.ProductTagSelected:hover {
+        background-color: #e3e3e3;
+        padding: 5px;
+        margin: 5px;
+        font-size: 18px;
+        color: #808080;
+        border: 0;
+        float: right;
+    }
+
+div.ProductTagUnSelected {
+    background-color: #e3e3e3;
+    padding: 5px;
+    margin: 5px;
+    font-size: 18px;
+    color: #808080;
+    border: 0;
+    float: right;
+}
+
+    div.ProductTagUnSelected:hover {
+        background-color: #57d600;
+        padding: 5px;
+        margin: 5px;
+
+        border: 0;
+        float: right;
+    }
+button.ProductTagFavBtn {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    font-size: 18px;
+    color: #fff;
+}
+button.ProductTagBtn {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    font-size: 18px;
+    color: #fff;
+}
+
+button.ProdSettingsAddBtn{
+    font-size:14px;
+    padding:3px;
+    margin:3px;
+    float:left;
+    background:transparent;
+    border:0;
 }
 /*END MY CUSTOM STYLING*/

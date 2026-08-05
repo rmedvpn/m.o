@@ -1332,7 +1332,39 @@
 
             break;
 
+        case "CustomFieldMove":
+            if (true)
+            {
+                int rec_id = 0; try { rec_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string scope = Request["param2"];
+                if (scope.IsEmpty()) { scope = "PT"; }
+                <div style="color:#000;">@Products.LoadCustomFieldsList(rec_id, scope)</div>
+            }
 
+            break;
+        case "LoadProductCustomFields":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                int p_t_id = 0; try { p_t_id = Convert.ToInt32(Request["param2"]); } catch { }
+                int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param3"]); } catch { }
+
+
+                <div class="B">@Products.ProductCustomFields(p_id, p_t_id, cat_id)</div>
+            }
+
+            break;
+
+        case "ProductTagsRefresh":
+            if (true)
+            {
+                int rec_id = 0; try { rec_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string scope = Request["param2"];
+                if (scope.IsEmpty()) { scope = "PT"; }
+                <div style="color:#000;">@Products.LoadCustomTagList(rec_id, scope)</div>
+            }
+
+            break;
 
         ////////////////////////////////////
 

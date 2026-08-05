@@ -610,6 +610,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "SetupCatalogProduct":
             case "UpdateCatalogProduct":
             case "UpdateProduct":
+            case "UpdateProductTemplate":
             case "AddCustomProductField":
             case "UpdateProductCustomField":
             case "AddPricingOption":
@@ -622,6 +623,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "UpdateCatInfo":
             case "UpdateProductField":
             case "AddProductField":
+            case "AddProductTag":
             case "CreateVendorProductFromCatalog":
             case "UpdateCartOptions":
             case "RepUpdateOrderItems":
@@ -657,6 +659,8 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddProductOptionitem":
             case "EditProductOptionitem":
             case "UpdateProductOption":
+            case "UpdateCustomField":
+            case "UpdateProductTag":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1070,9 +1074,16 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "SetupCatalogProduct":
                     case "ActivateCatalogProduct":
                     case "UpdateCatalogProduct":
-                    case "UpdateProduct":
+                    case "UpdateProductTemplate":
                     case "ActivateProduct":
                     case "SetupProductFromCatalog":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate("PRODUCTS", "MainBoardContainer", "MainLoader", currentProductsView);
+                            sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + value);
+                        }
+                        break;
+
+                    case "UpdateProductTemplate":
                         if (!theRes.startsWith("!$!")) {
                             RepAjaxUpdate("PRODUCTS", "MainBoardContainer", "MainLoader", currentProductsView);
                             sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + value);
@@ -1146,7 +1157,6 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         
                         break;
 
-                    case "AddProductField":
                     case "CatCustomFieldMoveUp":
                     case "CatCustomFieldMoveDown":
                        // Notify(this.responseText, 1);
@@ -1484,6 +1494,47 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "EditProductOptionitem":
                         if (!theRes.startsWith("!$!")) {
                             RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param3);
+                        }
+                       
+                        break;
+                    case "AddProductTag":
+                    case "ProductTagMove":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ProductTagsRefresh', 'CustomFieldsProdType_' + value, 'MainLoader', value,param3);
+                        }
+                       
+                        break;
+
+                    case "UpdateProductTag":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ProductTagsRefresh', 'CustomFieldsProdType_' + param2, 'MainLoader', param2, param3);
+                        }
+
+                        break;
+                    case "DeleteProductTag":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ProductTagsRefresh', 'CustomFieldsProdType_' + param1, 'MainLoader', param1, param3);
+                        }
+
+                        break;
+
+
+                    case "AddProductField":
+                    case "CustomFieldMove":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('CustomFieldMove', 'CustomFieldsProdType_' + value, 'MainLoader', value,param3);
+                        }
+                       
+                        break;
+                    case "UpdateCustomField":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('CustomFieldMove', 'CustomFieldsProdType_' + param2, 'MainLoader', param2,param3);
+                        }
+                       
+                        break;
+                    case "DeleteCustomField":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('CustomFieldMove', 'CustomFieldsProdType_' + param1, 'MainLoader', param1, param3);
                         }
                        
                         break;
@@ -2083,11 +2134,12 @@ function refreshCurrentView(is_background,param1) {
     }
 }
 
-function MiscActions(theAction,param1,param2,param3) {
+function MiscActions(theAction,param1,param2,param3,param4) {
     theAction = theAction || "";
     param1 = param1 || "";
     param2 = param2 || "";
     param3 = param3 || "";
+    param4 = param4 || "";
 
     console.log(theAction);
     switch (theAction) {
@@ -2564,6 +2616,44 @@ function MiscActions(theAction,param1,param2,param3) {
 
             break;
 
+        case "AddToCustomFieldSelectList":
+            if (true) {
+                let optTitle = document.getElementById(param1);
+                let optTitle_e = document.getElementById(param2);
+                let OptTxtArea = document.getElementById(param3);
+                let DispArea = document.getElementById('DISP_' + param3);
+
+                console.log(' param1: ' + param1 + ' param2: ' + param2 + ' param3: ' + param3 );
+
+                if (optTitle.value != '' && optTitle_e.value != '') {
+                    OptTxtArea.value += (OptTxtArea.value ? "\n" : "") + optTitle.value + "##" + optTitle_e.value;
+                    DispArea.value += (DispArea.value ? "\n" : "") + optTitle.value + "##" + optTitle_e.value;
+
+                }
+                optTitle.value = '';
+                optTitle_e.value = '';
+            }
+           
+       
+
+            break;
+        case "ResetCustomFieldSelectList":
+            if (true) {
+
+                let OptTxtArea = document.getElementById(param1);
+                let DispArea = document.getElementById('DISP_' + param1);
+
+             
+                OptTxtArea.value = '';
+                DispArea.value = '';
+             
+          
+            }
+           
+       
+
+            break;
+
         case "AutoFillServiceOptionTime":
             if (true) {
                 let start_time;
@@ -2624,7 +2714,10 @@ function MiscActions(theAction,param1,param2,param3) {
 
             break;
 
+        case "LoadProductCustomFields":
+            RepAjaxUpdate('LoadProductCustomFields', 'ProductCustomFieldsDiv', 'MainLoader', param1, param2, param3);
 
+            break;
 
 
 

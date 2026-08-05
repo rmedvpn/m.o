@@ -1,4 +1,297 @@
-﻿@functions {
+﻿@using System
+@using System.Collections.Generic
+@using System.Globalization
+@using System.Web.Script.Serialization
+@functions {
+
+    public static string UpdateProductTemplate()
+    {
+
+        int u_id = WebSecurity.CurrentUserId;
+
+        string theHtmlOutput = "";
+        string logMsg = "";
+        string theValue = Request["value"];
+        int p_id = 0;
+        try { p_id = Convert.ToInt32(theValue); } catch { }
+        DateTime UpdateTs = DateTime.Now;
+        bool is_active = false;
+        string title = Request["title"];
+        string e_title = Request["e_title"];
+        bool is_generic = false; if (!Request["is_generic"].IsEmpty()) { is_generic = true; }
+        int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["main_cat_id"]); } catch { }
+        int sub_cat_id = 0; try { sub_cat_id = Convert.ToInt32(Request["sub_cat_id"]); } catch { }
+        int spOfferCatId = 0; try { spOfferCatId = Convert.ToInt32(Request["spOfferCatId"]); } catch { }
+        int product_type = 0; try { product_type = Convert.ToInt32(Request["product_type"]); } catch { }
+        decimal cost = 0; try { cost = Convert.ToDecimal(Request["cost"]); } catch { }
+        decimal price = 0; try { price = Convert.ToDecimal(Request["price"]); } catch { }
+        decimal commision_rate = 0; try { commision_rate = Convert.ToDecimal(Request["commision_rate"]); } catch { commision_rate = -1; }
+        int commision_type = 0; try { commision_type = Convert.ToInt32(Request["commision_type"]); } catch { commision_type = -1; }
+        bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
+
+
+        //string description = Request.Unvalidated["description"];
+        //string e_desc = Request.Unvalidated["e_desc"];
+
+
+        if (cost < 0) { cost = 0; }
+        if (price < 0) { price = 0; }
+        if (commision_rate < 0) { commision_rate = 0; }
+
+
+
+        if (title.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה לתת כותרת למוצר" + "<BR>";
+        }
+        if (e_title.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה לתת כותרת באנגלית למוצר" + "<BR>";
+        }
+
+
+
+        if (theHtmlOutput == "")
+        {
+            string customFieldsErrors = "";
+            string customFieldsJson = ProductsFunctions.CreateCustomFieldsJson(main_cat_id, sub_cat_id, product_type, out customFieldsErrors);
+
+            theHtmlOutput += customFieldsErrors;
+
+            if (theHtmlOutput == "")
+            {
+
+                var db = Database.Open("op_data");
+
+                var sqlSelect = "UPDATE products SET title=@1,e_title=@2,sub_cat_id=@3,last_change_ts=@4,last_change_by=@5,cost=@6,price=@7,spOfferCatId=@8,is_discountable=@9,commision_type=@10,commision_rate=@11,is_generic=@12,product_type=@13,custom_fields_json=@14 WHERE p_id=@0";
+                db.Execute(sqlSelect, p_id, title, e_title, sub_cat_id, UpdateTs, u_id, cost, price, spOfferCatId, is_discountable, commision_type, commision_rate, is_generic, product_type, customFieldsJson);
+                //DataFunctions.WriteDebugLine(customFieldsJson);
+                theHtmlOutput = " 👌 המוצר התעדכן בהצלחה ";
+                db.Close();
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+
+
+
+
+
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+        return theHtmlOutput;
+    }
+
+    public static string CreateCustomFieldsJson(int main_cat_id, int sub_cat_id, int product_type, out string validationErrors)
+    {
+        validationErrors = "";
+
+        var db = Database.Open("op_data");
+        var sqlSelect = @"SELECT * FROM customFields WHERE is_active=1 AND (cat_id=@0 OR cat_id=@1 OR p_t_id=@2) ORDER BY is_required DESC, sort_order";
+        var customFields = db.Query(sqlSelect, main_cat_id, sub_cat_id, product_type);
+        var customFieldsList = new List<Dictionary<string, object>>();
+        HttpRequest request = HttpContext.Current.Request;
+
+        foreach (var fld in customFields)
+        {
+            int fieldId = 0; try { fieldId = Convert.ToInt32(fld.id); } catch { continue; }
+            int fieldTypeId = 0; try { fieldTypeId = Convert.ToInt32(fld.fieldType_id); } catch { }
+            bool isRequired = false; try { isRequired = Convert.ToBoolean(fld.is_required); } catch { }
+            string fieldNameHebrew = ""; try { fieldNameHebrew = Convert.ToString(fld.title); } catch { }
+            string fieldNameEnglish = ""; try { fieldNameEnglish = Convert.ToString(fld.title_e); } catch { }
+
+            string inputName = "CusFld_" + fieldId;
+            string inputNameEnglish = "CusFld_" + fieldId + "_e";
+            string valueHebrew = request[inputName] ?? "";
+            string valueEnglish = request[inputNameEnglish] ?? "";
+
+            valueHebrew = valueHebrew.Trim();
+            valueEnglish = valueEnglish.Trim();
+
+            bool isFieldValid = false;
+            object validatedValue = null;
+            string validatedValueHebrew = "";
+            string validatedValueEnglish = "";
+
+            switch (fieldTypeId)
+            {
+                // Bilingual text
+                case 1:
+                case 2:
+                    {
+                        bool hebrewIsValid = !String.IsNullOrWhiteSpace(valueHebrew);
+                        bool englishIsValid = !String.IsNullOrWhiteSpace(valueEnglish);
+
+                        if (hebrewIsValid && englishIsValid)
+                        {
+                            validatedValueHebrew = valueHebrew;
+                            validatedValueEnglish = valueEnglish;
+                            isFieldValid = true;
+                        }
+                        else if (isRequired)
+                        {
+                            if (!hebrewIsValid) validationErrors += "השדה " + fieldNameHebrew + " הוא שדה חובה!<BR>";
+                            if (!englishIsValid) validationErrors += "השדה " + fieldNameEnglish + " הוא שדה חובה!<BR>";
+                        }
+
+                        break;
+                    }
+
+                // Decimal
+                case 3:
+                case 6:
+                    {
+                        decimal decimalValue = 0;
+                        bool decimalIsValid = decimal.TryParse(valueHebrew, NumberStyles.Any, CultureInfo.CurrentCulture, out decimalValue);
+
+                        if (decimalIsValid && decimalValue > 0)
+                        {
+                            validatedValue = decimalValue;
+                            isFieldValid = true;
+                        }
+                        else if (isRequired)
+                        {
+                            validationErrors += "חובה להזין מספר תקין בשדה " + fieldNameHebrew + "!<BR>";
+                        }
+
+                        break;
+                    }
+
+                // Boolean / checkbox
+                case 4:
+                    {
+                        string booleanString = valueHebrew.ToLowerInvariant();
+                        bool booleanValue = false;
+                        bool booleanIsValid = true;
+
+                        if (booleanString == "true" || booleanString == "on" || booleanString == "1" || booleanString == "yes")
+                        {
+                            booleanValue = true;
+                        }
+                        else if (booleanString == "" || booleanString == "false" || booleanString == "off" || booleanString == "0" || booleanString == "no")
+                        {
+                            booleanValue = false;
+                        }
+                        else
+                        {
+                            booleanIsValid = false;
+                        }
+
+                        if (booleanIsValid)
+                        {
+                            validatedValue = booleanValue;
+                            isFieldValid = true;
+                        }
+                        else if (isRequired)
+                        {
+                            validationErrors += "יש להזין ערך תקין בשדה " + fieldNameHebrew + "!<BR>";
+                        }
+
+                        break;
+                    }
+
+                // Date
+                case 5:
+                    {
+                        DateTime dateValue;
+                        bool dateIsValid = DateTime.TryParse(valueHebrew, out dateValue);
+
+                        if (dateIsValid)
+                        {
+                            validatedValue = dateValue.ToString("yyyy-MM-dd");
+                            isFieldValid = true;
+                        }
+                        else if (isRequired)
+                        {
+                            validationErrors += "חובה להזין תאריך תקין בשדה " + fieldNameHebrew + "!<BR>";
+                        }
+
+                        break;
+                    }
+
+                // Integer
+                case 7:
+                    {
+                        int integerValue = 0;
+                        bool integerIsValid = int.TryParse(valueHebrew, out integerValue);
+
+                        if (integerIsValid && integerValue > 0)
+                        {
+                            validatedValue = integerValue;
+                            isFieldValid = true;
+                        }
+                        else if (isRequired)
+                        {
+                            validationErrors += "חובה להזין מספר תקין בשדה " + fieldNameHebrew + "!<BR>";
+                        }
+
+                        break;
+                    }
+
+                // Select
+                case 8:
+                    {
+                        if (!String.IsNullOrWhiteSpace(valueHebrew))
+                        {
+                            string[] valueParts = valueHebrew.Split(new string[] { "##" }, StringSplitOptions.None);
+
+                            validatedValueHebrew = valueParts.Length > 0 ? valueParts[0].Trim() : "";
+                            validatedValueEnglish = valueParts.Length > 1 ? valueParts[1].Trim() : "";
+
+                            if (validatedValueHebrew != "" && validatedValueEnglish != "")
+                            {
+                                isFieldValid = true;
+                            }
+                            else if (isRequired)
+                            {
+                                validationErrors += "יש לבחור ערך תקין בשדה " + fieldNameHebrew + "!<BR>";
+                            }
+                        }
+                        else if (isRequired)
+                        {
+                            validationErrors += "השדה " + fieldNameHebrew + " הוא שדה חובה!<BR>";
+                        }
+
+                        break;
+                    }
+            }
+
+
+            if (isFieldValid)
+            {
+                var customField = new Dictionary<string, object>();
+
+                customField.Add("id", fieldId);
+                customField.Add("NameHeb", fieldNameHebrew);
+                customField.Add("NameEng", fieldNameEnglish);
+                customField.Add("TypeId", fieldTypeId);
+
+                switch (fieldTypeId)
+                {
+                    case 1:
+                    case 2:
+                    case 8:
+                        customField.Add("ValHeb", validatedValueHebrew);
+                        customField.Add("ValEng", validatedValueEnglish);
+                        break;
+
+                    default:
+                        customField.Add("val", validatedValue);
+                        break;
+                }
+
+                customFieldsList.Add(customField);
+            }
+
+        }
+        var jsonSerializer = new JavaScriptSerializer();
+        return jsonSerializer.Serialize(customFieldsList);
+    }
+
     public static string UpdateProduct()
     {
         int u_id = WebSecurity.CurrentUserId;
@@ -14,7 +307,7 @@
         string e_title = Request["e_title"];
         string description = Request.Unvalidated["description"];
         string e_desc = Request.Unvalidated["e_desc"];
-        decimal cost = 0; try { cost = Convert.ToDecimal(Request["cost"]); } catch {  }
+        decimal cost = 0; try { cost = Convert.ToDecimal(Request["cost"]); } catch { }
         decimal price = 0; try { price = Convert.ToDecimal(Request["price"]); } catch { }
         decimal commision_rate = 0; try { commision_rate = Convert.ToDecimal(Request["commision_rate"]); } catch { commision_rate = -1; }
         int commision_type = 0; try { commision_type = Convert.ToInt32(Request["commision_type"]); } catch { commision_type = -1; }
@@ -111,7 +404,7 @@
 
 
             sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24,strain_type=@25,strain_type_title=@26,strain_type_title_e=@27,is_generic=@28 WHERE p_id=@29";
-            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type , strain_type_title, strain_type_title_e, is_generic, p_id);
+            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type, strain_type_title, strain_type_title_e, is_generic, p_id);
 
 
             sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
@@ -129,7 +422,7 @@
                     try { tag_title_e = NewAppFunctions.GetTitleById("Cat", c_id, 2); } catch { }
 
                     sqlSelect = "INSERT INTO productTags(p_id,cat_id,title,title_e) VALUES(@0,@1,@2,@3)";
-                    db.Execute(sqlSelect, p_id, c_id,tag_title,tag_title_e);
+                    db.Execute(sqlSelect, p_id, c_id, tag_title, tag_title_e);
                 }
             }
 
@@ -207,7 +500,7 @@
         string e_title = Request["e_title"];
         string description = Request.Unvalidated["description"];
         string e_desc = Request.Unvalidated["e_desc"];
-        decimal cost = 0; try { cost = Convert.ToDecimal(Request["cost"]); } catch {  }
+        decimal cost = 0; try { cost = Convert.ToDecimal(Request["cost"]); } catch { }
         decimal price = 0; try { price = Convert.ToDecimal(Request["price"]); } catch { }
         decimal commision_rate = 0; try { commision_rate = Convert.ToDecimal(Request["commision_rate"]); } catch { commision_rate = -1; }
         int commision_type = 0; try { commision_type = Convert.ToInt32(Request["commision_type"]); } catch { commision_type = -1; }
@@ -299,7 +592,7 @@
 
 
             sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,maincat_id=@6,sub_cat_id=@7,clerk_id=@8,last_change_ts=@9,is_disabled=@10,sell_1s=@11,sell_3s=@12,sell_5s=@13,last_change_by=@8,itemunit=@14,itemunit_e=@15,cost=@16,price=@17,spOfferCatId=@18,max_in_cart=@19,is_discountable=@20,CharityOffersOk=@21,commision_type=@22,commision_rate=@23,prod_code=@24,strain_type=@25,strain_type_title=@26,strain_type_title_e=@27,is_generic=@28 WHERE p_id=@29";
-            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type , strain_type_title, strain_type_title_e, is_generic, p_id);
+            db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, main_cat_id, sub_cat_id, u_id, UpdateTs, false, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, max_in_cart, is_discountable, CharityOffersOk, commision_type, commision_rate, prod_code, strain_type, strain_type_title, strain_type_title_e, is_generic, p_id);
 
 
             sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
@@ -317,7 +610,7 @@
                     try { tag_title_e = NewAppFunctions.GetTitleById("Cat", c_id, 2); } catch { }
 
                     sqlSelect = "INSERT INTO productTags(p_id,cat_id,title,title_e) VALUES(@0,@1,@2,@3)";
-                    db.Execute(sqlSelect, p_id, c_id,tag_title,tag_title_e);
+                    db.Execute(sqlSelect, p_id, c_id, tag_title, tag_title_e);
                 }
             }
 
@@ -365,7 +658,7 @@
 
     }
 
-    public static void SyncCatalog(bool syncAll=false)
+    public static void SyncCatalog(bool syncAll = false)
     {
         var db = WebMatrix.Data.Database.Open("op_data");
 
@@ -376,7 +669,7 @@
         }
         var catalog_products = db.Query(sqlSelect);
 
-        foreach(var product in catalog_products)
+        foreach (var product in catalog_products)
         {
             string a = ProductsFunctions.SyncProductPriceOptionsCatalog(product.p_id);
         }
@@ -396,7 +689,7 @@
         {
             string theValue = Request["value"];
 
-            var db =WebMatrix.Data.Database.Open("op_data");
+            var db = WebMatrix.Data.Database.Open("op_data");
             var sqlSelect = "";
 
             if (p_id == 0)
@@ -415,7 +708,7 @@
             sqlSelect = "SELECT distinct p_id FROM products WHERE catalog_p_id=@0";
             var ProductsToUpdate = db.Query(sqlSelect, catalog_p_id);
 
-            foreach(var product in ProductsToUpdate)
+            foreach (var product in ProductsToUpdate)
             {
 
                 foreach (var PriceOption in CatalogPricingOptions)
@@ -432,7 +725,7 @@
                     else
                     {
                         sqlSelect = "UPDATE ProductPricingOptions SET price=@0,each_additional=@1,optionCommision=@2,AdditionalUnitCommision=@3,isPriceBinding=@4,is_protected=@5,is_activated=@6,is_spOffer=@7,is_discountable=@8,is_fav=@9 WHERE serial=@10";
-                        db.Execute(sqlSelect, PriceOption.price, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable,  PriceOption.is_fav, dupCheck.serial);
+                        db.Execute(sqlSelect, PriceOption.price, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable, PriceOption.is_fav, dupCheck.serial);
                     }
                 }
 
@@ -441,7 +734,7 @@
                 sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0 AND is_catalog=1";
                 var ProductPricingOptions = db.Query(sqlSelect, product.p_id);
 
-                foreach(var prodPriceOption in ProductPricingOptions)
+                foreach (var prodPriceOption in ProductPricingOptions)
                 {
                     sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_catalog=1 AND p_id=@0 AND quan=@1 AND is_spOffer=@2 AND price=@3";
                     var dupCheck = db.QuerySingle(sqlSelect, catalog_p_id, prodPriceOption.quan, prodPriceOption.is_spOffer, prodPriceOption.price);
@@ -491,7 +784,7 @@
             {
 
                 sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE catalog_option_id=@0 AND p_id=@1";
-                var dupCheck = db.QuerySingle(sqlSelect, pricingOptionId,product.p_id);
+                var dupCheck = db.QuerySingle(sqlSelect, pricingOptionId, product.p_id);
                 if (dupCheck == null)
                 {
 
@@ -580,7 +873,7 @@
                 var checkRs = db.QuerySingle(sqlSelect, p_id, optionPrice, optionQuan, menu_id);
                 if (checkRs != null)
                 {
-                    theHtmlOutput +=  "אפשרות המחירון קיימת כבר" + "<BR>";
+                    theHtmlOutput += "אפשרות המחירון קיימת כבר" + "<BR>";
                 }
 
                 sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND quan=@1 AND round_id=@2 ";
@@ -590,7 +883,7 @@
                 {
                     if (!is_spOffer)
                     {
-                        theHtmlOutput +=  "כבר קיימת אפשרות מחירון לכמות זו" + "<BR>";
+                        theHtmlOutput += "כבר קיימת אפשרות מחירון לכמות זו" + "<BR>";
                     }
 
                 }
@@ -708,7 +1001,7 @@
         bool is_spOffer = false; if (!Request["is_spOffer"].IsEmpty()) { is_spOffer = true; }
         bool is_discountable = !is_spOffer;
 
-        bool is_catalog = false;  if (!Request["is_catalog"].IsEmpty()) { is_catalog = true; }
+        bool is_catalog = false; if (!Request["is_catalog"].IsEmpty()) { is_catalog = true; }
         bool is_protected = true;
         bool isUpdateProducts = false; if (!Request["isUpdateProducts"].IsEmpty()) { isUpdateProducts = true; }
         if (Request["is_protected"].IsEmpty() && !Request["hidden_protection"].IsEmpty())
@@ -850,7 +1143,7 @@
 
         if (set_to)
         {
-            theHtmlOutput = " 👌 אפשרות המחיר הופעלה " ;
+            theHtmlOutput = " 👌 אפשרות המחיר הופעלה ";
         }
         else
         {
@@ -900,7 +1193,7 @@
 
         if (set_to)
         {
-            theHtmlOutput = " 👌 אפשרות המחיר סומנה כמועדפת " ;
+            theHtmlOutput = " 👌 אפשרות המחיר סומנה כמועדפת ";
         }
         else
         {
@@ -910,7 +1203,7 @@
         db.Close();
 
         //   theHtmlOutput = " 👌 אפשרות המחיר נמחקה " + set_to;
-        return theHtmlOutput ;
+        return theHtmlOutput;
     }
 
 
@@ -1186,7 +1479,7 @@
                 }
 
                 sqlSelect = "UPDATE products SET title=@0,e_title=@1,Description=@2,e_desc=@3,itemunit_type=@4,sell_inXs=@5,prod_code=@6,maincat_id=@7,sub_cat_id=@8,clerk_id=@9,last_change_ts=@10,is_active=@11,sell_1s=@12,sell_3s=@13,sell_5s=@14,last_change_by=@9,itemunit=@15,itemunit_e=@16,cost=@17,price=@18,spOfferCatId=@19,V_id=@20,available_quan=@21,strain=@22,strain_e=@23,is_strain_ok=@24,thc=@25,cbd=@26,max_in_cart=@27,is_discountable=@28,CharityOffersOk=@29,init_complete=1,strain_type=@30,strain_type_title=@31,strain_type_title_e=@32,is_setup=1 WHERE p_id=@33";
-                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, prod_code, main_cat_id, sub_cat_id, u_id, UpdateTs, is_active, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, vendor_id, available_quan, strain, strain_e, is_strain_ok, thc, cbd, max_in_cart, is_discountable, CharityOffersOk, strain_type , strain_type_title , strain_type_title_e, p_id);
+                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, sell_inXs, prod_code, main_cat_id, sub_cat_id, u_id, UpdateTs, is_active, sell_1s, sell_3s, sell_5s, itemunit, itemunit_e, cost, price, spOfferCatId, vendor_id, available_quan, strain, strain_e, is_strain_ok, thc, cbd, max_in_cart, is_discountable, CharityOffersOk, strain_type, strain_type_title, strain_type_title_e, p_id);
 
 
 
@@ -1274,7 +1567,8 @@
 
             bool is_generic = false; if (!Request["is_generic"].IsEmpty()) { is_generic = true; }
             bool is_catalog = true;
-            if (add_type == "VENDOR"){
+            if (add_type == "VENDOR")
+            {
                 is_catalog = false;
                 try { vendor_id = Convert.ToInt32(Request["vendor_id"]); } catch { }
             }
@@ -1338,7 +1632,7 @@
             {
                 theHtmlOutput = theHtmlOutput + "חובה לתת כותרת באנגלית למוצר" + "<BR>";
             }
-            if (add_type=="VENDOR" && vendor_id==0)
+            if (add_type == "VENDOR" && vendor_id == 0)
             {
                 theHtmlOutput = theHtmlOutput + "חובה לבחור ספק למוצר!" + "<BR>";
             }
@@ -1385,7 +1679,7 @@
 
 
 
-    public static string GetCustomFieldValue(dynamic field, bool is_catalog,int lang=1)
+    public static string GetCustomFieldValue(dynamic field, bool is_catalog, int lang = 1)
     {
         System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 
@@ -1394,7 +1688,7 @@
         int u_id = WebSecurity.CurrentUserId;
         string fieldType = field.fieldType;
         bool tmpBoolValue = false; try { tmpBoolValue = field.boolvalue; } catch { }
-        switch(fieldType)
+        switch (fieldType)
         {
             case "SHORTTEXT":
                 FieldValue = field.shortStringValue;
@@ -1413,12 +1707,12 @@
 
                 try { FieldValue = String.Format("{0:0.##}", field.DecimalValue); } catch { }
 
-                if (fieldType == "AMOUNT"){ FieldValue += "₪"; }
-                else{ FieldValue += "%"; }
+                if (fieldType == "AMOUNT") { FieldValue += "₪"; }
+                else { FieldValue += "%"; }
                 break;
 
             case "YESNO":
-                if(tmpBoolValue)
+                if (tmpBoolValue)
                 { FieldValue = "true"; }
                 else
                 { FieldValue = "false"; }
@@ -1444,7 +1738,7 @@
 
 
 
-    public static void CalcProdLowestCost(int p_id,int round_id=0)
+    public static void CalcProdLowestCost(int p_id, int round_id = 0)
     {
         string theHtmlOutput = "";
         var db = Database.Open("op_data");
@@ -1455,7 +1749,7 @@
         {
             sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND (round_id=99999 OR round_id=@1)";
         }
-        var pricing = db.QuerySingle(sqlSelect, p_id,round_id);
+        var pricing = db.QuerySingle(sqlSelect, p_id, round_id);
         decimal curLowestUnitPrice = 0; try { curLowestUnitPrice = pricing.curLowestUnitPrice; } catch { }
         if (round_id == 0)
         {
@@ -1499,7 +1793,8 @@
             theHtmlOutput = theHtmlOutput + "חובה להזין כותרת אנגלית לאפשרות<br>";
         }
 
-        if (is_required ) {
+        if (is_required)
+        {
             if (min_choices <= 0)
             {
                 min_choices = 1;
@@ -1518,9 +1813,9 @@
             min_choices = 0;
         }
 
-        if(is_limited && max_choices <= 0)
+        if (is_limited && max_choices <= 0)
         {
-            theHtmlOutput +=  "חובה להזין ערך תקין בשדה הגבלת בחירה<br>";
+            theHtmlOutput += "חובה להזין ערך תקין בשדה הגבלת בחירה<br>";
 
         }
 
@@ -1576,7 +1871,8 @@
             theHtmlOutput = theHtmlOutput + "חובה להזין כותרת אנגלית לאפשרות<br>";
         }
 
-        if (is_required ) {
+        if (is_required)
+        {
             if (min_choices <= 0)
             {
                 min_choices = 1;
@@ -1595,9 +1891,9 @@
             min_choices = 0;
         }
 
-        if(is_limited && max_choices <= 0)
+        if (is_limited && max_choices <= 0)
         {
-            theHtmlOutput +=  "חובה להזין ערך תקין בשדה הגבלת בחירה<br>";
+            theHtmlOutput += "חובה להזין ערך תקין בשדה הגבלת בחירה<br>";
 
         }
 
@@ -1611,7 +1907,7 @@
 
             if (is_active)
             {
-                if (cur_items_cnt < min_choices || cur_items_cnt < max_choices || cur_items_cnt==0)
+                if (cur_items_cnt < min_choices || cur_items_cnt < max_choices || cur_items_cnt == 0)
                 {
                     theHtmlOutput += "לא ניתן להפעיל את האפשרות - אין מספיק אפשרויות בחירה<br>";
                 }
@@ -1711,9 +2007,6 @@
         db.Close();
         return theHtmlOutput;
     }
-
-
-
     public static string EditProductOptionitem()
     {
         string theHtmlOutput = "";
@@ -1746,9 +2039,9 @@
 
 
             sqlSelect = "UPDATE ProductOptionsItems  SET p_id=@1,option_id=@2,title_h=@3,title_e=@4,option_price=@5,is_active=@6,is_available=@7,is_update=1 WHERE serial=@0";
-            db.Execute(sqlSelect, option_item_serial, p_id, option_id , title , title_e , option_price , is_active , is_available );
+            db.Execute(sqlSelect, option_item_serial, p_id, option_id, title, title_e, option_price, is_active, is_available);
             ProductsFunctions.DoProductOptionsItemSequencing(option_id);
-            theHtmlOutput = " 👌 השינוים נשמרו " ;
+            theHtmlOutput = " 👌 השינוים נשמרו ";
 
         }
         else { theHtmlOutput = "!$!" + theHtmlOutput; }
@@ -1756,8 +2049,6 @@
         db.Close();
         return theHtmlOutput;
     }
-
-
     public static string DeleteProductOptionitem()
     {
         string theHtmlOutput = "";
@@ -1776,13 +2067,12 @@
 
             sqlSelect = "UPDATE ProductOptionsItems  SET sort_order=0,is_active=0,is_deleted=1,is_update=1 WHERE serial=@0";
             db.Execute(sqlSelect, option_item_serial);
-            theHtmlOutput = " 👌 השינוים נשמרו " ;
+            theHtmlOutput = " 👌 השינוים נשמרו ";
             ProductsFunctions.DoProductOptionsItemSequencing(option_id);
         }
         db.Close();
         return theHtmlOutput;
     }
-
     public static void DoProductOptionsSequencing(int p_id)
     {
 
@@ -1792,7 +2082,7 @@
         int i = 0;
         foreach (var item in fieldRs)
         {
-            i+=100;
+            i += 100;
             sqlSelect = "UPDATE ProductOptions SET sort_order=@0 WHERE option_id=@1";
             db.Execute(sqlSelect, i, item.option_id);
         }
@@ -1810,7 +2100,7 @@
         int i = 0;
         foreach (var item in fieldRs)
         {
-            i+=100;
+            i += 100;
             sqlSelect = "UPDATE ProductOptionsItems SET sort_order=@0 WHERE serial=@1";
             db.Execute(sqlSelect, i, item.serial);
         }
@@ -1828,7 +2118,6 @@
 
             sqlSelect = "UPDATE ProductOptions SET is_active=0 WHERE option_id=@0";
             db.Execute(sqlSelect, option_id);
-            // theHtmlOutput += "לא ניתן להפעיל את האפשרות - אין מספיק אפשרויות בחירה<br>";
         }
         db.Close();
         return;
@@ -1859,7 +2148,7 @@
         db.Close();
         ProductsFunctions.DoProductOptionsSequencing(p_id);
 
-        theHtmlOutput =  "הפעולה בוצעה!" ;
+        theHtmlOutput = "הפעולה בוצעה!";
 
 
         return theHtmlOutput;
@@ -1892,7 +2181,7 @@
         db.Execute(sqlSelect, new_sort_order, option_item_serial);
         db.Close();
 
-        theHtmlOutput =  "הפעולה בוצעה!" ;
+        theHtmlOutput = "הפעולה בוצעה!";
 
         ProductsFunctions.DoProductOptionsItemSequencing(option_id);
 
@@ -1935,7 +2224,7 @@
 
 
 
-        /*   
+        /*
 
 
 
@@ -1997,7 +2286,7 @@
 
             sqlSelect = "DELETE FROM productOptions WHERE p_id=@0";
             db.Execute(sqlSelect, p.p_id);
-           
+
             sqlSelect = "DELETE FROM productOptionsItems WHERE p_id=@0";
             db.Execute(sqlSelect, p.p_id);
 
@@ -2006,6 +2295,598 @@
 
         db.Close();
     }
+
+
+    public static string AddCustomProductField()
+    {
+        string theHtmlOutput = "";
+        int u_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["fieldCat"]); } catch { }
+        int product_type_id = 0; try { product_type_id = Convert.ToInt32(Request["product_type_id"]); } catch { }
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["p_id"]); } catch { }
+
+        int maincat_id = 0;
+
+        if (cat_id > 0)
+        {
+            sqlSelect = "SELECT maincat_id FROM categories WHERE id=@0";
+            var theCat = db.QuerySingle(sqlSelect, cat_id);
+            try { maincat_id = theCat.maincat_id; } catch { }
+        }
+
+
+
+        string dataType = "";
+        string fieldOptions = "";
+        string title = ""; title = Request["custom_field_title"];
+        string title_e = ""; title_e = Request["custom_field_e_title"];
+        string fieldName = ""; fieldName = Request["custom_fieldName"];
+        bool is_activated = false; if (!Request["is_activated"].IsEmpty()) { is_activated = true; }
+        bool is_editable = false; if (!Request["is_editable"].IsEmpty()) { is_editable = true; }
+
+        int fieldType = 0; try { fieldType = Convert.ToInt32(Request["fieldType"]); } catch { }
+        bool is_required = false; if (!Request["is_required"].IsEmpty()) { is_required = true; }
+        int listIndex = 0;
+        if (is_required) { is_activated = true; }
+        if (p_id != 0)
+        {
+            is_activated = true;
+            sqlSelect = "SELECT MAX(listIndex) as max_index FROM ProductsCustomFields WHERE p_id=@0 AND is_activated=1 ";
+            var checkRs = db.QuerySingle(sqlSelect, p_id);
+            try { listIndex = checkRs.max_index; } catch { }
+            listIndex++;
+        }
+        else
+        {
+            is_activated = true;
+            sqlSelect = "SELECT MAX(listIndex) as max_index FROM ProductsCustomFields WHERE p_id=0 AND cat_id=@0 AND is_activated=1 ";
+            var checkRs = db.QuerySingle(sqlSelect, cat_id);
+            try { listIndex = checkRs.max_index; } catch { }
+            listIndex++;
+        }
+
+        if (title.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין כותרת לשדה<br>";
+        }
+        if (title_e.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין כותרת אנגלית לשדה<br>";
+        }
+        if (fieldName.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין שם לשדה<br>";
+        }
+
+        if (fieldType == 0)
+        {
+            theHtmlOutput = theHtmlOutput + "חובה לבחור את סוג השדה להוספה<br>";
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+            sqlSelect = "SELECT * FROM CustomProductFieldsType WHERE id=@0";
+            var fieldTypeInfo = db.QuerySingle(sqlSelect, fieldType);
+            try { dataType = fieldTypeInfo.dataType; } catch { }
+            string fieldTypeCode = ""; try { fieldTypeCode = fieldTypeInfo.fieldtypecode; } catch { }
+            sqlSelect = "INSERT INTO ProductsCustomFields (cat_id,p_id,fieldName,fieldType_id,dataType,title,title_e,is_required,fieldOptions,maincat_id,fieldType,is_activated,listIndex,is_editable,is_cat_required,manually_created)  VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,1)";
+            db.Execute(sqlSelect, cat_id, p_id, fieldName, fieldType, dataType, title, title_e, is_required, fieldOptions, maincat_id, fieldTypeCode, is_activated, listIndex, is_editable, is_required);
+            if (p_id != 0)
+            {
+                NewAppFunctions.DoProductCustomFieldSequencing(p_id);
+            }
+            else
+            {
+                NewAppFunctions.DoCategoryCustomFieldSequencing(cat_id);
+            }
+            db.Close();
+            theHtmlOutput = " 👌 השדה התווסף ";
+        }
+        return theHtmlOutput;
+    }
+
+
+    public static string AddProductField()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+
+        int rep_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["cat_id"]); } catch { }
+        int product_type_id = 0; try { product_type_id = Convert.ToInt32(Request["product_type_id"]); } catch { }
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["p_id"]); } catch { }
+
+
+        string dataType = "";
+        string fieldOptions = "";
+        string title = ""; title = Request["custom_field_title"];
+        string title_e = ""; title_e = Request["custom_field_e_title"];
+        string fieldName = ""; fieldName = Request["custom_fieldName"];
+        string values_list = ""; values_list = Request["values_list"];
+        string e_values_list = ""; e_values_list = Request["e_values_list"];
+        bool is_editable = false; if (!Request["is_editable"].IsEmpty()) { is_editable = true; }
+
+        int fieldType = 0; try { fieldType = Convert.ToInt32(Request["fieldType"]); } catch { }
+        bool is_required = false; if (!Request["is_required"].IsEmpty()) { is_required = true; }
+        int listIndex = 0;
+
+        if (title.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת לשדה<br>";
+        }
+        if (title_e.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת אנגלית לשדה<br>";
+        }
+
+
+        if (fieldType == 0)
+        {
+            theHtmlOutput += "חובה לבחור את סוג השדה להוספה<br>";
+        }
+        if (fieldType == 8) // select list field type
+        {
+            int valueCount = values_list
+                .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)
+                .Count(x => !string.IsNullOrWhiteSpace(x));
+
+            if (valueCount < 2)
+            {
+                // Error: At least two values are required.
+                theHtmlOutput += "לא ניתן להוסיף רשימת בחירה ללא 2 אפשרויות לפחות<br>";
+            }
+            else
+            {
+                values_list = string.Join(Environment.NewLine, values_list.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
+            }
+
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+            sqlSelect = "SELECT * FROM CustomProductFieldsType WHERE id=@0";
+            var fieldTypeInfo = db.QuerySingle(sqlSelect, fieldType);
+            try { dataType = fieldTypeInfo.dataType; } catch { }
+            string fieldTypeCode = ""; try { fieldTypeCode = fieldTypeInfo.fieldtypecode; } catch { }
+            sqlSelect = "INSERT INTO CustomFields (create_ts,created_by,cat_id,p_id,p_t_id,fieldType_id,fieldType,dataType,title,title_e,is_vendor_editable,is_required,is_active,is_update,sort_order,values_list)  VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15)";
+            db.Execute(sqlSelect, local_time, rep_id, cat_id, p_id, product_type_id, fieldType, fieldType, dataType, title, title_e, is_editable, is_required, 1, 1, 999999, values_list);
+            if (p_id != 0)
+            {
+                //         NewAppFunctions.DoProductCustomFieldSequencing(p_id);
+            }
+            else
+            {
+                //           NewAppFunctions.DoCategoryCustomFieldSequencing(cat_id);
+            }
+            db.Close();
+            theHtmlOutput = " 👌 השדה התווסף ";
+        }
+        return theHtmlOutput;
+    }
+
+
+
+    public static string AddProductTag()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+
+        int rep_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["cat_id"]); } catch { }
+        int product_type_id = 0; try { product_type_id = Convert.ToInt32(Request["product_type_id"]); } catch { }
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["p_id"]); } catch { }
+
+
+        string dataType = "";
+        string fieldOptions = "";
+        string title = ""; title = Request["custom_tag_title"];
+        string title_e = ""; title_e = Request["custom_tag_e_title"];
+        int tagType = 0; try { tagType = Convert.ToInt32(Request["tagType"]); } catch { }
+        string values_list = ""; values_list = Request["values_list"];
+
+        int listIndex = 0;
+
+        if (title.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת לשדה<br>";
+        }
+        if (title_e.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת אנגלית לשדה<br>";
+        }
+
+        if (tagType == 2) // select list field type
+        {
+            int valueCount = values_list
+                .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)
+                .Count(x => !string.IsNullOrWhiteSpace(x));
+
+            if (valueCount < 2)
+            {
+                // Error: At least two values are required.
+                theHtmlOutput += "לא ניתן להוסיף רשימת בחירה ללא 2 אפשרויות לפחות<br>";
+            }
+            else
+            {
+                values_list = string.Join(Environment.NewLine, values_list.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
+            }
+
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+            sqlSelect = "INSERT INTO PTags (create_ts,created_by,p_t_id,p_id,title_h,title_e,cat_id,values_list,tag_type)  VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8)";
+            db.Execute(sqlSelect, local_time,rep_id,product_type_id,p_id,title,title_e,cat_id,values_list,tagType);
+
+            db.Close();
+            theHtmlOutput = " 👌 השדה התווסף ";
+        }
+        return theHtmlOutput;
+    }
+
+
+    public static string DeleteCustomField()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+
+        int rep_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+        int field_id = 0; try { field_id = Convert.ToInt32(Request["value"]); } catch { }
+        sqlSelect = "UPDATE customFields set is_deleted=1 WHERE id=@0";
+        db.Execute(sqlSelect, field_id);
+        ProductsFunctions.DoCustomFieldSequencing(field_id);
+        sqlSelect = "DELETE FROM customFields WHERE id=@0";
+        db.Execute(sqlSelect, field_id);
+        theHtmlOutput = "השדה נמחק!";
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+
+    public static string UpdateCustomField()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+
+        int rep_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int field_id = 0; try { field_id = Convert.ToInt32(Request["field_id"]); } catch { }
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["cat_id"]); } catch { }
+        int product_type_id = 0; try { product_type_id = Convert.ToInt32(Request["p_t_id"]); } catch { }
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["p_id"]); } catch { }
+
+
+        string dataType = "";
+        string fieldOptions = "";
+        string title = ""; title = Request["custom_field_title"];
+        string title_e = ""; title_e = Request["custom_field_e_title"];
+        string fieldName = ""; fieldName = Request["custom_fieldName"];
+        string values_list = ""; values_list = Request["values_list"];
+        string e_values_list = ""; e_values_list = Request["e_values_list"];
+        bool is_vendor_editable = false; if (!Request["is_vendor_editable"].IsEmpty()) { is_vendor_editable = true; }
+
+        int fieldType = 0; try { fieldType = Convert.ToInt32(Request["fieldType"]); } catch { }
+        bool is_required = false; if (!Request["is_required"].IsEmpty()) { is_required = true; }
+        bool is_active = false; if (!Request["is_active"].IsEmpty()) { is_active = true; }
+        int listIndex = 0;
+
+        if (title.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת לשדה<br>";
+        }
+        if (title_e.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת אנגלית לשדה<br>";
+        }
+
+
+        if (fieldType == 0)
+        {
+            theHtmlOutput += "חובה לבחור את סוג השדה להוספה<br>";
+        }
+        if (fieldType == 8) // select list field type
+        {
+            int valueCount = values_list
+                .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)
+                .Count(x => !string.IsNullOrWhiteSpace(x));
+
+            if (valueCount < 2)
+            {
+                // Error: At least two values are required.
+                theHtmlOutput += "לא ניתן להוסיף רשימת בחירה ללא 2 אפשרויות לפחות<br>";
+            }
+            else
+            {
+                values_list = string.Join(Environment.NewLine, values_list.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
+            }
+
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+            sqlSelect = "SELECT * FROM CustomProductFieldsType WHERE id=@0";
+            var fieldTypeInfo = db.QuerySingle(sqlSelect, fieldType);
+            try { dataType = fieldTypeInfo.dataType; } catch { }
+            string fieldTypeCode = ""; try { fieldTypeCode = fieldTypeInfo.fieldtypecode; } catch { }
+
+            sqlSelect = "UPDATE CustomFields SET cat_id=@1,p_id=@2,p_t_id=@3,fieldType_id=@4,fieldType=@5,dataType=@6,title=@7,title_e=@8,is_vendor_editable=@9,is_required=@10,is_active=@11,is_update=1,values_list=@12 WHERE id=@0";
+            db.Execute(sqlSelect, field_id, cat_id, p_id, product_type_id, fieldType, fieldType, dataType, title, title_e, is_vendor_editable, is_required, is_active, values_list);
+
+            /*
+            if (p_id != 0)
+            {
+                //         NewAppFunctions.DoProductCustomFieldSequencing(p_id);
+            }
+            else
+            {
+                //           NewAppFunctions.DoCategoryCustomFieldSequencing(cat_id);
+            }
+            */
+            db.Close();
+            theHtmlOutput = " 👌 השינויים בשדה נשמרו! ";
+        }
+        return theHtmlOutput;
+    }
+
+    public static string CustomFieldMove()
+    {
+        string theHtmlOutput = "";
+        int rec_id = 0; try { rec_id = Convert.ToInt32(Request["value"]); } catch { }
+        int field_id = 0; try { field_id = Convert.ToInt32(Request["param1"]); } catch { }
+        string direction = ""; direction = Request["param2"];
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,sort_order FROM customFields WHERE id=@0";
+        var item = db.QuerySingle(sqlSelect, field_id);
+        int cur_sort_order = 0; try { cur_sort_order = item.sort_order; } catch { }
+        int new_sort_order = cur_sort_order;
+        if (direction == "up")
+        {
+            new_sort_order = new_sort_order - 101;
+        }
+        else
+        {
+            new_sort_order = new_sort_order + 101;
+        }
+        sqlSelect = "UPDATE customFields SET sort_order=@0 WHERE id=@1";
+
+        db.Execute(sqlSelect, new_sort_order, field_id);
+        db.Close();
+        ProductsFunctions.DoCustomFieldSequencing(field_id);
+
+        theHtmlOutput = "הפעולה בוצעה!";
+
+
+        return theHtmlOutput;
+    }
+
+    public static void DoCustomFieldSequencing(int field_id)
+    {
+        DataFunctions.WriteDebugLine("field_id " + field_id);
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,cat_id,p_t_id FROM customFields WHERE  id=@0 ";
+        var fld = db.QuerySingle(sqlSelect, field_id);
+        int cat_id = 0;
+        int p_t_id = 0;
+        DataFunctions.WriteDebugLine("fld.p_t_id " + fld.p_t_id);
+        try { cat_id = fld.cat_id; } catch { }
+        try { p_t_id = fld.p_t_id; } catch { }
+
+        int rec_id = 0;
+        DataFunctions.WriteDebugLine("cat_id " + cat_id);
+        DataFunctions.WriteDebugLine("p_t_id " + p_t_id);
+        if (p_t_id > 0)
+        {
+            sqlSelect = "SELECT id,cat_id,p_t_id FROM customFields WHERE  is_deleted=0 AND p_t_id =@0";
+            rec_id = p_t_id;
+        }
+        if (cat_id > 0)
+        {
+            sqlSelect = "SELECT id,cat_id,p_t_id FROM customFields WHERE  is_deleted=0 AND cat_id =@0";
+            rec_id = cat_id;
+        }
+
+        DataFunctions.WriteDebugLine("rec_id " + rec_id);
+        sqlSelect += " ORDER BY sort_order";
+
+        var fieldRs = db.Query(sqlSelect, rec_id);
+        int i = 0;
+        foreach (var item in fieldRs)
+        {
+            i += 100;
+            sqlSelect = "UPDATE customFields SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+            DataFunctions.WriteDebugLine("item.id " + item.id + " sort orer: " + i);
+        }
+        db.Close();
+        return;
+    }
+
+
+    public static string UpdateProductTag()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+
+        int rep_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int tag_id = 0; try { tag_id = Convert.ToInt32(Request["tag_id"]); } catch { }
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["cat_id"]); } catch { }
+        int product_type_id = 0; try { product_type_id = Convert.ToInt32(Request["p_t_id"]); } catch { }
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["p_id"]); } catch { }
+        int tag_type = 0; try { tag_type = Convert.ToInt32(Request["tag_type"]); } catch { }
+
+        string title = ""; title = Request["custom_tag_title"];
+        string title_e = ""; title_e = Request["custom_tag_e_title"];
+        string values_list = ""; values_list = Request["values_list"];
+        bool is_active = false; if (!Request["is_active"].IsEmpty()) { is_active = true; }
+
+        if (title.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת לשדה<br>";
+        }
+        if (title_e.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת אנגלית לשדה<br>";
+        }
+
+
+
+        if (tag_type == 2) // select list field type
+        {
+            int valueCount = values_list
+                .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)
+                .Count(x => !string.IsNullOrWhiteSpace(x));
+
+            if (valueCount < 2)
+            {
+                // Error: At least two values are required.
+                theHtmlOutput += "לא ניתן להוסיף רשימת בחירה ללא 2 אפשרויות לפחות<br>";
+            }
+            else
+            {
+                values_list = string.Join(Environment.NewLine, values_list.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
+            }
+
+        }
+
+        if (theHtmlOutput == "")
+        {
+
+
+            sqlSelect = "UPDATE pTags SET cat_id=@1,p_id=@2,p_t_id=@3,tag_type=@4,title_h=@5,title_e=@6,is_active=@7,values_list=@8,is_update=1 WHERE id=@0";
+            db.Execute(sqlSelect, tag_id, cat_id, p_id, product_type_id, tag_type, title, title_e, is_active, values_list);
+
+
+            db.Close();
+            theHtmlOutput = " 👌 השינויים בשדה נשמרו! ";
+        }
+        return theHtmlOutput;
+    }
+
+
+    public static string DeleteProductTag()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+
+        int rep_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+        int tag_id = 0; try { tag_id = Convert.ToInt32(Request["value"]); } catch { }
+        sqlSelect = "UPDATE pTags set is_deleted=1 WHERE id=@0";
+        db.Execute(sqlSelect, tag_id);
+        ProductsFunctions.DoProductTagsSequencing(tag_id);
+        sqlSelect = "DELETE FROM pTags WHERE id=@0";
+        db.Execute(sqlSelect, tag_id);
+        theHtmlOutput = "התגית נמחקה!";
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+
+    public static string ProductTagMove()
+    {
+        string theHtmlOutput = "";
+        int rec_id = 0; try { rec_id = Convert.ToInt32(Request["value"]); } catch { }
+        int tag_id = 0; try { tag_id = Convert.ToInt32(Request["param1"]); } catch { }
+        string direction = ""; direction = Request["param2"];
+
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,sort_order FROM pTags WHERE id=@0";
+        var item = db.QuerySingle(sqlSelect, tag_id);
+        int cur_sort_order = 0; try { cur_sort_order = item.sort_order; } catch { }
+        int new_sort_order = cur_sort_order;
+        if (direction == "up")
+        {
+            new_sort_order = new_sort_order - 101;
+        }
+        else
+        {
+            new_sort_order = new_sort_order + 101;
+        }
+        sqlSelect = "UPDATE pTags SET sort_order=@0 WHERE id=@1";
+
+        db.Execute(sqlSelect, new_sort_order, tag_id);
+        db.Close();
+        ProductsFunctions.DoProductTagsSequencing(tag_id);
+
+        theHtmlOutput = "הפעולה בוצעה!";
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static void DoProductTagsSequencing(int tag_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,cat_id,p_t_id FROM pTags WHERE  id=@0 ";
+        var tag = db.QuerySingle(sqlSelect, tag_id);
+        int cat_id = 0;
+        int p_t_id = 0;
+        try { cat_id = tag.cat_id; } catch { }
+        try { p_t_id = tag.p_t_id; } catch { }
+
+        int rec_id = 0;
+        if (p_t_id > 0)
+        {
+            sqlSelect = "SELECT id,cat_id,p_t_id FROM pTags WHERE  is_deleted=0 AND p_t_id =@0";
+            rec_id = p_t_id;
+        }
+        if (cat_id > 0)
+        {
+            sqlSelect = "SELECT id,cat_id,p_t_id FROM pTags WHERE  is_deleted=0 AND cat_id =@0";
+            rec_id = cat_id;
+        }
+
+        sqlSelect += " ORDER BY sort_order";
+
+        var tagRs = db.Query(sqlSelect, rec_id);
+        int i = 0;
+        foreach (var item in tagRs)
+        {
+            i += 100;
+            sqlSelect = "UPDATE pTags SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
+
+
 
 
     public static string someFunction()
