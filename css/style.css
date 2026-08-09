@@ -1921,6 +1921,56 @@ div.ProdPriceOption {
 div.PPOItem {
     float:right;
 }
+div.PPOPriceItem {
+    float: right;
+    padding: 5px;
+}
+div.PPOBtnItem {
+    float: right;
+    background-color: #e3e3e3;
+    padding:5px;
+    cursor:pointer;
+}
+div.PPODelBtnItem {
+    float: right;
+    background-color: #f00;
+    color:yellow;
+    padding:5px;
+    cursor:pointer;
+}
+div.PPOBtnItemStatic {
+    overflow:auto;
+    float: right;
+    background-color: #e3e3e3;
+    padding:5px;
+   width:20px;
+   height:21px;
+    
+}
+    div.PPOBtnItem:hover {
+        float: right;
+        background-color: #57d600;
+        padding: 5px;
+        cursor: pointer;
+    }
+div.PPOBtnItemSelected {
+    float: right;
+    background-color: #57d600;
+    padding: 5px;
+    cursor: pointer;
+}
+    div.PPOBtnItemSelected:hover {
+        float: right;
+        background-color: #e3e3e3;
+        padding: 5px;
+        cursor: pointer;
+    }
+
+div.PPOItemMiddle {
+    float: right;
+    width:60px;
+    text-align:center;
+}
 div.PPOValue {
     float: left;
     font-weight:bold;
@@ -2313,6 +2363,7 @@ button.ProductTagBtn {
     padding: 5px;
     font-size: 18px;
     border: 0;
+    cursor:pointer;
 }
 
     button.ProductTagSelected:hover {

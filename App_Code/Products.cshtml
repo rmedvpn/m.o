@@ -22,16 +22,16 @@
     sqlSelect = "SELECT vendor_id,vendor_name FROM vendors order by vendor_id";
     var vendors = db.Query(sqlSelect);
 
-    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE (is_active=1 OR is_setup=0) AND is_catalog=0";
+    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0 AND is_catalog=0";
 
     if (vendor_id > 0)
     {
-        sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE (is_active=1 OR is_setup=0) AND v_id=@0";
+        sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0 AND  v_id=@0";
     }
     var cntRS = db.QuerySingle(sqlSelect, vendor_id);
     try { activeCnt = cntRS.the_cnt; } catch { }
 
-    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE (is_active=1 OR is_setup=0) AND is_catalog=1";
+    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0  AND is_catalog=1";
     cntRS = db.QuerySingle(sqlSelect);
     try { catalogCnt = cntRS.the_cnt; } catch { }
 
@@ -53,24 +53,24 @@
     switch (listType)
     {
         case "ACTIVE":
-            sqlSelect = "SELECT * FROM products WHERE (is_active=1 AND is_setup=1) AND is_catalog=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND is_catalog=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
             listTitle = "כל המוצרים הפעילים";
             itemsCnt = activeCnt;
             break;
         case "VENDOR":
-            sqlSelect = "SELECT * FROM products WHERE (is_active=1 OR is_setup=0) AND v_id=@0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND v_id=@0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
             listTitle = "תפריט מוצרים - " + AppFunctions.GetVendorTitleById(vendor_id);
             itemsCnt = activeCnt;
             break;
         case "INACTIVE":
-            sqlSelect = "SELECT * FROM products WHERE is_active=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0 AND is_active=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
             listTitle = "מוצרים לא פעילים";
             itemsCnt = inActiveCnt;
             showAddBtn = false;
             break;
 
         case "CATALOG":
-            sqlSelect = "SELECT * FROM products WHERE (is_active=1 OR is_setup=0) AND is_catalog=1 ORDER BY maincat_id,sub_cat_id, is_setup,p_id DESC";
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND is_catalog=1 ORDER BY maincat_id,sub_cat_id, is_setup,p_id DESC";
             listTitle = "קטלוג ראשי";
             itemsCnt = catalogCnt;
             break;
@@ -136,7 +136,7 @@
                     <div style="overflow: auto;clear: both;">
                         @foreach (var product in Products)
                         {
-                            bool is_setup = false; try { is_setup = product.is_setup; } catch { }
+                            bool is_active = false; try { is_active = product.is_active; } catch { }
                             string bgColor = "#fff";
                             string cur_main_cat_name = "";
                             string cur_sub_cat_name = "";
@@ -159,7 +159,7 @@
                             try { cur_main_cat_name = NewAppFunctions.GetTitleById("Cat", cur_main_cat); } catch { }
                             try { cur_sub_cat_name = NewAppFunctions.GetTitleById("Cat", cur_sub_cat); } catch { }
 
-                            if (!is_setup)
+                            if (!is_active)
                             {
                                 bgColor = "#ffffcc";
                                 cur_main_cat_name = "";
@@ -212,27 +212,11 @@
 
                                                     <div class="B">
                                                         <span style="display:none">
-                                                            @if (cur_main_cat == 0)
-                                                            {
-                                                                if (is_setup)
-                                                                {
-                                                                    <span class="RedMiniTag" style="font-size:14px;">ללא  קטגוריה</span>
-                                                                }
-
-                                                            }
-                                                            else
-                                                            {<span class="GrayMiniTag" style="font-size:14px;">@cur_main_cat_name</span>}
+                                                            <span class="GrayMiniTag" style="font-size:14px;">@cur_main_cat_name</span>
                                                         </span>
 
 
-                                                        @if (cur_sub_cat == 0)
-                                                        {
-                                                            if (is_setup)
-                                                            {
-                                                                <span class="RedMiniTag" style="font-size:14px;">ללא תת קטגוריה</span>}
-                                                        }
-                                                        else
-                                                        {<span class="MiniTag" style="font-size:14px;">@cur_sub_cat_name</span>}
+                                                        <span class="MiniTag" style="font-size:14px;">@cur_sub_cat_name</span>
                                                     </div>
                                                     <div class="B">
 
@@ -647,11 +631,45 @@
     <div class="B">
         <div style="overflow: auto;font-size: 24px;color: #000;">
             <div class="B">
-                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרת סוגי מוצרים</div>
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרות מוצרים</div>
             </div>
         </div>
 
         <div class="B">
+            <div class="B" style="color:#000;padding:5px;">
+                <button type="button" style="float:left" onclick="Accordionize('Add_Product_type_Acc');">➕</button>
+
+                <h3>סוגי מוצרים</h3>
+            </div>
+            <div class="B">
+                <div style="overflow: auto">
+                    <button class="Accordion" style="display: none;" id="Add_Product_type_Acc"></button>
+                    <div class="panel" style="padding: 0;margin: 0">
+                        <div class="B" style="color: #000; text-align: right; direction: rtl;padding:20px;margin:10px;background-color:#e3e3e3;">
+                            <form id="Add_Product_type">
+                               
+                                <div class="B">
+                                    הוספת סוג מוצר חדש
+                                </div>
+                                <div class="B">
+                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="pt_title" id="pt_title" placeholder="סוג מוצר">
+                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="pt_title_e" id="pt_title_e" placeholder="Product Type">
+                                    <div class="B">
+                                
+                                        <div class="B" style="float:left">
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="    Accordionize('Add_Product_type_Acc'); document.getElementById('Add_Product_type').reset();">ביטול</button>
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="    AjaxActions('AddProductType', '', 'MainLoader', 'Add_Product_type', 'PT'); document.getElementById('Add_Product_type').reset();">הוספה</button>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
             @foreach (var p_t in ProductTypes)
             {
                 sqlSelect = "SELECT * FROM  CustomFields WHERE p_t_id=@0 AND is_active=1 ORDER BY sort_order";
@@ -663,141 +681,65 @@
 
                 <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
                     <div class="B">
-
+                        <button type="button" style="float:left" onclick="toggle_visibility('p_t_list_div_@p_t.id');">👁️</button>
                         @p_t.title
                     </div>
 
+                    <div class="B" id="p_t_list_div_@p_t.id" style="display:none">
+                        <div class="B">
 
-                    <div class="B">
-
-                        <div class="A" style="color:#000;background-color:#fff;">
-                            <div class="B">
-                                <button type="button" class="ProdSettingsAddBtn" onclick="Accordionize('AddProdFieldAcc_@p_t.id');">➕</button>
-                                <h3>שדות מידע</h3>
-                            </div>
-                            <div style="overflow: auto">
-                                <button class="Accordion" style="display: none;" id="AddProdFieldAcc_@p_t.id"></button>
-                                <div class="panel" style="padding: 0;margin: 0">
-                                    <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
-                                        <form id="Add_Field_@p_t.id">
-                                            <input type="hidden" name="product_type_id" id="product_type_id" value="@p_t.id">
-                                            <div class="B">
-                                                הוספת שדה מידע לסוג מוצר @p_t.title
-                                            </div>
-                                            <div class="B">
-                                                <div class="B">
-                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_title" id="custom_field_title" placeholder="שם השדה">
-                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title">
-                                                    <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="fieldType" id="fieldType" onchange="if (this.value == 8) { showElement('Add_Select_List_Div_@p_t.id'); } else { hideElement('Add_Select_List_Div_@p_t.id'); } FixAccordion('AddProdFieldAcc_@p_t.id');">
-                                                        <option value="">נא לבחור סוג שדה</option>
-                                                        @foreach (var item in customProductFieldTypes)
-                                                        {
-                                                            <option value="@item.id">@item.title</option>
-                                                        }
-                                                    </select>
-                                                </div>
-                                                <div class="B" id="Add_Select_List_Div_@p_t.id" style="display:none;">
-                                                    <div class="B">
-
-                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title" id="0_add_to_select_list_title_@p_t.id" placeholder="עברית">
-                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title_e" id="0_add_to_select_list_title_e_@p_t.id" placeholder="אנגלית">
-                                                        <button class="A" type="button" style="float:right" onclick=" MiscActions('AddToCustomFieldSelectList', '0_add_to_select_list_title_@p_t.id', '0_add_to_select_list_title_e_@p_t.id', '0_values_list_@p_t.id')">הוספה</button>
-                                                        <button class="A" type="button" style="float:right" onclick="MiscActions('ResetCustomFieldSelectList', '0_values_list_@p_t.id')">איפוס</button>
-                                                    </div>
-                                                    <div class="B">
-                                                        <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_values_list_@p_t.id" disabled></textarea>
-                                                        <textarea style="display:none;" name="values_list" id="0_values_list_@p_t.id"></textarea>
-                                                    </div>
-
-
-
-                                                </div>
-                                                <div class="B">
-                                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
-                                                        <input type="checkbox" id="is_required" name="is_required"> שדה חובה
-                                                    </div>
-                                                    <div style="overflow: auto; font-size: 16px; padding: 5px; margin: 5px; float: right">
-                                                        <input type="checkbox" id="is_editable" name="is_editable"> ניתן לעריכה
-                                                    </div>
-                                                    <div class="B" style="float:left">
-                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc_@p_t.id'); document.getElementById('Add_Field_@p_t.id').reset();">ביטול</button>
-                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductField', '@p_t.id', 'MainLoader', 'Add_Field_@p_t.id', 'PT'); document.getElementById('Add_Field_@p_t.id').reset();">הוספת שדה</button>
-                                                    </div>
-                                                </div>
-
-
-                                            </div>
-
-                                        </form>
-                                    </div>
+                            <div class="A" style="color:#000;background-color:#fff;">
+                                <div class="B">
+                                    <button type="button" class="ProdSettingsAddBtn" onclick="Accordionize('AddProdFieldAcc_@p_t.id');">➕</button>
+                                    <h3>שדות מידע</h3>
                                 </div>
-                            </div>
-
-
-                            <div class="Spacer10"></div>
-                            <div class="B" id="CustomFieldsProdType_@p_t.id">
-                                @Products.LoadCustomFieldsList(p_t.id, "PT")
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-
-
-
-                    <div class="B">
-
-                        <div class="A" style="color:#000;background-color:#fff;">
-                            <div class="B">
-                                <button type="button" class="ProdSettingsAddBtn" style="float:left" onclick="Accordionize('AddTagCatAcc_@p_t.id');">➕</button>
-
-                                <h3>תגיות</h3>
-                            </div>
-                            <div style="overflow: auto">
-                                <button class="Accordion" style="display: none;" id="AddTagCatAcc_@p_t.id"></button>
-                                <div class="panel" style="padding: 0;margin: 0">
-
-                                    <div class="B">
+                                <div style="overflow: auto">
+                                    <button class="Accordion" style="display: none;" id="AddProdFieldAcc_@p_t.id"></button>
+                                    <div class="panel" style="padding: 0;margin: 0">
                                         <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
-                                            <form id="Add_Tag_@p_t.id">
+                                            <form id="Add_Field_@p_t.id">
                                                 <input type="hidden" name="product_type_id" id="product_type_id" value="@p_t.id">
                                                 <div class="B">
-
-                                                    הוספת תגית לסוג מוצר @p_t.title
+                                                    הוספת שדה מידע לסוג מוצר @p_t.title
                                                 </div>
                                                 <div class="B">
                                                     <div class="B">
-                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_title" id="custom_tag_title" placeholder="שם השדה">
-                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_e_title" id="custom_tag_e_title" placeholder="Title">
-                                                        <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="tagType" id="tagType" onchange="    if (this.value == 2) { showElement('Add_Tag_List_Div_@p_t.id'); } else { hideElement('Add_Tag_List_Div_@p_t.id'); } FixAccordion('AddTagCatAcc_@p_t.id');">
-                                                            <option value="1">תגית רגילה</option>
-                                                            <option value="2">תגית בחירה</option>
-
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_title" id="custom_field_title" placeholder="שם השדה">
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title">
+                                                        <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="fieldType" id="fieldType" onchange="if (this.value == 8) { showElement('Add_Select_List_Div_@p_t.id'); } else { hideElement('Add_Select_List_Div_@p_t.id'); } FixAccordion('AddProdFieldAcc_@p_t.id');">
+                                                            <option value="">נא לבחור סוג שדה</option>
+                                                            @foreach (var item in customProductFieldTypes)
+                                                            {
+                                                                <option value="@item.id">@item.title</option>
+                                                            }
                                                         </select>
                                                     </div>
-                                                    <div class="B" id="Add_Tag_List_Div_@p_t.id" style="display:none;">
+                                                    <div class="B" id="Add_Select_List_Div_@p_t.id" style="display:none;">
                                                         <div class="B">
 
-                                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title" id="0_add_tag_list_title_@p_t.id" placeholder="עברית">
-                                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title_e" id="0_add_tag_list_title_e_@p_t.id" placeholder="אנגלית">
-                                                            <button class="A" type="button" style="float:right" onclick="    MiscActions('AddToCustomFieldSelectList', '0_add_tag_list_title_@p_t.id', '0_add_tag_list_title_e_@p_t.id', '0_tag_values_list_@p_t.id')">הוספה</button>
-                                                            <button class="A" type="button" style="float:right" onclick="    MiscActions('ResetCustomFieldSelectList', '0_tag_values_list_@p_t.id')">איפוס</button>
+                                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title" id="0_add_to_select_list_title_@p_t.id" placeholder="עברית">
+                                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title_e" id="0_add_to_select_list_title_e_@p_t.id" placeholder="אנגלית">
+                                                            <button class="A" type="button" style="float:right" onclick=" MiscActions('AddToCustomFieldSelectList', '0_add_to_select_list_title_@p_t.id', '0_add_to_select_list_title_e_@p_t.id', '0_values_list_@p_t.id')">הוספה</button>
+                                                            <button class="A" type="button" style="float:right" onclick="MiscActions('ResetCustomFieldSelectList', '0_values_list_@p_t.id')">איפוס</button>
                                                         </div>
                                                         <div class="B">
-                                                            <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_tag_values_list_@p_t.id" disabled></textarea>
-                                                            <textarea style="display:none;" name="values_list" id="0_tag_values_list_@p_t.id"></textarea>
+                                                            <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_values_list_@p_t.id" disabled></textarea>
+                                                            <textarea style="display:none;" name="values_list" id="0_values_list_@p_t.id"></textarea>
                                                         </div>
 
 
 
                                                     </div>
                                                     <div class="B">
-
+                                                        <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
+                                                            <input type="checkbox" id="is_required" name="is_required"> שדה חובה
+                                                        </div>
+                                                        <div style="overflow: auto; font-size: 16px; padding: 5px; margin: 5px; float: right">
+                                                            <input type="checkbox" id="is_editable" name="is_editable"> ניתן לעריכה
+                                                        </div>
                                                         <div class="B" style="float:left">
-                                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="    Accordionize('AddTagCatAcc_@p_t.id'); document.getElementById('Add_Tag_@p_t.id').reset();">ביטול</button>
-                                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="    AjaxActions('AddProductTag', '@p_t.id', 'MainLoader', 'Add_Tag_@p_t.id', '','PT'); document.getElementById('Add_Tag_@p_t.id').reset();">הוספת שדה</button>
+                                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc_@p_t.id'); document.getElementById('Add_Field_@p_t.id').reset();">ביטול</button>
+                                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductField', '@p_t.id', 'MainLoader', 'Add_Field_@p_t.id', 'PT'); document.getElementById('Add_Field_@p_t.id').reset();">הוספת שדה</button>
                                                         </div>
                                                     </div>
 
@@ -806,22 +748,100 @@
 
                                             </form>
                                         </div>
-
                                     </div>
-
-
                                 </div>
-                            </div>
 
-                            <div class="Spacer10"></div>
-                            <div class="B" id="ProductTagsProdType_@p_t.id">
-                                @Products.LoadCustomTagList(p_t.id, "PT")
+
+                                <div class="Spacer10"></div>
+                                <div class="B" id="CustomFieldsProdType_@p_t.id">
+                                    @Products.LoadCustomFieldsList(p_t.id, "PT")
+                                </div>
+
                             </div>
 
                         </div>
 
-                    </div>
 
+
+
+
+                        <div class="B">
+
+                            <div class="A" style="color:#000;background-color:#fff;">
+                                <div class="B">
+                                    <button type="button" class="ProdSettingsAddBtn" style="float:left" onclick="Accordionize('AddTagCatAcc_@p_t.id');">➕</button>
+
+                                    <h3>תגיות</h3>
+                                </div>
+                                <div style="overflow: auto">
+                                    <button class="Accordion" style="display: none;" id="AddTagCatAcc_@p_t.id"></button>
+                                    <div class="panel" style="padding: 0;margin: 0">
+
+                                        <div class="B">
+                                            <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
+                                                <form id="Add_Tag_@p_t.id">
+                                                    <input type="hidden" name="product_type_id" id="product_type_id" value="@p_t.id">
+                                                    <div class="B">
+
+                                                        הוספת תגית לסוג מוצר @p_t.title
+                                                    </div>
+                                                    <div class="B">
+                                                        <div class="B">
+                                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_title" id="custom_tag_title" placeholder="שם השדה">
+                                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_e_title" id="custom_tag_e_title" placeholder="Title">
+                                                            <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="tagType" id="tagType" onchange="    if (this.value == 2) { showElement('Add_Tag_List_Div_@p_t.id'); } else { hideElement('Add_Tag_List_Div_@p_t.id'); } FixAccordion('AddTagCatAcc_@p_t.id');">
+                                                                <option value="1">תגית רגילה</option>
+                                                                <option value="2">תגית בחירה</option>
+
+                                                            </select>
+                                                        </div>
+                                                        <div class="B" id="Add_Tag_List_Div_@p_t.id" style="display:none;">
+                                                            <div class="B">
+
+                                                                <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title" id="0_add_tag_list_title_@p_t.id" placeholder="עברית">
+                                                                <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title_e" id="0_add_tag_list_title_e_@p_t.id" placeholder="אנגלית">
+                                                                <button class="A" type="button" style="float:right" onclick="    MiscActions('AddToCustomFieldSelectList', '0_add_tag_list_title_@p_t.id', '0_add_tag_list_title_e_@p_t.id', '0_tag_values_list_@p_t.id')">הוספה</button>
+                                                                <button class="A" type="button" style="float:right" onclick="    MiscActions('ResetCustomFieldSelectList', '0_tag_values_list_@p_t.id')">איפוס</button>
+                                                            </div>
+                                                            <div class="B">
+                                                                <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_tag_values_list_@p_t.id" disabled></textarea>
+                                                                <textarea style="display:none;" name="values_list" id="0_tag_values_list_@p_t.id"></textarea>
+                                                            </div>
+
+
+
+                                                        </div>
+                                                        <div class="B">
+
+                                                            <div class="B" style="float:left">
+                                                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="    Accordionize('AddTagCatAcc_@p_t.id'); document.getElementById('Add_Tag_@p_t.id').reset();">ביטול</button>
+                                                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="    AjaxActions('AddProductTag', '@p_t.id', 'MainLoader', 'Add_Tag_@p_t.id', '','PT'); document.getElementById('Add_Tag_@p_t.id').reset();">הוספת שדה</button>
+                                                            </div>
+                                                        </div>
+
+
+                                                    </div>
+
+                                                </form>
+                                            </div>
+
+                                        </div>
+
+
+                                    </div>
+                                </div>
+
+                                <div class="Spacer10"></div>
+                                <div class="B" id="ProductTagsProdType_@p_t.id">
+                                    @Products.LoadCustomTagList(p_t.id, "PT")
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
 
 
 
@@ -830,6 +850,9 @@
 
 
             }
+            <div class="Spacer100"></div>
+            <div class="Spacer100"></div>
+
         </div>
 
 
@@ -1055,7 +1078,7 @@
                                     <textarea style="display:none;" name="values_list" id="tag_values_list_@fieldPrfx">@tag.values_list</textarea>
                                 </div>
                             </div>
-                          
+
                             <div class="B">
                                 <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
                                     <input type="checkbox" name="is_active" @(tag.is_active ? "checked" : "")> תגית פעילה
@@ -1087,7 +1110,7 @@
     }
     else
     {
-        <div class="blankData" >
+        <div class="blankData">
             -- אין תגיות --
         </div>
     }
@@ -2837,9 +2860,6 @@
 
     int maincat_id = 0; try { maincat_id = product.maincat_id; } catch { }
 
-    sqlSelect = "SELECT * FROM productTags WHERE p_id=@0";
-    var productTags = db.Query(sqlSelect, product_id);
-
 
     sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY is_catalog DESC,round_id DESC,quan,price";
     var PricingOptions = db.Query(sqlSelect, product_id);
@@ -2890,6 +2910,7 @@
     var CustomFields = db.Query(sqlSelect, main_cat_id, sub_cat_id, product_type);
 
     string customFieldsJson = product.custom_fields_json;
+
     string CustomFieldsStr = "";
 
     var savedCustomFields = new List<Dictionary<string, object>>();
@@ -2907,7 +2928,20 @@
         }
     }
 
+    string tags_json = ""; try { tags_json = Convert.ToString(product.tags_json); } catch { }
 
+    var productTags = new List<Dictionary<string, object>>();
+
+    if (!String.IsNullOrWhiteSpace(tags_json))
+    {
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            productTags = serializer.Deserialize<List<Dictionary<string, object>>>(tags_json);
+            productTags = productTags.OrderBy(x => x.ContainsKey("sort") && x["sort"] != null ? Convert.ToInt32(x["sort"]) : 0).ToList();
+        }
+        catch { productTags = new List<Dictionary<string, object>>(); }
+    }
 
     string MainInfoDivDisplayState = "block;";
     string PricingDivDisplayState = "none;";
@@ -2949,25 +2983,7 @@
         </div>
 
 
-        <div class="B" style="background-color:#e3e3e3">
-            <div style="float: right; padding: 5px; font-weight: bold;">
-                <input type="checkbox" onclick="if (this.checked) { AjaxActions('ActivateProduct', @product_id,'', '1'); } else { AjaxActions('ActivateProduct', @product_id, '', '0'); }" @if (product.is_active) { <text> checked</text>}> תבנית פעילה
-            </div>
-
-            <div style="float:left;padding:5px;font-weight:bold;">
-                @main_cat_title
-
-                @if (!String.IsNullOrEmpty(sub_cat_title))
-                {
-                    <span>
-                        - @sub_cat_title
-                    </span>
-                }
-
-            </div>
-
-
-        </div>
+   
 
         <div class="prodSection" id="ProductImagesContainer">
 
@@ -3031,7 +3047,29 @@
                     <div class="B">
                         <div class="prodSectionTitle">
                             <button type="button" class="B" style="float:left;" id="ProdSettingsViewBtn" onclick="hideElement('ProdSettingsViewBtn');hideElement('ProdSettingsViewDiv');showElement('ProdSettingsEditBtn');showElement('ProdSettingsEditDiv');">⚙️</button>
-                            <button type="button" class="B" style="float: left; display: none" id="ProdSettingsEditBtn" onclick="hideElement('ProdSettingsEditBtn');hideElement('ProdSettingsEditDiv');showElement('ProdSettingsViewBtn');showElement('ProdSettingsViewDiv');">❌</button>
+
+                            <div style="float:left;display:none" id="ProdSettingsEditBtn">
+                                <button type="button" onclick="hideElement('ProdSettingsEditBtn');showElement('ProdSettingsDelConfirm');">
+                                    🗑️
+                                </button>
+                                <button type="button" onclick="AjaxActions('UpdateProductTemplate', '@product_id','MainLoader','UpdateProductTemplate');">
+                                    💾
+                                </button>
+                                <button type="button" onclick="hideElement('ProdSettingsEditBtn');hideElement('ProdSettingsEditDiv');showElement('ProdSettingsViewBtn');showElement('ProdSettingsViewDiv');">
+                                    ❎
+                                </button>
+
+                            </div>
+                            <div style="float:left;display:none;color:#f00;font-weight:bold;" id="ProdSettingsDelConfirm">
+                                <input type="checkbox" id="delConfCb" onclick="AjaxActions('MarkProductDeleted', '@product_id','MainLoader', '0'); this.checked = false;" /> <span> בטוח?</span>
+                                <button type="button" onclick="hideElement('ProdSettingsDelConfirm'); hideElement('ProdSettingsEditBtn');hideElement('ProdSettingsEditDiv');showElement('ProdSettingsViewBtn');showElement('ProdSettingsViewDiv');">
+                                    ❎
+                                </button>
+
+
+                            </div>
+
+
 
                             פרטי המוצר
                         </div>
@@ -3110,6 +3148,11 @@
                             <form id="UpdateProductTemplate">
                                 <div class="ProdEditSection">
                                     <div class="ProdViewItem">
+                                        <input type="checkbox" class="ProdEditCb" onclick="if (this.checked) { AjaxActions('ActivateProduct', @product_id,'', '1'); } else { AjaxActions('ActivateProduct', @product_id, '', '0'); }" @if (product.is_active) { <text> checked</text>}>
+
+                                        פעיל במערכת?
+                                    </div>
+                                    <div class="ProdViewItem">
                                         <input type="text" class="ProdEditTb" id="title" name="title" value="@product.title">
                                         כותרת עברית <span class="RedMiniTag">*</span>
                                     </div>
@@ -3169,7 +3212,7 @@
                                                                     {
                                                                         <div class="ProdViewItem">
                                                                             תת קטגוריה
-                                                                            <select class="ProdEditSelect" id="sub_cat_id" name="sub_cat_id" onchange="    MiscActions('LoadProductCustomFields', '@product_id', document.getElementById('product_type').value, this.value);">
+                                                                            <select class="ProdEditSelect" id="sub_cat_id" name="sub_cat_id" onchange="MiscActions('LoadProductCustomFields', '@product_id', document.getElementById('product_type').value, this.value);">
                                                                                 <option value="0">ללא</option>
                                                                                 @foreach (var cat in SubCategories)
                                                                                 {
@@ -3274,7 +3317,7 @@
 
 
                                                 <div class="ProdViewItem">
-                                                    זמין להנחות <span style="float: left"><input type="checkbox" class="ProdEditCb" id="is_discountable" name="is_discountable" @if (product.is_discountable) { <text> checked </text> }></span>
+                                                    זמין להנחות <span style="float: left"><input type="checkbox" class="ProdEditCb" id="is_discountable" name="is_discountable" checked="@(product.is_discountable ? "checked" : null)"></span>
                                                 </div>
 
                                             </div>
@@ -3287,10 +3330,8 @@
                                 </div>
                             </form>
 
-                            <div class="Spacer20"></div>
-                            <div class="Spacer20"></div>
 
-                            <div style="overflow: auto;text-align: center">
+                            <div style="overflow: auto;text-align: center;display:none">
                                 <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('MarkProductDeleted', '@product_id','MainLoader', '0');">מחיקת מוצר</button>
                                 <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateProductTemplate', '@product_id','MainLoader','UpdateProductTemplate');">שמירת שינויים</button>
                             </div>
@@ -3327,33 +3368,48 @@
                     <div class="B">
                         <div class="prodSectionTitle">
                             <button type="button" class="B" style="float:left;" id="ProdTagsViewBtn" onclick="hideElement('ProdTagsViewBtn');hideElement('ProdTagsViewDiv');showElement('ProdTagsEditBtn');showElement('ProdTagsEditDiv');">⚙️</button>
-                            <button type="button" class="B" style="float: left; display: none" id="ProdTagsEditBtn" onclick="hideElement('ProdTagsEditBtn');hideElement('ProdTagsEditDiv');showElement('ProdTagsViewBtn');showElement('ProdTagsViewDiv');">❌</button>
+
+                            <div style="float:left;display:none" id="ProdTagsEditBtn">
+                                <button type="button" onclick="AjaxActions('SaveProductTags','@product_id','MainLoader','SaveProductTags');">
+                                    💾
+                                </button>
+                                <button type="button" onclick="hideElement('ProdTagsEditBtn');hideElement('ProdTagsEditDiv');showElement('ProdTagsViewBtn');showElement('ProdTagsViewDiv');">
+                                    ❎
+                                </button>
+
+                            </div>
 
 
                             תגיות
-
                         </div>
 
-                
-
                         <div class="B" id="ProdTagsViewDiv">
-                            @if (productTags.Count() > 0)
+                            @if (productTags.Count > 0)
                             {
                                 foreach (var pt in productTags)
                                 {
-                                    <div class="PviewTag">@pt.title</div>
+                                    string tagHebrew = ""; try { if (pt.ContainsKey("he") && pt["he"] != null) { tagHebrew = Convert.ToString(pt["he"]); } } catch { }
+                                    bool isFav = false; try { if (pt.ContainsKey("fav") && pt["fav"] != null) { isFav = Convert.ToBoolean(pt["fav"]); } } catch { }
+
+                                    if (tagHebrew != "")
+                                    {
+                                        <div class="PviewTag">
+                                            @if (isFav)
+                                            {<span class="GreenMiniTag">★ </span>}@tagHebrew
+                                        </div>
+                                    }
                                 }
                             }
                             else
                             {
-                                <div class="PviewTagEmpty">לא נבחרו תגיות </div>
+                                <div class="PviewTagEmpty">לא נבחרו תגיות</div>
                             }
                         </div>
-                        <div class="B" style="display:none" id="ProdTagsEditDiv">
+
+                        <div class="B" style="display:none;" id="ProdTagsEditDiv">
                             @Products.ProductCustomTags(product_id)
                         </div>
                     </div>
-
 
 
 
@@ -3376,29 +3432,40 @@
                                 { <span>➕</span>}
 
                             </button>
-                            <button type="button" style="float:left;display:none" onclick="MiscActions('CancelSN', 'description');" id="description_cancel_btn">
-                                ❎
-                            </button>
+                            <div style="float:left;display:none" id="description_cancel_btn">
+                                <button type="button" onclick="AjaxActions('UpdateProdDesc','@product_id','MainLoader','ProdDescForm');">
+                                    💾
+                                </button>
+                                <button type="button" onclick="MiscActions('CancelSN', 'description');">
+                                    ❎
+                                </button>
+
+                            </div>
+
                             תאור המוצר
                         </div>
 
 
                     </div>
                     <div class="HtmlDescContainer">
-                        <div class="B" id="descriptionView">
+                        <form id="ProdDescForm">
+                            <input type="hidden" name="lang" value="he" />
+                            <div class="B" id="descriptionView">
 
 
-                            @if (!String.IsNullOrEmpty(product.description))
-                            {
-                                @Html.Raw(product.description)
-                            }
-                            else
-                            {
-                                <div class="ProductTagNone">אין תיאור</div>
-                            }
-                        </div>
-                        <textarea class="ProdEditSNhide" id="description" name="description" style="display:none;">@product.description</textarea>
-                        <input type="hidden" id="description_save" value="@product.description" />
+                                @if (!String.IsNullOrEmpty(product.description))
+                                {
+                                    @Html.Raw(product.description)
+                                }
+                                else
+                                {
+                                    <div class="ProductTagNone">אין תיאור</div>
+                                }
+                            </div>
+                            <textarea class="ProdEditSNhide" id="description" name="description" style="display:none;">@product.description</textarea>
+                            <input type="hidden" id="description_save" value="@product.description" />
+
+                        </form>
                     </div>
 
 
@@ -3414,27 +3481,40 @@
                                 { <span>➕</span>}
 
                             </button>
-                            <button type="button" style="float:left;display:none" onclick="MiscActions('CancelSN', 'e_desc'); " id="e_desc_cancel_btn">
-                                ❎
-                            </button>
+
+                            <div style="float:left;display:none" id="e_desc_cancel_btn">
+                                <button type="button" onclick="AjaxActions('UpdateProdDesc','@product_id','MainLoader','ProdDescForm_e');">
+                                    💾
+                                </button>
+                                <button type="button" onclick="MiscActions('CancelSN', 'e_desc'); ">
+                                    ❎
+                                </button>
+
+                            </div>
+
+
                             Product Description
                         </div>
 
 
                     </div>
                     <div class="HtmlDescContainer">
-                        <div class="B" id="e_descView">
-                            @if (!String.IsNullOrEmpty(product.e_desc))
-                            {
-                                @Html.Raw(product.e_desc)
-                            }
-                            else
-                            {
-                                <div class="ProductTagNone">No Description</div>
-                            }
-                        </div>
-                        <textarea class="ProdEditSNhide" id="e_desc" name="e_desc" style="display:none;">@product.e_desc</textarea>
-                        <input type="hidden" id="e_desc_save" value="@product.e_desc" />
+                        <form id="ProdDescForm_e">
+                            <input type="hidden" name="lang" value="en" />
+                            <div class="B" id="e_descView">
+                                @if (!String.IsNullOrEmpty(product.e_desc))
+                                {
+                                    @Html.Raw(product.e_desc)
+                                }
+                                else
+                                {
+                                    <div class="ProductTagNone">No Description</div>
+                                }
+                            </div>
+                            <textarea class="ProdEditSNhide" id="e_desc" name="e_desc" style="display:none;">@product.e_desc</textarea>
+                            <input type="hidden" id="e_desc_save" value="@product.e_desc" />
+
+                        </form>
                     </div>
                 </div>
 
@@ -3444,8 +3524,8 @@
                 <div style="overflow: auto;" id="ProductPricingDiv_@product_id">
                     <div class="B">
                         <div class="prodSectionTitle">
-                            <button type="button" class="PPOBtn" id="ShowPOOpt" onclick="hideElement('POPTVIEW');hideElement('ShowPOOpt');showElement('POPTEDIT');showElement('HidePOOpt');">⚙️</button>
-                            <button type="button" class="PPOBtn" id="HidePOOpt" style="display:none;" onclick="hideElement('POPTEDIT');hideElement('HidePOOpt');showElement('POPTVIEW');showElement('ShowPOOpt');">❌</button>
+                            <button type="button" style="float:left" id="ShowPOOpt" onclick="hideElement('POPTVIEW');hideElement('ShowPOOpt');showElement('POPTEDIT');showElement('HidePOOpt');">⚙️</button>
+                            <button type="button" style="float: left; display: none;" id="HidePOOpt" onclick="hideElement('POPTEDIT');hideElement('HidePOOpt');showElement('POPTVIEW');showElement('ShowPOOpt');">❎</button>
                             מחירון
                         </div>
 
@@ -3455,92 +3535,61 @@
 
 
                             <div class="B" id="POPTVIEW">
-                                @foreach (var priceOption in PricingOptions)
-                                {
-                                    bool is_activated = false; is_activated = priceOption.is_activated;
-                                    bool is_spOffer = priceOption.is_spOffer;
-                                    bool is_catalog_option = priceOption.is_catalog;
-                                    bool is_fav = false; is_fav = priceOption.is_fav;
-                                    string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
-
-
-
-                                    <div class="ProdViewItem" style="text-align:center;">
-
-                                        <div class="PPOItem">@Convert.ToInt32(priceOption.quan) @itemunit</div>
-
-                                        <div class="PPOValue">
-                                            @Convert.ToInt32(priceOption.price) ₪
-                                        </div>
-
-
-                                    </div>
-
-
-
-
-
-                                }
+                                <div class="B">
+                                    @Products.ViewProductPricingOptions(product_id)
+                                </div>
                             </div>
 
 
 
                             <div class="B" id="POPTEDIT" style="display:none">
 
-
-                                @foreach (var priceOption in PricingOptions)
-                                {
-                                    bool is_activated = false; is_activated = priceOption.is_activated;
-                                    bool is_spOffer = priceOption.is_spOffer;
-                                    bool is_catalog_option = priceOption.is_catalog;
-                                    bool is_fav = false; is_fav = priceOption.is_fav;
-                                    string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
-
-
-
-                                    <div class="ProdViewItem" style="text-align:center;">
-
-                                        <div class="PPOItem">@Convert.ToInt32(priceOption.quan) @itemunit</div>
-
-
-                                        <div class="PPOEdit">
-                                            <span class="GrayMiniTag">₪</span>
-                                            <input type="text" name="optionPrice" class="PPOTB" style="width: 40px;padding: 5px;font-size: 16px;" value="@Convert.ToInt32(priceOption.price)">
-                                            <button type="button" class="PPOBtn1" onclick="hideElement('POPTVIEW_@priceOption.serial');showElement('POPTEDIT_@priceOption.serial');">✅</button>
-
-                                        </div>
-
-
-                                    </div>
-
-
-
-
-
-                                }
-
-                                <div class="ProdViewItem" style="text-align:center;">
-
-                                    <div class="PPOItem"><input type="text" name="optionPrice" class="PPOTB" style="width: 40px;padding: 5px;font-size: 16px;float:right" placeholder="@itemunit"> </div>
-
-
-                                    <div class="PPOEdit">
-                                        <span class="GrayMiniTag">₪</span>
-                                        <input type="text" name="optionPrice" class="PPOTB" style="width: 40px;padding: 5px;font-size: 16px;" value="">
-                                        <button type="button" class="PPOBtn1" onclick="">✅</button>
-
-                                    </div>
-
-
+                                <div class="B">
+                                    @Products.EditProductPricingOptions(product_id)
                                 </div>
                             </div>
-
 
                         </div>
 
                     </div>
+                    <div class="Spacer20"></div>
+                </div>
+
+
+                <div class="B" id="ViewProductOptionsDiv">
+                    @Products.ViewProductOptions(product_id)
+                </div>
+                <div class="B" id="ProductOptionsDiv" style="display:none;">
+                    @Products.EditProductOptions(product_id)
+                </div>
+
+                <div class="Spacer20"></div>
+
+
+                <div style="overflow: auto;" id="ActiveProductsDiv">
+                    <div class="prodSectionTitle">
+                        <button type="button" style="float:left" onclick="Accordionize('VendorProdAddAcc');">➕</button>
+                        מוצרי ספקים
+
+                    </div>
+                    <div style="overflow: auto;">
+                        <button class="Accordion" id="VendorProdAddAcc" style="display:none"></button>
+                        <div class="panel">
+                             <div id="SubProductsCreationContainer">
+                                @Products.CreateSubProductForVendors(product_id)
+                            </div>
+                        </div>
+                   
+
+                        <div id="SubProductsContainer">
+                            @Products.SubProductsForCatalogProduct(product_id)
+                        </div>
+
+
+                    </div>
 
                 </div>
+
 
             </div>
 
@@ -3550,6 +3599,192 @@
 
         </div>
     </div>
+    db.Close();
+}
+
+
+
+@helper ViewProductPricingOptions(int product_id)
+{
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
+var product = db.QuerySingle(sqlSelect, product_id);
+string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY quan,price";
+var PricingOptions = db.Query(sqlSelect, product_id);
+
+<div class="B">
+
+    @if (PricingOptions.Count() > 0)
+    {
+        foreach (var priceOption in PricingOptions)
+        {
+            bool is_activated = false; is_activated = priceOption.is_activated;
+            bool is_spOffer = priceOption.is_spOffer;
+            bool is_catalog_option = priceOption.is_catalog;
+            bool is_fav = false; is_fav = priceOption.is_fav;
+            string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
+
+
+
+            <div class="ProdViewItem" style="text-align:center;">
+
+                <div class="PPOItem">
+
+
+                    @Convert.ToInt32(priceOption.quan) @itemunit
+                </div>
+
+                <div class="PPOValue">
+                    @Convert.ToInt32(priceOption.price) ₪
+                </div>
+
+
+            </div>
+
+
+
+
+
+        }
+
+    }
+    else{
+    <div class="PviewTagEmpty">לא הוגדרו אפשרויות מחירון</div>
+    }
+
+</div>
+    db.Close();
+}
+
+
+@helper EditProductPricingOptions(int product_id)
+{
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
+var product = db.QuerySingle(sqlSelect, product_id);
+string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY quan,price";
+var PricingOptions = db.Query(sqlSelect, product_id);
+
+<div class="B">
+    @foreach (var priceOption in PricingOptions)
+    {
+        bool is_activated = false; is_activated = priceOption.is_activated;
+        bool is_spOffer = priceOption.is_spOffer;
+        bool is_catalog_option = priceOption.is_catalog;
+        bool is_fav = false; is_fav = priceOption.is_fav;
+        string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
+        string ActiveDivClass = "PPOBtnItem";
+        string FavDivClass = "PPOBtnItem";
+        string spOfferDivClass = "PPOBtnItem";
+        if (is_activated)
+        {
+            ActiveDivClass = "PPOBtnItemSelected";
+        }
+        if (is_fav)
+        {
+            FavDivClass = "PPOBtnItemSelected";
+        }
+        if (is_spOffer)
+        {
+            spOfferDivClass = "PPOBtnItemSelected";
+        }
+
+
+
+        <form id="PPOFORM_@priceOption.serial">
+            <input type="hidden" name="optionQuan" value="@priceOption.quan" />
+            <input type="hidden" name="optionSerial" value="@priceOption.serial" />
+            <div class="ProdViewItem" style="text-align:center;">
+                <div id="ppo_btns_@priceOption.serial">
+                    <div class="@ActiveDivClass" id="IsActiveDiv_@priceOption.serial" onclick="MiscActions('PPOOPTTOGGLE',@priceOption.serial,'ISACTIVE');">
+                        <input type="checkbox" style="margin:4px;" id="ppo_is_active_@priceOption.serial" name="is_activated" checked="@(priceOption.is_activated ? "checked" : null)" />
+                    </div>
+                    <div class="@FavDivClass" id="FavDiv_@priceOption.serial" onclick="MiscActions('PPOOPTTOGGLE',@priceOption.serial,'FAV');">
+                        <input type="checkbox" id="ppo_is_fav_@priceOption.serial" value="true" name="is_fav" style="display:none" checked="@(is_fav ? "checked" : null)" />
+                        ❤️
+                    </div>
+                    <div class="@spOfferDivClass" id="SPODiv_@priceOption.serial" onclick="MiscActions('PPOOPTTOGGLE',@priceOption.serial,'SPO');">
+                        <input type="checkbox" id="ppo_is_spo_@priceOption.serial" value="true" name="is_spOffer" style="display:none" checked="@(is_spOffer ? "checked" : null)" />
+                        🎁
+                    </div>
+                    <div class="PPOBtnItem" onclick="hideElement('ppo_btns_@priceOption.serial'); showElement('ppo_del_conf_@priceOption.serial');">
+                        🗑️
+                    </div>
+                </div>
+                <div id="ppo_del_conf_@priceOption.serial" style="display:none;">
+                    <div class="PPODelBtnItem">
+                        <input type="checkbox" style="margin:4px;" onclick="AjaxActions('DeletePricingOption', '@priceOption.serial', 'MainLoader', @priceOption.p_id);" /> בטוח למחוק?
+                    </div>
+                    <div class="PPODelBtnItem" onclick="hideElement('ppo_del_conf_@priceOption.serial'); showElement('ppo_btns_@priceOption.serial');">
+                        ❎
+                    </div>
+                </div>
+
+
+                <div class="PPOPriceItem">
+
+                    @Convert.ToInt32(priceOption.quan) @itemunit
+                </div>
+
+
+
+                <div class="PPOEdit">
+                    <span class="GrayMiniTag">₪</span>
+                    <input type="text" name="optionPrice" class="PPOTB" style="width: 40px;padding: 5px;font-size: 16px;" value="@Convert.ToInt32(priceOption.price)">
+                    <button type="button" class="PPOBtn1" onclick="    AjaxActions('UpdateProductPricingOption', @product_id,'MainLoader', 'PPOFORM_@priceOption.serial',@product_id);">💾</button>
+
+                </div>
+
+
+            </div>
+
+        </form>
+
+
+
+
+
+    }
+
+    <div class="ProdViewItem" style="text-align:center;">
+
+
+        <form id="AddPricingOption">
+            <div class="PPOBtnItemSelected" id="IsActiveDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','ISACTIVE');">
+                <input type="checkbox" style="margin:4px;" id="ppo_is_active_0" name="is_activated" checked />
+            </div>
+            <div class="PPOBtnItem" id="FavDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','FAV');">
+                <input type="checkbox" id="ppo_is_fav_0" value="true" name="is_fav" style="display:none" />
+                ❤️
+            </div>
+            <div class="PPOBtnItem" id="SPODiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','SPO');">
+                <input type="checkbox" id="ppo_is_spo_0" value="true" name="is_spOffer" style="display:none" />
+                🎁
+            </div>
+            <div class="PPOBtnItemStatic">
+
+            </div>
+            <div class="PPOBtnItem">
+                <input type="text" name="optionQuan" class="PPOTB" style="width: 40px; background-color: #fff; "> @itemunit
+            </div>
+
+
+
+
+            <div class="PPOEdit">
+                <span class="GrayMiniTag">₪</span>
+                <input type="text" name="optionPrice" class="PPOTB" style="width: 40px; padding: 5px; font-size: 16px;" value="">
+                <button type="button" class="PPOBtn1" onclick="AjaxActions('AddProductTemplatePricingOption', '@product_id','MainLoader', 'AddPricingOption',@product_id,'TEMPLATE');">💾</button>
+
+            </div>
+
+        </form>
+    </div>
+
+
+</div>
     db.Close();
 }
 
@@ -3760,135 +3995,192 @@
     db.Close();
 }
 
-
 @helper ProductCustomTags(int product_id, int p_t_id = 0, int cat_id = 0)
 {
     var db = Database.Open("op_data");
-    var sqlSelect = "SELECT maincat_id, sub_cat_id, product_type, custom_fields_json FROM Products WHERE p_id=@0";
-    var product = db.QuerySingle(sqlSelect, product_id);
+    var product = db.QuerySingle("SELECT maincat_id, sub_cat_id, product_type, tags_json FROM Products WHERE p_id=@0", product_id);
+
     int main_cat_id = 0;
     int sub_cat_id = 0;
     int product_type = 0;
+    string tags_json = "";
+
     if (product != null)
     {
         try { main_cat_id = Convert.ToInt32(product.maincat_id); } catch { }
         try { sub_cat_id = Convert.ToInt32(product.sub_cat_id); } catch { }
         try { product_type = Convert.ToInt32(product.product_type); } catch { }
-        string customFieldsJson = ""; try { customFieldsJson = Convert.ToString(product.custom_fields_json); } catch { }
-
-        if (p_t_id > 0) { product_type = p_t_id; }
-        if (cat_id > 0) { sub_cat_id = cat_id; }
-        if (cat_id == -1) { sub_cat_id = 0; }
-
+        try { tags_json = Convert.ToString(product.tags_json); } catch { }
     }
 
-    sqlSelect = "SELECT * FROM pTags WHERE is_active=1 AND (cat_id=@0 OR cat_id=@1 OR p_t_id=@2) ORDER BY  sort_order";
+    if (p_t_id > 0) { product_type = p_t_id; }
+    if (cat_id > 0) { sub_cat_id = cat_id; }
+    if (cat_id == -1) { sub_cat_id = 0; }
 
-    var Tags = db.Query(sqlSelect, main_cat_id, sub_cat_id, product_type);
+    var Tags = db.Query("SELECT * FROM pTags WHERE is_active=1 AND (cat_id=@0 OR cat_id=@1 OR p_t_id=@2) ORDER BY sort_order", main_cat_id, sub_cat_id, product_type);
+    var savedTags = new List<Dictionary<string, object>>();
+    var savedTagsLookup = new Dictionary<int, Dictionary<string, object>>();
+    var shownTagTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    if (!String.IsNullOrWhiteSpace(tags_json))
+    {
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            savedTags = serializer.Deserialize<List<Dictionary<string, object>>>(tags_json);
+        }
+        catch { savedTags = new List<Dictionary<string, object>>(); }
+    }
+
+    foreach (var savedTag in savedTags)
+    {
+        int savedTagId = 0;
+        try
+        {
+            if (savedTag.ContainsKey("id") && savedTag["id"] != null) { savedTagId = Convert.ToInt32(savedTag["id"]); }
+        }
+        catch { }
+
+        if (savedTagId > 0 && !savedTagsLookup.ContainsKey(savedTagId)) { savedTagsLookup.Add(savedTagId, savedTag); }
+    }
 
     string SelectedCat = "";
-    <div style="overflow: auto;">
 
-        @if (Tags.Count() > 0)
-        {
-            <div class="B">
-
-                <div style="overflow: auto">
-                    @foreach (var tag in Tags)
-                    {
-                        int tag_type = tag.tag_type;
-                        string values_list = "";
-                        bool is_list = false;
-                        if (tag_type == 2)
+    <div style="overflow:auto;">
+        <form id="SaveProductTags">
+            @if (Tags.Count() > 0)
+            {
+                <div class="B">
+                    <div style="overflow:auto;">
+                        @foreach (var tag in Tags)
                         {
-                            is_list = true;
-                            values_list = tag.values_list;
+                            int tagId = 0; try { tagId = Convert.ToInt32(tag.id); } catch { }
+                            int tag_type = 0; try { tag_type = Convert.ToInt32(tag.tag_type); } catch { }
+                            string tagTitleHebrew = ""; try { tagTitleHebrew = Convert.ToString(tag.title_h).Trim(); } catch { }
+                            string values_list = ""; try { values_list = Convert.ToString(tag.values_list); } catch { }
 
-                        }
+                            string duplicateKey = tagTitleHebrew.Trim();
+                            if (duplicateKey == "" || shownTagTitles.Contains(duplicateKey)) { continue; }
+                            shownTagTitles.Add(duplicateKey);
 
+                            Dictionary<string, object> savedTag = null;
+                            savedTagsLookup.TryGetValue(tagId, out savedTag);
 
-                        bool is_selected = false;
-                        sqlSelect = "SELECT cat_id FROM productTags WHERE cat_id=@0 AND p_id=@1";
-                        var rs = db.QuerySingle(sqlSelect, tag.id, product_id);
-                        if (rs != null)
-                        {
-                            SelectedCat = SelectedCat + "##" + tag.id + "##";
-                            is_selected = true;
-                        }
+                            bool is_selected = savedTag != null;
+                            bool is_fav = false;
+                            string savedHebrew = "";
+                            string savedEnglish = "";
 
-
-
-                        string tagVal = "no";
-                        string tagClass = "ProductTagUnSelected";
-                        string tagIcon = "★";
-
-                        if (is_selected)
-                        {
-                            tagVal = "";
-                            tagClass = "ProductTagSelected";
-                            tagIcon = "⭐";
-                            tagIcon = "★";
-                        }
-
-
-                        <input type="hidden" name="is_cat_@tag.id" id="is_cat_@tag.id" value="@tagVal">
-                        <div class="@tagClass" id="cat_btn_@tag.id">
-
-                            @if (tag_type == 2)
+                            if (savedTag != null)
                             {
-                                <input type="checkbox" class="ProductTagFavBtn" name="is_tag_fav_@tag.id" id="is_tag_fav_@tag.id" value="true" onchange="if (document.getElementById('tag_value_@tag.id').value == '') { this.checked = false; } else { ProductTagFavChanged(@tag.id, this.checked);} " />
+                                try
+                                {
+                                    if (savedTag.ContainsKey("fav") && savedTag["fav"] != null) { is_fav = Convert.ToBoolean(savedTag["fav"]); }
+                                }
+                                catch { }
 
-                                <select class="ProductTagSelect" id="tag_value_@tag.id" name="tag_value_@tag.id" onchange="if (this.value == '') { ProductCatSelector(@tag.id);; hideElement('pt_lst_btn_@tag.id');document.getElementById('is_tag_fav_@tag.id').checked = false;  } else { ProductTagSelectChanged(@tag.id, this);showElement('pt_lst_btn_@tag.id'); }">
-                                    <option value="">@tag.title_h</option>
-                                    @{
-                                        foreach (string item in values_list.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                                try
+                                {
+                                    if (savedTag.ContainsKey("he") && savedTag["he"] != null) { savedHebrew = Convert.ToString(savedTag["he"]); }
+                                }
+                                catch { }
+
+                                try
+                                {
+                                    if (savedTag.ContainsKey("en") && savedTag["en"] != null) { savedEnglish = Convert.ToString(savedTag["en"]); }
+                                }
+                                catch { }
+                            }
+
+                            if (is_selected) { SelectedCat += "##" + tagId + "##"; }
+
+                            string tagVal = is_selected ? "yes" : "no";
+                            string tagClass = is_selected ? "ProductTagSelected" : "ProductTagUnSelected";
+                            string savedListValue = savedHebrew != "" ? savedHebrew + "##" + savedEnglish : "";
+
+                            <input type="hidden" name="is_cat_@tagId" id="is_cat_@tagId" value="@tagVal" />
+
+                            <div class="@tagClass" id="cat_btn_@tagId">
+                                @if (tag_type == 2)
+                                {
+                                    if (is_fav)
+                                    {
+                                        <input type="checkbox" class="ProductTagFavBtn" name="is_tag_fav_@tagId" id="is_tag_fav_@tagId" value="true" checked onchange="if(document.getElementById('tag_value_@tagId').value==''){this.checked=false;}else{ProductTagFavChanged(@tagId,this.checked);}" />
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" class="ProductTagFavBtn" name="is_tag_fav_@tagId" id="is_tag_fav_@tagId" value="true" onchange="if(document.getElementById('tag_value_@tagId').value==''){this.checked=false;}else{ProductTagFavChanged(@tagId,this.checked);}" />
+                                    }
+
+                                    <select class="ProductTagSelect" id="tag_value_@tagId" name="tag_value_@tagId" onchange="if(this.value==''){ProductCatSelector(@tagId);hideElement('pt_lst_btn_@tagId');document.getElementById('is_tag_fav_@tagId').checked=false;}else{ProductTagSelectChanged(@tagId,this);showElement('pt_lst_btn_@tagId');}">
+                                        <option value="">@tagTitleHebrew</option>
+
+                                        @foreach (string item in values_list.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                                         {
                                             string[] vals = item.Split(new[] { "##" }, StringSplitOptions.None);
-                                            string valHeb = vals[0];
-                                            string valEng = vals.Length > 1 ? vals[1] : vals[0];
-                                            <option value="@valHeb">@valHeb</option>
+                                            string valHeb = vals.Length > 0 ? vals[0].Trim() : "";
+                                            string valEng = vals.Length > 1 ? vals[1].Trim() : valHeb;
+                                            string selVal = valHeb + "##" + valEng;
+
+                                            if (selVal == savedListValue)
+                                            {
+                                                <option value="@selVal" selected>@valHeb</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@selVal">@valHeb</option>
+                                            }
                                         }
+                                    </select>
+
+                                    if (is_selected)
+                                    {
+                                        <div class="B" id="pt_lst_btn_@tagId" style="float:left;">
+                                            <button type="button" class="ProductTagBtn" style="font-size:12px;" onclick="ProductCatSelector(@tagId);document.getElementById('tag_value_@tagId').value='';document.getElementById('is_tag_fav_@tagId').checked=false;hideElement('pt_lst_btn_@tagId');">❎</button>
+                                        </div>
                                     }
-                                </select>
-                                <div class="B" id="pt_lst_btn_@tag.id" style="float: left; display: none; ">
-                                    <button type="button" class="ProductTagBtn" onclick="ProductCatSelector(@tag.id); document.getElementById('tag_value_@tag.id').value = ''; document.getElementById('is_tag_fav_@tag.id').checked = false; hideElement('pt_lst_btn_@tag.id');">❌</button>
-                                </div>
+                                    else
+                                    {
+                                        <div class="B" id="pt_lst_btn_@tagId" style="float:left;display:none;">
+                                            <button type="button" class="ProductTagBtn" style="font-size:12px;" onclick="ProductCatSelector(@tagId);document.getElementById('tag_value_@tagId').value='';document.getElementById('is_tag_fav_@tagId').checked=false;hideElement('pt_lst_btn_@tagId');">❎</button>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    if (is_fav)
+                                    {
+                                        <input type="checkbox" class="ProductTagFavBtn" name="is_tag_fav_@tagId" id="is_tag_fav_@tagId" value="true" checked onchange="ProductTagFavChanged(@tagId,this.checked);" />
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" class="ProductTagFavBtn" name="is_tag_fav_@tagId" id="is_tag_fav_@tagId" value="true" onchange="ProductTagFavChanged(@tagId,this.checked);" />
+                                    }
 
-                            }
-                            else
-                            {
-                                <input type="checkbox" class="ProductTagFavBtn" name="is_tag_fav_@tag.id" id="is_tag_fav_@tag.id" value="true" onchange="ProductTagFavChanged(@tag.id, this.checked); " />
+                                    <button type="button" class="ProductTagBtn" onclick="ProductCatSelector(@tagId);">@tagTitleHebrew</button>
+                                }
+                            </div>
+                        }
+                    </div>
 
-                                <button type="button" class="ProductTagBtn" onclick="ProductCatSelector(@tag.id);">@tag.title_h</button>
+                    <div class="Spacer20"></div>
 
-                            }
+                    <div class="hide" >
+                        <div style="overflow:auto;text-align:center;">
+                            <button type="button" style="padding:5px;margin:5px;font-size:16px;background-color:#f00;color:#fff;font-weight:bold;" onclick="hideElement('ProdTagsEditBtn');hideElement('ProdTagsEditDiv');showElement('ProdTagsViewBtn');showElement('ProdTagsViewDiv');">ביטול</button>
+                            <button type="button" style="padding:5px;margin:5px;font-size:16px;background-color:#57d600;color:#fff;font-weight:bold;" onclick="AjaxActions('SaveProductTags','@product_id','MainLoader','SaveProductTags');">שמירת שינויים</button>
                         </div>
-                
-
-
-
-                    }
-
+                    </div>
                 </div>
-            </div>
-        }
+            }
 
-        <div style="display:none">
-            ptid:@p_t_id
-            catid:@cat_id
-            pid:@product_id
-        </div>
-
-        <input type="hidden" name="SelectedCat" id="SelectedCat" value="@SelectedCat">
+            <div style="display:none;">ptid:@p_t_id catid:@cat_id pid:@product_id</div>
+            <input type="hidden" name="SelectedCat" id="SelectedCat" value="@SelectedCat" />
+        </form>
     </div>
-
-
-
 
     db.Close();
 }
-
-
 
 @helper RoundMenuItemEdit(int menuItem_id)
 {
@@ -5554,6 +5846,103 @@
 }
 
 
+@helper ViewProductOptions(int p_id)
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM  ProductOptions WHERE is_deleted=0 AND p_id=@0  ORDER BY sort_order";
+    var ProductOptions = db.Query(sqlSelect, p_id);
+
+
+
+
+<div class="B">
+    <div class="prodSectionTitle">
+        <button type="button" style="float:left" id="ShowPOOpt" onclick="hideElement('ViewProductOptionsDiv');showElement('ProductOptionsDiv');">⚙️</button>
+        <button type="button" style="float: left; display: none;" id="HidePOOpt" onclick="hideElement('POPTEDIT');hideElement('HidePOOpt');showElement('POPTVIEW');showElement('ShowPOOpt');">❎</button>
+        אפשרויות מוצר
+    </div>
+
+    @if (ProductOptions.Count() > 0)
+    {
+        <div style="overflow: auto;padding:5px;">
+
+            @foreach (var opt in ProductOptions)
+            {
+
+                sqlSelect = "SELECT * FROM ProductOptionsItems WHERE is_deleted=0 AND option_id=@0 ORDER BY sort_order";
+                var optionItems = db.Query(sqlSelect, opt.option_id);
+                <div class="B" style="border-bottom:1px dotted #808080">
+                    <div class="B" style="font-weight:bold">
+
+                        @if (opt.is_active)
+                        {
+                            <span>@opt.title_h</span>
+                        }
+                        else
+                        {
+                            <span style="color:#e3e3e3">@opt.title_h</span>
+                        }
+
+                    </div>
+
+
+
+
+
+                    <div class="B">
+                        @foreach (var optItem in optionItems)
+                        {
+                            int option_serial = optItem.serial;
+                            bool is_available = false; try { is_available = optItem.is_available; } catch { }
+                            bool is_active = false; try { is_active = optItem.is_active; } catch { }
+                            decimal option_price = 0; try { option_price = optItem.option_price; } catch { }
+                            string optPriceStr = "";
+                            string optColor = "#000";
+
+                            if (optItem.option_price != 0)
+                            {
+                                optPriceStr = optItem.option_price.ToString("F2");
+                            }
+
+                            if (!String.IsNullOrEmpty(optPriceStr))
+                            {
+                                optColor = "blue";
+                            }
+                            if (!optItem.is_active)
+                            {
+                                optColor = "#e3e3e3";
+                            }
+
+
+                            <div class="B">
+                                <div class="B">
+                                    <div class="B" style="margin-right:10px;font-weight:normal;margin-bottom:1px;font-size:14px;color:@optColor">
+                                        <span>@optItem.title_h</span>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="Spacer5"></div>
+                </div>
+
+            }
+
+        </div>
+    }
+    else{
+<div class="PviewTagEmpty">לא הוגדרו אפשרויות מוצר</div>
+    }
+</div>
+    db.Close();
+}
+
+
+
+
 @helper EditProductOptions(int p_id)
 {
     System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
@@ -5562,22 +5951,16 @@
     var ProductOptions = db.Query(sqlSelect, p_id);
 
 
-    <div>
-
-        <div style="overflow: auto;text-align: center">
-
-            <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;float: left;border: 0;display: none" onclick="AjaxActions('ActivateProductCustomField','@p_id','', document.getElementById('field_id').value);">הוספה</button>
-
-
+    <div class="B">
+        <div class="prodSectionTitle">
+            <button type="button" style="float:left"  onclick="hideElement('ProductOptionsDiv');showElement('ViewProductOptionsDiv');">❎</button>
+            <button type="button" style="float: left;" id="HidePOOpt" onclick="Accordionize('AddProdOptionAcc');">➕</button>
+            אפשרויות מוצר
         </div>
-        <div style="overflow: auto;">
-            <div style="overflow: auto;background-color: #fff">
-                <button type="button" class="A" style="float:left" onclick="Accordionize('AddProdOptionAcc');">➕</button>
-                <h3>אפשרויות מוצר</h3>
-            </div>
 
+        <div style="overflow: auto;">
             <button class="Accordion" style="display: none" id="AddProdOptionAcc"></button>
-            <div class="panel" style="padding: 0; margin: 0; background-color: #e3e3e3">
+            <div class="panel" >
                 <form id="Add_Product_Option">
                     <input type="hidden" name="p_id" id="p_id" value="@p_id">
                     <div style="overflow: auto;font-weight: bold;font-size: 16px">
@@ -5617,8 +6000,8 @@
 
                     </div>
                     <div style="overflow: auto;text-align: center;padding: 5px;">
-                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc');document.getElementById('Add_Product_Field').reset();">ביטול</button>
-                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductOption', '@p_id','', 'Add_Product_Option');">הוספת אפשרות</button>
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdOptionAcc'); document.getElementById('Add_Product_Option').reset();">ביטול</button>
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductOption', '@p_id','MainLoader', 'Add_Product_Option');">הוספת אפשרות</button>
                     </div>
                 </form>
             </div>
@@ -5666,13 +6049,17 @@
                         <button type="button" style="float:right;font-size:16px;margin-left:5px;border:0" onclick="Accordionize('UpdateProdOptionAcc_@opt.option_id');">
                             ⚙️
                         </button>
-                        <button type="button" style="float:right;font-size:16px;margin-left:5px;border:0" onclick="AjaxActions('ProdOptionMove','@opt.p_id','MainLoader','@opt.option_id','down');">
-                            ⬇️
-                        </button>
+                        @if (ProductOptions.Count() > 1)
+                        {
+                            <button type="button" style="float:right;font-size:16px;margin-left:5px;border:0" onclick="AjaxActions('ProdOptionMove','@opt.p_id','MainLoader','@opt.option_id','down');">
+                                ⬇️
+                            </button>
 
-                        <button type="button" style="float:right;font-size:16px;margin-left:5px;border:0" onclick="AjaxActions('ProdOptionMove','@opt.p_id','MainLoader','@opt.option_id','up');">
-                            ⬆️
-                        </button>
+                            <button type="button" style="float:right;font-size:16px;margin-left:5px;border:0" onclick="AjaxActions('ProdOptionMove','@opt.p_id','MainLoader','@opt.option_id','up');">
+                                ⬆️
+                            </button>
+                        }
+
 
                         @if (opt.is_active)
                         {
@@ -5735,8 +6122,8 @@
                             </div>
                             <div style="overflow: auto;text-align: center;padding: 5px;">
                                 <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('UpdateProdOptionAcc_@opt.option_id');">ביטול</button>
-                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProductOption', @p_id,'', @opt.option_id);">מחיקת האפשרות</button>
-                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateProductOption', '@p_id','', 'Update_Product_Option_@opt.option_id');">שמירת שינויים</button>
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteProductOption', @p_id,'MainLoader', @opt.option_id);">מחיקת האפשרות</button>
+                                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateProductOption', '@p_id','MainLoader', 'Update_Product_Option_@opt.option_id');">שמירת שינויים</button>
                             </div>
                         </form>
                     </div>
@@ -5758,7 +6145,7 @@
                             }
                             <div class="B">
                                 <form id="editProdOptItem_@optItem.serial">
-                                    <input type="hidden" name="p_id" value="@optItem.p_id" />
+                                    <input type="hidden" name="p_id" value="@p_id" />
                                     <input type="hidden" name="option_id" value="@optItem.option_id" />
                                     <input type="hidden" name="option_item_serial" value="@optItem.serial" />
                                     <div class="B" style="margin-right:20px;font-weight:normal;margin-bottom:2px;" id="ViewOptDiv_@optItem.serial">
@@ -5809,7 +6196,7 @@
                                         </span>
 
                                         <input type="text" style="width: 100px; float: right; padding:3px;margin:2px;" name="prod_option_item_title" value="@optItem.title_h" />
-                                        <input type="text" style="width: 100px; float: right; padding: 3px; margin: 2px;" name="prod_option_item_title_e" value="@optItem.title_h" />
+                                        <input type="text" style="width: 100px; float: right; padding: 3px; margin: 2px;" name="prod_option_item_title_e" value="@optItem.title_e" />
                                         <input type="text" style="width: 40px; float: right;  padding: 3px; margin: 2px;" name="prod_option_price" value="@optPriceStr" placeholder="₪" />
 
                                         <button type="button" style="float:right;font-size:16px;margin-left:5px;border:0" onclick="AjaxActions('EditProductOptionitem', '@optItem.serial','', 'editProdOptItem_@optItem.serial',@opt.option_id,@p_id);">
@@ -6970,7 +7357,7 @@
     else
     {
         <div>
-            <div style="overflow: auto;font-size: 14px;color:#808080">אין מוצרים פעילים למוצר הקטלוגי <b>@catProduct.title</b></div>
+            <div class="PviewTagEmpty">אין מוצרים פעילים למוצר הקטלוגי <b>@catProduct.title</b></div>
 
         </div>
     }
@@ -6990,19 +7377,18 @@
             <form id="ProductSetupForm">
                 <input type="hidden" name="p_id" value="@p_id" />
                 <div style="overflow: auto">
-                    <div style="overflow: auto;border-bottom:1px dotted #808080;font-size: 18px;color: #000;background-color: #fff">
+                    <div style="overflow: auto;color: #000;background-color: #e3e3e3;margin:10px;padding:20px;">
                         <div style="overflow: auto;padding:4px;">
                             <div style="overflow:auto">
-                                <div style="float: right; padding: 5px; margin: 1px; font-size: 12px; color: #808080;display:none">יצירת מוצר עבור </div>
                                 <div style="float:right;">
 
                                     <div style="overflow:auto;">
                                         <div style="float: right; ">
                                             <select style="padding: 5px; font-size: 16px;margin-right:5px;" id="add_type" name="add_type" onchange="if (this.value == 'CATALOG') { setElementDisablity('vendor_id_select', true); } else {setElementDisablity('vendor_id_select', false); }">
                                                 <option value="">נא לבחור פעולה..</option>
+                                                <option value="IMPORT">יצירת מוצר ספק מקושר </option>
+                                                <option value="VENDOR">יצירת מוצר ספק פתוח </option>
                                                 <option value="CATALOG">יצירת עותק בקטלוג</option>
-                                                <option value="IMPORT">יצירת מוצר ספק דינמי </option>
-                                                <option value="VENDOR">יצירת מוצר ספק פסיבי </option>
                                             </select>
                                         </div>
 
@@ -7030,8 +7416,17 @@
                                     <div style="float: right; display: none">
                                         <input type="checkbox" style="padding: 5px; margin: 5px; " name="is_pricing" checked /> מחירון
                                     </div>
+                                    <div style="float: right; display: none">
+                                        <input type="checkbox" style="padding: 5px; margin: 5px; " name="is_product_options" checked /> אפשרויות מוצר
+                                    </div>
+                                    <div style="float: right; display: none">
+                                        <input type="checkbox" style="padding: 5px; margin: 5px; " name="is_product_fields" checked /> שדות מידע
+                                    </div>
+                                    <div style="float: right; display: none">
+                                        <input type="checkbox" style="padding: 5px; margin: 5px; " name="is_product_tags" checked /> תגיות
+                                    </div>
                                 </div>
-                                <button type="button" style="float: left; padding: 2px; margin: 2px; font-size: 12px; color: #808080" onclick="AjaxActions('CreateVendorProductFromCatalog', '@p_id', '', 'ProductSetupForm');">יצירה</button>
+                                <button type="button" style="float: left; padding: 2px; margin: 2px; font-size: 12px; color: #808080" onclick="AjaxActions('CreateProductFromCatalog', '@p_id', 'MainLoader', 'ProductSetupForm');">יצירה</button>
 
 
                             </div>

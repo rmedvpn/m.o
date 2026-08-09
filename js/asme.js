@@ -625,6 +625,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddProductField":
             case "AddProductTag":
             case "CreateVendorProductFromCatalog":
+            case "CreateProductFromCatalog":
             case "UpdateCartOptions":
             case "RepUpdateOrderItems":
             case "ORDERACTION":
@@ -661,6 +662,11 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "UpdateProductOption":
             case "UpdateCustomField":
             case "UpdateProductTag":
+            case "SaveProductTags":
+            case "UpdateProdDesc":
+            case "AddProductTemplatePricingOption":
+            case "UpdateProductPricingOption":
+            case "AddProductType":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1032,8 +1038,10 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         
                     case "MarkProductDeleted":
                     case "DeleteProduct":
-
-                        PageNavigator('PRODUCTS');
+                        if (!theRes.startsWith("!$!")) {
+                            PageNavigator('PRODUCTS');
+                        }
+                        
                      //   controller.close(currentlyOpenSidebar);
                      //   currentlyOpenSidebar = "";
                       //  AdjustMainView();
@@ -1074,7 +1082,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "SetupCatalogProduct":
                     case "ActivateCatalogProduct":
                     case "UpdateCatalogProduct":
-                    case "UpdateProductTemplate":
+               
                     case "ActivateProduct":
                     case "SetupProductFromCatalog":
                         if (!theRes.startsWith("!$!")) {
@@ -1090,6 +1098,10 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         }
                         break;
 
+                    case "UpdateProdDesc":
+                    case "SaveProductTags":
+                        sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + value);
+                        break;
                         //////////////////////////////////
                    
 
@@ -1122,7 +1134,6 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         break;
                  
                     case "AddPricingOption":
-                    case "DeletePricingOption":
                     case "EditCatProdPricingOption":
                     case "ProdPriceOptionFavToggle":
                         if (!theRes.startsWith("!$!")) {
@@ -1181,6 +1192,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         break;
 
 
+                    case "CreateProductFromCatalog":
                     case "CreateVendorProductFromCatalog":
                         if (!theRes.startsWith("!$!")) {
                             RepAjaxUpdate("PRODUCTS", "MainBoardContainer", "MainLoader");
@@ -1473,10 +1485,9 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
 
                     
                     case "ProdOptionItemMove":
-                        if (!theRes.startsWith("!$!")) {
-                            RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param2);
-                        }
-                       
+                        
+                        RepAjaxUpdate('ViewProductOptions', 'ViewProductOptionsDiv', 'MainLoader', param2);
+                        RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param2);
                         break;
 
                     case "AddProductOptionitem":
@@ -1486,14 +1497,20 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "AddProductOption":
                     case "ProdOptionMove":
                         if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ViewProductOptions', 'ViewProductOptionsDiv', 'MainLoader', value);
                             RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', value);
+                            
+                            
                         }
                        
                         break;
 
                     case "EditProductOptionitem":
                         if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('ViewProductOptions', 'ViewProductOptionsDiv', 'MainLoader', param3);
                             RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param3);
+                            
+                            
                         }
                        
                         break;
@@ -1539,6 +1556,31 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         }
                        
                         break;
+
+                    case "DeletePricingOption":
+                        if (!theRes.startsWith("!$!")) {
+                            //console.log("afsdfasdfasdfavzxcvzxcv123123");
+                           // RepAjaxUpdate('AddPricingOption', 'AddPricingOptionsContainer', 'AddProductLoader', param2, param3);
+                            RepAjaxUpdate('ViewProductPricingOptions', 'POPTVIEW', 'MainLoader', param1);
+                            RepAjaxUpdate('EditProductPricingOptions', 'POPTEDIT', 'MainLoader', param1);
+                        }
+                        break;
+                    case "AddProductTemplatePricingOption":
+                    case "UpdateProductPricingOption":
+                        if (!theRes.startsWith("!$!")) {
+                            //console.log("afsdfasdfasdfavzxcvzxcv123123");
+                           // RepAjaxUpdate('AddPricingOption', 'AddPricingOptionsContainer', 'AddProductLoader', param2, param3);
+                            RepAjaxUpdate('ViewProductPricingOptions', 'POPTVIEW', 'MainLoader', value);
+                            RepAjaxUpdate('EditProductPricingOptions', 'POPTEDIT', 'MainLoader', value);
+                        }
+                        break;
+
+                    case "AddProductType":
+                        if (!theRes.startsWith("!$!")) {
+                            sbload('GenSb', 'Caller?p1=EditProductTypesSettings');
+                        }
+                        break;
+
 
                 }
 
@@ -2015,7 +2057,7 @@ function RepAjaxUpdate(theAction,return_container,loaderElement,param1,param2,pa
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
 
-                console.log(theAction + ":" + this.responseText);
+               
 
                 if (!isUpdateDisabled) {
                     document.getElementById(return_container).innerHTML = this.responseText;
@@ -2720,6 +2762,49 @@ function MiscActions(theAction,param1,param2,param3,param4) {
 
             break;
 
+        case "PPOOPTTOGGLE":
+            if (true) {
+                let cbElementName = "" 
+                let divElement = "" 
+                let is_checked = false;
+
+                switch (param2) {
+                    case "FAV":
+                        cbElementName = "ppo_is_fav_" + param1;
+                        divElement = "FavDiv_" + param1;
+                        break;
+                    case "SPO":
+                        cbElementName = "ppo_is_spo_" + param1;
+                        divElement = "SPODiv_" + param1;
+                        break;
+                    case "ISACTIVE":
+                        cbElementName = "ppo_is_active_" + param1;
+                        divElement = "IsActiveDiv_" + param1;
+                        break;
+
+                    default:
+                        return;
+                }
+
+               
+
+                
+
+                
+                var selectedElement = document.getElementById(divElement);
+                var selectedCheckBox = document.getElementById(cbElementName);
+                let isSelected = selectedElement.classList.toggle('PPOBtnItemSelected');
+                selectedElement.classList.toggle('PPOBtnItem', !isSelected);
+
+                if (isSelected) {
+                    selectedCheckBox.checked = true;
+                } else {
+                    selectedCheckBox.checked = false;
+                } 
+            }
+
+            break;
+
 
 
         case "InitMce":
@@ -2815,6 +2900,7 @@ function ResetSearch(theSearch) {
 function ProductCatSelector(cat_id) {
     var SelectedCatField = document.getElementById("SelectedCat");
     var selectedElement = document.getElementById("cat_btn_" + cat_id);
+    var selectedCheckBox = document.getElementById("is_tag_fav_" + cat_id);
 
 
     let isSelected = selectedElement.classList.toggle('ProductTagSelected');
@@ -2825,6 +2911,7 @@ function ProductCatSelector(cat_id) {
         SelectedCatField.value += "##" + cat_id + "##";
     } else {
         SelectedCatField.value = SelectedCatField.value.replace("##" + cat_id + "##", "");
+        selectedCheckBox.checked = false;
     }
 
 }

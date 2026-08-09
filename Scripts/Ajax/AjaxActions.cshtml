@@ -4598,20 +4598,11 @@
 
                 if (set_to)
                 {
-                    if (product.itemunit_type == 0)
-                    {
-                        theHtmlOutput = theHtmlOutput + " 👌 לא ניתן להפעיל מוצר ללא בחירת יחידת מידה <br>";
-                    }
-                    if (product.v_id == 0)
-                    {
-                        theHtmlOutput = theHtmlOutput + " 👌 לא ניתן להפעיל מוצר ללא בחירת ספק מוצר <br>";
-                    }
-                    if (product.maincat_id == 0)
-                    {
-                        theHtmlOutput = theHtmlOutput + " 👌 לא ניתן להפעיל מוצר ללא בחירת קטגוריה ראשית <br>";
-                    }
+                 
+                    theHtmlOutput += ProductsFunctions.CheckProductValidity(p_id);
+
                 }
-                theHtmlOutput = "";
+                //theHtmlOutput = "";
                 if (theHtmlOutput == "")
                 {
                     sqlSelect = "UPDATE products SET is_active=@0 WHERE p_id=@1";
@@ -4648,12 +4639,24 @@
 
             }
             break;
+        case "UpdateProdDesc":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.UpdateProdDesc();
+
+
+            }
+            break;
         case "UpdateProductTemplate":
             if (true)
             {
                 theHtmlOutput = ProductsFunctions.UpdateProductTemplate();
-
-
+            }
+            break;
+        case "SaveProductTags":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.SaveProductTags();
             }
             break;
 
@@ -5068,6 +5071,16 @@
             break;
 
 
+        case "AddProductTemplatePricingOption":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.AddProductTemplatePricingOption();
+            }
+
+
+            break;
+
+
         case "AddPricingOption":
             if (true)
             {
@@ -5242,6 +5255,57 @@
             {
                 theHtmlOutput = ProductsFunctions.CreateVendorProductFromCatalog();
             }
+            break;
+        case "CreateProductFromCatalog":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.CreateProductFromCatalog();
+            }
+            break;
+
+
+        case "AddProductType":
+            if (true)
+            {
+                string pt_title = ""; pt_title = Request["pt_title"];
+                string pt_title_e = ""; pt_title_e = Request["pt_title_e"];
+                if (pt_title.IsEmpty())
+                {
+                    theHtmlOutput = theHtmlOutput + "חובה להזין את סוג המוצר!<br>";
+                }
+                if (pt_title_e.IsEmpty())
+                {
+                    theHtmlOutput = theHtmlOutput + "חובה להזין את סוג המוצר גם באנגלית!<br>";
+                }
+
+                if (theHtmlOutput == "")
+                {
+                    var db = Database.Open("op_data");
+                    var sqlSelect = "";
+
+                    sqlSelect = "SELECT id FROM ProductTypes WHERE title=@0 OR title_e=@1";
+                    var dupChk = db.QuerySingle(sqlSelect, pt_title, pt_title_e);
+
+                    if (dupChk == null)
+                    {
+                        sqlSelect = "INSERT INTO ProductTypes (title,title_e) VALUES(@0,@1); ";
+                        db.Execute(sqlSelect, pt_title, pt_title_e);
+                        theHtmlOutput = " 👌 סוג המוצר התווסף! ";
+
+                    }
+                    else
+                    {
+                        theHtmlOutput += "!$!סוג המוצר קיים כבר במערכת!<br>";
+                    }
+
+                }
+                else
+                {
+                    theHtmlOutput = "!$!" + theHtmlOutput;
+                }
+            }
+
+
             break;
 
 
@@ -8307,6 +8371,13 @@
             break;
 
 
+        case "UpdateProductPricingOption":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.UpdateProductPricingOption();
+
+            }
+            break;
     }
 
 

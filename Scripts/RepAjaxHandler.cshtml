@@ -1331,6 +1331,14 @@
             }
 
             break;
+        case "ViewProductOptions":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div style="color:#000;">@Products.ViewProductOptions(p_id)</div>
+            }
+
+            break;
 
         case "CustomFieldMove":
             if (true)
@@ -1362,6 +1370,22 @@
                 string scope = Request["param2"];
                 if (scope.IsEmpty()) { scope = "PT"; }
                 <div style="color:#000;">@Products.LoadCustomTagList(rec_id, scope)</div>
+            }
+
+            break;
+        case "ViewProductPricingOptions":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@Products.ViewProductPricingOptions(p_id)</div>
+            }
+
+            break;
+        case "EditProductPricingOptions":
+            if (true)
+            {
+                int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                <div>@Products.EditProductPricingOptions(p_id)</div>
             }
 
             break;
