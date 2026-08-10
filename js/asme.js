@@ -1174,11 +1174,15 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         RepAjaxUpdate('FieldsList', 'CUSTOMFIELDSDIV', 'ContentLoader', value, param2);
                         break;
                     case "DeleteCat":
-                        EliminateElement('catDiv_' + value);
-                        if (param1 == "MAIN") {
-                            sbClose();
-                            AdjustMainView('right', 'CLOSE');
+                        if (!theRes.startsWith("!$!")) {
+                            EliminateElement('catDiv_' + value);
+                            if (param1 == "MAIN") {
+                                sbClose();
+                                AdjustMainView('right', 'CLOSE');
+                            }
+
                         }
+                       
                         break;
 
                     case "UpdateProductField":

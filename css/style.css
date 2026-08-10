@@ -2493,5 +2493,21 @@ div.blankData{
     color:#808080;
     background-color:#fff;
 }
+.page-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 140px;
+    font-weight: bold;
+    color: #000;
+    opacity: 0.05;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+}
+
+
 
 /*END MY CUSTOM STYLING*/

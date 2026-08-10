@@ -1681,21 +1681,16 @@
         string theHtmlOutput = "";
 
         var db = Database.Open("op_data");
+        var prod = db.QuerySingle("SELECT custom_fields_json,maincat_id,sub_cat_id,product_type,price_options_json FROM products WHERE p_id=@0",p_id);
+        var pricingOption = db.QuerySingle("SELECT TOP 1 serial FROM ProductPricingOptions WHERE p_id=@0 AND is_activated=1",p_id);
+        string price_options_json = ""; try { price_options_json = Convert.ToString(prod.price_options_json); } catch { }
 
-        var pricingOption = db.QuerySingle(
-            "SELECT TOP 1 serial FROM ProductPricingOptions WHERE p_id=@0 AND is_activated=1",
-            p_id
-        );
-
-        if (pricingOption == null)
+        if (string.IsNullOrWhiteSpace(price_options_json) || pricingOption == null)
         {
             theHtmlOutput += "חובה להגדיר לפחות אפשרות מחיר אחת למוצר!<br/>";
         }
 
-        var prod = db.QuerySingle(
-            "SELECT custom_fields_json,maincat_id,sub_cat_id,product_type FROM products WHERE p_id=@0",
-            p_id
-        );
+
 
         int maincat_id = 0; try { maincat_id = prod.maincat_id; } catch { }
         int sub_cat_id = 0; try { sub_cat_id = prod.sub_cat_id; } catch { }

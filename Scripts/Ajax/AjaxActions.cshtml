@@ -4598,7 +4598,7 @@
 
                 if (set_to)
                 {
-                 
+
                     theHtmlOutput += ProductsFunctions.CheckProductValidity(p_id);
 
                 }
@@ -5360,6 +5360,8 @@
             if (theHtmlOutput == "")
             {
                 int cat_id = 0; try { cat_id = Convert.ToInt32(Request["value"]); } catch { }
+                int productType = 0; try { productType = Convert.ToInt32(Request["productType"]); } catch { }
+                int ItemUnitType = 0; try { ItemUnitType = Convert.ToInt32(Request["ItemUnitType"]); } catch { }
                 string cat_title = ""; cat_title = Request["cat_title"];
                 string cat_e_title = ""; cat_e_title = Request["cat_e_title"];
 
@@ -5375,8 +5377,8 @@
                 if (theHtmlOutput == "")
                 {
                     var db = Database.Open("op_data");
-                    var sqlSelect = "UPDATE categories SET title=@0,e_title=@1 WHERE id=@2";
-                    db.Execute(sqlSelect, cat_title, cat_e_title, cat_id);
+                    var sqlSelect = "UPDATE categories SET title=@0,e_title=@1,def_itemunit_type=@2,def_product_type=@3 WHERE id=@4";
+                    db.Execute(sqlSelect, cat_title, cat_e_title, ItemUnitType, productType, cat_id);
                     theHtmlOutput = " 👌 השינויים נשמרו ";
                     db.Close();
                 }
@@ -5387,72 +5389,41 @@
             if (theHtmlOutput == "")
             {
                 int cat_id = 0; try { cat_id = Convert.ToInt32(Request["value"]); } catch { }
+                bool is_ok_to_delete = true;
                 var db = Database.Open("op_data");
-                var sqlSelect = "SELECT * FROM categories WHERE id=@0";
-                var catInfo = db.QuerySingle(sqlSelect, cat_id);
-                if (catInfo != null)
+                var sqlSelect = "";
+
+                sqlSelect = "SELECT p_id FROM products WHERE maincat_id=@0 OR sub_cat_id=@0"; ;
+                var rs = db.QuerySingle(sqlSelect, cat_id);
+                if (rs != null) { theHtmlOutput += "לא ניתן למחוק את הקטגוריה קיימים מוצרים משוייכים!<br>"; }
+
+                sqlSelect = "SELECT TOP 1 id FROM categories WHERE maincat_id=@0 AND is_subcat=1 ";
+                rs = db.QuerySingle(sqlSelect, cat_id);
+                if (rs != null) { theHtmlOutput += "לא ניתן למחוק את הקטגוריה קיימים תתי קטגוריות!<br>"; }
+
+
+                sqlSelect = "SELECT id FROM SpecialOffersitems WHERE spOfferCatId=@0";
+                rs = db.QuerySingle(sqlSelect, cat_id);
+                if (rs != null) { theHtmlOutput += "לא ניתן למחוק את הקטגוריה קיימים מבצעים מקושרים!<br>"; }
+
+                if (theHtmlOutput == "")
                 {
-                    if (catInfo.is_subcat)
+                    if (cat_id > 0)
                     {
-                        //reset all products with this subcat
-                        sqlSelect = "UPDATE products SET sub_cat_id=0 WHERE sub_cat_id=@0";
+                        sqlSelect = "DELETE FROM CustomFields WHERE cat_id=@0";
                         db.Execute(sqlSelect, cat_id);
-                        //reset all roundmenuitems
-                        sqlSelect = "UPDATE RoundMenuItems SET sub_cat_id=0 WHERE sub_cat_id=@0";
+                        sqlSelect = "DELETE FROM pTags  WHERE cat_id=@0 ";
                         db.Execute(sqlSelect, cat_id);
-                    }
-                    if (catInfo.is_spOffersCat)
-                    {
-                        //reset all products with this subcat
-                        sqlSelect = "UPDATE products SET spOfferCatId=0 WHERE spOfferCatId=@0";
+                        sqlSelect = "DELETE FROM categories WHERE id=@0";
                         db.Execute(sqlSelect, cat_id);
+                        theHtmlOutput = " 👌 הקטגוריה נמחקה בהצלחה ";
                     }
 
-                    if (catInfo.is_tag)
-                    {
-                        //reset all products with this subcat
-                        sqlSelect = "DELETE FROM ProductTags  WHERE cat_id=@0";
-                        db.Execute(sqlSelect, cat_id);
-                    }
-                    if (catInfo.is_maincat)
-                    {
-                        //delete all sub categories with this cat as main
-                        sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0";
-                        var categoriesToDelete = db.Query(sqlSelect, cat_id);
-                        foreach (var catToDelete in categoriesToDelete)
-                        {
-                            //delete all product tags attached to category
-                            sqlSelect = "DELETE FROM productTags WHERE cat_id=@0";
-                            db.Execute(sqlSelect, catToDelete.id);
-                            sqlSelect = "DELETE FROM CustomFields WHERE cat_id=@0";
-                            db.Execute(sqlSelect, catToDelete.id);
-                        }
-
-                        //reset all products with this subcat
-                        sqlSelect = "UPDATE products SET sub_cat_id=0,maincat_id=0,spOfferCatId=0 WHERE maincat_id=@0";
-                        db.Execute(sqlSelect, cat_id);
-                        //reset all roundmenuitems
-                        sqlSelect = "UPDATE RoundMenuItems SET sub_cat_id=0,maincat_id=0,spOfferCatId=0 WHERE maincat_id=@0";
-                        db.Execute(sqlSelect, cat_id);
-                        //delete all special offers items from this category
-                        sqlSelect = "DELETE FROM SpecialOffersitems WHERE spOfferItemType=2 AND main_cat_id=@0";
-                        db.Execute(sqlSelect, cat_id);
-                        //delete all sub categories
-                        sqlSelect = "DELETE FROM categories WHERE mainCat_id=@0";
-                        db.Execute(sqlSelect, cat_id);
-                        //delete product tags
-                        sqlSelect = "DELETE FROM ProductTags  WHERE cat_id=@0";
-                        db.Execute(sqlSelect, cat_id);
-                        //delete from db
-                    }
-
-                    sqlSelect = "DELETE FROM CustomFields WHERE cat_id=@0";
-                    db.Execute(sqlSelect, cat_id);
-                    sqlSelect = "DELETE FROM categories  WHERE id=@0";
-                    db.Execute(sqlSelect, cat_id);
                 }
-
-                theHtmlOutput = " 👌 הקטגוריה נמחקה בהצלחה ";
+                else {
+                    theHtmlOutput = "!$!" + theHtmlOutput;
+                }
+                db.Close();
             }
             break;
 
