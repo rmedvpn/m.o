@@ -332,6 +332,10 @@
                 sqlSelect = "SELECT title AS the_label FROM products WHERE p_id=@0";
                 break;
 
+            case "ProductType":
+                sqlSelect = "SELECT title AS the_label FROM ProductTypes WHERE id=@0";
+                break;
+
 
             case "SpecialOffer":
                 sqlSelect = "SELECT title AS the_label FROM SpecialOffers WHERE id=@0";

@@ -4653,6 +4653,18 @@
                 theHtmlOutput = ProductsFunctions.UpdateProductTemplate();
             }
             break;
+        case "UpdateRcProduct":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.UpdateRcProduct();
+            }
+            break;
+        case "SetProductRcState":
+            if (true)
+            {
+                theHtmlOutput = ProductsFunctions.SetProductRcState();
+            }
+            break;
         case "SaveProductTags":
             if (true)
             {
@@ -5537,6 +5549,114 @@
             if (theHtmlOutput == "")
             {
                 int product_id = 0;
+                try { product_id = Convert.ToInt32(Request["p_id"]); }
+                catch { theHtmlOutput = " שגיאה בהעלאת קובץ "; }
+
+                int fileId = 0;
+                var fileName = "";
+                var fileMime = "";
+                WebImage photo = null;
+                var newFileName = "";
+                var imagePath = "";
+                var imageThumbPath = "";
+
+                if (IsPost)
+                {
+                    photo = WebImage.GetImageFromRequest();
+
+                    if (photo != null)
+                    {
+                        newFileName = Path.GetFileName(photo.FileName);
+                        imageThumbPath = @"images\thumbs\" + newFileName;
+
+                        WebImage thumbNailPic = photo.Clone();
+
+                        photo.Resize(
+                            width: 500,
+                            height: 500,
+                            preserveAspectRatio: true,
+                            preventEnlarge: true
+                        );
+
+                        thumbNailPic.Resize(
+                            width: 50,
+                            height: 50,
+                            preserveAspectRatio: true,
+                            preventEnlarge: true
+                        );
+
+                        var uploadedFile = Request.Files[0];
+
+                        fileName = uploadedFile.FileName;
+                        fileMime = uploadedFile.ContentType;
+
+                        byte[] fileContent = photo.GetBytes();
+                        byte[] tn_content = thumbNailPic.GetBytes();
+
+                        var db = Database.Open("op_data");
+
+                        var sqlSelect = @"
+                    UPDATE ProductImages
+                    SET is_primary = 0
+                    WHERE product_id = @0";
+
+                        db.Execute(sqlSelect, product_id);
+
+                        sqlSelect = @"
+                    INSERT INTO ProductImages
+                    (
+                        FileName,
+                        FileContent,
+                        MimeType,
+                        product_id,
+                        timestamp,
+                        clerk_id,
+                        is_deleted,
+                        is_tn,
+                        ImageThumb,
+                        is_primary,
+                        image_hash,
+                        tn_image_hash
+                    )
+                    VALUES
+                    (
+                        @0,
+                        @1,
+                        @2,
+                        @3,
+                        @4,
+                        @5,
+                        0,
+                        0,
+                        @6,
+                        1,
+                        HASHBYTES('SHA2_256', @1),
+                        HASHBYTES('SHA2_256', @6)
+                    )";
+
+                        DateTime time_stamp = DateTime.Now;
+
+                        db.Execute(
+                            sqlSelect,
+                            fileName,
+                            fileContent,
+                            fileMime,
+                            product_id,
+                            time_stamp,
+                            u_id,
+                            tn_content
+                        );
+
+                        db.Close();
+                    }
+                }
+            }
+            break;
+
+        case "UploadProductImageOLD":
+            if (theHtmlOutput == "")
+            {
+                int product_id = 0;
                 try { product_id = Convert.ToInt32(Request["p_id"]); } catch { theHtmlOutput = " שגיאה בהעלאת קובץ "; }
 
                 int fileId = 0;
@@ -5591,11 +5711,14 @@
                 try { product_id = Convert.ToInt32(Request["param1"]); } catch { }
                 int file_id = 0;
                 try { file_id = Convert.ToInt32(Request["value"]); } catch { }
+                ProductsFunctions.DeleteProductImage(product_id, file_id);
+                theHtmlOutput = "👌 התמונה נמחקה!";
+                /*
                 var db = Database.Open("op_data");
                 var sqlSelect = "Select is_primary FROM ProductImages where file_id=@0";
                 var is_primary = db.QuerySingle(sqlSelect, file_id);
-                sqlSelect = "DELETE FROM ProductImages WHERE file_id=@0";
-                db.Execute(sqlSelect, file_id);
+                //sqlSelect = "DELETE FROM ProductImages WHERE file_id=@0";
+                //db.Execute(sqlSelect, file_id);
 
                 if (is_primary.is_primary)
                 {
@@ -5605,7 +5728,8 @@
                 }
 
                 db.Close();
-                theHtmlOutput = "👌 התמונה נמחקה!";
+                */
+
             }
             break;
 
@@ -8346,6 +8470,21 @@
             if (true)
             {
                 theHtmlOutput = ProductsFunctions.UpdateProductPricingOption();
+
+            }
+            break;
+        case "SyncSubProductsToCatalog":
+            if (true)
+            {
+                int catalog_p_id = 0; try { catalog_p_id = Convert.ToInt32(Request["value"]); } catch { }
+                int asking_p_id = 0; try { asking_p_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string scope = ""; scope = Request["param2"];
+
+                theHtmlOutput = "catalog_p_id: " + catalog_p_id;
+                theHtmlOutput += "scope: " + scope;
+                theHtmlOutput += "asking_p_id: " + asking_p_id;
+
+                theHtmlOutput = ProductsFunctions.SyncSubProductsToCatalog(catalog_p_id,asking_p_id,scope);
 
             }
             break;

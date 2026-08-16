@@ -611,6 +611,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "UpdateCatalogProduct":
             case "UpdateProduct":
             case "UpdateProductTemplate":
+            case "UpdateRcProduct":
             case "AddCustomProductField":
             case "UpdateProductCustomField":
             case "AddPricingOption":
@@ -2785,6 +2786,10 @@ function MiscActions(theAction,param1,param2,param3,param4) {
                         cbElementName = "ppo_is_active_" + param1;
                         divElement = "IsActiveDiv_" + param1;
                         break;
+                    case "RC":
+                        cbElementName = "subProd_" + param1;
+                        divElement = "prodRcDiv_" + param1;
+                        break;
 
                     default:
                         return;
@@ -2997,6 +3002,8 @@ function ProductImageUpload(theBlob) {
     xmlhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             RepAjaxUpdate("PRODUCTIMAGES", "ProductImagesContainer", "ImgUploadLoader", p_id);
+            hideElement("ImgUploadLoader");
+            showElement("ImgUploadBtn");
         }
     };   //alert(this.responseText);
 
