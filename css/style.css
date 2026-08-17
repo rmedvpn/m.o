@@ -2571,4 +2571,60 @@ div.ProductTemplateSubHeader {
     text-align: center;
     font-size: 18px;
 }
+div.ProdListImgContainer{
+    width:70px;
+    text-align:center;
+    float:right
+}
+div.ProductsListLabel {
+    overflow: auto;
+    margin: 5px;
+    padding: 5px;
+    color: #fff;
+    background-color: #4800ff;
+    border-radius: 5px;
+    float: left
+}
+img.ProductsListTemplateImg {
+    height: 50px;
+    max-width: 50px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+    float: right
+}
+
+img.ProductsListSubProdImg {
+    height: 35px;
+    max-width: 35px;
+    border-radius: 10px;
+    margin: 3px;
+    padding: 3px;
+    float: right
+}
+div.ProductsListSubProductsBlank {
+    overflow: auto;
+    margin: 5px;
+    padding: 5px;
+    color: #808080;
+    background-color: #e3e3e3;
+    border-radius: 5px;
+    float: left
+}
+button.ProductsListBtn {
+    float: left;
+    padding: 5px;
+ 
+    background: transparent;
+    border: 0;
+    margin: 5px
+}
+div.CatalogProductsDiv{
+    overflow:auto;
+    background-color:#afceeb;
+}
+div.VendorProductsDiv{
+    overflow:auto;
+    background-color:#fff;
+}
 /*END MY CUSTOM STYLING*/

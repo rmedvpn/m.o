@@ -1,6 +1,8 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\App_Code"
   ],
+  "SelectedNode": "\\App_Code\\Products.cshtml",
   "PreviewInSolutionExplorer": false
 }

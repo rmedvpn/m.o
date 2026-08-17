@@ -2082,6 +2082,78 @@
         {
             int p_id = 0; try { p_id = Convert.ToInt32(Request["value"]); } catch { }
             int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["vendor_id"]); } catch { }
+            bool is_active = true; if (Request["is_active"].IsEmpty()) { is_active = false; }
+            bool is_pictures = true; if (Request["is_pictures"].IsEmpty()) { is_pictures = false; }
+            bool is_pricing = true; if (Request["is_pricing"].IsEmpty()) { is_pricing = false; }
+            bool is_product_options = true; if (Request["is_product_options"].IsEmpty()) { is_product_options = false; }
+            bool is_product_fields = true; if (Request["is_product_fields"].IsEmpty()) { is_product_fields = false; }
+            bool is_product_tags = true; if (Request["is_product_tags"].IsEmpty()) { is_product_tags = false; }
+            string add_type = ""; add_type = Request["add_type"];
+
+            if (vendor_id == 0)
+            {
+                theHtmlOutput += "חובה לבחור איפה יוצרים את המוצר!<BR>";
+            }
+
+
+            theHtmlOutput += ProductsFunctions.CheckProductValidity(p_id);
+
+            if (theHtmlOutput == "")
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "";
+                int new_p_id = 0;
+
+
+                if (vendor_id == -1) //copy to all vendors
+                {
+                    sqlSelect = "SELECT vendor_id FROM vendors WHERE is_active=1";
+                    var vendors = db.Query(sqlSelect);
+                    foreach (var vendor in vendors)
+                    {
+                        new_p_id = 0;
+                        new_p_id = ProductsFunctions.CopyProduct(p_id, vendor.vendor_id, true,is_active);
+                    }
+                }
+
+                if (vendor_id == -3) //copy as template to catalog
+                {
+                    new_p_id = 0;
+                    new_p_id = ProductsFunctions.CopyProduct(p_id, vendor_id, false, is_active);
+                }
+                if (vendor_id > 0)
+                {
+                    new_p_id = 0;
+                    new_p_id = ProductsFunctions.CopyProduct(p_id, vendor_id, true, is_active);
+                }
+
+                theHtmlOutput = "המוצר נוצר בהצלחה ";
+
+
+
+                db.Close();
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+
+        }
+
+        return theHtmlOutput;
+    }
+
+
+    public static string CreateProductFromCatalog_bck()
+    {
+        string theHtmlOutput = "";
+        int u_id = WebSecurity.CurrentUserId;
+        string theValue = Request["value"];
+        if (true)
+        {
+            int p_id = 0; try { p_id = Convert.ToInt32(Request["value"]); } catch { }
+            int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["vendor_id"]); } catch { }
+            bool is_active = true; if (Request["is_active"].IsEmpty()) { is_active = false; }
             bool is_pictures = true; if (Request["is_pictures"].IsEmpty()) { is_pictures = false; }
             bool is_pricing = true; if (Request["is_pricing"].IsEmpty()) { is_pricing = false; }
             bool is_product_options = true; if (Request["is_product_options"].IsEmpty()) { is_product_options = false; }
@@ -2182,7 +2254,7 @@
     }
 
 
-    public static int CopyProduct(int p_id, int vendor_id,bool createSubProduct=true, bool is_pricing = true, bool is_pictures = true)
+    public static int CopyProduct(int p_id, int vendor_id,bool createSubProduct=true, bool is_active = false)
     {
         int new_p_id = 0;
         var db = Database.Open("op_data");
@@ -2192,7 +2264,6 @@
 
         bool is_catalog = false;
         int catalog_p_id = 0;
-        bool is_active = false;
         string title = "";
         string e_title = "";
         sqlSelect = "SELECT * FROM products WHERE p_id=@0";
@@ -2204,7 +2275,7 @@
             e_title = rec.e_title;
             is_catalog = rec.is_catalog;
             catalog_p_id = rec.catalog_p_id;
-            is_active = rec.is_active;
+           
             if (is_catalog && createSubProduct)
             {
                 is_catalog = false;
@@ -2227,16 +2298,8 @@
             if (new_p_id > 0)
             {
                 ProductsFunctions.CopyProductOptions(p_id, new_p_id);
-
-                if (is_pricing)
-                {
-                    ProductsFunctions.CopyProductPriceOptions(p_id, new_p_id);
-                }
-                if (is_pictures)
-                {
-                    ProductsFunctions.CopyProductImages(p_id, new_p_id);
-                }
-
+                ProductsFunctions.CopyProductPriceOptions(p_id, new_p_id);
+                ProductsFunctions.CopyProductImages(p_id, new_p_id);
             }
         }
 
