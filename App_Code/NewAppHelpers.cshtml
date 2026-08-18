@@ -1587,8 +1587,8 @@ db.Close();
 
             <div style="overflow: auto;font-size: 18px">👈 <b>נא לבחור מוצר להוספה מקטלוג @NewAppFunctions.GetTitleById("Cat", cat_id)</b></div>
 
-        
-       
+
+
 
             foreach (var product in products)
             {
@@ -1596,7 +1596,7 @@ db.Close();
 
 
                     <div style="overflow: auto;font-size: 16px;">
-                        <input type="radio" name="catalog_product" value="@product.p_id" style="float: right;margin: 5px;padding: 5px;" onclick="var x=document.getElementById('itemunit_@product.p_id').value;document.getElementById('itemunitspan1').innerHTML=x;document.getElementById('itemunitspan2').innerHTML=x;showElement('setupConfirmDiv');">
+                        <input type="radio" name="catalog_product" id="catalog_product" value="@product.p_id" style="float: right;margin: 5px;padding: 5px;" onclick="showElement('setupConfirmDiv');">
                         <input type="hidden" id="itemunit_@product.p_id" value="@product.itemunit">
                         <div style="float: right;overflow: auto;font-size:22px;">
                             @product.title
@@ -1608,6 +1608,16 @@ db.Close();
 
             }
 
+            <div style="overflow: auto;display: none;background-color: #e3e3e3" id="setupConfirmDiv">
+     
+                <div style="overflow: auto;text-align: center;padding: 5px;">
+                    <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="    AjaxActions('CreateNewProductFromCatalog', document.getElementById('catalog_product').value,'MainLoader', 'SelectCatalogProduct');">יצירת מוצר</button>
+
+                </div>
+
+
+
+            </div>
         }
         else
         {

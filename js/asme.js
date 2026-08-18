@@ -627,6 +627,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddProductTag":
             case "CreateVendorProductFromCatalog":
             case "CreateProductFromCatalog":
+            case "CreateNewProductFromCatalog":
             case "UpdateCartOptions":
             case "RepUpdateOrderItems":
             case "ORDERACTION":
@@ -1202,6 +1203,15 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         if (!theRes.startsWith("!$!")) {
                             RepAjaxUpdate("PRODUCTS", "MainBoardContainer", "MainLoader");
                             RepAjaxUpdate('CreateVendorProductFromCatalog', 'SubProductsContainer', 'ActiveProductsLoader', value);
+                        }
+                        
+
+                        break;
+
+                    case "CreateNewProductFromCatalog":
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate("PRODUCTS", "MainBoardContainer", "MainLoader");
+                            MiscActions('AddProductSelector', '');
                         }
                         
 
@@ -2535,7 +2545,6 @@ function MiscActions(theAction,param1,param2,param3,param4) {
             switch (param1) {
                 case "":
                     hideElement('OptVendor');
-                    hideElement('OptCat');
                     hideElement('ProductAddDiv');
                     hideElement('ProductImportDiv');
 
@@ -2543,17 +2552,14 @@ function MiscActions(theAction,param1,param2,param3,param4) {
                 case "CATALOG":
                     hideElement('OptVendor');
                     hideElement('ProductImportDiv');
-                    showElement('OptCat');
                     showElement('ProductAddDiv');
                     break;
                 case "IMPORT":
-                    hideElement('OptCat');
                     hideElement('ProductAddDiv');
                     showElement('OptVendor');
                     showElement('ProductImportDiv');
                     break;
                 case "VENDOR":
-                    hideElement('OptCat');
                     hideElement('ProductImportDiv');
                     showElement('OptVendor');
                     showElement('ProductAddDiv');
