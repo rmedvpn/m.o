@@ -2358,42 +2358,7 @@
     }
 
 
-    public static void CreateProductCopy(dynamic rec, int p_id, int vendor_id, bool is_pricing = true, bool is_pictures = true, bool is_product_options = true, bool is_product_fields = true, bool is_product_tags = true)
-    {
 
-        var db = Database.Open("op_data");
-        var sqlSelect = "";
-        DateTime local_time = AppFunctions.LocalTime();
-        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
-        sqlSelect = "INSERT INTO products(V_id, Title, Price, Cost, Description, img_path, itemunit, product_type, prod_code, e_title, e_desc, max_quan_per_order, min_quan_if_ordered, bulk_price, bulk_price_quan_marker, sell_1s, sell_3s, sell_5s, cat_id, info_link, img_gallery_id, add_timestamp, sell_inXs, available_quan, itemunit_type, clerk_id, is_active, commision_type, maincat_id, sub_cat_id, last_change_ts, last_change_by, itemunit_e, spOfferCatId, start_quan, cbd, thc, is_strain_ok, strain, strain_e, CharityOffersOk, is_discountable, max_in_cart, catalog_p_id, is_catalog, is_setup, init_complete, is_disabled, commision_rate,is_generic,custom_fields_json,tags_json,price_options_json,product_options_json) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39,@40,@41,@42,@43,@44,@45,@46,@47,@48,@49,@50,@51,@52,@53)";
-        db.Execute(sqlSelect, vendor_id, rec.Title, rec.Price, rec.Cost, rec.Description, rec.img_path, rec.itemunit, rec.product_type, rec.prod_code, rec.e_title, rec.e_desc, rec.max_quan_per_order, rec.min_quan_if_ordered, rec.bulk_price, rec.bulk_price_quan_marker, rec.sell_1s, rec.sell_3s, rec.sell_5s, rec.cat_id, rec.info_link, rec.img_gallery_id, local_time, rec.sell_inXs, rec.available_quan, rec.itemunit_type, u_id, rec.is_active, rec.commision_type, rec.maincat_id, rec.sub_cat_id, rec.last_change_ts, rec.last_change_by, rec.itemunit_e, rec.spOfferCatId, rec.start_quan, rec.cbd, rec.thc, rec.is_strain_ok, rec.strain, rec.strain_e, rec.CharityOffersOk, rec.is_discountable, rec.max_in_cart, p_id, false, rec.is_setup, rec.init_complete, rec.is_disabled, rec.commision_rate, rec.is_generic, rec.custom_fields_json, rec.tags_json, rec.price_options_json, rec.product_options_json);
-
-        if (is_pricing || is_pictures)
-        {
-            sqlSelect = "SELECT p_id FROM products WHERE v_id=@0 AND add_timestamp=@1";
-            var newProd = db.QuerySingle(sqlSelect, vendor_id, local_time);
-            int new_p_id = 0;
-            try { new_p_id = newProd.p_id; } catch { }
-            if (new_p_id > 0)
-            {
-                if (is_pricing)
-                {
-                    ProductsFunctions.CopyProductPriceOptions(p_id, new_p_id);
-                }
-                if (is_pictures)
-                {
-                    ProductsFunctions.CopyProductImages(p_id, new_p_id);
-                }
-                if (is_product_options)
-                {
-                    ProductsFunctions.CopyProductOptions(p_id, new_p_id);
-                }
-            }
-        }
-
-
-        db.Close();
-    }
 
     public static void CopyProductPriceOptions(int src_p_id, int dest_p_id)
     {
@@ -3561,8 +3526,9 @@
     public static string MarkProductDeleted()
     {
         DateTime local_time = AppFunctions.LocalTime();
-        string theHtmlOutput = "";
         int rep_id = WebSecurity.CurrentUserId;
+
+        string theHtmlOutput = "";
         var db = Database.Open("op_data");
         var sqlSelect = "";
         int p_id = 0; try { p_id = Convert.ToInt32(Request["value"]); } catch { }
@@ -3586,67 +3552,7 @@
 
         if (is_ok_to_delete)
         {
-            sqlSelect = "SELECT * FROM products WHERE p_id=@0";
-            var product = db.QuerySingle(sqlSelect, p_id);
-
-            bool is_catalog = false; try { is_catalog = product.is_catalog; } catch { }
-            if (is_catalog)
-            {
-                sqlSelect = "SELECT p_id FROM products WHERE catalog_p_id=@0";
-                var isSubProducts = db.QuerySingle(sqlSelect, p_id);
-                if (isSubProducts != null)
-                {
-                    theHtmlOutput += "לא ניתן למחוק את המוצר הקטלוגי- קיימים תתי מוצרים!<br>";
-                    is_ok_to_delete = false;
-                }
-            }
-            if (is_ok_to_delete)
-            {
-                sqlSelect = "SELECT * FROM ProductImages WHERE product_id=@0";
-                var ProductImages = db.Query(sqlSelect, p_id);
-
-
-                sqlSelect = "DELETE FROM ProductPricingOptions WHERE p_id=@0";
-                db.Execute(sqlSelect, p_id);
-                sqlSelect = "DELETE FROM ProductOptions WHERE p_id=@0";
-                db.Execute(sqlSelect, p_id);
-                sqlSelect = "DELETE FROM ProductOptionsItems WHERE p_id=@0";
-                db.Execute(sqlSelect, p_id);
-
-                //backup & delete product images
-
-                /*
-                foreach (var pImg in ProductImages)
-{
-    sqlSelect = "SELECT file_id FROM DeletedProductImages WHERE p_id=@0 AND tn_image_hash=@1";
-    var dupChk = db.QuerySingle(sqlSelect, p_id, pImg.tn_image_hash);
-    if (dupChk == null)
-    {
-        sqlSelect = "INSERT INTO DeletedProductImages(product_id,fileContent,MimeType,ImageThumb,tn_image_hash,delete_ts,deleted_by) ";
-        sqlSelect = sqlSelect + " VALUES(@0,@1,@2,@3,@4,@5,@6)";
-        db.Execute(sqlSelect, pImg.product_id, pImg.fileContent, pImg.MimeType, pImg.ImageThumb,pImg.tn_image_hash, local_time,rep_id);
-    }
-    else
-    {
-        DataFunctions.WriteDebugLine("AVOIDED ARCHIVING DUP IMG #" + dupChk.file_id) ;
-    }
-
-}
-                */
-                ProductsFunctions.DeleteProductImage(product.p_id);
-                //sqlSelect = "DELETE FROM ProductImages WHERE product_id=@0";
-                //db.Execute(sqlSelect, p_id);
-
-
-                //backup & delete product data
-                sqlSelect = "INSERT INTO DeletedProducts(p_id,v_id,title,price,cost,Description,product_type,prod_code,e_title,e_desc,cat_id,add_timestamp,itemunit_type,clerk_id,maincat_id,sub_cat_id,delete_timestamp,is_catalog,is_setup,catalog_p_id,deleted_by,custom_fields_json,tags_json,price_options_json,product_options_json,is_rc) ";
-                sqlSelect = sqlSelect + " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25)";
-                db.Execute(sqlSelect, product.p_id, product.v_id, product.title, product.price, product.cost, product.Description, product.product_type, product.prod_code, product.e_title, product.e_desc, product.cat_id, product.add_timestamp, product.itemunit_type, product.clerk_id, product.maincat_id, product.sub_cat_id, local_time, product.is_catalog, product.is_setup, product.catalog_p_id, rep_id, product.custom_fields_json, product.tags_json, product.price_options_json, product.product_options_json, product.is_rc);
-                //delete product
-                sqlSelect = "DELETE FROM products WHERE p_id=@0";
-                db.Execute(sqlSelect, p_id);
-
-            }
+            ProductsFunctions.DeleteProduct(p_id);
         }
 
 
@@ -3663,6 +3569,49 @@
 
         return theHtmlOutput;
     }
+
+    public static void DeleteProduct(int p_id, bool isMenuRemove = false)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int rep_id = WebSecurity.CurrentUserId;
+
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "";
+        sqlSelect = "SELECT * FROM products WHERE p_id=@0";
+        var product = db.QuerySingle(sqlSelect, p_id);
+
+        sqlSelect = "SELECT * FROM ProductImages WHERE product_id=@0";
+        var ProductImages = db.Query(sqlSelect, p_id);
+
+
+        sqlSelect = "DELETE FROM ProductPricingOptions WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id);
+        sqlSelect = "DELETE FROM ProductOptions WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id);
+        sqlSelect = "DELETE FROM ProductOptionsItems WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id);
+
+        //backup & delete product images
+        ProductsFunctions.DeleteProductImage(product.p_id);
+
+
+        //backup & delete product data
+        sqlSelect = "INSERT INTO DeletedProducts(p_id,v_id,title,price,cost,Description,product_type,prod_code,e_title,e_desc,cat_id,add_timestamp,itemunit_type,clerk_id,maincat_id,sub_cat_id,delete_timestamp,is_catalog,is_setup,catalog_p_id,deleted_by,custom_fields_json,tags_json,price_options_json,product_options_json,is_rc) ";
+        sqlSelect = sqlSelect + " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25)";
+        db.Execute(sqlSelect, product.p_id, product.v_id, product.title, product.price, product.cost, product.Description, product.product_type, product.prod_code, product.e_title, product.e_desc, product.cat_id, product.add_timestamp, product.itemunit_type, product.clerk_id, product.maincat_id, product.sub_cat_id, local_time, product.is_catalog, product.is_setup, product.catalog_p_id, rep_id, product.custom_fields_json, product.tags_json, product.price_options_json, product.product_options_json, product.is_rc);
+        //delete product
+        sqlSelect = "DELETE FROM products WHERE p_id=@0";
+        db.Execute(sqlSelect, p_id);
+
+        if (isMenuRemove)
+        {
+            sqlSelect = "SELECT * FROM roundMenuItems WHERE p_id=@0";
+            db.Execute(sqlSelect, p_id);
+        }
+
+        db.Close();
+    }
+
 
     public static void CleanUpOfDeletedProducts()
     {
@@ -3707,6 +3656,8 @@
 
         db.Close();
     }
+
+
 
 
     public static string AddCustomProductField()
@@ -4347,6 +4298,124 @@
 
 
 
+
+    public static string VendorCatalogReset()
+    {
+        string theHtmlOutput = "";
+        int u_id = WebSecurity.CurrentUserId;
+        string pw = Request["param1"];
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        //get pw from settings
+
+        if (pw == "123456")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "SELECT p_id FROM products WHERE is_catalog=0 AND v_id>0";
+            if (vendor_id > 0)
+            {
+                sqlSelect = "SELECT p_id FROM products WHERE is_catalog=0 AND v_id=@0";
+            }
+            var products = db.Query(sqlSelect,vendor_id);
+            foreach(var product in products)
+            {
+                ProductsFunctions.DeleteProduct(product.p_id);
+            }
+
+            db.Close();
+            theHtmlOutput = "👌 הפעולה בוצעה בהצלחה!";
+        }
+        else
+        {
+            theHtmlOutput = "⛔ הסיסמא שגויה!";
+        }
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string VendorCatalogRecreate()
+    {
+        string theHtmlOutput = "";
+        int u_id = WebSecurity.CurrentUserId;
+        string pw = Request["param1"];
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        //get pw from settings
+
+        if (pw == "123456")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "SELECT p_id FROM products WHERE is_catalog=1 AND is_active=1";
+            var products = db.Query(sqlSelect);
+            sqlSelect = "SELECT vendor_id FROM Vendors WHERE is_active=1 order by vendor_id";
+            if (vendor_id > 0)
+            {
+                sqlSelect = "SELECT vendor_id FROM Vendors WHERE is_active=1 AND vendor_id=@0 order by vendor_id";
+            }
+            var vendors = db.Query(sqlSelect,vendor_id);
+            foreach (var product in products)
+            {
+                foreach(var vendor in vendors)
+                {
+                    vendor_id = vendor.vendor_id;
+                    ProductsFunctions.CopyProduct(product.p_id, vendor_id, true, true);
+                }
+            }
+
+            db.Close();
+            theHtmlOutput = "👌 הפעולה בוצעה בהצלחה!";
+        }
+        else
+        {
+            theHtmlOutput = "⛔ הסיסמא שגויה!";
+        }
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string CatalogJsonRecreate()
+    {
+        string theHtmlOutput = "";
+        int u_id = WebSecurity.CurrentUserId;
+        string pw = Request["param1"];
+        int vendor_id = 0; try { vendor_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        //get pw from settings
+
+        if (pw == "123456")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "SELECT p_id FROM products WHERE is_catalog=1";
+            sqlSelect = "SELECT p_id FROM products ";
+            var products = db.Query(sqlSelect);
+            foreach (var product in products)
+            {
+                string json = ProductsFunctions.CreatePriceOptionsJson(product.p_id);
+                sqlSelect = "UPDATE products SET price_options_json=@0 WHERE p_id=@1";
+                db.Execute(sqlSelect, json, product.p_id);
+            }
+
+            db.Close();
+            theHtmlOutput = "👌 הפעולה בוצעה בהצלחה!";
+        }
+        else
+        {
+            theHtmlOutput = "⛔ הסיסמא שגויה!";
+        }
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static void CreateProductCopy(dynamic rec, int p_id, int vendor_id, bool is_pricing = true, bool is_pictures = true, bool is_product_options = true)
+    {
+        ProductsFunctions.CopyProduct(p_id, vendor_id);
+    }
 
     public static string someFunction()
     {

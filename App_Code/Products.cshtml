@@ -2212,6 +2212,9 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
     sqlSelect = "SELECT * FROM CustomProductFieldsType";
     var customProductFieldTypes = db.Query(sqlSelect);
 
+    sqlSelect = "SELECT * FROM Vendors WHERE is_active=1 order by vendor_id";
+    var vendors = db.Query(sqlSelect);
+
 
 
     <div class="B">
@@ -2436,11 +2439,50 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
 
 
             }
+
+
+
+
             <div class="Spacer100"></div>
-            <div class="Spacer100"></div>
+
 
         </div>
-
+        <div class="B" style="border-bottom:1px dotted #808080">
+            <div class="B" style="color:#000;padding:5px;">
+                <h3>תוכניות שירות</h3>
+            </div>
+            <div class="B" style="color:yellow;padding:5px;background-color:#f00;text-align:center;margin:5px;border:2px dotted yellow;">
+                <h3>לפעולות הבאות עשויות להיות השפעות בלתי צפויות על המערכת!</h3>
+            </div>
+            <div class="B" style="color:#000;font-size:18px;padding:5px;border-bottom:1px dotted #808080">
+                <select class="A" name="vendor_id" id="VCRVID" style="float:right">
+                    <option value="-1">כל הספקים</option>
+                    @foreach (var v in vendors)
+                    {
+                        <option value="@v.vendor_id">@v.vendor_name</option>
+                    }
+                </select>
+                <button type="button" class="A" style="float:left" onclick="    AjaxActions('VendorCatalogReset', document.getElementById('VCRVID').value, 'MainLoader', document.getElementById('VCRPW').value); document.getElementById('VCRPW').value = ''; ">איפוס קטלוג ספקים</button>
+                <input type="password" class="A" id="VCRPW" style="float: right;width:120px" placeholder="🔒 BOSS" />
+            </div>
+            <div class="B" style="color:#000;font-size:18px;padding:5px;border-bottom:1px dotted #808080">
+                <select class="A" name="vendor_id" id="VCRCRVID" style="float:right">
+                    <option value="-1">כל הספקים</option>
+                    @foreach (var v in vendors)
+                    {
+                        <option value="@v.vendor_id">@v.vendor_name</option>
+                    }
+                </select>
+                <button type="button" class="A" style="float:left" onclick="    AjaxActions('VendorCatalogRecreate', document.getElementById('VCRCRVID').value, 'MainLoader', document.getElementById('VCRCRPW').value); document.getElementById('VCRCRPW').value = ''; ">יצירה מחדש של קטלוג ספקים</button>
+                <input type="password" class="A" id="VCRCRPW" style="float:right;width:120px" placeholder="🔒 BOSS" />
+            </div>
+            <div class="B" style="color:#000;font-size:18px;padding:5px;border-bottom:1px dotted #808080">
+            
+                <button type="button" class="A" style="float:left" onclick="    AjaxActions('CatalogJsonRecreate', '' ,'MainLoader', document.getElementById('JSONRCPW').value); document.getElementById('JSONRCPW').value = ''; ">יצירה מחדש של נתוני JSON</button>
+                <input type="password" class="A" id="JSONRCPW" style="float:right;width:120px" placeholder="🔒 BOSS" />
+            </div>
+        </div>
+        <div class="Spacer100"></div>
 
         <div class="Spacer100"></div>
 
