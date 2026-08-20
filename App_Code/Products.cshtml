@@ -265,28 +265,10 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
     var db = Database.Open("op_data");
     var sqlSelect = "SELECT is_catalog,is_generic,is_rc,catalog_p_id FROM products WHERE p_id=@0";
     var product = db.QuerySingle(sqlSelect, product_id);
-    bool is_catalog = false; try { is_catalog = product.is_catalog; } catch { }
-    bool is_rc = false; try { is_rc = product.is_rc; } catch { }
-    bool is_generic = false; try { is_generic = product.is_generic; } catch { }
-
-    <div style="overflow: auto; text-align: right; background-color: #fff; direction: rtl; ">
-        @if (is_catalog || !is_rc)
-        {
-            <div style="color: #000">@Products.ViewProductTemplate(product_id, viewMode)</div>
-        }
-        else
-        {
-            <div style="overflow: auto; text-align: right; background-color: #fff; direction: rtl; color: #000">
-                @Products.ViewProductTemplate(product_id, viewMode)
-            </div>
-
-        }
-
-
-
-
+    <div style="overflow: auto; text-align: right; background-color: #fff; direction: rtl; color: #000">
+        @Products.ViewProductTemplate(product_id, viewMode)
     </div>
-    <div style="overflow: auto;height: 50px;">&nbsp;</div>
+    <div class="Spacer50">&nbsp;</div>
 
     db.Close();
 }
@@ -1711,6 +1693,537 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
                     </div>
 
                 </div>
+
+
+            </div>
+
+
+            <div class="Spacer100">&nbsp;</div>
+            <div class="Spacer100">&nbsp;</div>
+
+        </div>
+    </div>
+    db.Close();
+}
+
+
+@helper ViewMenuItem(int MenuItemId, string viewMode = "")
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+var product = db.QuerySingle(sqlSelect, MenuItemId);
+
+int product_id = 0; try { product_id = product.p_id; } catch { }
+int round_id = 0; try { round_id = product.round_id; } catch { }
+int vendor_id = 0; try { vendor_id = product.vendor_id; } catch { }
+string vendor_name = ""; if (vendor_id > 0) { try { vendor_name = AppFunctions.GetVendorTitleById(vendor_id); } catch { } }
+string menu_name = ""; try { menu_name = AppFunctions.GetRoundTitleById(round_id); } catch { }
+int itemunit_type = 0; try { itemunit_type = product.itemunit_type; } catch { }
+string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+
+int maincat_id = 0; try { maincat_id = product.maincat_id; } catch { }
+int sub_cat_id = 0; try { sub_cat_id = product.sub_cat_id; } catch { }
+int spOfferCatId = 0; try { spOfferCatId = product.spOfferCatId; } catch { }
+int product_type = 0; try { product_type = product.product_type; } catch { }
+
+string main_cat_title = ""; try { main_cat_title = NewAppFunctions.GetTitleById("Cat", maincat_id); } catch { }
+string sub_cat_title = ""; try { sub_cat_title = NewAppFunctions.GetTitleById("Cat", sub_cat_id); } catch { }
+string spOffer_cat_title = ""; try { spOffer_cat_title = NewAppFunctions.GetTitleById("Cat", spOfferCatId); } catch { }
+
+string prod_title = product.title;
+
+string edit_disabler = "";
+
+sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND product_id = @0 ORDER BY is_primary DESC,timestamp DESC";
+var files = db.Query(sqlSelect, product_id);
+
+//var CustomFields = db.Query("SELECT * FROM customFields WHERE is_active=1 AND (cat_id=@0 OR cat_id=@1 OR p_t_id=@2) ORDER BY is_required DESC, sort_order", maincat_id, sub_cat_id, product_type);
+string customFieldsJson = product.custom_fields_json;
+
+string CustomFieldsStr = "";
+var savedCustomFields = new List<Dictionary<string, object>>();
+
+if (!String.IsNullOrWhiteSpace(customFieldsJson))
+{
+    try
+    {
+        var serializer = new JavaScriptSerializer();
+        savedCustomFields = serializer.Deserialize<List<Dictionary<string, object>>>(customFieldsJson);
+    }
+    catch
+    {
+        savedCustomFields = new List<Dictionary<string, object>>();
+    }
+}
+
+string tags_json = ""; try { tags_json = Convert.ToString(product.tags_json); } catch { }
+
+var productTags = new List<Dictionary<string, object>>();
+
+if (!String.IsNullOrWhiteSpace(tags_json))
+{
+    try
+    {
+        var serializer = new JavaScriptSerializer();
+        productTags = serializer.Deserialize<List<Dictionary<string, object>>>(tags_json);
+        productTags = productTags.OrderBy(x => x.ContainsKey("sort") && x["sort"] != null ? Convert.ToInt32(x["sort"]) : 0).ToList();
+    }
+    catch { productTags = new List<Dictionary<string, object>>(); }
+}
+
+
+
+
+    <div style="overflow: auto;text-align: right;background-color: #fff">
+
+        <div class="CatalogProductHeader">
+            @prod_title
+        </div>
+
+        <div class="RcProductSubHeader">
+           תפריט @menu_name של הספק @vendor_name
+        </div>
+
+
+        <div class="prodSection" id="ProductImagesContainer">
+
+            <div class="prodSectionTitle">
+                תמונות מוצר
+            </div>
+            <div class="ProductViewImagesContainer">
+
+                @if (files.Count() > 0)
+                {
+                    int cnt = 0;
+                    string imgClass = "ProductViewPrimaryImage";
+
+
+                    foreach (var item in files)
+                    {
+                        cnt++;
+                        string imgLink = "ImgViewer?Id=" + item.file_id;
+                        if (!item.is_primary)
+                        {
+                            imgClass = "ProductViewSmallImage";
+                            imgLink = "ImgViewer?size=tn&Id=" + item.file_id;
+
+
+                        }
+
+                        if (item.MimeType.StartsWith("image"))
+                        {
+                            if (item.is_primary)
+                            {
+                                <div class="B">
+                                    <span class="ProductViewImageSpan">
+
+                                        <img class="@imgClass" src="@imgLink" alt="אלט" onclick="sbload('SubMenuLeft','Caller?p1=ImgInfo&p2=@product_id&p3=@item.file_id&p4=101');" />
+
+
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="ProductViewImageSpan">
+
+                                    <img class="@imgClass" src="@imgLink" alt="אלט" onclick="sbload('SubMenuLeft','Caller?p1=ImgInfo&p2=@product_id&p3=@item.file_id&p4=101');" />
+
+
+                                </span>
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+
+                    <span class="ProductViewImageSpan">
+
+                        <img class="ProductViewNoImage" src="~/Images/nopic.jpg" />
+
+
+                    </span>
+                }
+            </div>
+
+        </div>
+
+
+        <div class="B">
+
+            <div class="B">
+                <div class="prodSection">
+                    <div class="B">
+                        <div class="prodSectionTitle">
+                            פרטי המוצר <span class="MiniTag">מוצר #@product_id פריט #@MenuItemId</span>
+                        </div>
+
+
+
+
+                    </div>
+
+                    <div class="ProdEditSection" id="ProdSettingsViewDiv">
+
+                        <div class="ProdViewItem">
+                            שם המוצר
+                            <span class="PPOInfoSpan">
+                                @product.title
+                            </span>
+                        </div>
+                        <div class="ProdViewItem">
+                            Title
+                            <span class="PPOInfoSpan">
+                                @product.title_e
+                            </span>
+                        </div>
+
+                        <div class="ProdViewItem" style="display:none">
+                            מחיר מחירון ל<span id="itemunit1">@itemunit</span>
+                            <span class="PPOInfoSpan">
+                                @product.price.ToString("C", culture)
+                            </span>
+                        </div>
+                        <div class="ProdViewItem" style="display:none">
+                            עלות ל<span id="itemunit2">@itemunit</span>
+                            <span class="PPOInfoSpan">
+                                @product.cost.ToString("C", culture)
+                            </span>
+                        </div>
+
+
+                        @if (!String.IsNullOrEmpty(spOffer_cat_title))
+                        {
+                            <div style="overflow: auto">
+
+                                <div class="ProdViewItem">
+                                    מבצעים לפי
+
+                                    <span class="PPOInfoSpan">
+                                        @spOffer_cat_title
+                                    </span>
+                                </div>
+                            </div>
+                        }
+
+
+
+
+
+                        <div class="ProdViewItem">
+                            הנחות
+
+                            <span class="PPOInfoSpan">
+                                @if (product.is_discountable)
+                                {<span>✅</span>}
+
+                            </span>
+                        </div>
+
+                        <div class="B">
+
+
+
+                            <div class="B">
+                                <div class="ProdViewItem">
+                                    קטגוריה
+                                    <input type="hidden" id="main_cat_id" name="main_cat_id" value="@maincat_id">
+                                    <span class="PPOInfoSpan">
+                                        @NewAppFunctions.GetTitleById("Cat", maincat_id)
+                                        @if (sub_cat_id > 0)
+                                        {
+                                            <span>
+                                                - @NewAppFunctions.GetTitleById("Cat", sub_cat_id)
+                                            </span>
+                                        }
+                                    </span>
+                                   
+
+                                </div>
+
+
+                            </div>
+                            <div class="B">
+                                <div class="B" id="SubCatContainer">
+                                    <div class="ProdViewItem">
+                                        סוג המוצר
+                                        <span class="PPOInfoSpan">
+                                            @NewAppFunctions.GetTitleById("ProductType", product_type)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+
+
+
+                        </div>
+
+
+                    </div>
+
+                    <div class="B" style="display:none" id="ProdSettingsEditDiv">
+
+                        <div class="B">
+
+
+                            <form id="UpdateRcProduct">
+                                <div class="ProdEditSection">
+                                    <div class="ProdViewItem">
+                                        <input type="checkbox" class="ProdEditCb" onclick="if (this.checked) { AjaxActions('ActivateProduct', @product_id,'', '1'); } else { AjaxActions('ActivateProduct', @product_id, '', '0'); }" @if (product.is_active) { <text> checked</text>}>
+
+                                        פעיל במערכת?
+                                    </div>
+                                    <div class="ProdViewItem">
+                                        <input type="text" class="ProdEditTb" id="title" name="title" value="@product.title" @edit_disabler>
+                                        כותרת עברית <span class="RedMiniTag">*</span>
+                                    </div>
+                                    <div class="ProdViewItem">
+                                        <input type="text" class="ProdEditTb" id="e_title" name="title_e" value="@product.title_e" @edit_disabler>
+                                        English title <span class="RedMiniTag">*</span>
+                                    </div>
+
+
+
+                                    <div id="ProductSettingsDiv" class="B">
+
+                                        <div class="B">
+                                            <div class="ProdViewInfo">
+
+                                                הגדרות מתקדמות
+                                            </div>
+
+                                            <div class="B">
+
+                                                <div class="B">
+
+
+
+
+
+
+
+                                                </div>
+
+
+
+
+
+                                                <div class="Spacer10"></div>
+                                                <div class="B" id="ProductCustomFieldsDiv">
+                                                    @Products.ProductCustomFields(product_id, product_type, 0, true)
+                                                </div>
+
+
+
+                                                <div class="B">
+                                                    <b>הגדרות פיננסיות</b>
+                                                </div>
+                                                <div class="ProdViewItem">
+                                                    מחיר עלות
+                                                    <span class="MiniTag">(₪/<span id="itemunit2">@itemunit</span>)</span>
+                                                    <span class="ProdEditSmallSpan" style="float: left">
+                                                        <input type="text" id="cost" name="cost" class="ProdEditTbSmall" value="@product.cost.ToString("F2")" onfocus="this.value = '';" @edit_disabler>
+                                                    </span>
+                                                </div>
+
+                                    
+
+                                                <div class="ProdViewItem">
+                                                    זמין להנחות <span class="PPOInfoSpan" style="float: left">
+                                                        <input type="checkbox" class="ProdEditCb" id="is_discountable" name="is_discountable" checked="@(product.is_discountable ? "checked" : null)" @edit_disabler>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="Spacer20"></div>
+                                        </div>
+
+
+                                    </div>
+
+                                </div>
+                            </form>
+
+
+
+
+                            <div class="Spacer20"></div>
+                        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+                    </div>
+
+
+                </div>
+
+
+
+
+
+
+
+
+                <div class="B">
+
+
+                    <div class="B">
+                        <div class="prodSectionTitle">
+                      
+                            תגיות
+                        </div>
+
+                        <div class="B" id="ProdTagsViewDiv">
+                            @if (productTags.Count > 0)
+                            {
+                                foreach (var pt in productTags)
+                                {
+                                    string tagHebrew = ""; try { if (pt.ContainsKey("he") && pt["he"] != null) { tagHebrew = Convert.ToString(pt["he"]); } } catch { }
+                                    bool isFav = false; try { if (pt.ContainsKey("fav") && pt["fav"] != null) { isFav = Convert.ToBoolean(pt["fav"]); } } catch { }
+
+                                    if (tagHebrew != "")
+                                    {
+                                        <div class="PviewTag">
+                                            @if (isFav)
+                                            {<span class="GreenMiniTag">★ </span>}@tagHebrew
+                                        </div>
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <div class="PviewTagEmpty">לא נבחרו תגיות</div>
+                            }
+                        </div>
+
+               
+                    </div>
+
+
+
+
+
+
+
+                </div>
+
+
+
+                <div class="B">
+
+                    <div class="prodSectionTitle">
+                        <div class="B">
+                         
+
+                            תאור המוצר
+                        </div>
+
+
+                    </div>
+                    <div class="HtmlDescContainer">
+                        <form id="ProdDescForm">
+                            <input type="hidden" name="lang" value="he" />
+                            <div class="B" id="descriptionView">
+
+
+                                @if (!String.IsNullOrEmpty(product.description))
+                                {
+                                    @Html.Raw(product.description)
+                                }
+                                else
+                                {
+                                    <div class="ProductTagNone">אין תיאור</div>
+                                }
+                            </div>
+                            <textarea class="ProdEditSNhide" id="description" name="description" style="display:none;">@product.description</textarea>
+                            <input type="hidden" id="description_save" value="@product.description" />
+
+                        </form>
+                    </div>
+
+
+                </div>
+
+                <div class="B">
+                    <div class="prodSectionTitle">
+                        <div class="B">
+                          
+
+                            Product Description
+                        </div>
+
+
+                    </div>
+                    <div class="HtmlDescContainer">
+                        <form id="ProdDescForm_e">
+                            <input type="hidden" name="lang" value="en" />
+                            <div class="B" id="e_descView">
+                                @if (!String.IsNullOrEmpty(product.desc_e))
+                                {
+                                    @Html.Raw(product.e_desc)
+                                }
+                                else
+                                {
+                                    <div class="ProductTagNone">No Description</div>
+                                }
+                            </div>
+                            <textarea class="ProdEditSNhide" id="e_desc" name="e_desc" style="display:none;">@product.desc_e</textarea>
+                            <input type="hidden" id="e_desc_save" value="@product.desc_e" />
+
+                        </form>
+                    </div>
+                </div>
+
+                <div class="Spacer20">&nbsp;</div>
+
+
+                <div style="overflow: auto;" id="ProductPricingDiv_@product_id">
+                    <div class="B">
+                        <div class="prodSectionTitle">
+                            מחירון
+                        </div>
+
+
+                        <div id="PricingOptionsContainer">
+
+
+
+                            <div class="B" id="POPTVIEW">
+                                <div class="B">
+                                    @Products.ViewProductPricingOptions(product_id)
+                                </div>
+                            </div>
+
+
+                        </div>
+
+                    </div>
+                    <div class="Spacer20"></div>
+                </div>
+
+
+                <div class="B" id="ViewProductOptionsDiv">
+                    @Products.ViewProductOptions(product_id, true)
+                </div>
+
+
+                <div class="Spacer20"></div>
+
+
 
 
             </div>

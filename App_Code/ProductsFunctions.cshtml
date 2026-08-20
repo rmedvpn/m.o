@@ -66,6 +66,15 @@
 
                 var sqlSelect = "UPDATE products SET title=@1,e_title=@2,sub_cat_id=@3,last_change_ts=@4,last_change_by=@5,cost=@6,price=@7,spOfferCatId=@8,is_discountable=@9,commision_type=@10,commision_rate=@11,is_generic=@12,product_type=@13,custom_fields_json=@14 WHERE p_id=@0";
                 db.Execute(sqlSelect, p_id, title, e_title, sub_cat_id, UpdateTs, u_id, cost, price, spOfferCatId, is_discountable, commision_type, commision_rate, is_generic, product_type, customFieldsJson);
+
+                //check if menuitems exists for this product, if so update them
+                sqlSelect = "SELECT p_id,round_id FROM roundMenuItems WHERE p_id=@0";
+                var MenuItems = db.Query(sqlSelect, p_id);
+                foreach(var menuitem in MenuItems)
+                {
+                    string s=Menus.SyncRoundItemWithProduct(p_id, menuitem.round_id);
+                }
+
                 //DataFunctions.WriteDebugLine(customFieldsJson);
                 theHtmlOutput = " 👌 המוצר התעדכן בהצלחה ";
                 db.Close();
@@ -925,12 +934,15 @@
 
                     productTags.Add(tagItem);
                 }
-            }            //  theHtmlOutput = "!$!LIST:<br>" + retTxt + "<br>" + SelectedCat;
+            }
+            
             productTags = productTags.OrderBy(x => Convert.ToInt32(x["sort"])).ToList();
             var serializer = new JavaScriptSerializer();
             ProductTagsJSON = serializer.Serialize(productTags);
 
             sqlSelect = "UPDATE products SET tags_json=@0 WHERE p_id=@1";
+            db.Execute(sqlSelect, ProductTagsJSON, p_id);
+            sqlSelect = "UPDATE roundMenuItems SET tags_json=@0 WHERE p_id=@1";
             db.Execute(sqlSelect, ProductTagsJSON, p_id);
 
             theHtmlOutput = "הפעולה בוצעה בהצלחה!";
@@ -969,12 +981,16 @@
         {
             sqlSelect = "UPDATE products SET Description=@0 WHERE p_id=@1";
             db.Execute(sqlSelect,  description, p_id);
+            sqlSelect = "UPDATE roundMenuItems SET Description=@0 WHERE p_id=@1";
+            db.Execute(sqlSelect,  description, p_id);
 
 
         }
         if (lang == "en")
         {
             sqlSelect = "UPDATE products SET e_desc=@0 WHERE p_id=@1";
+            db.Execute(sqlSelect, e_desc, p_id);
+            sqlSelect = "UPDATE roundMenuItems SET desc_e=@0 WHERE p_id=@1";
             db.Execute(sqlSelect, e_desc, p_id);
 
         }
@@ -3517,6 +3533,8 @@
         {
             sqlSelect = "UPDATE Products SET product_options_json=@0 WHERE p_id=@1";
             db.Execute(sqlSelect, json, p_id);
+            sqlSelect = "UPDATE RoundMenuItems SET product_options_json=@0 WHERE p_id=@1";
+            db.Execute(sqlSelect, json, p_id);
         }
 
         db.Close();
@@ -4283,10 +4301,17 @@
 
             sqlSelect = "UPDATE products SET price_options_json=@0 WHERE p_id=@1";
             db.Execute(sqlSelect, json, p_id);
+            sqlSelect = "UPDATE roundMenuItems SET price_options_json=@0 WHERE p_id=@1";
+            db.Execute(sqlSelect, json, p_id);
+
+
+
+            ProductsFunctions.CalcProdLowestCost(p_id);
+
 
             theHtmlOutput = " 👌 אפשרות המחירון התעדכנה! ";
             db.Close();
-            ProductsFunctions.CalcProdLowestCost(p_id);
+
         }
         else
         {

@@ -1,4 +1,10 @@
-﻿@helper MenusAdmin(string showWhat = "ACTIVE", int vendor_id = 0)
+﻿@using System
+@using System.Collections.Generic
+@using System.Globalization
+
+@using System.Web.Script.Serialization
+
+@helper MenusAdmin(string showWhat = "ACTIVE", int vendor_id = 0)
 {
     if (showWhat == "") { showWhat = "ACTIVE"; }
     var db = Database.Open("op_data");
@@ -197,71 +203,157 @@
                 }
             </select>
         </div>
-
         @foreach (var item in roundMenuItems)
         {
-            bool is_featured = false; try { is_featured = item.is_featured; } catch { }
-            string favRes = "false";
-            if (is_featured)
-            {
-                favRes = "true";
-            }
-            sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0 AND (round_id=@1 OR round_id=99999 OR round_id=0) ORDER BY quan";
-            var PricingOptions = db.Query(sqlSelect, item.p_id, item.round_id);
-            <div style="overflow: auto;padding: 3px;border-bottom: 1px dotted #000;margin: 3px">
-                <div style="overflow: auto;color: #000 ">
-                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">⚙️</button>
-                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="Accordionize('menuItemAcc_@item.id');toggle_visibility('delItem_@item.id');">💡</button>
-                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left;display: none" id="delItem_@item.id" onclick="AjaxActions('RemoveMenuItemFromRound', @round_id,'',@item.id);">🗑️</button>
+            string price_options_json = "";
+            try { price_options_json = item.price_options_json; } catch { }
 
-                    <div class="B" style="cursor:pointer; vertical-align: middle;float:right " onclick="AjaxActions('MenuItemIsFeaturedToggle','@favRes','MainLoader',@item.id,@round_id);">
+            bool is_featured = false;
+            bool is_active = true;
+            try { is_featured = item.is_featured; } catch { }
+            try { is_active = item.is_active; } catch { }
+
+            string favRes = is_featured ? "true" : "false";
+
+            string is_active_class = "PPOBtnItem"; if (is_active){ is_active_class = "PPOBtnItemSelected"; }
+            string is_featured_class = "PPOBtnItem"; if (is_featured) { is_featured_class = "PPOBtnItemSelected"; }
+
+            var PricingOptions = new List<Dictionary<string, object>>();
+
+            if (!string.IsNullOrWhiteSpace(price_options_json))
+            {
+                try
+                {
+                    var serializer = new JavaScriptSerializer();
+                    PricingOptions = serializer.Deserialize<List<Dictionary<string, object>>>(price_options_json);
+                }
+                catch { }
+            }
+
+            int currentRoundId = 0;
+            try { currentRoundId = Convert.ToInt32(item.round_id); } catch { }
+
+            var FilteredPricingOptions = PricingOptions
+                .Where(x =>
+                    Convert.ToInt32(x["round"]) == currentRoundId ||
+                    Convert.ToInt32(x["round"]) == 99999 ||
+                    Convert.ToInt32(x["round"]) == 0
+                )
+                .OrderBy(x => Convert.ToInt32(x["quan"]))
+                .ToList();
+
+            <div style="overflow: auto;padding: 3px;border-bottom: 1px dotted #000;margin: 3px">
+
+                <div style="overflow: auto;color: #000">
+
+                    <button style="padding: 5px; margin: 5px; background-color: #fff; border: 0; font-size: 22px; float: left; display: none"
+                            onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">
+                        ⚙️
+                    </button>
+
+                    <button style="padding: 5px; margin: 5px; background-color: #fff; border: 0; font-size: 22px; float: left; display: none"
+                            onclick="Accordionize('menuItemAcc_@item.id');toggle_visibility('delItem_@item.id');">
+                        💡
+                    </button>
+
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left;display: none"
+                            
+                            onclick="AjaxActions('RemoveMenuItemFromRound', @round_id,'',@item.id);">
+                        🗑️
+                    </button>
+                    <div style="float:left">
+
+                        <div class="@is_featured_class" style="overflow:auto" onclick="AjaxActions('MenuItemIsFeaturedToggle','@favRes','MainLoader',@item.id,@round_id);">
+                            <input type="checkbox" <input type="checkbox" style="display:none" checked="@(is_featured ? "checked" : null)" /> 👁️
+
+
+                        </div>
+                        <div class="@is_active_class" style="overflow:auto" onclick="AjaxActions('MenuItemIsFeaturedToggle','@favRes','MainLoader',@item.id,@round_id);">
+                            <input type="checkbox" <input type="checkbox" style="display:none" checked="@(is_active ? "checked" : null)" />  ❤️
+                        </div>
+                        <div class="PPOBtnItem" style="overflow:auto" onclick="Accordionize('menuItemAcc_@item.id');toggle_visibility('delItem_@item.id');">
+                            💡
+                        </div>
+                        <div class="PPOBtnItem" id="delItem_@item.id" style="overflow:auto;display:none" onclick="AjaxActions('RemoveMenuItemFromRound', @round_id,'',@item.id);">
+                            🗑️
+                        </div>
+                        <div class="PPOBtnItem" style="overflow:auto" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">
+                            ⚙️
+                        </div>
+
+                    </div>
+                 
+                    <div class="hide">
                         @if (is_featured)
                         {
-                            <span style="font-size: 30px; margin: 5px; margin-top: 10px;float:right ">
+                            <span style="font-size:30px;margin:5px;margin-top:10px;float:right">
                                 ❤️
                             </span>
                         }
                         else
                         {
-                            <span style="font-size:30px;margin:5px;margin-top:10px;">
+                            <span style="font-size:30px;margin:5px;margin-top:10px">
                                 🤍
                             </span>
                         }
-
                     </div>
+                    <img style="max-height:50px;width:50px;border-radius:10px;margin:5px;float:right"
+                         src="ImgViewer?size=tn&p_id=@item.p_id&theTime=@DateTime.Now"
+                         alt="אלט" />
 
-                    <img style="max-height: 50px;width: 50px;border-radius: 10px;margin: 5px;float: right;" src="ImgViewer?size=tn&p_id=@item.p_id&theTime=@DateTime.Now" alt="אלט" />
-                    <div style="padding: 5px;margin: 5px;font-size: 18px;color: #000;float: right">
+                    <div style="padding:5px;margin:5px;font-size:18px;color:#000;float:right">
                         @item.Title
                     </div>
-                </div>
-                <div style="overflow: auto;color: #000">
-                    <button style="display: none" class="Accordion" id="menuItemAcc_@item.id"></button>
-                    <div class="panel" style="padding: 0;margin: 0">
-                        <h2>מחירון מוצר</h2>
-                 
 
-                        @foreach (var priceOption in PricingOptions)
+                </div>
+
+                <div style="overflow:auto;color:#000">
+
+                    <button style="display:none"
+                            class="Accordion"
+                            id="menuItemAcc_@item.id">
+                    </button>
+
+                    <div class="panel" style="padding:0;margin:0">
+
+                        <h2>מחירון מוצר</h2>
+
+                        @foreach (var priceOption in FilteredPricingOptions)
                         {
-                            string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", item.itemtype_id); } catch { }
-                            <div style="overflow: auto;font-size: 16px;;margin: 5px;text-align: right;;border-bottom: 1px dotted #e3e3e3">
-                                <div style="overflow: auto;">
-                                    <div style="font-size: 14px;overflow: auto">
-                                        <span style="padding: 5px;float: right;width: 100px;font-size: 16px;"><b>@Convert.ToInt32(priceOption.quan) @item.itemunit</b></span>
-                                        <span style="padding: 5px;float: right"><b>@priceOption.price.ToString("C", culture)</b>
+                            int quan = 0;
+                            decimal price = 0;
+                            decimal unit = 0;
+
+                            try { quan = Convert.ToInt32(priceOption["quan"]); } catch { }
+                            try { price = Convert.ToDecimal(priceOption["price"]); } catch { }
+                            try { unit = Convert.ToDecimal(priceOption["unit"]); } catch { }
+
+                            <div style="overflow:auto;font-size:16px;margin:5px;text-align:right;border-bottom:1px dotted #e3e3e3">
+
+                                <div style="overflow:auto">
+
+                                    <div style="font-size:14px;overflow:auto">
+
+                                        <span style="padding:5px;float:right;width:100px;font-size:16px">
+                                            <b>@quan @item.itemunit</b>
                                         </span>
 
-                                        
-                                    </div>
-                                </div>
+                                        <span style="padding:5px;float:right">
+                                            <b>@price.ToString("C", culture)</b>
+                                        </span>
 
+                                    </div>
+
+                                </div>
 
                             </div>
                         }
-                    </div>
-                </div>
-            </div>
 
+                    </div>
+
+                </div>
+
+            </div>
         }
     </div>
 
@@ -1590,9 +1682,152 @@
 }
 
 
+@helper MenuItems_bck(int round_id)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from roundMenuItems WHERE  is_deleted=0 AND round_id=@0 ORDER BY maincat_id,sub_cat_id";
+    var roundMenuItems = db.Query(sqlSelect, round_id);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    int vendor_id = 0;
+    sqlSelect = "SELECT vendor_id FROM rounds where id=@0";
+    var roundInfo = db.QuerySingle(sqlSelect, round_id);
+    vendor_id = roundInfo.vendor_id;
+    sqlSelect = "SELECT * FROM products where is_active=1 AND v_id=@0";
+    var vendorsProducts = db.Query(sqlSelect, vendor_id);
+    <div style="overflow: auto;">
+        <div style="overflow: auto">
+            <select style="font-size: 16px;padding: 5px;margin: 5px;" onchange="AjaxActions('AddProductToRound', @round_id,'MainLoader', this.value);">
+                <option>נא לבחור מוצר להוספה ממוצרי הספק..</option>
+                <option value="-1">הוספת כל מוצרי הספק לתפריט</option>
+                @foreach (var product in vendorsProducts)
+                {
+                    sqlSelect = "SELECT id FROM roundMenuItems WHERE p_id=@0 AND round_id=@1";
+                    var isInMenuCheck = db.QuerySingle(sqlSelect, product.p_id, round_id);
+                    if (isInMenuCheck == null)
+                    {
+                        <option value="@product.p_id">@product.title</option>
+                    }
+                }
+            </select>
+        </div>
+
+        @foreach (var item in roundMenuItems)
+        {
+            bool is_featured = false; try { is_featured = item.is_featured; } catch { }
+            string favRes = "false";
+            if (is_featured)
+            {
+                favRes = "true";
+            }
+            sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0 AND (round_id=@1 OR round_id=99999 OR round_id=0) ORDER BY quan";
+            var PricingOptions = db.Query(sqlSelect, item.p_id, item.round_id);
+            <div style="overflow: auto;padding: 3px;border-bottom: 1px dotted #000;margin: 3px">
+                <div style="overflow: auto;color: #000 ">
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">⚙️</button>
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left" onclick="Accordionize('menuItemAcc_@item.id');toggle_visibility('delItem_@item.id');">💡</button>
+                    <button style="padding: 5px;margin: 5px;background-color: #fff;border: 0;font-size: 22px;float: left;display: none" id="delItem_@item.id" onclick="AjaxActions('RemoveMenuItemFromRound', @round_id,'',@item.id);">🗑️</button>
+
+                    <div class="B" style="cursor:pointer; vertical-align: middle;float:right " onclick="AjaxActions('MenuItemIsFeaturedToggle','@favRes','MainLoader',@item.id,@round_id);">
+                        @if (is_featured)
+                        {
+                            <span style="font-size: 30px; margin: 5px; margin-top: 10px;float:right ">
+                                ❤️
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="font-size:30px;margin:5px;margin-top:10px;">
+                                🤍
+                            </span>
+                        }
+
+                    </div>
+
+                    <img style="max-height: 50px;width: 50px;border-radius: 10px;margin: 5px;float: right;" src="ImgViewer?size=tn&p_id=@item.p_id&theTime=@DateTime.Now" alt="אלט" />
+                    <div style="padding: 5px;margin: 5px;font-size: 18px;color: #000;float: right">
+                        @item.Title
+                    </div>
+                </div>
+                <div style="overflow: auto;color: #000">
+                    <button style="display: none" class="Accordion" id="menuItemAcc_@item.id"></button>
+                    <div class="panel" style="padding: 0;margin: 0">
+                        <h2>מחירון מוצר</h2>
+
+
+                        @foreach (var priceOption in PricingOptions)
+                        {
+                            string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", item.itemtype_id); } catch { }
+                            <div style="overflow: auto;font-size: 16px;;margin: 5px;text-align: right;;border-bottom: 1px dotted #e3e3e3">
+                                <div style="overflow: auto;">
+                                    <div style="font-size: 14px;overflow: auto">
+                                        <span style="padding: 5px;float: right;width: 100px;font-size: 16px;"><b>@Convert.ToInt32(priceOption.quan) @item.itemunit</b></span>
+                                        <span style="padding: 5px;float: right">
+                                            <b>@priceOption.price.ToString("C", culture)</b>
+                                        </span>
+
+
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        }
+    </div>
+
+    db.Close();
+}
+
+
 @functions{
 
     public static string AddProductToRound()
+    {
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        DateTime local_time = AppFunctions.LocalTime();
+        string theHtmlOutput = "";
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["value"]); } catch { }
+        int p_id = 0; try { p_id = Convert.ToInt32(Request["param1"]); } catch { }
+        int menuItem_id = 0;
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        if (p_id > 0)
+        {
+
+            theHtmlOutput = Menus.SyncRoundItemWithProduct(p_id, round_id);
+
+
+
+        }
+        if (p_id == -1)
+        {
+            sqlSelect = "SELECT vendor_id FROM rounds WHERE id=@0";
+            var round = db.QuerySingle(sqlSelect, round_id);
+            int vendor_id = 0; try { vendor_id = round.vendor_id; } catch { }
+            sqlSelect = "SELECT p_id FROM Products WHERE v_id=@0 ORDER by p_id";
+            var products = db.Query(sqlSelect, vendor_id);
+            foreach (var product in products)
+            {
+                theHtmlOutput = Menus.SyncRoundItemWithProduct(product.p_id, round_id);
+
+            }
+
+        }
+
+        Menus.UpdateMenuStatsAndParams(round_id);
+
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+
+    public static string AddProductToRound_bck()
     {
         int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
         DateTime local_time = AppFunctions.LocalTime();
@@ -2434,10 +2669,10 @@
         sqlSelect = "SELECT p_id,title,title_e,curLowestUnitPrice,itemunit,itemunit_e FROM RoundMenuItems WHERE is_active=1 AND is_featured=1 AND round_id=@0";
         var items = db.Query(sqlSelect, round_id);
 
-        foreach(var item in items)
+        foreach (var item in items)
         {
-            FeaturedItemsString += item.p_id + "##" + item.title +   "##"  + item.curLowestUnitPrice +   "##"  + item.itemunit + "$$";
-            FeaturedItemsString_e += item.p_id + "##" + item.title_e + "##"  + item.curLowestUnitPrice+ "##"  + item.itemunit_e + "$$";
+            FeaturedItemsString += item.p_id + "##" + item.title + "##" + item.curLowestUnitPrice + "##" + item.itemunit + "$$";
+            FeaturedItemsString_e += item.p_id + "##" + item.title_e + "##" + item.curLowestUnitPrice + "##" + item.itemunit_e + "$$";
         }
 
         sqlSelect = "UPDATE ROUNDS set FeaturedItemsString=@0,FeaturedItemsString_e=@1 WHERE id=@2";
@@ -2468,7 +2703,7 @@
         try { itemunit = MenuItem.itemunit; } catch { }
         try { itemunit_e = MenuItem.itemunit_e; } catch { }
 
-        if(p_id>0 && round_id > 0)
+        if (p_id > 0 && round_id > 0)
         {
             sqlSelect = "SELECT price,quan,is_spOffer FROM ProductPricingOptions WHERE p_id=@0 AND (round_id='99999' OR round_id=@1) ORDER BY quan";
             var priceOptions = db.Query(sqlSelect, p_id, round_id);
@@ -2481,7 +2716,7 @@
                     isSpOfferSt = "1";
                 }
 
-                PricingOptionsString += isSpOfferSt + "##" + item.quan + "##" + priceOptStr +  "$$";
+                PricingOptionsString += isSpOfferSt + "##" + item.quan + "##" + priceOptStr + "$$";
 
             }
 
@@ -2496,6 +2731,66 @@
 
 
         db.Close();
+    }
+
+
+    public static string SyncRoundItemWithProduct(int p_id, int round_id)
+    {
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        DateTime local_time = AppFunctions.LocalTime();
+        string theHtmlOutput = "";
+        int menuItem_id = 0;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT * from products WHERE p_id=@0";
+        var Product = db.QuerySingle(sqlSelect, p_id);
+
+        sqlSelect = "SELECT id FROM roundMenuItems WHERE p_id=@0 AND round_id=@1";
+        var checkRs = db.QuerySingle(sqlSelect, p_id, round_id);
+        if (checkRs != null)
+        {
+            menuItem_id = checkRs.id;
+        }
+
+        if (menuItem_id == 0)
+        {
+            DateTime UpdateTs = local_time;
+            int Available_quan = 0;
+            sqlSelect = "INSERT INTO roundMenuItems(title,title_e,Description,desc_e,maincat_id,sub_cat_id,last_change_ts,last_change_by,round_id,p_id,clerk_id,timestamp,vendor_id,itemunit,product_type,itemunit_type,itemunit_e,spOfferCatId,max_in_cart,is_discountable,is_active,catalog_p_id,custom_fields_json,tags_json,price_options_json,product_options_json,curLowestUnitPrice) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26) ";
+            db.Execute(sqlSelect, Product.title, Product.e_title, Product.Description, Product.e_desc, Product.maincat_id, Product.sub_cat_id, Product.last_change_ts, Product.last_change_by, round_id, p_id, u_id, local_time, Product.vendor_id, Product.itemunit, Product.product_type, Product.itemunit_type, Product.itemunit_e, Product.spOfferCatId, Product.max_in_cart, Product.is_discountable, Product.is_active, Product.catalog_p_id, Product.custom_fields_json, Product.tags_json, Product.price_options_json, Product.product_options_json, Product.curLowestUnitPrice);
+        }
+        else
+        {
+            sqlSelect = "UPDATE roundMenuItems SET title=@0,title_e=@1,Description=@2,desc_e=@3,sub_cat_id=@4,last_change_ts=@5,last_change_by=@6,itemunit=@7,product_type=@8,itemunit_type=@9,itemunit_e=@10,spOfferCatId=@11,max_in_cart=@12,is_discountable=@13,is_active=@14,custom_fields_json=@15,tags_json=@16,price_options_json=@17,product_options_json=@18,curLowestUnitPrice=@19 WHERE id=@20";
+            db.Execute(sqlSelect, Product.title, Product.e_title, Product.Description, Product.e_desc, Product.sub_cat_id, Product.last_change_ts, Product.last_change_by, Product.itemunit, Product.product_type, Product.itemunit_type, Product.itemunit_e, Product.spOfferCatId, Product.max_in_cart, Product.is_discountable, Product.is_active, Product.custom_fields_json, Product.tags_json, Product.price_options_json, Product.product_options_json, Product.curLowestUnitPrice, menuItem_id);
+        }
+
+        db.Close();
+
+        return theHtmlOutput;
+    }
+
+
+    public static string SyncProductPricingToMenus(int p_id)
+    {
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        DateTime local_time = AppFunctions.LocalTime();
+        string theHtmlOutput = "";
+        int menuItem_id = 0;
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT price_options_json from products WHERE p_id=@0";
+        var Product = db.QuerySingle(sqlSelect, p_id);
+
+        if (Product != null)
+        {
+            string price_options_json = ""; try { price_options_json = Product.price_options_json; } catch { }
+            sqlSelect = "UPDATE roundMenuItems SET price_options_json=@0 WHERE p_id=@1";
+
+            db.Execute(sqlSelect, price_options_json, p_id);
+        }
+
+        db.Close();
+
+        return theHtmlOutput;
     }
 
 
