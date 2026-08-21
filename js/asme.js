@@ -667,6 +667,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "SaveProductTags":
             case "UpdateProdDesc":
             case "AddProductTemplatePricingOption":
+            case "AddMenuItemPricingOption":
             case "UpdateProductPricingOption":
             case "AddProductType":
                 if (document.getElementById(param1)) {
@@ -1220,7 +1221,8 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
 
                 case "AddProductToRound":
                 case "RemoveMenuItemFromRound":
-                        RepAjaxUpdate('RoundMenu', 'RoundMenuDiv', 'RoundMenuLoader', value);
+                        //RepAjaxUpdate('RoundMenu', 'RoundMenuDiv', 'RoundMenuLoader', value);
+                        sbload('GenSb', 'Caller?p1=EditMenuItems&p2=' + value);
                     break;
 
                     case "AddToCart":
@@ -1582,6 +1584,14 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         break;
                     case "AddProductTemplatePricingOption":
                     case "UpdateProductPricingOption":
+                        if (!theRes.startsWith("!$!")) {
+                            //console.log("afsdfasdfasdfavzxcvzxcv123123");
+                           // RepAjaxUpdate('AddPricingOption', 'AddPricingOptionsContainer', 'AddProductLoader', param2, param3);
+                            RepAjaxUpdate('ViewProductPricingOptions', 'POPTVIEW', 'MainLoader', value);
+                            RepAjaxUpdate('EditProductPricingOptions', 'POPTEDIT', 'MainLoader', value);
+                        }
+                        break;
+                    case "AddMenuItemPricingOption":
                         if (!theRes.startsWith("!$!")) {
                             //console.log("afsdfasdfasdfavzxcvzxcv123123");
                            // RepAjaxUpdate('AddPricingOption', 'AddPricingOptionsContainer', 'AddProductLoader', param2, param3);

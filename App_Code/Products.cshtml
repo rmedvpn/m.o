@@ -1714,6 +1714,10 @@ var db = Database.Open("op_data");
 var sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
 var product = db.QuerySingle(sqlSelect, MenuItemId);
 
+bool is_active = false; try { is_active = product.is_active; } catch { }
+bool is_featured = false; try { is_featured = product.is_featured; } catch { }
+bool is_available = false; try { is_available = product.is_available; } catch { }
+
 int product_id = 0; try { product_id = product.p_id; } catch { }
 int round_id = 0; try { round_id = product.round_id; } catch { }
 int vendor_id = 0; try { vendor_id = product.vendor_id; } catch { }
@@ -1732,6 +1736,11 @@ string sub_cat_title = ""; try { sub_cat_title = NewAppFunctions.GetTitleById("C
 string spOffer_cat_title = ""; try { spOffer_cat_title = NewAppFunctions.GetTitleById("Cat", spOfferCatId); } catch { }
 
 string prod_title = product.title;
+
+string is_featured_favRes = is_featured ? "true" : "false";
+string is_active_favRes = is_active ? "true" : "false";
+string is_available_favRes = is_available ? "true" : "false";
+
 
 string edit_disabler = "";
 
@@ -1782,7 +1791,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
         </div>
 
         <div class="RcProductSubHeader">
-           תפריט @menu_name של הספק @vendor_name
+            תפריט @menu_name של הספק @vendor_name
         </div>
 
 
@@ -1859,6 +1868,21 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                     <div class="B">
                         <div class="prodSectionTitle">
                             פרטי המוצר <span class="MiniTag">מוצר #@product_id פריט #@MenuItemId</span>
+
+                            <div style="float:left;" id="ProdSettingsEditBtn">
+                                <button type="button" onclick="hideElement('ProdSettingsEditBtn');showElement('ProdSettingsDelConfirm');">
+                                    🗑️
+                                </button>
+                            </div>
+                            <div style="float:left;display:none;color:#f00;font-weight:bold;" id="ProdSettingsDelConfirm">
+                                <input type="checkbox" id="delConfCb" onclick="    AjaxActions('RemoveMenuItemFromRound', @round_id,'MainLoader',@MenuItemId); this.checked = false;" /> <span> בטוח?</span>
+                                <button type="button" onclick="    hideElement('ProdSettingsDelConfirm'); showElement('ProdSettingsEditBtn');">
+                                    ❎
+                                </button>
+
+
+                            </div>
+
                         </div>
 
 
@@ -1867,6 +1891,28 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                     </div>
 
                     <div class="ProdEditSection" id="ProdSettingsViewDiv">
+                        <div class="ProdViewItem">
+                            המוצר פעיל
+                            <span class="PPOInfoSpan">
+                                <input type="checkbox" checked="@(is_active ? "checked" : null)"  onclick="AjaxActions('MenuItemFeaturesToggle','@is_active_favRes','MainLoader',@MenuItemId,@round_id,'ac');"/>
+                            </span>
+                        </div>
+
+                        <div class="ProdViewItem">
+                            המוצר זמין
+                            <span class="PPOInfoSpan">
+                                <input type="checkbox" checked="@(is_available ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle','@is_available_favRes','MainLoader',@MenuItemId,@round_id,'av');" />
+
+                            </span>
+                        </div>
+
+                        <div class="ProdViewItem">
+                            מוצר דף בית
+                            <span class="PPOInfoSpan">
+                                <input type="checkbox" checked="@(is_featured ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle', '@is_featured_favRes','MainLoader',@MenuItemId,@round_id,'hp');" />
+
+                            </span>
+                        </div>
 
                         <div class="ProdViewItem">
                             שם המוצר
@@ -1940,7 +1986,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                                             </span>
                                         }
                                     </span>
-                                   
+
 
                                 </div>
 
@@ -2032,7 +2078,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                                                     </span>
                                                 </div>
 
-                                    
+
 
                                                 <div class="ProdViewItem">
                                                     זמין להנחות <span class="PPOInfoSpan" style="float: left">
@@ -2083,7 +2129,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
                     <div class="B">
                         <div class="prodSectionTitle">
-                      
+
                             תגיות
                         </div>
 
@@ -2110,7 +2156,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                             }
                         </div>
 
-               
+
                     </div>
 
 
@@ -2127,7 +2173,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
                     <div class="prodSectionTitle">
                         <div class="B">
-                         
+
 
                             תאור המוצר
                         </div>
@@ -2149,8 +2195,6 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                                     <div class="ProductTagNone">אין תיאור</div>
                                 }
                             </div>
-                            <textarea class="ProdEditSNhide" id="description" name="description" style="display:none;">@product.description</textarea>
-                            <input type="hidden" id="description_save" value="@product.description" />
 
                         </form>
                     </div>
@@ -2161,7 +2205,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                 <div class="B">
                     <div class="prodSectionTitle">
                         <div class="B">
-                          
+
 
                             Product Description
                         </div>
@@ -2174,15 +2218,13 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                             <div class="B" id="e_descView">
                                 @if (!String.IsNullOrEmpty(product.desc_e))
                                 {
-                                    @Html.Raw(product.e_desc)
+                                    @Html.Raw(product.desc_e)
                                 }
                                 else
                                 {
                                     <div class="ProductTagNone">No Description</div>
                                 }
                             </div>
-                            <textarea class="ProdEditSNhide" id="e_desc" name="e_desc" style="display:none;">@product.desc_e</textarea>
-                            <input type="hidden" id="e_desc_save" value="@product.desc_e" />
 
                         </form>
                     </div>
@@ -2194,7 +2236,48 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                 <div style="overflow: auto;" id="ProductPricingDiv_@product_id">
                     <div class="B">
                         <div class="prodSectionTitle">
+                            <button type="button" style="float:left" onclick="Accordionize('AddMenuPriceOptionAcc');">➕</button>
                             מחירון
+                        </div>
+
+                        <button class="Accordion" id="AddMenuPriceOptionAcc" style="display:none"></button>
+                        <div class="panel" style="padding:0;margin:0">
+                            <div class="ProdViewItem" style="text-align:center;">
+
+
+                                <form id="AddPricingOption">
+                                    <input type="hidden" name="menu_id" value="@round_id" />
+                                    <div class="PPOBtnItemSelected" id="IsActiveDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','ISACTIVE');">
+                                        <input type="checkbox" style="margin:4px;" id="ppo_is_active_0" name="is_activated" checked />
+                                    </div>
+                                    <div class="PPOBtnItem" id="FavDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','FAV');">
+                                        <input type="checkbox" id="ppo_is_fav_0" value="true" name="is_fav" style="display:none" />
+                                        ❤️
+                                    </div>
+                                    <div class="PPOBtnItem" id="SPODiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','SPO');">
+                                        <input type="checkbox" id="ppo_is_spo_0" value="true" name="is_spOffer" style="display:none" />
+                                        🎁
+                                    </div>
+                                    <div class="PPOBtnItemStatic">
+
+                                    </div>
+                                    <div class="PPOBtnItem">
+                                        <input type="text" name="optionQuan" class="PPOTB" style="width: 40px; background-color: #fff; "> @itemunit
+                                    </div>
+
+
+
+
+                                    <div class="PPOEdit">
+                                        <span class="GrayMiniTag">₪</span>
+                                        <input type="text" name="optionPrice" class="PPOTB" style="width: 40px; padding: 5px; font-size: 16px;" value="">
+                                        <button type="button" class="PPOBtn1" onclick="    AjaxActions('AddMenuItemPricingOption', '@product_id','MainLoader', 'AddPricingOption',@product_id,'TEMPLATE');">💾</button>
+
+                                    </div>
+
+                                </form>
+                            </div>
+
                         </div>
 
 
@@ -3263,14 +3346,14 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
 
 
-@helper ViewProductPricingOptions(int product_id)
+@helper ViewProductPricingOptions(int product_id,int round_id=0)
 {
     var db = Database.Open("op_data");
     var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
     var product = db.QuerySingle(sqlSelect, product_id);
     string itemunit = ""; try { itemunit = product.itemunit; } catch { }
     sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY quan,price";
-    var PricingOptions = db.Query(sqlSelect, product_id);
+    var PricingOptions = db.Query(sqlSelect, product_id,round_id);
 
     <div class="B">
 
@@ -3289,9 +3372,15 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                 <div class="ProdViewItem" style="text-align:center;">
 
                     <div class="PPOItem">
-
-
                         @Convert.ToInt32(priceOption.quan) @itemunit
+
+                        @if (is_spOffer) { 
+                        <span style="margin-right:10px;">מבצע</span>
+                        }
+                        @if (priceOption.round_id >0 && priceOption.round_id !=99999 ) {
+                        <span style="margin-right:10px;color:#ff6a00">רק בתפריט @AppFunctions.GetRoundTitleById(priceOption.round_id)</span>
+                        }
+
                     </div>
 
                     <div class="PPOValue">

@@ -935,7 +935,7 @@
                     productTags.Add(tagItem);
                 }
             }
-            
+
             productTags = productTags.OrderBy(x => Convert.ToInt32(x["sort"])).ToList();
             var serializer = new JavaScriptSerializer();
             ProductTagsJSON = serializer.Serialize(productTags);
@@ -1561,7 +1561,7 @@
             if (theHtmlOutput == "")
             {
 
-                sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND price=@1 AND quan=@2 AND (round_id=@3 OR round_id=99999) ";
+                sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND price=@1 AND quan=@2 AND (round_id=@3 OR round_id=99999 OR round_id=0) ";
                 var checkRs = db.QuerySingle(sqlSelect, p_id, optionPrice, optionQuan, menu_id);
                 if (checkRs != null)
                 {
@@ -1572,7 +1572,7 @@
 
                 if (theHtmlOutput == "")
                 {
-                    if (menu_id == 0) { menu_id = 99999; }
+                    
                     sqlSelect = "INSERT INTO ProductPricingOptions(p_id,round_id,price,quan,ts,created_by,is_activated,is_spOffer,is_fav) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8)";
                     db.Execute(sqlSelect, p_id, menu_id, optionPrice, optionQuan, local_time, rep_id, is_activated, is_spOffer, is_fav);
 
@@ -1580,8 +1580,10 @@
 
                     sqlSelect = "UPDATE products SET price_options_json=@0 WHERE p_id=@1";
                     db.Execute(sqlSelect, json, p_id);
+                    sqlSelect = "UPDATE roundMenuItems SET price_options_json=@0 WHERE p_id=@1";
+                    db.Execute(sqlSelect, json, p_id);
                     db.Close();
-                    ProductsFunctions.CalcProdLowestCost(p_id);
+                    ProductsFunctions.CalcProdLowestCost(p_id, menu_id);
 
                     theHtmlOutput = " 👌 האפשרות התווספה למחירון ";
                 }
@@ -2987,7 +2989,7 @@
         sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0";
         if (round_id > 0)
         {
-            sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND (round_id=99999 OR round_id=@1)";
+            sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND (round_id=99999 OR round_id=0 OR round_id=@1)";
         }
         var pricing = db.QuerySingle(sqlSelect, p_id, round_id);
         decimal curLowestUnitPrice = 0; try { curLowestUnitPrice = pricing.curLowestUnitPrice; } catch { }
