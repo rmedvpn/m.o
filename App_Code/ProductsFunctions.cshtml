@@ -1433,7 +1433,7 @@
                     {
                         //insert new option
                         sqlSelect = "INSERT INTO ProductPricingOptions(p_id,round_id,price,quan,each_additional,optionCommision,AdditionalUnitCommision,isPriceBinding,catalog_p_id,catalog_option_id,is_catalog,manually_created,ts,created_by,is_protected,is_activated,is_spOffer,is_discountable,is_fav) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18)";
-                        db.Execute(sqlSelect, product.p_id, 99999, PriceOption.price, PriceOption.quan, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, p_id, PriceOption.serial, 1, 0, local_time, u_id, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable, PriceOption.is_fav);
+                        db.Execute(sqlSelect, product.p_id, 0, PriceOption.price, PriceOption.quan, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, p_id, PriceOption.serial, 1, 0, local_time, u_id, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable, PriceOption.is_fav);
                     }
                     else
                     {
@@ -1503,7 +1503,7 @@
 
                     //insert new option
                     sqlSelect = "INSERT INTO ProductPricingOptions(p_id,round_id,price,quan,each_additional,optionCommision,AdditionalUnitCommision,isPriceBinding,catalog_p_id,catalog_option_id,is_catalog,manually_created,ts,created_by,is_protected,is_activated,is_spOffer,is_discountable,is_fav) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18)";
-                    db.Execute(sqlSelect, product.p_id, 99999, PriceOption.price, PriceOption.quan, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, p_id, pricingOptionId, 1, 0, local_time, u_id, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable, PriceOption.is_fav);
+                    db.Execute(sqlSelect, product.p_id, 0, PriceOption.price, PriceOption.quan, PriceOption.each_additional, PriceOption.optionCommision, PriceOption.AdditionalUnitCommision, PriceOption.isPriceBinding, p_id, pricingOptionId, 1, 0, local_time, u_id, PriceOption.is_protected, PriceOption.is_activated, PriceOption.is_spOffer, PriceOption.is_discountable, PriceOption.is_fav);
                 }
                 else
                 {
@@ -1561,7 +1561,7 @@
             if (theHtmlOutput == "")
             {
 
-                sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND price=@1 AND quan=@2 AND (round_id=@3 OR round_id=99999 OR round_id=0) ";
+                sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND price=@1 AND quan=@2 AND (round_id=@3 OR round_id=0) ";
                 var checkRs = db.QuerySingle(sqlSelect, p_id, optionPrice, optionQuan, menu_id);
                 if (checkRs != null)
                 {
@@ -1661,7 +1661,7 @@
                 try { is_catalog = product.is_catalog; } catch { }
                 try { catalog_p_id = product.catalog_p_id; } catch { }
 
-                sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND price=@1 AND quan=@2 AND (round_id=@3 OR round_id=99999) ";
+                sqlSelect = "SELECT serial FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND price=@1 AND quan=@2 AND (round_id=@3 OR round_id=0) ";
                 var checkRs = db.QuerySingle(sqlSelect, p_id, optionPrice, optionQuan, menu_id);
                 if (checkRs != null)
                 {
@@ -2989,7 +2989,7 @@
         sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0";
         if (round_id > 0)
         {
-            sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND (round_id=99999 OR round_id=0 OR round_id=@1)";
+            sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND ( round_id=0 OR round_id=@1)";
         }
         var pricing = db.QuerySingle(sqlSelect, p_id, round_id);
         decimal curLowestUnitPrice = 0; try { curLowestUnitPrice = pricing.curLowestUnitPrice; } catch { }

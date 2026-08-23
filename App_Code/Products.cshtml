@@ -1869,14 +1869,14 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                         <div class="prodSectionTitle">
                             פרטי המוצר <span class="MiniTag">מוצר #@product_id פריט #@MenuItemId</span>
 
-                            <div style="float:left;" id="ProdSettingsEditBtn">
-                                <button type="button" onclick="hideElement('ProdSettingsEditBtn');showElement('ProdSettingsDelConfirm');">
+                            <div style="float:left;" id="RmiSettingsEditBtn">
+                                <button type="button" onclick="hideElement('RmiSettingsEditBtn');showElement('RmiSettingsDelConfirm');">
                                     🗑️
                                 </button>
                             </div>
-                            <div style="float:left;display:none;color:#f00;font-weight:bold;" id="ProdSettingsDelConfirm">
-                                <input type="checkbox" id="delConfCb" onclick="    AjaxActions('RemoveMenuItemFromRound', @round_id,'MainLoader',@MenuItemId); this.checked = false;" /> <span> בטוח?</span>
-                                <button type="button" onclick="    hideElement('ProdSettingsDelConfirm'); showElement('ProdSettingsEditBtn');">
+                            <div style="float:left;display:none;color:#f00;font-weight:bold;" id="RmiSettingsDelConfirm">
+                                <input type="checkbox"  onclick="    AjaxActions('RemoveMenuItemFromRound', @round_id,'MainLoader',@MenuItemId); this.checked = false;" /> <span> בטוח להסיר מהתפריט?</span>
+                                <button type="button" onclick="    hideElement('RmiSettingsDelConfirm'); showElement('RmiSettingsEditBtn');">
                                     ❎
                                 </button>
 
@@ -2236,48 +2236,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                 <div style="overflow: auto;" id="ProductPricingDiv_@product_id">
                     <div class="B">
                         <div class="prodSectionTitle">
-                            <button type="button" style="float:left" onclick="Accordionize('AddMenuPriceOptionAcc');">➕</button>
                             מחירון
-                        </div>
-
-                        <button class="Accordion" id="AddMenuPriceOptionAcc" style="display:none"></button>
-                        <div class="panel" style="padding:0;margin:0">
-                            <div class="ProdViewItem" style="text-align:center;">
-
-
-                                <form id="AddPricingOption">
-                                    <input type="hidden" name="menu_id" value="@round_id" />
-                                    <div class="PPOBtnItemSelected" id="IsActiveDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','ISACTIVE');">
-                                        <input type="checkbox" style="margin:4px;" id="ppo_is_active_0" name="is_activated" checked />
-                                    </div>
-                                    <div class="PPOBtnItem" id="FavDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','FAV');">
-                                        <input type="checkbox" id="ppo_is_fav_0" value="true" name="is_fav" style="display:none" />
-                                        ❤️
-                                    </div>
-                                    <div class="PPOBtnItem" id="SPODiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','SPO');">
-                                        <input type="checkbox" id="ppo_is_spo_0" value="true" name="is_spOffer" style="display:none" />
-                                        🎁
-                                    </div>
-                                    <div class="PPOBtnItemStatic">
-
-                                    </div>
-                                    <div class="PPOBtnItem">
-                                        <input type="text" name="optionQuan" class="PPOTB" style="width: 40px; background-color: #fff; "> @itemunit
-                                    </div>
-
-
-
-
-                                    <div class="PPOEdit">
-                                        <span class="GrayMiniTag">₪</span>
-                                        <input type="text" name="optionPrice" class="PPOTB" style="width: 40px; padding: 5px; font-size: 16px;" value="">
-                                        <button type="button" class="PPOBtn1" onclick="    AjaxActions('AddMenuItemPricingOption', '@product_id','MainLoader', 'AddPricingOption',@product_id,'TEMPLATE');">💾</button>
-
-                                    </div>
-
-                                </form>
-                            </div>
-
                         </div>
 
 
@@ -2287,7 +2246,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
                             <div class="B" id="POPTVIEW">
                                 <div class="B">
-                                    @Products.ViewProductPricingOptions(product_id)
+                                    @Products.ViewProductPricingOptions(product_id,round_id)
                                 </div>
                             </div>
 
@@ -3348,12 +3307,14 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
 @helper ViewProductPricingOptions(int product_id,int round_id=0)
 {
-    var db = Database.Open("op_data");
-    var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
-    var product = db.QuerySingle(sqlSelect, product_id);
-    string itemunit = ""; try { itemunit = product.itemunit; } catch { }
-    sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY quan,price";
-    var PricingOptions = db.Query(sqlSelect, product_id,round_id);
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
+var product = db.QuerySingle(sqlSelect, product_id);
+string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY round_id,quan,price";
+var PricingOptions = db.Query(sqlSelect, product_id,round_id);
+
+
 
     <div class="B">
 
@@ -3367,28 +3328,26 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                 bool is_fav = false; is_fav = priceOption.is_fav;
                 string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
 
+    <div class="ProdViewItem" style="text-align:center;padding:5px;" id="RMIPPO_@priceOption.serial">
+
+        <div class="PPOItem">
+            @Convert.ToInt32(priceOption.quan) @itemunit
+
+            @if (is_spOffer)
+            {
+                <span style="margin-right:10px;">מבצע</span>
+            }
+
+        </div>
+
+        <div class="PPOValue">
+            @Convert.ToInt32(priceOption.price) ₪
+        </div>
 
 
-                <div class="ProdViewItem" style="text-align:center;">
-
-                    <div class="PPOItem">
-                        @Convert.ToInt32(priceOption.quan) @itemunit
-
-                        @if (is_spOffer) { 
-                        <span style="margin-right:10px;">מבצע</span>
-                        }
-                        @if (priceOption.round_id >0 && priceOption.round_id !=99999 ) {
-                        <span style="margin-right:10px;color:#ff6a00">רק בתפריט @AppFunctions.GetRoundTitleById(priceOption.round_id)</span>
-                        }
-
-                    </div>
-
-                    <div class="PPOValue">
-                        @Convert.ToInt32(priceOption.price) ₪
-                    </div>
 
 
-                </div>
+    </div>
 
 
 
