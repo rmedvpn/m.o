@@ -596,7 +596,7 @@ id, order_status, heb_status, eng_status
         dest_db.Close();
         return theHtmlOutput;
     }
-    public static string SyncRoundAreas(string src_db_name = "op_data", string dest_db_name = "zion")
+    public static string SyncRoundAreasOLD(string src_db_name = "op_data", string dest_db_name = "zion")
     {
         System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
         DateTime local_time = AppFunctions.LocalTime();
@@ -676,7 +676,115 @@ id, order_status, heb_status, eng_status
     /// </summary>
     ///
 
+    public static void SetRemoteAppProperty(string dest_db_name,string Property, string theValue, bool is_blob = false)
+    {
+        var sqlSelect = "";
+        var db = Database.Open(dest_db_name);
+        DateTime local_time = AppFunctions.LocalTime();
+        sqlSelect = "SELECT id FROM AppProperties WHERE propertyName=@0";
+        var isExists = db.QuerySingle(sqlSelect, Property);
+        if (isExists == null)
+        {
+            sqlSelect = "INSERT INTO AppProperties(propertyName,creation_ts) VALUES(@0,@1)";
+            db.Execute(sqlSelect, Property, local_time);
 
+        }
+        if (!is_blob) { sqlSelect = "UPDATE AppProperties SET propertyValue=@0 WHERE propertyName=@1"; }
+        else { sqlSelect = "UPDATE AppProperties SET MaxPropertyValue=@0 WHERE propertyName=@1"; }
+
+
+        db.Execute(sqlSelect, theValue, Property);
+        db.Close();
+
+    }
+
+
+    public static string SyncAppProperties(string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+
+
+        string ServiceAreasJson = AppFunctions.GetAppProperty("ServiceAreasJson",true);
+        string ItemUnitJson = AppFunctions.GetAppProperty("ItemUnitJson", true);
+        SyncFunctions.SetRemoteAppProperty(dest_db_name, "ServiceAreasJson", ServiceAreasJson, true);
+        SyncFunctions.SetRemoteAppProperty(dest_db_name, "ItemUnitJson", ItemUnitJson, true);
+        return "ok";
+    }
+
+    public static string SyncRoundAreas(string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string theHtmlOutput = "not ok";
+
+        var src_db = Database.Open(src_db_name);
+        var dest_db = Database.Open(dest_db_name);
+
+        var sqlSelect = "SELECT * FROM RoundAreas WHERE is_update=1 ORDER BY serial";
+        var RoundAreas = src_db.Query(sqlSelect);
+
+        DataFunctions.WriteDebugLine("Syncing RoundAreas PHASE 1");
+
+        foreach (var RoundArea in RoundAreas)
+        {
+            sqlSelect = "SELECT serial FROM RoundAreas WHERE serial=@0";
+            var dupChk = dest_db.QuerySingle(sqlSelect, RoundArea.serial);
+
+            if (dupChk == null)
+            {
+                DataFunctions.WriteDebugLine("Syncing RoundArea INSERT " + RoundArea.serial);
+
+                dest_db.Execute("SET IDENTITY_INSERT RoundAreas ON");
+
+                sqlSelect = "INSERT INTO RoundAreas(serial,round_id,area_id,main_area_id,shipping_charge,free_shipping_marker,min_shipping_marker,express_eta_min,is_main_area,is_update,last_update_ts,fulfilment_option_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11)";
+                dest_db.Execute(sqlSelect,
+                    RoundArea.serial,
+                    RoundArea.round_id,
+                    RoundArea.area_id,
+                    RoundArea.main_area_id,
+                    RoundArea.shipping_charge,
+                    RoundArea.free_shipping_marker,
+                    RoundArea.min_shipping_marker,
+                    RoundArea.express_eta_min,
+                    RoundArea.is_main_area,
+                    0,
+                    local_time,
+                    RoundArea.fulfilment_option_id
+                );
+
+                dest_db.Execute("SET IDENTITY_INSERT RoundAreas OFF");
+            }
+            else
+            {
+                DataFunctions.WriteDebugLine("Syncing RoundArea UPDATE " + RoundArea.serial);
+
+                sqlSelect = "UPDATE RoundAreas SET round_id=@1,area_id=@2,main_area_id=@3,shipping_charge=@4,free_shipping_marker=@5,min_shipping_marker=@6,express_eta_min=@7,is_main_area=@8,is_update=@9,last_update_ts=@10,fulfilment_option_id=@11 WHERE serial=@0";
+                dest_db.Execute(sqlSelect,
+                    RoundArea.serial,
+                    RoundArea.round_id,
+                    RoundArea.area_id,
+                    RoundArea.main_area_id,
+                    RoundArea.shipping_charge,
+                    RoundArea.free_shipping_marker,
+                    RoundArea.min_shipping_marker,
+                    RoundArea.express_eta_min,
+                    RoundArea.is_main_area,
+                    0,
+                    local_time,
+                    RoundArea.fulfilment_option_id
+                );
+            }
+
+            ClientExport.ClearRowUpdateFlag(src_db_name, "RoundAreas", "serial", RoundArea.serial);
+
+            DataFunctions.WriteDebugLine("Synced RoundArea " + RoundArea.serial);
+        }
+
+        theHtmlOutput = "ok";
+
+        src_db.Close();
+        dest_db.Close();
+
+        return theHtmlOutput;
+    }
     public static string SyncRoundInfo(int round_id = 0, string src_db_name = "op_data", string dest_db_name = "zion")
     {
         System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
@@ -709,8 +817,8 @@ id, order_status, heb_status, eng_status
                 dest_db.Execute("SET IDENTITY_INSERT rounds OFF");
             }
 
-            sqlSelect = "UPDATE rounds SET Title=@1,Description=@2,e_Title=@3,e_Desc=@4,vendor_id=@5,is_express=@6,round_start=@7,order_open_hour=@8,order_close_hour=@9,territory_id=@10,is_active=@11,shipping_charge=@12,free_shipping_marker=@13,discounted_shipping_charge=@14,discounted_shipping_marker=@15,shipping_method=@16,is_open_for_orders=@17,has_started=@18,min_order=@19,max_order=@20,moked_id=@21,create_ts=@22,start_date=@23,start_time=@24,round_type=@25,start_ts=@26,is_pickup=@27,express_eta_min=@28,express_comments=@29,is_sh_late_waiver=@30,estimated_end_time=@31,pu_loc_lat=@32,pu_loc_longt=@33,pu_loc_address=@34,returns_allowed=@35,gen_pu_loc=@36,gen_pu_loc_e=@37,estimated_duration=@38,is_guaranteed=@39,is_accepting_credit=@40,is_accepting_debt_collection=@41,is_accepting_charity_payment=@42,is_accepting_charity_donations=@43,express_start_hour=@44,express_end_hour=@45,last_settings_change=@46,last_settings_change_clerk=@47,express_start_time=@48,express_end_time=@49,pickup_instructions=@50,pickup_instructions_e=@51,shipping_instructions=@52,shipping_instructions_e=@53,in_delivery_mode=@54,express_eta_type=@55,service_availability=@56,service_availability_e=@57,pickup_area=@58,pickup_city=@59,pickup_city_e=@60,sh_late_discount=@61,min_shipping_marker=@62,search_priority=@63,is_route=@64,pu_eta=@65,is_free_shipping=@66,pu_lead_time=@67,round_status=@68,status_change_ts=@69,is_setup=@70,next_scheduled_delivery=@71,active_deliveries=@72,active_delivery_id=@73,sort_order=@74,is_deleted=@75,active_orders=@76,short_title=@77,min_to_dispatch=@78,pu_loc_address_e=@79,start_address_id=@80,end_address_id=@81,pu_idle_min=@82,main_z_id=@83,z_serial=@84,main_pickup_area=@85,ActiveProductsCount=@86,ActiveSpOffersCount=@87,FeaturedItemsString=@88,FeaturedItemsString_e=@89 WHERE id=@0";
-            dest_db.Execute(sqlSelect, round.id, round.Title, round.Description, round.e_Title, round.e_Desc, round.vendor_id, round.is_express, round.round_start, round.order_open_hour, round.order_close_hour, round.territory_id, round.is_active, round.shipping_charge, round.free_shipping_marker, round.discounted_shipping_charge, round.discounted_shipping_marker, round.shipping_method, round.is_open_for_orders, round.has_started, round.min_order, round.max_order, round.moked_id, round.create_ts, round.start_date, round.start_time, round.round_type, round.start_ts, round.is_pickup, round.express_eta_min, round.express_comments, round.is_sh_late_waiver, round.estimated_end_time, round.pu_loc_lat, round.pu_loc_longt, round.pu_loc_address, round.returns_allowed, round.gen_pu_loc, round.gen_pu_loc_e, round.estimated_duration, round.is_guaranteed, round.is_accepting_credit, round.is_accepting_debt_collection, round.is_accepting_charity_payment, round.is_accepting_charity_donations, round.express_start_hour, round.express_end_hour, round.last_settings_change, round.last_settings_change_clerk, round.express_start_time, round.express_end_time, round.pickup_instructions, round.pickup_instructions_e, round.shipping_instructions, round.shipping_instructions_e, round.in_delivery_mode, round.express_eta_type, round.service_availability, round.service_availability_e, round.pickup_area, round.pickup_city, round.pickup_city_e, round.sh_late_discount, round.min_shipping_marker, round.search_priority, round.is_route, round.pu_eta, round.is_free_shipping, round.pu_lead_time, round.round_status, round.status_change_ts, round.is_setup, round.next_scheduled_delivery, round.active_deliveries, round.active_delivery_id, round.sort_order, round.is_deleted, round.active_orders, round.short_title, round.min_to_dispatch, round.pu_loc_address_e, round.start_address_id, round.end_address_id, round.pu_idle_min, round.main_z_id, round.z_serial, round.main_pickup_area, round.ActiveProductsCount, round.ActiveSpOffersCount, round.FeaturedItemsString, round.FeaturedItemsString_e);
+            sqlSelect = "UPDATE rounds SET Title=@1,Description=@2,e_Title=@3,e_Desc=@4,vendor_id=@5,is_express=@6,round_start=@7,order_open_hour=@8,order_close_hour=@9,territory_id=@10,is_active=@11,shipping_charge=@12,free_shipping_marker=@13,discounted_shipping_charge=@14,discounted_shipping_marker=@15,shipping_method=@16,is_open_for_orders=@17,has_started=@18,min_order=@19,max_order=@20,moked_id=@21,create_ts=@22,start_date=@23,start_time=@24,round_type=@25,start_ts=@26,is_pickup=@27,express_eta_min=@28,express_comments=@29,is_sh_late_waiver=@30,estimated_end_time=@31,pu_loc_lat=@32,pu_loc_longt=@33,pu_loc_address=@34,returns_allowed=@35,gen_pu_loc=@36,gen_pu_loc_e=@37,estimated_duration=@38,is_guaranteed=@39,is_accepting_credit=@40,is_accepting_debt_collection=@41,is_accepting_charity_payment=@42,is_accepting_charity_donations=@43,express_start_hour=@44,express_end_hour=@45,last_settings_change=@46,last_settings_change_clerk=@47,express_start_time=@48,express_end_time=@49,pickup_instructions=@50,pickup_instructions_e=@51,shipping_instructions=@52,shipping_instructions_e=@53,in_delivery_mode=@54,express_eta_type=@55,service_availability=@56,service_availability_e=@57,pickup_area=@58,pickup_city=@59,pickup_city_e=@60,sh_late_discount=@61,min_shipping_marker=@62,search_priority=@63,is_route=@64,pu_eta=@65,is_free_shipping=@66,pu_lead_time=@67,round_status=@68,status_change_ts=@69,is_setup=@70,next_scheduled_delivery=@71,active_deliveries=@72,active_delivery_id=@73,sort_order=@74,is_deleted=@75,active_orders=@76,short_title=@77,min_to_dispatch=@78,pu_loc_address_e=@79,start_address_id=@80,end_address_id=@81,pu_idle_min=@82,main_z_id=@83,z_serial=@84,main_pickup_area=@85,ActiveProductsCount=@86,ActiveSpOffersCount=@87,FeaturedItemsString=@88,FeaturedItemsJson=@89,FulfillmentJson=@90 WHERE id=@0";
+            dest_db.Execute(sqlSelect, round.id, round.Title, round.Description, round.e_Title, round.e_Desc, round.vendor_id, round.is_express, round.round_start, round.order_open_hour, round.order_close_hour, round.territory_id, round.is_active, round.shipping_charge, round.free_shipping_marker, round.discounted_shipping_charge, round.discounted_shipping_marker, round.shipping_method, round.is_open_for_orders, round.has_started, round.min_order, round.max_order, round.moked_id, round.create_ts, round.start_date, round.start_time, round.round_type, round.start_ts, round.is_pickup, round.express_eta_min, round.express_comments, round.is_sh_late_waiver, round.estimated_end_time, round.pu_loc_lat, round.pu_loc_longt, round.pu_loc_address, round.returns_allowed, round.gen_pu_loc, round.gen_pu_loc_e, round.estimated_duration, round.is_guaranteed, round.is_accepting_credit, round.is_accepting_debt_collection, round.is_accepting_charity_payment, round.is_accepting_charity_donations, round.express_start_hour, round.express_end_hour, round.last_settings_change, round.last_settings_change_clerk, round.express_start_time, round.express_end_time, round.pickup_instructions, round.pickup_instructions_e, round.shipping_instructions, round.shipping_instructions_e, round.in_delivery_mode, round.express_eta_type, round.service_availability, round.service_availability_e, round.pickup_area, round.pickup_city, round.pickup_city_e, round.sh_late_discount, round.min_shipping_marker, round.search_priority, round.is_route, round.pu_eta, round.is_free_shipping, round.pu_lead_time, round.round_status, round.status_change_ts, round.is_setup, round.next_scheduled_delivery, round.active_deliveries, round.active_delivery_id, round.sort_order, round.is_deleted, round.active_orders, round.short_title, round.min_to_dispatch, round.pu_loc_address_e, round.start_address_id, round.end_address_id, round.pu_idle_min, round.main_z_id, round.z_serial, round.main_pickup_area, round.ActiveProductsCount, round.ActiveSpOffersCount, round.FeaturedItemsString, round.FeaturedItemsJson, round.FulfillmentJson);
             ClientExport.ClearRowUpdateFlag(src_db_name, "rounds", "id", round.id);
 
 
@@ -754,8 +862,8 @@ id, order_status, heb_status, eng_status
                 dest_db.Execute("SET IDENTITY_INSERT products OFF");
             }
 
-            sqlSelect = "UPDATE products SET V_id=@1, Price=@2, Cost=@3, img_path=@4, itemunit=@5, product_type=@6, max_quan_per_order=@7, min_quan_if_ordered=@8, bulk_price=@9, bulk_price_quan_marker=@10, sell_1s=@11, sell_3s=@12, sell_5s=@13, cat_id=@14, info_link=@15, img_gallery_id=@16, add_timestamp=@17, sell_inXs=@18, available_quan=@19, itemunit_type=@20, clerk_id=@21, is_active=@22, commision_type=@23, maincat_id=@24, sub_cat_id=@25, last_change_ts=@26, last_change_by=@27, itemunit_e=@28, spOfferCatId=@29, start_quan=@30, cbd=@31, thc=@32, is_strain_ok=@33, strain=@34, strain_e=@35, CharityOffersOk=@36, is_discountable=@37, max_in_cart=@38, catalog_p_id=@39, is_catalog=@40, is_setup=@41, init_complete=@42, is_disabled=@43, commision_rate=@44, Title=@45, Description=@46, prod_code=@47, e_title=@48, e_desc=@49, catalog_overwrite=@50,strain_type=@51,strain_type_title=@52,strain_type_title_e=@53,is_generic=@54,curLowestUnitPrice=@55,custom_fields_json=@56,tags_json=@57,price_options_json=@58,product_options_json=@59 WHERE p_id=@0";
-            dest_db.Execute(sqlSelect, item.p_id, item.V_id, item.Price, item.Cost, item.img_path, item.itemunit, item.product_type, item.max_quan_per_order, item.min_quan_if_ordered, item.bulk_price, item.bulk_price_quan_marker, item.sell_1s, item.sell_3s, item.sell_5s, item.cat_id, item.info_link, item.img_gallery_id, item.add_timestamp, item.sell_inXs, item.available_quan, item.itemunit_type, item.clerk_id, item.is_active, item.commision_type, item.maincat_id, item.sub_cat_id, item.last_change_ts, item.last_change_by, item.itemunit_e, item.spOfferCatId, item.start_quan, item.cbd, item.thc, item.is_strain_ok, item.strain, item.strain_e, item.CharityOffersOk, item.is_discountable, item.max_in_cart, item.catalog_p_id, item.is_catalog, item.is_setup, item.init_complete, item.is_disabled, item.commision_rate, item.Title, item.Description, item.prod_code, item.e_title, item.e_desc, item.catalog_overwrite, item.strain_type, item.strain_type_title, item.strain_type_title_e, item.is_generic, item.curLowestUnitPrice, item.custom_fields_json, item.tags_json, item.price_options_json, item.product_options_json );
+            sqlSelect = "UPDATE products SET V_id=@1, Price=@2, Cost=@3, img_path=@4, itemunit=@5, product_type=@6, max_quan_per_order=@7, min_quan_if_ordered=@8, bulk_price=@9, bulk_price_quan_marker=@10, sell_1s=@11, sell_3s=@12, sell_5s=@13, cat_id=@14, info_link=@15, img_gallery_id=@16, add_timestamp=@17, sell_inXs=@18, available_quan=@19, itemunit_type=@20, clerk_id=@21, is_active=@22, commision_type=@23, maincat_id=@24, sub_cat_id=@25, last_change_ts=@26, last_change_by=@27, itemunit_e=@28, spOfferCatId=@29, start_quan=@30, cbd=@31, thc=@32, is_strain_ok=@33, strain=@34, strain_e=@35, CharityOffersOk=@36, is_discountable=@37, max_in_cart=@38, catalog_p_id=@39, is_catalog=@40, is_setup=@41, init_complete=@42, is_disabled=@43, commision_rate=@44, Title=@45, Description=@46, prod_code=@47, e_title=@48, e_desc=@49, catalog_overwrite=@50,strain_type=@51,strain_type_title=@52,strain_type_title_e=@53,is_generic=@54,curLowestUnitPrice=@55,custom_fields_json=@56,tags_json=@57,price_options_json=@58,product_options_json=@59,itemUnitJson=@60 WHERE p_id=@0";
+            dest_db.Execute(sqlSelect, item.p_id, item.V_id, item.Price, item.Cost, item.img_path, item.itemunit, item.product_type, item.max_quan_per_order, item.min_quan_if_ordered, item.bulk_price, item.bulk_price_quan_marker, item.sell_1s, item.sell_3s, item.sell_5s, item.cat_id, item.info_link, item.img_gallery_id, item.add_timestamp, item.sell_inXs, item.available_quan, item.itemunit_type, item.clerk_id, item.is_active, item.commision_type, item.maincat_id, item.sub_cat_id, item.last_change_ts, item.last_change_by, item.itemunit_e, item.spOfferCatId, item.start_quan, item.cbd, item.thc, item.is_strain_ok, item.strain, item.strain_e, item.CharityOffersOk, item.is_discountable, item.max_in_cart, item.catalog_p_id, item.is_catalog, item.is_setup, item.init_complete, item.is_disabled, item.commision_rate, item.Title, item.Description, item.prod_code, item.e_title, item.e_desc, item.catalog_overwrite, item.strain_type, item.strain_type_title, item.strain_type_title_e, item.is_generic, item.curLowestUnitPrice, item.custom_fields_json, item.tags_json, item.price_options_json, item.product_options_json,item.itemUnitJson);
 
             ClientExport.ClearRowUpdateFlag(src_db_name, "Products", "p_id", item.p_id);
 
@@ -939,8 +1047,8 @@ id, order_status, heb_status, eng_status
                 dest_db.Execute("SET IDENTITY_INSERT roundMenuItems OFF");
             }
 
-            sqlSelect = "UPDATE roundMenuItems SET p_id=@1,timestamp=@2,round_id=@3,vendor_id=@4,Available_quan=@5,price=@6,cost=@7,itemunit=@8,product_type=@9,item_user_comment=@10,staff_comment=@11,max_quan_per_order=@12,moq=@13,bulk_price=@14,bulk_price_quan_marker=@15,sell_1s=@16,sell_3s=@17,sell_5s=@18,sell_inXs=@19,is_active=@20,item_commision=@21,inventory_id=@22,itemunit_type=@23,cat_id=@24,clerk_id=@25,notes=@26,notes_e=@27,strain=@28,strain_e=@29,is_delivery=@30,is_pickup=@31,is_express=@32,is_strain_ok=@33,primary_pic_file_id=@34,cbd=@35,thc=@36,maincat_id=@37,sub_cat_id=@38,last_change_ts=@39,last_change_by=@40,itemunit_e=@41,spOfferCatId=@42,SpOffersOk=@43,is_quan_limit=@44,is_in_stock=@45,curLowestUnitPrice=@46,CharityOffersOk=@47,is_discountable=@48,max_in_cart=@49,is_deleted=@50,deleted_by=@51,delete_ts=@52,ordered_quan=@53,sold_quan=@54,returns_quan=@55,returning_quan=@56,cancelled_quan=@57,cancelations_quan=@58,reserved_quan=@59,reservations_quan=@60,catalog_p_id=@61,Title=@62,Description=@63,prod_code=@64,title_e=@65,desc_e=@66,strain_type=@67,strain_type_title=@68,strain_type_title_e=@69,is_generic=@70,is_featured=@71,PricingOptionsString=@72,custom_fields_json=@73,tags_json=@74,price_options_json=@75,product_options_json=@76,is_available=@77 WHERE id=@0";
-            dest_db.Execute(sqlSelect, item.id, item.p_id, item.timestamp, item.round_id, item.vendor_id, item.Available_quan, item.price, item.cost, item.itemunit, item.product_type, item.item_user_comment, item.staff_comment, item.max_quan_per_order, item.moq, item.bulk_price, item.bulk_price_quan_marker, item.sell_1s, item.sell_3s, item.sell_5s, item.sell_inXs, item.is_active, item.item_commision, item.inventory_id, item.itemunit_type, item.cat_id, item.clerk_id, item.notes, item.notes_e, item.strain, item.strain_e, item.is_delivery, item.is_pickup, item.is_express, item.is_strain_ok, item.primary_pic_file_id, item.cbd, item.thc, item.maincat_id, item.sub_cat_id, item.last_change_ts, item.last_change_by, item.itemunit_e, item.spOfferCatId, item.SpOffersOk, item.is_quan_limit, item.is_in_stock, item.curLowestUnitPrice, item.CharityOffersOk, item.is_discountable, item.max_in_cart, item.is_deleted, item.deleted_by, item.delete_ts, item.ordered_quan, item.sold_quan, item.returns_quan, item.returning_quan, item.cancelled_quan, item.cancelations_quan, item.reserved_quan, item.reservations_quan, item.catalog_p_id, item.Title, item.Description, item.prod_code, item.title_e, item.desc_e, item.strain_type, item.strain_type_title, item.strain_type_title_e, item.is_generic, item.is_featured, item.PricingOptionsString, item.custom_fields_json, item.tags_json, item.price_options_json, item.product_options_json,item.is_available);
+            sqlSelect = "UPDATE roundMenuItems SET p_id=@1,timestamp=@2,round_id=@3,vendor_id=@4,Available_quan=@5,price=@6,cost=@7,itemunit=@8,product_type=@9,item_user_comment=@10,staff_comment=@11,max_quan_per_order=@12,moq=@13,bulk_price=@14,bulk_price_quan_marker=@15,sell_1s=@16,sell_3s=@17,sell_5s=@18,sell_inXs=@19,is_active=@20,item_commision=@21,inventory_id=@22,itemunit_type=@23,cat_id=@24,clerk_id=@25,notes=@26,notes_e=@27,strain=@28,strain_e=@29,is_delivery=@30,is_pickup=@31,is_express=@32,is_strain_ok=@33,primary_pic_file_id=@34,cbd=@35,thc=@36,maincat_id=@37,sub_cat_id=@38,last_change_ts=@39,last_change_by=@40,itemunit_e=@41,spOfferCatId=@42,SpOffersOk=@43,is_quan_limit=@44,is_in_stock=@45,curLowestUnitPrice=@46,CharityOffersOk=@47,is_discountable=@48,max_in_cart=@49,is_deleted=@50,deleted_by=@51,delete_ts=@52,ordered_quan=@53,sold_quan=@54,returns_quan=@55,returning_quan=@56,cancelled_quan=@57,cancelations_quan=@58,reserved_quan=@59,reservations_quan=@60,catalog_p_id=@61,Title=@62,Description=@63,prod_code=@64,title_e=@65,desc_e=@66,strain_type=@67,strain_type_title=@68,strain_type_title_e=@69,is_generic=@70,is_featured=@71,PricingOptionsString=@72,custom_fields_json=@73,tags_json=@74,price_options_json=@75,product_options_json=@76,is_available=@77,itemUnitJson=@78 WHERE id=@0";
+            dest_db.Execute(sqlSelect, item.id, item.p_id, item.timestamp, item.round_id, item.vendor_id, item.Available_quan, item.price, item.cost, item.itemunit, item.product_type, item.item_user_comment, item.staff_comment, item.max_quan_per_order, item.moq, item.bulk_price, item.bulk_price_quan_marker, item.sell_1s, item.sell_3s, item.sell_5s, item.sell_inXs, item.is_active, item.item_commision, item.inventory_id, item.itemunit_type, item.cat_id, item.clerk_id, item.notes, item.notes_e, item.strain, item.strain_e, item.is_delivery, item.is_pickup, item.is_express, item.is_strain_ok, item.primary_pic_file_id, item.cbd, item.thc, item.maincat_id, item.sub_cat_id, item.last_change_ts, item.last_change_by, item.itemunit_e, item.spOfferCatId, item.SpOffersOk, item.is_quan_limit, item.is_in_stock, item.curLowestUnitPrice, item.CharityOffersOk, item.is_discountable, item.max_in_cart, item.is_deleted, item.deleted_by, item.delete_ts, item.ordered_quan, item.sold_quan, item.returns_quan, item.returning_quan, item.cancelled_quan, item.cancelations_quan, item.reserved_quan, item.reservations_quan, item.catalog_p_id, item.Title, item.Description, item.prod_code, item.title_e, item.desc_e, item.strain_type, item.strain_type_title, item.strain_type_title_e, item.is_generic, item.is_featured, item.PricingOptionsString, item.custom_fields_json, item.tags_json, item.price_options_json, item.product_options_json,item.is_available,item.itemUnitJson);
 
             ClientExport.ClearRowUpdateFlag(src_db_name, "roundMenuItems", "id", item.id);
 

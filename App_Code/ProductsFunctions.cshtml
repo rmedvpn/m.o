@@ -1572,7 +1572,7 @@
 
                 if (theHtmlOutput == "")
                 {
-                    
+
                     sqlSelect = "INSERT INTO ProductPricingOptions(p_id,round_id,price,quan,ts,created_by,is_activated,is_spOffer,is_fav) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8)";
                     db.Execute(sqlSelect, p_id, menu_id, optionPrice, optionQuan, local_time, rep_id, is_activated, is_spOffer, is_fav);
 
@@ -2308,8 +2308,8 @@
             }
             bool is_setup = true;
             bool init_complete = true;
-            sqlSelect = "INSERT INTO products(V_id, Title, Price, Cost, Description, itemunit, product_type, e_title, e_desc, max_quan_per_order, cat_id,  add_timestamp,  available_quan, itemunit_type, clerk_id, is_active, commision_type, maincat_id, sub_cat_id, last_change_ts, last_change_by, itemunit_e, spOfferCatId,   is_discountable, max_in_cart, catalog_p_id, is_catalog,commision_rate,is_generic,custom_fields_json,tags_json,price_options_json,product_options_json,is_setup,init_complete) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34)";
-            db.Execute(sqlSelect, vendor_id, title, rec.Price, rec.Cost, rec.Description, rec.itemunit, rec.product_type, e_title, rec.e_desc, rec.max_quan_per_order, rec.cat_id, local_time, rec.available_quan, rec.itemunit_type, u_id, is_active, rec.commision_type, rec.maincat_id, rec.sub_cat_id, local_time, u_id, rec.itemunit_e, rec.spOfferCatId, rec.is_discountable, rec.max_in_cart, catalog_p_id, is_catalog, rec.commision_rate, rec.is_generic, rec.custom_fields_json, rec.tags_json, rec.price_options_json, rec.product_options_json, is_setup, init_complete);
+            sqlSelect = "INSERT INTO products(V_id, Title, Price, Cost, Description, itemunit, product_type, e_title, e_desc, max_quan_per_order, cat_id,  add_timestamp,  available_quan, itemunit_type, clerk_id, is_active, commision_type, maincat_id, sub_cat_id, last_change_ts, last_change_by, itemunit_e, spOfferCatId,   is_discountable, max_in_cart, catalog_p_id, is_catalog,commision_rate,is_generic,custom_fields_json,tags_json,price_options_json,product_options_json,is_setup,init_complete,itemUnitJson) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35)";
+            db.Execute(sqlSelect, vendor_id, title, rec.Price, rec.Cost, rec.Description, rec.itemunit, rec.product_type, e_title, rec.e_desc, rec.max_quan_per_order, rec.cat_id, local_time, rec.available_quan, rec.itemunit_type, u_id, is_active, rec.commision_type, rec.maincat_id, rec.sub_cat_id, local_time, u_id, rec.itemunit_e, rec.spOfferCatId, rec.is_discountable, rec.max_in_cart, catalog_p_id, is_catalog, rec.commision_rate, rec.is_generic, rec.custom_fields_json, rec.tags_json, rec.price_options_json, rec.product_options_json, is_setup, init_complete,rec.itemUnitJson);
             sqlSelect = "SELECT p_id FROM products WHERE v_id=@0 AND add_timestamp=@1";
             var newProduct = db.QuerySingle(sqlSelect, vendor_id, local_time);
             try { new_p_id = newProduct.p_id; } catch { }
@@ -2898,13 +2898,13 @@
 
                 string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type); } catch { }
                 string itemunit_e = ""; try { itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2); } catch { }
-
+                string itemUnitJson = ""; try { itemUnitJson = ProductsFunctions.CreateItemUnitJson(itemunit_type); } catch { }
                 string strain_type_title = "";
                 string strain_type_title_e = "";
 
-                sqlSelect = "INSERT INTO products(title,e_title,Description,e_desc,itemunit_type,maincat_id,sub_cat_id,clerk_id,last_change_ts,is_active,last_change_by,itemunit,itemunit_e,cost,price,spOfferCatId,V_id,available_quan,CharityOffersOk,init_complete,strain_type,strain_type_title,strain_type_title_e,is_setup,is_generic,is_catalog,product_type)";
-                sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26) ";
-                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, main_cat_id, sub_cat_id, rep_id, local_time, is_active, rep_id, itemunit, itemunit_e, cost, price, spOfferCatId, vendor_id, 0, 0, 0, 0, strain_type_title, strain_type_title_e, is_setup, false, is_catalog,product_type);
+                sqlSelect = "INSERT INTO products(title,e_title,Description,e_desc,itemunit_type,maincat_id,sub_cat_id,clerk_id,last_change_ts,is_active,last_change_by,itemunit,itemunit_e,cost,price,spOfferCatId,V_id,available_quan,CharityOffersOk,init_complete,strain_type,strain_type_title,strain_type_title_e,is_setup,is_generic,is_catalog,product_type,itemUnitJson)";
+                sqlSelect += " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27) ";
+                db.Execute(sqlSelect, title, e_title, description, e_desc, itemunit_type, main_cat_id, sub_cat_id, rep_id, local_time, is_active, rep_id, itemunit, itemunit_e, cost, price, spOfferCatId, vendor_id, 0, 0, 0, 0, strain_type_title, strain_type_title_e, is_setup, false, is_catalog,product_type, itemUnitJson);
                 db.Close();
                 theHtmlOutput = " 👌 המוצר " + title + " התווסף בהצלחה! ";
             }
@@ -2918,7 +2918,35 @@
         return theHtmlOutput;
     }
 
+    public static string CreateItemUnitJson(int itemunit_type)
+    {
+        var db = Database.Open("op_data");
+        var ItemsUnitList = new List<Dictionary<string, object>>();
 
+        string sqlSelect = "SELECT * FROM itemunitTypes WHERE id=@0";
+        var ItemUnit = db.QuerySingle(sqlSelect, itemunit_type);
+        DataFunctions.WriteDebugLine("itemunit_type: " + itemunit_type);
+        if (ItemUnit != null)
+        {
+            var ItemUnitEntry = new Dictionary<string, object>();
+            ItemUnitEntry.Add("lang", "he");
+            ItemUnitEntry.Add("title", ItemUnit.title);
+            ItemUnitEntry.Add("title_plural", ItemUnit.title_plural);
+            ItemsUnitList.Add(ItemUnitEntry);
+
+            ItemUnitEntry = new Dictionary<string, object>();
+            ItemUnitEntry.Add("lang", "en");
+            ItemUnitEntry.Add("title", ItemUnit.title_e);
+            ItemUnitEntry.Add("title_plural", ItemUnit.title_e_plural);
+            ItemsUnitList.Add(ItemUnitEntry);
+        }
+
+        var serializer = new JavaScriptSerializer();
+        string json = serializer.Serialize(ItemsUnitList);
+        db.Close();
+
+        return json;
+    }
 
 
     public static string GetCustomFieldValue(dynamic field, bool is_catalog, int lang = 1)
@@ -3625,7 +3653,7 @@
 
         if (isMenuRemove)
         {
-            sqlSelect = "SELECT * FROM roundMenuItems WHERE p_id=@0";
+            sqlSelect = "DELETE FROM roundMenuItems WHERE p_id=@0";
             db.Execute(sqlSelect, p_id);
         }
 

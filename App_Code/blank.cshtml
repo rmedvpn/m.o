@@ -1,0 +1,37 @@
+﻿@helper hlpr()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    var u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+    var db = WebMatrix.Data.Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime defTime = Convert.ToDateTime("1/1/1900");
+
+
+
+    db.Close();
+}
+
+
+
+
+@functions {
+    public static int func()
+    {
+        int ret_val = 0;
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        string logmsg = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "";
+
+
+
+        db.Close();
+        return ret_val;
+    }
+
+
+}

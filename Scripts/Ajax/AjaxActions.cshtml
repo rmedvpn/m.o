@@ -29,7 +29,7 @@
     switch (theField)
     {
         case "tmpAction":
-            if (false)
+            if (true)
             {
                 tmpit.tmpAction();
 
@@ -49,6 +49,12 @@
 
                 switch (req_action)
                 {
+                    case "SETTINGS":
+                        if (true)
+                        {
+                            theHtmlOutput = SyncFunctions.SyncAppProperties();
+                        }
+                        break;
                     case "ROUNDS":
                         if (true)
                         {
@@ -340,6 +346,13 @@
             if (true)
             {
                 theHtmlOutput = AppSettings.DeleteServiceArea();
+
+            }
+            break;
+        case "UpdateItemUnitsSettings":
+            if (true)
+            {
+                theHtmlOutput = AppSettings.ReCreateItemUnitJson();
 
             }
             break;

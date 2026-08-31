@@ -1,0 +1,147 @@
+﻿@using System
+@using System.Collections.Generic
+@using System.Globalization
+
+@using System.Web.Script.Serialization
+
+
+@functions {
+
+    public static string CreateServiceAreasJson()
+    {
+        var db = Database.Open("op_data");
+
+        var rows = db.Query("SELECT id,title,e_title,is_main_area,main_area_id,sort_order FROM AppServicesArea WHERE is_active=1 ORDER BY sort_order,id").ToList();
+
+        var result = new List<object>();
+
+        foreach (var main in rows.Where(x =>
+        {
+            try { return Convert.ToBoolean(x.is_main_area); }
+            catch { return false; }
+        }))
+        {
+            int mainId = 0;
+            try { mainId = Convert.ToInt32(main.id); } catch { }
+
+            var mainItem = new Dictionary<string, object>();
+
+            mainItem["id"] = mainId;
+
+            string title_h = "";
+            string title_e = "";
+
+            try { title_h = Convert.ToString(main.title) ?? ""; } catch { }
+            try { title_e = Convert.ToString(main.e_title) ?? ""; } catch { }
+
+            if (!string.IsNullOrWhiteSpace(title_h))
+                mainItem["title_h"] = title_h;
+
+            if (!string.IsNullOrWhiteSpace(title_e))
+                mainItem["title_e"] = title_e;
+
+            var areas = new List<object>();
+
+            foreach (var row in rows.Where(x =>
+            {
+                try
+                {
+                    return Convert.ToInt32(x.main_area_id) == mainId && !Convert.ToBoolean(x.is_main_area);
+                }
+                catch
+                {
+                    return false;
+                }
+            }))
+            {
+                var area = new Dictionary<string, object>();
+
+                int id = 0;
+                try { id = Convert.ToInt32(row.id); } catch { }
+
+                area["id"] = id;
+
+                string areaTitle_h = "";
+                string areaTitle_e = "";
+
+                try { areaTitle_h = Convert.ToString(row.title) ?? ""; } catch { }
+                try { areaTitle_e = Convert.ToString(row.e_title) ?? ""; } catch { }
+
+                if (!string.IsNullOrWhiteSpace(areaTitle_h))
+                    area["title_h"] = areaTitle_h;
+
+                if (!string.IsNullOrWhiteSpace(areaTitle_e))
+                    area["title_e"] = areaTitle_e;
+
+                areas.Add(area);
+            }
+
+            mainItem["areas"] = areas;
+
+            result.Add(mainItem);
+        }
+
+        db.Close();
+
+        return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+    }
+
+    public static string CreateItemUnitJson()
+    {
+        var db = Database.Open("op_data");
+
+        var rows = db.Query("SELECT id,title,title_e,title_plural,title_e_plural FROM ItemUnitTypes ORDER BY id").ToList();
+
+        var result = new List<object>();
+
+        foreach (var row in rows)
+        {
+            var item = new Dictionary<string, object>();
+
+            int id = 0;
+            try { id = Convert.ToInt32(row.id); } catch { }
+
+            string title = "";
+            string title_e = "";
+            string title_plural = "";
+            string title_plural_e = "";
+
+            try { title = Convert.ToString(row.title) ?? ""; } catch { }
+            try { title_e = Convert.ToString(row.title_e) ?? ""; } catch { }
+            try { title_plural = Convert.ToString(row.title_plural) ?? ""; } catch { }
+            try { title_plural_e = Convert.ToString(row.title_e_plural) ?? ""; } catch { }
+
+            item["id"] = id;
+            item["title"] = title;
+            item["title_e"] = title_e;
+            item["title_plural"] = title_plural;
+            item["title_plural_e"] = title_plural_e;
+
+            result.Add(item);
+        }
+
+        db.Close();
+
+        return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+    }
+
+
+
+    public static int func()
+    {
+        int ret_val = 0;
+        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
+        string logmsg = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        var db = WebMatrix.Data.Database.Open("op_data");
+        var sqlSelect = "";
+
+
+
+        db.Close();
+        return ret_val;
+    }
+
+
+}

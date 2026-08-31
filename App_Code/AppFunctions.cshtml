@@ -26,24 +26,36 @@
         op_data.Close();
     }
 
-    public static string GetAppProperty (string Property)
+    public static string GetAppProperty (string Property,bool is_blob=false)
     {
         var sqlSelect="";
         var db = Database.Open("op_data");
 
         sqlSelect = "SELECT propertyValue FROM AppProperties WHERE propertyName=@0";
+        if (is_blob) { sqlSelect = "SELECT MaxPropertyValue AS propertyValue FROM AppProperties WHERE propertyName=@0"; }
         var Loadedproperty = db.QuerySingle(sqlSelect,Property);
         db.Close();
         if (Loadedproperty!=null){ return Loadedproperty.propertyValue;}
         else{return "";}
 
     }
-    public static void SetAppProperty (string Property, string theValue)
+    public static void SetAppProperty(string Property, string theValue,bool is_blob= false)
     {
         var sqlSelect="";
         var db = Database.Open("op_data");
+        DateTime local_time = AppFunctions.LocalTime();
+        sqlSelect = "SELECT id FROM AppProperties WHERE propertyName=@0";
+        var isExists = db.QuerySingle(sqlSelect, Property);
+        if (isExists == null)
+        {
+            sqlSelect = "INSERT INTO AppProperties(propertyName,creation_ts) VALUES(@0,@1)";
+            db.Execute(sqlSelect, Property,local_time);
 
-        sqlSelect = "UPDATE AppProperties SET propertyValue=@0 WHERE propertyName=@1";
+        }
+        if (!is_blob) { sqlSelect = "UPDATE AppProperties SET propertyValue=@0 WHERE propertyName=@1";  }
+        else { sqlSelect = "UPDATE AppProperties SET MaxPropertyValue=@0 WHERE propertyName=@1"; }
+
+
         db.Execute(sqlSelect,theValue,Property);
         db.Close();
 
