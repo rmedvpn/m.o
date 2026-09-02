@@ -363,6 +363,13 @@
 
             }
             break;
+        case "ReCreateSpecialOffersJson":
+            if (true)
+            {
+                theHtmlOutput = AppSettings.ReCreateSpecialOffersJson();
+
+            }
+            break;
         ///////
 
 
@@ -7033,7 +7040,7 @@
 
         case "DeleteSpOffer":
             theHtmlOutput = SpecialOffers.DeleteSpOffer();
-              break;
+            break;
 
         case "UpdateSpecialOfferDetails":
             theHtmlOutput = SpecialOffers.UpdateSpecialOfferDetails();
@@ -7042,20 +7049,15 @@
 
             break;
 
-        case "NewSpecialOffer":
-            if (theHtmlOutput == "")
-            {
-                var db = Database.Open("op_data");
-                var sqlSelect = "";
-                string tmpTitle = "מבצע חדש";
-                string tmpTitle_e = "New Special Offer";
-                int spOfferType = 0; try { spOfferType = Convert.ToInt32(theValue); } catch { }
-                ;
-                sqlSelect = "INSERT INTO specialOffers (title,title_e,description,desc_e,price,create_ts,created_by,spOfferType) VALUES(@0,@1,@2,@3,@4,@5,@6,@7)";
-                db.Execute(sqlSelect, tmpTitle, tmpTitle_e, "", "", 0, DateTime.Now, u_id, spOfferType);
-                theHtmlOutput = " 👌 מבצע חדש נוצר בהצלחה ";
-                db.Close();
-            }
+        case "AddSpOffer":
+            theHtmlOutput = SpecialOffers.AddSpOffer();
+
+
+
+            break;
+
+        case "ActivateSpOffer":
+            theHtmlOutput = SpecialOffers.ActivateSpOffer();
 
 
 

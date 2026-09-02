@@ -162,7 +162,183 @@
         return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
     }
 
+    public static string CreateSpecialOfferJson(int spOffer_id,bool update_record=false)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        var spOffer = db.QuerySingle("SELECT id,title,title_e,description,desc_e,price,is_active,is_charity,spOfferType,discountable,service_plan_id,max_in_cart,special_commision,vendor_id FROM SpecialOffers WHERE id=@0 AND is_deleted=0", spOffer_id);
 
+        if (spOffer == null)
+        {
+            db.Close();
+            return "{}";
+        }
+
+        var item = new Dictionary<string, object>();
+
+        int id = 0;
+        int spOfferType = 0;
+        int servicePlanId = 0;
+        int maxInCart = 0;
+        int vendorId = 0;
+
+        decimal price = 0;
+        decimal specialCommision = 0;
+
+        bool isActive = false;
+        bool isCharity = false;
+        bool discountable = false;
+
+        string title = "";
+        string title_e = "";
+        string description = "";
+        string desc_e = "";
+
+        try { id = Convert.ToInt32(spOffer.id); } catch { }
+        try { spOfferType = Convert.ToInt32(spOffer.spOfferType); } catch { }
+        try { servicePlanId = Convert.ToInt32(spOffer.service_plan_id); } catch { }
+        try { maxInCart = Convert.ToInt32(spOffer.max_in_cart); } catch { }
+        try { vendorId = Convert.ToInt32(spOffer.vendor_id); } catch { }
+
+        try { price = Convert.ToDecimal(spOffer.price); } catch { }
+        try { specialCommision = Convert.ToDecimal(spOffer.special_commision); } catch { }
+
+        try { isActive = Convert.ToBoolean(spOffer.is_active); } catch { }
+        try { isCharity = Convert.ToBoolean(spOffer.is_charity); } catch { }
+        try { discountable = Convert.ToBoolean(spOffer.discountable); } catch { }
+
+        try { title = Convert.ToString(spOffer.title) ?? ""; } catch { }
+        try { title_e = Convert.ToString(spOffer.title_e) ?? ""; } catch { }
+        try { description = Convert.ToString(spOffer.description) ?? ""; } catch { }
+        try { desc_e = Convert.ToString(spOffer.desc_e) ?? ""; } catch { }
+
+
+        var spOfferItems = db.Query("SELECT id,spOfferItemType,spOfferCatId,menuItemId,quan,itemunit,title,title_e,itemunit_e,itemunit_type,spItemType,main_cat_id,p_id FROM SpecialOffersItems WHERE spOffer_id=@0 ORDER BY id", spOffer_id).ToList();
+
+        var items = new List<object>();
+
+        foreach (var spItem in spOfferItems)
+        {
+            var offerItem = new Dictionary<string, object>();
+
+            int itemId = 0;
+            int spOfferCatId = 0;
+            int menuItemId = 0;
+            int quan = 0;
+            int itemunitType = 0;
+            int spItemType = 0;
+            int mainCatId = 0;
+            int pId = 0;
+
+            string spOfferItemType = "";
+            string itemunit = "";
+            string itemunit_e = "";
+            string itemTitle = "";
+            string itemTitle_e = "";
+
+            try { itemId = Convert.ToInt32(spItem.id); } catch { }
+            try { spOfferCatId = Convert.ToInt32(spItem.spOfferCatId); } catch { }
+            try { menuItemId = Convert.ToInt32(spItem.menuItemId); } catch { }
+            try { quan = Convert.ToInt32(spItem.quan); } catch { }
+            try { itemunitType = Convert.ToInt32(spItem.itemunit_type); } catch { }
+            try { spItemType = Convert.ToInt32(spItem.spItemType); } catch { }
+            try { mainCatId = Convert.ToInt32(spItem.main_cat_id); } catch { }
+            try { pId = Convert.ToInt32(spItem.p_id); } catch { }
+
+            try { spOfferItemType = Convert.ToString(spItem.spOfferItemType) ?? ""; } catch { }
+            try { itemunit = Convert.ToString(spItem.itemunit) ?? ""; } catch { }
+            try { itemunit_e = Convert.ToString(spItem.itemunit_e) ?? ""; } catch { }
+            try { itemTitle = Convert.ToString(spItem.title) ?? ""; } catch { }
+            try { itemTitle_e = Convert.ToString(spItem.title_e) ?? ""; } catch { }
+
+            offerItem["id"] = itemId;
+            offerItem["type"] = spOfferItemType;
+            offerItem["cat_id"] = spOfferCatId;
+            offerItem["menu_item_id"] = menuItemId;
+            offerItem["quan"] = quan;
+            offerItem["unit"] = itemunit;
+            offerItem["unit_e"] = itemunit_e;
+            offerItem["title"] = itemTitle;
+            offerItem["title_e"] = itemTitle_e;
+            offerItem["unit_type"] = itemunitType;
+            offerItem["item_type"] = spItemType;
+            offerItem["main_cat_id"] = mainCatId;
+            offerItem["p_id"] = pId;
+
+            items.Add(offerItem);
+        }
+
+
+        item["id"] = id;
+        item["title"] = title;
+        item["title_e"] = title_e;
+        item["description"] = description;
+        item["desc_e"] = desc_e;
+        item["price"] = price;
+        item["active"] = isActive;
+        item["charity"] = isCharity;
+        item["type"] = spOfferType;
+        item["discountable"] = discountable;
+        item["service_plan_id"] = servicePlanId;
+        item["max_in_cart"] = maxInCart;
+        item["commission"] = specialCommision;
+        item["vendor_id"] = vendorId;
+        item["items"] = items;
+
+        string json= new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(item);
+
+        if (update_record)
+        {
+            sqlSelect= "UPDATE specialoffers SET spOfferItemsJson=@0 WHERE id=@1";
+            db.Execute(sqlSelect, json, spOffer_id);
+        }
+
+        db.Close();
+
+        return json;
+    }
+
+
+    public static string CreateFullSpecialOffersJson()
+    {
+        var db = Database.Open("op_data");
+
+        var rows = db.Query("SELECT id FROM SpecialOffers WHERE is_deleted=0 ORDER BY vendor_id,spOfferType,id").ToList();
+
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+        var result = new List<object>();
+
+        foreach (var row in rows)
+        {
+            int spOffer_id = 0;
+            try { spOffer_id = Convert.ToInt32(row.id); } catch { }
+
+            if (spOffer_id <= 0)
+            {
+                continue;
+            }
+
+            string json = CreateSpecialOfferJson(spOffer_id);
+
+            if (!string.IsNullOrWhiteSpace(json) && json != "{}")
+            {
+                try
+                {
+                    var offer = serializer.DeserializeObject(json);
+
+                    if (offer != null)
+                    {
+                        result.Add(offer);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        db.Close();
+
+        return serializer.Serialize(result);
+    }
     public static int func()
     {
         int ret_val = 0;

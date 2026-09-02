@@ -213,6 +213,12 @@ var FullfilmentOptionTypes = db.Query(sqlSelect);
         AppFunctions.SetAppProperty("FulfillmentOptionsJson", json, true);
         return "הפעולה בוצעה בהצלחה!<br>";
     }
+    public static string ReCreateSpecialOffersJson()
+    {
+        string json = AppJson.CreateFullSpecialOffersJson();
+        AppFunctions.SetAppProperty("SpecialOffersJson", json, true);
+        return "הפעולה בוצעה בהצלחה!<br>";
+    }
 
 
 }
