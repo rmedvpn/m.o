@@ -2621,104 +2621,107 @@ int cur_sub_cat = -1;
             if (isPickup) item["pickup"] = true;
             if (returns) item["returns"] = true;
 
-            if (minOrder > 0) item["min_order"] = minOrder;
+            item["min_order"] = minOrder;
 
             /*
-             * Delivery-specific configuration
+             * Fulfillment-option defaults.
              */
+            int shippingMethod = 0;
+            int optionEta = 0;
+
+            try { shippingMethod = Convert.ToInt32(opt.shipping_method); } catch { }
+            try { optionEta = Convert.ToInt32(opt.express_eta_min); } catch { }
+
             if (!isPickup)
             {
-                if (shippingCharge > 0) item["ship_charge"] = shippingCharge;
-                if (freeShippingMin > 0) item["free_ship_min"] = freeShippingMin;
-                if (minShipping > 0) item["min_ship"] = minShipping;
-                if (freeShip) item["free_ship"] = true;
-
-                int shippingMethod = 0;
-                try { shippingMethod = Convert.ToInt32(opt.shipping_method); } catch { }
-                if (shippingMethod > 0) item["ship_method"] = shippingMethod;
-
-                int eta = 0;
-                try { eta = Convert.ToInt32(opt.express_eta_min); } catch { }
-                if (eta > 0) item["eta_min"] = eta;
+                item["ship_charge"] = shippingCharge;
+                item["free_ship_min"] = freeShippingMin;
+                item["min_ship"] = minShipping;
+                item["free_ship"] = freeShip;
+                item["ship_method"] = shippingMethod;
+                item["eta_min"] = optionEta;
             }
 
             string shippingInstructions = "";
             try { shippingInstructions = (opt.shipping_instructions ?? "").ToString(); } catch { }
+
             if (!string.IsNullOrWhiteSpace(shippingInstructions))
                 item["ship_instructions"] = shippingInstructions;
 
             string shippingInstructionsE = "";
             try { shippingInstructionsE = (opt.shipping_instructions_e ?? "").ToString(); } catch { }
+
             if (!string.IsNullOrWhiteSpace(shippingInstructionsE))
                 item["ship_instructions_e"] = shippingInstructionsE;
 
             /*
-             * Pickup-specific configuration
+             * Pickup-specific configuration.
              */
             if (isPickup)
             {
                 string pickupAddress = "";
                 try { pickupAddress = (opt.pu_loc_address ?? "").ToString(); } catch { }
+
                 if (!string.IsNullOrWhiteSpace(pickupAddress))
                     item["pickup_address"] = pickupAddress;
 
                 string pickupAddressE = "";
                 try { pickupAddressE = (opt.pu_loc_address_e ?? "").ToString(); } catch { }
+
                 if (!string.IsNullOrWhiteSpace(pickupAddressE))
                     item["pickup_address_e"] = pickupAddressE;
 
                 string pickupName = "";
                 try { pickupName = (opt.gen_pu_loc ?? "").ToString(); } catch { }
+
                 if (!string.IsNullOrWhiteSpace(pickupName))
                     item["pickup_name"] = pickupName;
 
                 string pickupNameE = "";
                 try { pickupNameE = (opt.gen_pu_loc_e ?? "").ToString(); } catch { }
+
                 if (!string.IsNullOrWhiteSpace(pickupNameE))
                     item["pickup_name_e"] = pickupNameE;
 
                 string pickupCity = "";
                 try { pickupCity = (opt.pickup_city ?? "").ToString(); } catch { }
+
                 if (!string.IsNullOrWhiteSpace(pickupCity))
                     item["pickup_city"] = pickupCity;
 
                 string pickupCityE = "";
                 try { pickupCityE = (opt.pickup_city_e ?? "").ToString(); } catch { }
+
                 if (!string.IsNullOrWhiteSpace(pickupCityE))
                     item["pickup_city_e"] = pickupCityE;
 
                 int mainPickupArea = 0;
                 try { mainPickupArea = Convert.ToInt32(opt.main_pickup_area); } catch { }
+
                 if (mainPickupArea > 0)
                     item["main_pickup_area"] = mainPickupArea;
 
                 int pickupArea = 0;
                 try { pickupArea = Convert.ToInt32(opt.pickup_area); } catch { }
+
                 if (pickupArea > 0)
                     item["pickup_area"] = pickupArea;
 
                 int pickupLead = 0;
                 try { pickupLead = Convert.ToInt32(opt.pu_lead_time); } catch { }
+
                 if (pickupLead > 0)
                     item["pickup_lead_min"] = pickupLead;
             }
 
             int minDispatch = 0;
             try { minDispatch = Convert.ToInt32(opt.min_to_dispatch); } catch { }
+
             if (minDispatch > 0)
                 item["min_dispatch"] = minDispatch;
 
-
             /*
-             * Opening hours
-             *
-             * Only active days are included.
-             * Structure:
-             *
-             * "hours": {
-             *      "sun": { "start":"11:00", "end":"16:00" },
-             *      "mon": { "start":"11:00", "end":"16:00" }
-             * }
+             * Opening hours.
              */
             var hours = new Dictionary<string, object>();
 
@@ -2766,70 +2769,149 @@ int cur_sub_cat = -1;
             if (hours.Any())
                 item["hours"] = hours;
 
-
             /*
              * Areas
              *
-             * The fulfillment option contains the defaults.
-             * Area values are only written when they differ from those defaults.
+             * IMPORTANT:
+             *
+             * Every RoundAreas row independently means that this fulfillment
+             * option is available to that area.
+             *
+             * main_area_id is only used for optional inheritance.
+             *
+             * A sub-area DOES NOT require a corresponding main-area row.
+             *
+             * Effective hierarchy:
+             *
+             * Option defaults
+             *      ↓
+             * Main-area overrides (only if a main-area row exists)
+             *      ↓
+             * Specific-area overrides
              */
-            sqlSelect = "SELECT area_id,main_area_id,shipping_charge,free_shipping_marker,min_shipping_marker,express_eta_min,is_main_area FROM RoundAreas WHERE round_id=@0 AND fulfilment_option_id=@1 ORDER BY is_main_area DESC,area_id";
-            var roundAreas = db.Query(sqlSelect, round_id, optionId);
-
-            var areas = new List<object>();
-
-            foreach (var row in roundAreas)
+            if (!isPickup)
             {
-                var area = new Dictionary<string, object>();
+                sqlSelect = "SELECT area_id,main_area_id,shipping_charge,free_shipping_marker,min_shipping_marker,express_eta_min,is_main_area FROM RoundAreas WHERE round_id=@0 AND fulfilment_option_id=@1 ORDER BY is_main_area DESC,main_area_id,area_id";
+                var roundAreas = db.Query(sqlSelect, round_id, optionId).ToList();
 
-                int areaId = 0;
-                int mainAreaId = 0;
-
-                try { areaId = Convert.ToInt32(row.area_id); } catch { }
-                try { mainAreaId = Convert.ToInt32(row.main_area_id); } catch { }
-
-                area["area"] = areaId;
-                area["main_area"] = mainAreaId;
-
-                bool isMainArea = false;
-                try { isMainArea = Convert.ToBoolean(row.is_main_area); } catch { }
-
-                if (isMainArea)
-                    area["main"] = true;
-
-                decimal areaShippingCharge = 0;
-                decimal areaFreeShippingMin = 0;
-                decimal areaMinShipping = 0;
-                int areaEta = 0;
-
-                try { areaShippingCharge = Convert.ToDecimal(row.shipping_charge); } catch { }
-                try { areaFreeShippingMin = Convert.ToDecimal(row.free_shipping_marker); } catch { }
-                try { areaMinShipping = Convert.ToDecimal(row.min_shipping_marker); } catch { }
-                try { areaEta = Convert.ToInt32(row.express_eta_min); } catch { }
+                var areas = new List<object>();
 
                 /*
-                 * Only store overrides.
+                 * Store the actual values of main-area definitions that exist.
+                 *
+                 * No main-area entry is created implicitly.
                  */
-                if (areaShippingCharge != shippingCharge)
-                    area["ship_charge"] = areaShippingCharge;
+                var mainAreaValues = new Dictionary<int, Dictionary<string, object>>();
 
-                if (areaFreeShippingMin != freeShippingMin)
-                    area["free_ship_min"] = areaFreeShippingMin;
+                foreach (var row in roundAreas)
+                {
+                    bool isMainArea = false;
+                    try { isMainArea = Convert.ToBoolean(row.is_main_area); } catch { }
 
-                if (areaMinShipping != minShipping)
-                    area["min_ship"] = areaMinShipping;
+                    if (!isMainArea)
+                        continue;
 
-                int optionEta = 0;
-                try { optionEta = Convert.ToInt32(opt.express_eta_min); } catch { }
+                    int areaId = 0;
+                    try { areaId = Convert.ToInt32(row.area_id); } catch { }
 
-                if (areaEta != optionEta)
-                    area["eta_min"] = areaEta;
+                    decimal areaShippingCharge = shippingCharge;
+                    decimal areaFreeShippingMin = freeShippingMin;
+                    decimal areaMinShipping = minShipping;
+                    int areaEta = optionEta;
 
-                areas.Add(area);
+                    try { areaShippingCharge = Convert.ToDecimal(row.shipping_charge); } catch { }
+                    try { areaFreeShippingMin = Convert.ToDecimal(row.free_shipping_marker); } catch { }
+                    try { areaMinShipping = Convert.ToDecimal(row.min_shipping_marker); } catch { }
+                    try { areaEta = Convert.ToInt32(row.express_eta_min); } catch { }
+
+                    mainAreaValues[areaId] = new Dictionary<string, object>
+                {
+                    { "ship_charge", areaShippingCharge },
+                    { "free_ship_min", areaFreeShippingMin },
+                    { "min_ship", areaMinShipping },
+                    { "eta_min", areaEta }
+                };
+                }
+
+                /*
+                 * Every row is written because the row itself defines availability.
+                 */
+                foreach (var row in roundAreas)
+                {
+                    var area = new Dictionary<string, object>();
+
+                    int areaId = 0;
+                    int mainAreaId = 0;
+
+                    try { areaId = Convert.ToInt32(row.area_id); } catch { }
+                    try { mainAreaId = Convert.ToInt32(row.main_area_id); } catch { }
+
+                    bool isMainArea = false;
+                    try { isMainArea = Convert.ToBoolean(row.is_main_area); } catch { }
+
+                    area["area"] = areaId;
+                    area["main_area"] = mainAreaId;
+
+                    if (isMainArea)
+                        area["main"] = true;
+
+                    decimal areaShippingCharge = shippingCharge;
+                    decimal areaFreeShippingMin = freeShippingMin;
+                    decimal areaMinShipping = minShipping;
+                    int areaEta = optionEta;
+
+                    try { areaShippingCharge = Convert.ToDecimal(row.shipping_charge); } catch { }
+                    try { areaFreeShippingMin = Convert.ToDecimal(row.free_shipping_marker); } catch { }
+                    try { areaMinShipping = Convert.ToDecimal(row.min_shipping_marker); } catch { }
+                    try { areaEta = Convert.ToInt32(row.express_eta_min); } catch { }
+
+                    /*
+                     * Default parent is ALWAYS the fulfillment option.
+                     *
+                     * Only switch to main-area defaults if:
+                     *
+                     * 1. this is a sub-area
+                     * 2. a corresponding main-area definition actually exists
+                     */
+                    decimal parentShippingCharge = shippingCharge;
+                    decimal parentFreeShippingMin = freeShippingMin;
+                    decimal parentMinShipping = minShipping;
+                    int parentEta = optionEta;
+
+                    if (!isMainArea && mainAreaValues.ContainsKey(mainAreaId))
+                    {
+                        var parent = mainAreaValues[mainAreaId];
+
+                        parentShippingCharge = Convert.ToDecimal(parent["ship_charge"]);
+                        parentFreeShippingMin = Convert.ToDecimal(parent["free_ship_min"]);
+                        parentMinShipping = Convert.ToDecimal(parent["min_ship"]);
+                        parentEta = Convert.ToInt32(parent["eta_min"]);
+                    }
+
+                    /*
+                     * Only store values that differ from the effective parent.
+                     *
+                     * If there is no main-area definition, these are compared
+                     * directly against the fulfillment-option defaults.
+                     */
+                    if (areaShippingCharge != parentShippingCharge)
+                        area["ship_charge"] = areaShippingCharge;
+
+                    if (areaFreeShippingMin != parentFreeShippingMin)
+                        area["free_ship_min"] = areaFreeShippingMin;
+
+                    if (areaMinShipping != parentMinShipping)
+                        area["min_ship"] = areaMinShipping;
+
+                    if (areaEta != parentEta)
+                        area["eta_min"] = areaEta;
+
+                    areas.Add(area);
+                }
+
+                if (areas.Any())
+                    item["areas"] = areas;
             }
-
-            if (areas.Any())
-                item["areas"] = areas;
 
             options.Add(item);
         }
@@ -2839,6 +2921,7 @@ int cur_sub_cat = -1;
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
         return serializer.Serialize(options);
     }
+
     public static string MenuItemFeaturesToggle()
     {
         string theHtmlOutput = "";

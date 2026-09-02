@@ -13,6 +13,8 @@ sqlSelect = "SELECT * FROM AppServicesArea where is_main_area=1 ";
 var serviceAreas = db.Query(sqlSelect);
 sqlSelect = "SELECT * FROM ItemUnitTypes ORDER BY id ";
 var ItemUnitTypes = db.Query(sqlSelect);
+sqlSelect = "SELECT * FROM FullfilmentOptionTypes ORDER BY id ";
+var FullfilmentOptionTypes = db.Query(sqlSelect);
 
     <div class="A" style="text-align:right">
         <div style="overflow: auto;padding: 5px;">
@@ -20,18 +22,35 @@ var ItemUnitTypes = db.Query(sqlSelect);
 
         </div>
         <div class="A">
-            <div class="B">
+            <div class="A">
+                <div class="B">
 
 
-                <h3>יחידות מידה</h3>
-                <button type="button" class="A" onclick="AjaxActions('UpdateItemUnitsSettings', '','MainLoader');">שמירת שינויים</button>
+                    <h3>אפשרויות אספקה</h3>
+                    <button type="button" class="A" onclick="AjaxActions('UpdateFulfillmenOptionsTypeSettings', '','MainLoader');">שמירת שינויים</button>
+                </div>
+                <div class="B">
+                    @foreach (var item in FullfilmentOptionTypes)
+                    {
+                        <div class="B">@item.title_h</div>
+                    }
+                </div>
             </div>
-            <div class="B">
-                @foreach (var item in ItemUnitTypes)
-                {
-                    <div class="B">@item.title</div>
-                }
+            <div class="A">
+                <div class="B">
+
+
+                    <h3>יחידות מידה</h3>
+                    <button type="button" class="A" onclick="AjaxActions('UpdateItemUnitsSettings', '','MainLoader');">שמירת שינויים</button>
+                </div>
+                <div class="B">
+                    @foreach (var item in ItemUnitTypes)
+                    {
+                        <div class="B">@item.title</div>
+                    }
+                </div>
             </div>
+      
             <div class="Spacer50"></div>
             <div class="B">
                 <div style="float:left;direction:rtl">
@@ -149,7 +168,11 @@ var ItemUnitTypes = db.Query(sqlSelect);
             var db = Database.Open("op_data");
             var sqlSelect = "DELETE FROM AppServicesArea WHERE id=@0";
             db.Execute(sqlSelect, area_id);
+            sqlSelect = "DELETE FROM AppServicesArea WHERE main_area_id=@0";
+            db.Execute(sqlSelect, area_id);
             sqlSelect = "DELETE FROM RoundAreas WHERE area_id=@0";
+            db.Execute(sqlSelect, area_id);
+            sqlSelect = "DELETE FROM RoundAreas WHERE main_area_id=@0";
             db.Execute(sqlSelect, area_id);
             sqlSelect = "DELETE FROM CitiesInAreas WHERE area_id=@0";
             db.Execute(sqlSelect, area_id);
@@ -180,6 +203,14 @@ var ItemUnitTypes = db.Query(sqlSelect);
     {
         string json = AppJson.CreateItemUnitJson();
         AppFunctions.SetAppProperty("ItemUnitJson", json, true);
+        return "הפעולה בוצעה בהצלחה!<br>";
+    }
+
+
+    public static string ReCreateFulfillmentOptionsJson()
+    {
+        string json = AppJson.CreateFulfillmentOptionsJson();
+        AppFunctions.SetAppProperty("FulfillmentOptionsJson", json, true);
         return "הפעולה בוצעה בהצלחה!<br>";
     }
 

@@ -705,8 +705,10 @@ id, order_status, heb_status, eng_status
 
         string ServiceAreasJson = AppFunctions.GetAppProperty("ServiceAreasJson",true);
         string ItemUnitJson = AppFunctions.GetAppProperty("ItemUnitJson", true);
+        string FulfillmentOptionsJson = AppFunctions.GetAppProperty("FulfillmentOptionsJson", true);
         SyncFunctions.SetRemoteAppProperty(dest_db_name, "ServiceAreasJson", ServiceAreasJson, true);
         SyncFunctions.SetRemoteAppProperty(dest_db_name, "ItemUnitJson", ItemUnitJson, true);
+        SyncFunctions.SetRemoteAppProperty(dest_db_name, "FulfillmentOptionsJson", FulfillmentOptionsJson, true);
         return "ok";
     }
 

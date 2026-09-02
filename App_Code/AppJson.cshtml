@@ -24,21 +24,17 @@
             int mainId = 0;
             try { mainId = Convert.ToInt32(main.id); } catch { }
 
-            var mainItem = new Dictionary<string, object>();
-
-            mainItem["id"] = mainId;
-
             string title_h = "";
             string title_e = "";
 
             try { title_h = Convert.ToString(main.title) ?? ""; } catch { }
             try { title_e = Convert.ToString(main.e_title) ?? ""; } catch { }
 
-            if (!string.IsNullOrWhiteSpace(title_h))
-                mainItem["title_h"] = title_h;
+            var mainItem = new Dictionary<string, object>();
 
-            if (!string.IsNullOrWhiteSpace(title_e))
-                mainItem["title_e"] = title_e;
+            mainItem["id"] = mainId;
+            mainItem["title_h"] = title_h;
+            mainItem["title_e"] = title_e;
 
             var areas = new List<object>();
 
@@ -54,12 +50,8 @@
                 }
             }))
             {
-                var area = new Dictionary<string, object>();
-
                 int id = 0;
                 try { id = Convert.ToInt32(row.id); } catch { }
-
-                area["id"] = id;
 
                 string areaTitle_h = "";
                 string areaTitle_e = "";
@@ -67,11 +59,11 @@
                 try { areaTitle_h = Convert.ToString(row.title) ?? ""; } catch { }
                 try { areaTitle_e = Convert.ToString(row.e_title) ?? ""; } catch { }
 
-                if (!string.IsNullOrWhiteSpace(areaTitle_h))
-                    area["title_h"] = areaTitle_h;
+                var area = new Dictionary<string, object>();
 
-                if (!string.IsNullOrWhiteSpace(areaTitle_e))
-                    area["title_e"] = areaTitle_e;
+                area["id"] = id;
+                area["title_h"] = areaTitle_h;
+                area["title_e"] = areaTitle_e;
 
                 areas.Add(area);
             }
@@ -85,7 +77,6 @@
 
         return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
     }
-
     public static string CreateItemUnitJson()
     {
         var db = Database.Open("op_data");
@@ -124,7 +115,52 @@
 
         return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
     }
+    public static string CreateFulfillmentOptionsJson()
+    {
+        var db = Database.Open("op_data");
 
+        var rows = db.Query("SELECT id,title_h,title_e,is_route,is_express,is_pickup,icon FROM FullfilmentOptionTypes ORDER BY id").ToList();
+
+        var result = new List<object>();
+
+        foreach (var row in rows)
+        {
+            var item = new Dictionary<string, object>();
+
+            int id = 0;
+            bool isRoute = false;
+            bool isExpress = false;
+            bool isPickup = false;
+
+            string title_h = "";
+            string title_e = "";
+            string icon = "";
+
+            try { id = Convert.ToInt32(row.id); } catch { }
+
+            try { title_h = Convert.ToString(row.title_h) ?? ""; } catch { }
+            try { title_e = Convert.ToString(row.title_e) ?? ""; } catch { }
+            try { icon = Convert.ToString(row.icon) ?? ""; } catch { }
+
+            try { isRoute = Convert.ToBoolean(row.is_route); } catch { }
+            try { isExpress = Convert.ToBoolean(row.is_express); } catch { }
+            try { isPickup = Convert.ToBoolean(row.is_pickup); } catch { }
+
+            item["id"] = id;
+            item["title_h"] = title_h;
+            item["title_e"] = title_e;
+            item["route"] = isRoute;
+            item["express"] = isExpress;
+            item["pickup"] = isPickup;
+            item["icon"] = icon;
+
+            result.Add(item);
+        }
+
+        db.Close();
+
+        return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+    }
 
 
     public static int func()

@@ -356,6 +356,13 @@
 
             }
             break;
+        case "UpdateFulfillmenOptionsTypeSettings":
+            if (true)
+            {
+                theHtmlOutput = AppSettings.ReCreateFulfillmentOptionsJson();
+
+            }
+            break;
         ///////
 
 
@@ -7025,73 +7032,11 @@
 
 
         case "DeleteSpOffer":
-            if (theHtmlOutput == "")
-            {
-                var db = Database.Open("op_data");
-                var sqlSelect = "";
-
-                int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
-                sqlSelect = "UPDATE specialOffers SET is_deleted=1,is_active=0 WHERE id=@0";
-                db.Execute(sqlSelect, spOffer_id);
-                theHtmlOutput = " 👌 המבצע נמחק ";
-                db.Close();
-            }
-
-
-
-            break;
+            theHtmlOutput = SpecialOffers.DeleteSpOffer();
+              break;
 
         case "UpdateSpecialOfferDetails":
-            if (theHtmlOutput == "")
-            {
-                int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
-                string special_title = ""; special_title = Request["special_title"];
-                string special_title_e = ""; special_title_e = Request["special_title_e"];
-                string special_desc = ""; special_desc = Request["special_desc"];
-                string special_desc_e = ""; special_desc_e = Request["special_desc_e"];
-                decimal special_price = 0; try { special_price = Convert.ToDecimal(Request["special_price"]); } catch { }
-                decimal special_commision = 0; try { special_commision = Convert.ToDecimal(Request["special_commision"]); } catch { }
-                int spOfferType = 0; try { spOfferType = Convert.ToInt32(Request["spOfferType"]); } catch { }
-                int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["max_in_cart"]); } catch { }
-                bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
-                bool is_charity = false; if (!Request["is_charity"].IsEmpty()) { is_charity = true; }
-
-                if (special_title.IsEmpty())
-                {
-                    theHtmlOutput = theHtmlOutput + "חובה להזין כותרת למבצע<br>";
-                }
-                if (special_title_e.IsEmpty())
-                {
-                    theHtmlOutput = theHtmlOutput + "חובה להזין כותרת באנגלית למבצע<br>";
-                }
-                if (special_price <= 0 && !Request["special_price"].IsEmpty())
-                {
-                    theHtmlOutput = theHtmlOutput + "חובה להזין מחיר תקין למבצע<br>";
-                }
-                if (special_commision == 0 && !Request["special_commision"].IsEmpty())
-                {
-                    theHtmlOutput = theHtmlOutput + "חובה להזין עמלת מערכת תקינה למבצע<br>";
-                }
-
-                if (max_in_cart <= 0 && !Request["max_in_cart"].IsEmpty())
-                {
-                    theHtmlOutput = theHtmlOutput + "חובה להזין ערך תקין בשדה מקסימום יח בהזמנה<br>";
-                }
-
-                if (theHtmlOutput == "")
-                {
-                    var db = Database.Open("op_data");
-                    var sqlSelect = "";
-
-                    sqlSelect = "UPDATE specialOffers SET title=@0,title_e=@1,description=@2,desc_e=@3,price=@4,is_charity=@5,max_in_cart=@6,discountable=@7,special_commision=@8,spOfferType=@9 WHERE id=@10";
-                    db.Execute(sqlSelect, special_title, special_title_e, special_desc, special_desc_e, special_price, is_charity, max_in_cart, is_discountable, special_commision, spOfferType, spOffer_id);
-                    sqlSelect = "UPDATE SpOfferRoundsAvailability SET max_in_cart=@0 WHERE specialOfferId=@1";
-                    db.Execute(sqlSelect, max_in_cart, spOffer_id);
-
-                    theHtmlOutput = " 👌 פרטי המבצע נשמרו ";
-                    db.Close();
-                }
-            }
+            theHtmlOutput = SpecialOffers.UpdateSpecialOfferDetails();
 
 
 
@@ -7224,14 +7169,7 @@
         case "RemoveSpecialItemFromOffer":
             if (theHtmlOutput == "")
             {
-                var db = Database.Open("op_data");
-                var sqlSelect = "";
-                int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
-                int spOffer_itemId = 0; try { spOffer_itemId = Convert.ToInt32(Request["param1"]); } catch { }
-                sqlSelect = "DELETE FROM specialOffersItems WHERE id=@0";
-                db.Execute(sqlSelect, spOffer_itemId);
-                theHtmlOutput = " 👌 הוסר בהצלחה";
-                db.Close();
+                theHtmlOutput = SpecialOffers.RemoveSpecialItemFromOffer();
             }
 
 
@@ -7239,107 +7177,8 @@
             break;
 
         case "AddSpecialItemToOffer":
-            if (theHtmlOutput == "")
-            {
-                int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
-                int itemunit_type = 0; try { itemunit_type = Convert.ToInt32(Request["itemunit_type"]); } catch { }
-                int spOfferCatId = 0; try { spOfferCatId = Convert.ToInt32(Request["spOfferCatId"]); } catch { }
-                int MainOfferCatId = 0; try { MainOfferCatId = Convert.ToInt32(Request["MainOfferCatId"]); } catch { }
-                int QuanToAdd = 0; try { QuanToAdd = Convert.ToInt32(Request["QuanToAdd"]); } catch { }
-                int item_p_id = 0; try { item_p_id = Convert.ToInt32(Request["item_p_id"]); } catch { }
-                string spOfferItemType = "";
-                string title = "";
-                string title_e = "";
-                string itemunit = ""; itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type);
-                string itemunit_e = ""; itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2);
 
-                int spItemType = 0;
-
-                if (QuanToAdd <= 0)
-                {
-                    theHtmlOutput = "חובה להזין כמות תקינה להוספת הפריט";
-                }
-
-
-                if (theHtmlOutput == "")
-                {
-                    var db = Database.Open("op_data");
-                    var sqlSelect = "";
-
-                    if (item_p_id == 0)
-                    {
-
-                        spOfferItemType = "CAT";
-                        spItemType = 2;
-                        sqlSelect = "SELECT title,e_title FROM categories WHERE id=@0";
-                        var specialCat = db.QuerySingle(sqlSelect, spOfferCatId);
-                        if (specialCat != null)
-                        {
-                            title = specialCat.title;
-                            title_e = specialCat.e_title;
-                            sqlSelect = "INSERT INTO specialOffersItems(spOfferItemType,spOfferCatId,menuItemId,spOffer_id,quan,itemunit,itemunit_e,title,title_e,itemunit_type,spItemType,main_cat_id,p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,-1)";
-                            db.Execute(sqlSelect, spOfferItemType, spOfferCatId, item_p_id, spOffer_id, QuanToAdd, itemunit, itemunit_e, title, title_e, itemunit_type, spItemType, MainOfferCatId);
-
-                            /*THIS IS TO DO QUANTIT
-                            sqlSelect = "SELECT id,quan FROM specialOffersItems WHERE spItemType=2 AND spOfferCatId=@0 AND spOffer_id=@1 AND itemunit_type=@2";
-                            var isItemExists = db.QuerySingle(sqlSelect, spOfferCatId, spOffer_id, itemunit_type);
-                            if (isItemExists == null)
-                            {
-                                sqlSelect = "INSERT INTO specialOffersItems(spOfferItemType,spOfferCatId,menuItemId,spOffer_id,quan,itemunit,itemunit_e,title,title_e,itemunit_type,spItemType,main_cat_id,p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,-1)";
-                                db.Execute(sqlSelect, spOfferItemType, spOfferCatId, item_p_id, spOffer_id, QuanToAdd, itemunit, itemunit_e, title, title_e, itemunit_type, spItemType, MainOfferCatId);
-                            }
-                            else
-                            {
-                                sqlSelect = "UPDATE specialOffersItems SET quan=quan+@0 WHERE id=@1";
-                                db.Execute(sqlSelect, QuanToAdd, isItemExists.id);
-                            }
-                            */
-                        }
-                        theHtmlOutput = " 👌 הפריט התווסף למבצע ";
-
-                    }
-                    else
-                    {
-                        spOfferItemType = "PROD";
-                        spItemType = 1;
-                        sqlSelect = "SELECT title,e_title,itemunit_type,maincat_id FROM products WHERE p_id=@0";
-                        var product = db.QuerySingle(sqlSelect, item_p_id);
-                        if (product != null)
-                        {
-                            title = product.title;
-                            title_e = product.e_title;
-                            itemunit_type = product.itemunit_type;
-                            MainOfferCatId = product.maincat_id;
-                            itemunit = ""; itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type);
-                            itemunit_e = ""; itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2);
-
-                            sqlSelect = "INSERT INTO specialOffersItems(spOfferItemType,spOfferCatId,menuItemId,spOffer_id,quan,itemunit,itemunit_e,title,title_e,itemunit_type,spItemType,main_cat_id,p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12)";
-                            db.Execute(sqlSelect, spOfferItemType, spOfferCatId, item_p_id, spOffer_id, QuanToAdd, itemunit, itemunit_e, title, title_e, itemunit_type, spItemType, MainOfferCatId, item_p_id);
-
-                            /*
-                            sqlSelect = "SELECT id,quan FROM specialOffersItems WHERE spItemType=1 AND menuItemId=@0 AND spOffer_id=@1";
-                            var isItemExists = db.QuerySingle(sqlSelect, item_p_id, spOffer_id);
-                            if (isItemExists == null)
-                            {
-                                sqlSelect = "INSERT INTO specialOffersItems(spOfferItemType,spOfferCatId,menuItemId,spOffer_id,quan,itemunit,itemunit_e,title,title_e,itemunit_type,spItemType,main_cat_id,p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12)";
-                                db.Execute(sqlSelect, spOfferItemType, spOfferCatId, item_p_id, spOffer_id, QuanToAdd, itemunit, itemunit_e, title, title_e, itemunit_type, spItemType, MainOfferCatId, item_p_id);
-                            }
-                            else
-                            {
-                                sqlSelect = "UPDATE specialOffersItems SET quan=@0 WHERE id=@1";
-                                db.Execute(sqlSelect, QuanToAdd, isItemExists.id);
-                            }
-                            */
-                        }
-                        theHtmlOutput = " 👌 המוצר התווסף למבצע ";
-
-                    }
-
-                    db.Close();
-
-                }
-            }
-
+            theHtmlOutput = SpecialOffers.AddSpecialItemToOffer();
 
 
             break;
