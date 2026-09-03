@@ -162,11 +162,12 @@
         return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
     }
 
-    public static string CreateSpecialOfferJson(int spOffer_id,bool update_record=false)
+    public static string CreateSpecialOfferJson(int spOffer_id, bool update_record = false)
     {
         var db = Database.Open("op_data");
         var sqlSelect = "";
-        var spOffer = db.QuerySingle("SELECT id,title,title_e,description,desc_e,price,is_active,is_charity,spOfferType,discountable,service_plan_id,max_in_cart,special_commision,vendor_id FROM SpecialOffers WHERE id=@0 AND is_deleted=0", spOffer_id);
+
+        var spOffer = db.QuerySingle("SELECT id,title,title_e,description,desc_e,price,spOfferType,discountable,max_in_cart,special_commision,vendor_id FROM SpecialOffers WHERE id=@0 AND is_active=1", spOffer_id);
 
         if (spOffer == null)
         {
@@ -178,15 +179,12 @@
 
         int id = 0;
         int spOfferType = 0;
-        int servicePlanId = 0;
         int maxInCart = 0;
         int vendorId = 0;
 
         decimal price = 0;
         decimal specialCommision = 0;
 
-        bool isActive = false;
-        bool isCharity = false;
         bool discountable = false;
 
         string title = "";
@@ -196,15 +194,12 @@
 
         try { id = Convert.ToInt32(spOffer.id); } catch { }
         try { spOfferType = Convert.ToInt32(spOffer.spOfferType); } catch { }
-        try { servicePlanId = Convert.ToInt32(spOffer.service_plan_id); } catch { }
         try { maxInCart = Convert.ToInt32(spOffer.max_in_cart); } catch { }
         try { vendorId = Convert.ToInt32(spOffer.vendor_id); } catch { }
 
         try { price = Convert.ToDecimal(spOffer.price); } catch { }
         try { specialCommision = Convert.ToDecimal(spOffer.special_commision); } catch { }
 
-        try { isActive = Convert.ToBoolean(spOffer.is_active); } catch { }
-        try { isCharity = Convert.ToBoolean(spOffer.is_charity); } catch { }
         try { discountable = Convert.ToBoolean(spOffer.discountable); } catch { }
 
         try { title = Convert.ToString(spOffer.title) ?? ""; } catch { }
@@ -213,7 +208,7 @@
         try { desc_e = Convert.ToString(spOffer.desc_e) ?? ""; } catch { }
 
 
-        var spOfferItems = db.Query("SELECT id,spOfferItemType,spOfferCatId,menuItemId,quan,itemunit,title,title_e,itemunit_e,itemunit_type,spItemType,main_cat_id,p_id FROM SpecialOffersItems WHERE spOffer_id=@0 ORDER BY id", spOffer_id).ToList();
+        var spOfferItems = db.Query("SELECT id,spOfferCatId,quan,title,title_e,itemunit_type,spItemType,p_id FROM SpecialOffersItems WHERE spOffer_id=@0 ORDER BY id", spOffer_id).ToList();
 
         var items = new List<object>();
 
@@ -222,74 +217,66 @@
             var offerItem = new Dictionary<string, object>();
 
             int itemId = 0;
-            int spOfferCatId = 0;
-            int menuItemId = 0;
+            int refId = 0;
             int quan = 0;
             int itemunitType = 0;
             int spItemType = 0;
-            int mainCatId = 0;
-            int pId = 0;
 
-            string spOfferItemType = "";
-            string itemunit = "";
-            string itemunit_e = "";
             string itemTitle = "";
             string itemTitle_e = "";
 
             try { itemId = Convert.ToInt32(spItem.id); } catch { }
-            try { spOfferCatId = Convert.ToInt32(spItem.spOfferCatId); } catch { }
-            try { menuItemId = Convert.ToInt32(spItem.menuItemId); } catch { }
             try { quan = Convert.ToInt32(spItem.quan); } catch { }
             try { itemunitType = Convert.ToInt32(spItem.itemunit_type); } catch { }
             try { spItemType = Convert.ToInt32(spItem.spItemType); } catch { }
-            try { mainCatId = Convert.ToInt32(spItem.main_cat_id); } catch { }
-            try { pId = Convert.ToInt32(spItem.p_id); } catch { }
 
-            try { spOfferItemType = Convert.ToString(spItem.spOfferItemType) ?? ""; } catch { }
-            try { itemunit = Convert.ToString(spItem.itemunit) ?? ""; } catch { }
-            try { itemunit_e = Convert.ToString(spItem.itemunit_e) ?? ""; } catch { }
             try { itemTitle = Convert.ToString(spItem.title) ?? ""; } catch { }
             try { itemTitle_e = Convert.ToString(spItem.title_e) ?? ""; } catch { }
 
+
+            if (spItemType == 1)
+            {
+                try { refId = Convert.ToInt32(spItem.p_id); } catch { }
+            }
+            else if (spItemType == 2)
+            {
+                try { refId = Convert.ToInt32(spItem.spOfferCatId); } catch { }
+            }
+            else if (spItemType == 3)
+            {
+                try { refId = Convert.ToInt32(spItem.p_id); } catch { }
+            }
+
+
             offerItem["id"] = itemId;
-            offerItem["type"] = spOfferItemType;
-            offerItem["cat_id"] = spOfferCatId;
-            offerItem["menu_item_id"] = menuItemId;
-            offerItem["quan"] = quan;
-            offerItem["unit"] = itemunit;
-            offerItem["unit_e"] = itemunit_e;
-            offerItem["title"] = itemTitle;
-            offerItem["title_e"] = itemTitle_e;
-            offerItem["unit_type"] = itemunitType;
-            offerItem["item_type"] = spItemType;
-            offerItem["main_cat_id"] = mainCatId;
-            offerItem["p_id"] = pId;
+            offerItem["type"] = spItemType;
+            offerItem["ref"] = refId;
+            offerItem["qty"] = quan;
+            offerItem["he"] = itemTitle;
+            offerItem["en"] = itemTitle_e;
+            offerItem["unit"] = itemunitType;
 
             items.Add(offerItem);
         }
 
 
         item["id"] = id;
-        item["title"] = title;
-        item["title_e"] = title_e;
-        item["description"] = description;
-        item["desc_e"] = desc_e;
+        item["he"] = title;
+        item["en"] = title_e;
+        item["dh"] = description;
+        item["de"] = desc_e;
         item["price"] = price;
-        item["active"] = isActive;
-        item["charity"] = isCharity;
         item["type"] = spOfferType;
-        item["discountable"] = discountable;
-        item["service_plan_id"] = servicePlanId;
-        item["max_in_cart"] = maxInCart;
-        item["commission"] = specialCommision;
-        item["vendor_id"] = vendorId;
+        item["disc"] = discountable;
+        item["max"] = maxInCart;
+        item["vid"] = vendorId;
         item["items"] = items;
 
-        string json= new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(item);
+        string json = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(item);
 
         if (update_record)
         {
-            sqlSelect= "UPDATE specialoffers SET spOfferItemsJson=@0 WHERE id=@1";
+            sqlSelect = "UPDATE SpecialOffers SET spOfferItemsJson=@0 WHERE id=@1";
             db.Execute(sqlSelect, json, spOffer_id);
         }
 
@@ -297,8 +284,6 @@
 
         return json;
     }
-
-
     public static string CreateFullSpecialOffersJson()
     {
         var db = Database.Open("op_data");
@@ -339,6 +324,207 @@
 
         return serializer.Serialize(result);
     }
+    public static string CreateMenuSpecialOffersJson(int menu_id, bool update_record = false)
+    {
+        var db = Database.Open("op_data");
+
+        var offers = db.Query("SELECT DISTINCT s.id,s.title,s.title_e,s.description,s.desc_e,s.price,s.spOfferType,s.discountable,s.max_in_cart,s.vendor_id FROM SpecialOffers s INNER JOIN SpOfferRoundsAvailability r ON s.id=r.specialOfferId WHERE s.is_active=1 AND r.round_id=@0 ORDER BY s.spOfferType,s.id", menu_id).ToList();
+
+        if (!offers.Any())
+        {
+            db.Close();
+            return "[]";
+        }
+
+        var offerIds = new List<int>();
+
+        foreach (var offer in offers)
+        {
+            try
+            {
+                int offerId = Convert.ToInt32(offer.id);
+                if (offerId > 0) offerIds.Add(offerId);
+            }
+            catch { }
+        }
+
+        if (!offerIds.Any())
+        {
+            db.Close();
+            return "[]";
+        }
+
+        string ids = string.Join(",", offerIds);
+
+        var spOfferItems = db.Query("SELECT spOffer_id,spOfferCatId,quan,title,title_e,itemunit_type,spItemType,p_id FROM SpecialOffersItems WHERE spOffer_id IN (" + ids + ") ORDER BY spOffer_id,id").ToList();
+
+        var itemsByOffer = new Dictionary<int, List<object>>();
+
+        foreach (var spItem in spOfferItems)
+        {
+            int spOfferId = 0;
+            int refId = 0;
+            int qty = 0;
+            int unitType = 0;
+            int itemType = 0;
+
+            string itemHe = "";
+            string itemEn = "";
+
+            try { spOfferId = Convert.ToInt32(spItem.spOffer_id); } catch { }
+            try { qty = Convert.ToInt32(spItem.quan); } catch { }
+            try { unitType = Convert.ToInt32(spItem.itemunit_type); } catch { }
+            try { itemType = Convert.ToInt32(spItem.spItemType); } catch { }
+
+            try { itemHe = Convert.ToString(spItem.title) ?? ""; } catch { }
+            try { itemEn = Convert.ToString(spItem.title_e) ?? ""; } catch { }
+
+            if (itemType == 2)
+            {
+                try { refId = Convert.ToInt32(spItem.spOfferCatId); } catch { }
+            }
+            else
+            {
+                try { refId = Convert.ToInt32(spItem.p_id); } catch { }
+            }
+
+            var offerItem = new Dictionary<string, object>();
+
+            offerItem["type"] = itemType;
+            offerItem["ref"] = refId;
+            offerItem["qty"] = qty;
+            offerItem["he"] = itemHe;
+            offerItem["en"] = itemEn;
+            offerItem["unit"] = unitType;
+
+            if (!itemsByOffer.ContainsKey(spOfferId))
+            {
+                itemsByOffer[spOfferId] = new List<object>();
+            }
+
+            itemsByOffer[spOfferId].Add(offerItem);
+        }
+
+        var result = new List<object>();
+
+        foreach (var spOffer in offers)
+        {
+            int id = 0;
+            int spOfferType = 0;
+            int maxInCart = 0;
+            int vendorId = 0;
+
+            decimal price = 0;
+
+            bool discountable = false;
+
+            string title = "";
+            string title_e = "";
+            string description = "";
+            string desc_e = "";
+
+            try { id = Convert.ToInt32(spOffer.id); } catch { }
+            try { spOfferType = Convert.ToInt32(spOffer.spOfferType); } catch { }
+            try { maxInCart = Convert.ToInt32(spOffer.max_in_cart); } catch { }
+            try { vendorId = Convert.ToInt32(spOffer.vendor_id); } catch { }
+
+            try { price = Convert.ToDecimal(spOffer.price); } catch { }
+
+            try { discountable = Convert.ToBoolean(spOffer.discountable); } catch { }
+
+            try { title = Convert.ToString(spOffer.title) ?? ""; } catch { }
+            try { title_e = Convert.ToString(spOffer.title_e) ?? ""; } catch { }
+            try { description = (Convert.ToString(spOffer.description) ?? "").Trim(); } catch { }
+            try { desc_e = (Convert.ToString(spOffer.desc_e) ?? "").Trim(); } catch { }
+
+            var item = new Dictionary<string, object>();
+
+            item["id"] = id;
+            item["he"] = title;
+            item["en"] = title_e;
+            item["dh"] = description;
+            item["de"] = desc_e;
+            item["price"] = price;
+            item["type"] = spOfferType;
+            item["disc"] = discountable;
+            item["max"] = maxInCart;
+            item["vid"] = vendorId;
+
+            if (itemsByOffer.ContainsKey(id))
+            {
+                item["items"] = itemsByOffer[id];
+            }
+            else
+            {
+                item["items"] = new List<object>();
+            }
+
+            result.Add(item);
+        }
+
+        string json= new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+        if (update_record)
+        {
+            db.Execute("UPDATE Rounds SET spOffersJson=@0 WHERE id=@1", json, menu_id);
+        }
+        db.Close();
+
+        return json;
+    }
+
+    public static string CreateFeaturedItemsJson(int round_id)
+    {
+        var db = Database.Open("op_data");
+
+        var sqlSelect = @"SELECT p_id,title,title_e,curLowestUnitPrice,itemunit,itemunit_e
+                  FROM roundMenuItems
+                  WHERE round_id=@0 AND is_active=1 AND is_featured=1
+                  ORDER BY id";
+
+        var products = db.Query(sqlSelect, round_id);
+
+        var items = new List<object>();
+
+        foreach (var product in products)
+        {
+            var item = new Dictionary<string, object>();
+
+            int p_id = 0;
+            try { p_id = Convert.ToInt32(product.p_id); } catch { }
+
+            if (p_id <= 0)
+                continue;
+
+            item["id"] = p_id;
+
+            string title_h = ""; try { title_h = (product.title ?? "").ToString(); } catch { }
+            string title_e = ""; try { title_e = (product.title_e ?? "").ToString(); } catch { }
+
+            if (!string.IsNullOrWhiteSpace(title_h)) item["title_h"] = title_h;
+            if (!string.IsNullOrWhiteSpace(title_e)) item["title_e"] = title_e;
+
+            decimal price = 0;
+            try { price = Convert.ToDecimal(product.curLowestUnitPrice); } catch { }
+
+            if (price > 0)
+                item["price"] = price;
+
+            string unit_h = ""; try { unit_h = (product.itemunit ?? "").ToString(); } catch { }
+            string unit_e = ""; try { unit_e = (product.itemunit_e ?? "").ToString(); } catch { }
+
+            if (!string.IsNullOrWhiteSpace(unit_h)) item["unit_h"] = unit_h;
+            if (!string.IsNullOrWhiteSpace(unit_e)) item["unit_e"] = unit_e;
+
+            items.Add(item);
+        }
+
+        db.Close();
+
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+        return serializer.Serialize(items);
+    }
+
+
     public static int func()
     {
         int ret_val = 0;

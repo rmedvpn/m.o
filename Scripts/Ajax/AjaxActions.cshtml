@@ -5467,7 +5467,8 @@
                     }
 
                 }
-                else {
+                else
+                {
                     theHtmlOutput = "!$!" + theHtmlOutput;
                 }
                 db.Close();
@@ -5631,43 +5632,43 @@
                         var db = Database.Open("op_data");
 
                         var sqlSelect = @"
-                    UPDATE ProductImages
-                    SET is_primary = 0
-                    WHERE product_id = @0";
+            UPDATE ProductImages
+            SET is_primary = 0
+            WHERE product_id = @0";
 
                         db.Execute(sqlSelect, product_id);
 
                         sqlSelect = @"
-                    INSERT INTO ProductImages
-                    (
-                        FileName,
-                        FileContent,
-                        MimeType,
-                        product_id,
-                        timestamp,
-                        clerk_id,
-                        is_deleted,
-                        is_tn,
-                        ImageThumb,
-                        is_primary,
-                        image_hash,
-                        tn_image_hash
-                    )
-                    VALUES
-                    (
-                        @0,
-                        @1,
-                        @2,
-                        @3,
-                        @4,
-                        @5,
-                        0,
-                        0,
-                        @6,
-                        1,
-                        HASHBYTES('SHA2_256', @1),
-                        HASHBYTES('SHA2_256', @6)
-                    )";
+            INSERT INTO ProductImages
+            (
+                FileName,
+                FileContent,
+                MimeType,
+                product_id,
+                timestamp,
+                clerk_id,
+                is_deleted,
+                is_tn,
+                ImageThumb,
+                is_primary,
+                image_hash,
+                tn_image_hash
+            )
+            VALUES
+            (
+                @0,
+                @1,
+                @2,
+                @3,
+                @4,
+                @5,
+                0,
+                0,
+                @6,
+                1,
+                HASHBYTES('SHA2_256', @1),
+                HASHBYTES('SHA2_256', @6)
+            )";
 
                         DateTime time_stamp = DateTime.Now;
 
@@ -7071,42 +7072,58 @@
                 int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
                 int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
                 set_to = false;
-                if (Request["param2"] == "1")
-                {
-                    set_to = true;
-                }
+
 
                 if (theHtmlOutput == "")
                 {
                     var db = Database.Open("op_data");
                     var sqlSelect = "";
-                    sqlSelect = "SELECT title FROM rounds WHERE id=@0";
+                    sqlSelect = "SELECT title,vendor_id FROM rounds WHERE id=@0";
                     var round = db.QuerySingle(sqlSelect, round_id);
-                    sqlSelect = "SELECT title FROM specialOffers WHERE id=@0";
-                    var sp_offer = db.QuerySingle(sqlSelect, spOffer_id);
-
-                    if (sp_offer != null && round != null)
+                    if (round != null)
                     {
-                        if (set_to)
+                        int vendor_id = 0; try { vendor_id = round.vendor_id; } catch { }
+                        if (spOffer_id == -1)
                         {
-                            sqlSelect = "INSERT INTO SpOfferRoundsAvailability(round_id,specialOfferId) VALUES (@0,@1)";
-                            db.Execute(sqlSelect, round_id, spOffer_id);
-                            theHtmlOutput = " 👌 " + sp_offer.title + " יהיה זמין ב" + round.title;
+                            sqlSelect = "SELECT * FROM specialOffers where is_active=1 AND (vendor_id=@0 OR vendor_id=0) ORDER BY vendor_id DESC,spOfferType";
+                            var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
+                            foreach (var spOffer in AllSpecialOffers)
+                            {
+                                sqlSelect = "SELECT id FROM SpOfferRoundsAvailability WHERE specialOfferId=@0 AND round_id=@1";
+                                var isInMenuCheck = db.QuerySingle(sqlSelect, spOffer.id, round_id);
+                                if (isInMenuCheck == null)
+                                {
+                                    sqlSelect = "INSERT INTO SpOfferRoundsAvailability(round_id,specialOfferId) VALUES (@0,@1)";
+                                    db.Execute(sqlSelect, round_id, spOffer.id);
+                                    theHtmlOutput += " 👌 " + spOffer.title + " יהיה זמין ב" + round.title + "<BR>";
 
+                                }
+                            }
                         }
-                        else
+                        if (spOffer_id > 0)
                         {
-                            sqlSelect = "DELETE FROM SpOfferRoundsAvailability WHERE round_id=@0 AND specialOfferId=@1";
-                            db.Execute(sqlSelect, round_id, spOffer_id);
-                            theHtmlOutput = " 👌 " + sp_offer.title + " לא יהיה זמין ב" + round.title;
 
+                            sqlSelect = "SELECT title FROM specialOffers WHERE id=@0";
+                            var sp_offer = db.QuerySingle(sqlSelect, spOffer_id);
+                            if (sp_offer != null)
+                            {
+                                sqlSelect = "INSERT INTO SpOfferRoundsAvailability(round_id,specialOfferId) VALUES (@0,@1)";
+                                db.Execute(sqlSelect, round_id, spOffer_id);
+                                theHtmlOutput += " 👌 " + sp_offer.title + " יהיה זמין ב" + round.title;
+
+                            }
                         }
+
+
+
+
                     }
 
 
 
                     db.Close();
 
+                    string json = AppJson.CreateMenuSpecialOffersJson(round_id,true);
 
                 }
             }
@@ -8283,7 +8300,7 @@
                 int catalog_p_id = 0; try { catalog_p_id = Convert.ToInt32(Request["value"]); } catch { }
                 int asking_p_id = 0; try { asking_p_id = Convert.ToInt32(Request["param1"]); } catch { }
                 string scope = ""; scope = Request["param2"];
-                theHtmlOutput = ProductsFunctions.SyncSubProductsToCatalog(catalog_p_id,asking_p_id,scope);
+                theHtmlOutput = ProductsFunctions.SyncSubProductsToCatalog(catalog_p_id, asking_p_id, scope);
 
             }
             break;
