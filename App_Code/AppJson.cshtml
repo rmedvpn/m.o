@@ -7,6 +7,168 @@
 
 @functions {
 
+    public static string CreateCategoriesJson()
+    {
+        var db = Database.Open("op_data");
+
+        var rows = db.Query("SELECT id,title,e_title,is_maincat,cat_desc,cat_e_desc,mainCat_id,def_itemunit_type,is_subcat,is_spOffersCat,is_active,vendor_id FROM Categories WHERE is_active=1 ORDER BY is_maincat DESC,id").ToList();
+
+        var mainCategories = new List<object>();
+        var categories = new List<object>();
+
+
+        // ---------------------------------------------------------
+        // Main categories
+        // ---------------------------------------------------------
+
+        foreach (var main in rows.Where(x =>
+        {
+            try { return Convert.ToBoolean(x.is_maincat); }
+            catch { return false; }
+        }))
+        {
+            int mainId = 0;
+            int defItemUnitType = 0;
+            int vendorId = 0;
+
+            string title_h = "";
+            string title_e = "";
+            string desc_h = "";
+            string desc_e = "";
+
+            try { mainId = Convert.ToInt32(main.id); } catch { }
+            try { defItemUnitType = Convert.ToInt32(main.def_itemunit_type); } catch { }
+            try { vendorId = Convert.ToInt32(main.vendor_id); } catch { }
+
+            try { title_h = Convert.ToString(main.title) ?? ""; } catch { }
+            try { title_e = Convert.ToString(main.e_title) ?? ""; } catch { }
+            try { desc_h = (Convert.ToString(main.cat_desc) ?? "").Trim(); } catch { }
+            try { desc_e = (Convert.ToString(main.cat_e_desc) ?? "").Trim(); } catch { }
+
+
+            var childIds = new List<int>();
+            var spOfferCategoryIds = new List<int>();
+
+            foreach (var child in rows.Where(x =>
+            {
+                try
+                {
+                    return !Convert.ToBoolean(x.is_maincat) &&
+                           Convert.ToInt32(x.mainCat_id) == mainId;
+                }
+                catch
+                {
+                    return false;
+                }
+            }))
+            {
+                int childId = 0;
+                bool isSubCat = false;
+                bool isSpOffersCat = false;
+
+                try { childId = Convert.ToInt32(child.id); } catch { }
+                try { isSubCat = Convert.ToBoolean(child.is_subcat); } catch { }
+                try { isSpOffersCat = Convert.ToBoolean(child.is_spOffersCat); } catch { }
+
+                if (childId <= 0) continue;
+
+                if (isSubCat)
+                {
+                    childIds.Add(childId);
+                }
+
+                if (isSpOffersCat)
+                {
+                    spOfferCategoryIds.Add(childId);
+                }
+            }
+
+
+            var mainItem = new Dictionary<string, object>();
+
+            mainItem["id"] = mainId;
+            mainItem["he"] = title_h;
+            mainItem["en"] = title_e;
+            mainItem["dh"] = desc_h;
+            mainItem["de"] = desc_e;
+            mainItem["unit"] = defItemUnitType;
+            mainItem["vid"] = vendorId;
+            mainItem["categories"] = childIds;
+            mainItem["spCategories"] = spOfferCategoryIds;
+
+            mainCategories.Add(mainItem);
+        }
+
+
+        // ---------------------------------------------------------
+        // All non-main categories
+        // Flat list so every category can be accessed directly by ID
+        // ---------------------------------------------------------
+
+        foreach (var row in rows.Where(x =>
+        {
+            try { return !Convert.ToBoolean(x.is_maincat); }
+            catch { return false; }
+        }))
+        {
+            int id = 0;
+            int mainCatId = 0;
+            int defItemUnitType = 0;
+            int vendorId = 0;
+
+            string title_h = "";
+            string title_e = "";
+            string desc_h = "";
+            string desc_e = "";
+
+            bool isSubCat = false;
+            bool isSpOffersCat = false;
+
+            try { id = Convert.ToInt32(row.id); } catch { }
+            try { mainCatId = Convert.ToInt32(row.mainCat_id); } catch { }
+            try { defItemUnitType = Convert.ToInt32(row.def_itemunit_type); } catch { }
+            try { vendorId = Convert.ToInt32(row.vendor_id); } catch { }
+
+            try { title_h = Convert.ToString(row.title) ?? ""; } catch { }
+            try { title_e = Convert.ToString(row.e_title) ?? ""; } catch { }
+            try { desc_h = (Convert.ToString(row.cat_desc) ?? "").Trim(); } catch { }
+            try { desc_e = (Convert.ToString(row.cat_e_desc) ?? "").Trim(); } catch { }
+
+            try { isSubCat = Convert.ToBoolean(row.is_subcat); } catch { }
+            try { isSpOffersCat = Convert.ToBoolean(row.is_spOffersCat); } catch { }
+
+
+            var category = new Dictionary<string, object>();
+
+            category["id"] = id;
+            category["main"] = mainCatId;
+            category["he"] = title_h;
+            category["en"] = title_e;
+            category["dh"] = desc_h;
+            category["de"] = desc_e;
+            category["unit"] = defItemUnitType;
+            category["sub"] = isSubCat;
+            category["sp"] = isSpOffersCat;
+            category["vid"] = vendorId;
+
+            categories.Add(category);
+        }
+
+
+        // ---------------------------------------------------------
+        // Final JSON
+        // ---------------------------------------------------------
+
+        var result = new Dictionary<string, object>();
+
+        result["main"] = mainCategories;
+        result["categories"] = categories;
+
+
+        db.Close();
+
+        return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+    }
     public static string CreateServiceAreasJson()
     {
         var db = Database.Open("op_data");
@@ -115,7 +277,7 @@
 
         return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
     }
-    public static string CreateFulfillmentOptionsJson()
+    public static string CreateFulfillmentOptionsTypesJson()
     {
         var db = Database.Open("op_data");
 
@@ -160,6 +322,365 @@
         db.Close();
 
         return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+    }
+    public static string CreateFulfillmentOptionsJson(int round_id)
+    {
+        var db = Database.Open("op_data");
+
+        var sqlSelect = "SELECT * FROM RoundFullfilmentOptions WHERE round_id=@0 AND is_deleted=0 ORDER BY service_type,id";
+        var fulfillmentOptions = db.Query(sqlSelect, round_id);
+
+        var options = new List<object>();
+
+        foreach (var opt in fulfillmentOptions)
+        {
+            var item = new Dictionary<string, object>();
+
+            int optionId = 0, serviceType = 0, vendorId = 0;
+            decimal shippingCharge = 0, freeShippingMin = 0, minShipping = 0, minOrder = 0;
+            bool isPickup = false, isExpress = false, isRoute = false;
+
+            try { optionId = Convert.ToInt32(opt.id); } catch { }
+            try { serviceType = Convert.ToInt32(opt.service_type); } catch { }
+            try { vendorId = Convert.ToInt32(opt.vendor_id); } catch { }
+
+            try { shippingCharge = Convert.ToDecimal(opt.shipping_charge); } catch { }
+            try { freeShippingMin = Convert.ToDecimal(opt.free_shipping_marker); } catch { }
+            try { minShipping = Convert.ToDecimal(opt.min_shipping_marker); } catch { }
+            try { minOrder = Convert.ToDecimal(opt.min_order); } catch { }
+
+            try { isPickup = Convert.ToBoolean(opt.is_pickup); } catch { }
+            try { isExpress = Convert.ToBoolean(opt.is_express); } catch { }
+            try { isRoute = Convert.ToBoolean(opt.is_route); } catch { }
+
+            item["id"] = optionId;
+            item["round"] = round_id;
+            item["vendor"] = vendorId;
+            item["type"] = serviceType;
+
+            string title_h = ""; try { title_h = (opt.title_h ?? "").ToString(); } catch { }
+            string title_e = ""; try { title_e = (opt.title_e ?? "").ToString(); } catch { }
+            string desc_h = ""; try { desc_h = (opt.desc_h ?? "").ToString(); } catch { }
+            string desc_e = ""; try { desc_e = (opt.desc_e ?? "").ToString(); } catch { }
+            string short_title = ""; try { short_title = (opt.short_title ?? "").ToString(); } catch { }
+
+            if (!string.IsNullOrWhiteSpace(title_h)) item["title_h"] = title_h;
+            if (!string.IsNullOrWhiteSpace(title_e)) item["title_e"] = title_e;
+            if (!string.IsNullOrWhiteSpace(desc_h)) item["desc_h"] = desc_h;
+            if (!string.IsNullOrWhiteSpace(desc_e)) item["desc_e"] = desc_e;
+            if (!string.IsNullOrWhiteSpace(short_title)) item["short_title"] = short_title;
+
+            bool active = false; try { active = Convert.ToBoolean(opt.is_active); } catch { }
+            bool open = false; try { open = Convert.ToBoolean(opt.is_open_for_orders); } catch { }
+            bool freeShip = false; try { freeShip = Convert.ToBoolean(opt.is_free_shipping); } catch { }
+            bool returns = false; try { returns = Convert.ToBoolean(opt.returns_allowed); } catch { }
+
+            if (active) item["active"] = true;
+            if (open) item["open"] = true;
+            if (isRoute) item["route"] = true;
+            if (isExpress) item["express"] = true;
+            if (isPickup) item["pickup"] = true;
+            if (returns) item["returns"] = true;
+
+            item["min_order"] = minOrder;
+
+            /*
+             * Fulfillment-option defaults.
+             */
+            int shippingMethod = 0;
+            int optionEta = 0;
+
+            try { shippingMethod = Convert.ToInt32(opt.shipping_method); } catch { }
+            try { optionEta = Convert.ToInt32(opt.express_eta_min); } catch { }
+
+            if (!isPickup)
+            {
+                item["ship_charge"] = shippingCharge;
+                item["free_ship_min"] = freeShippingMin;
+                item["min_ship"] = minShipping;
+                item["free_ship"] = freeShip;
+                item["ship_method"] = shippingMethod;
+                item["eta_min"] = optionEta;
+            }
+
+            string shippingInstructions = "";
+            try { shippingInstructions = (opt.shipping_instructions ?? "").ToString(); } catch { }
+
+            if (!string.IsNullOrWhiteSpace(shippingInstructions))
+                item["ship_instructions"] = shippingInstructions;
+
+            string shippingInstructionsE = "";
+            try { shippingInstructionsE = (opt.shipping_instructions_e ?? "").ToString(); } catch { }
+
+            if (!string.IsNullOrWhiteSpace(shippingInstructionsE))
+                item["ship_instructions_e"] = shippingInstructionsE;
+
+            /*
+             * Pickup-specific configuration.
+             */
+            if (isPickup)
+            {
+                string pickupAddress = "";
+                try { pickupAddress = (opt.pu_loc_address ?? "").ToString(); } catch { }
+
+                if (!string.IsNullOrWhiteSpace(pickupAddress))
+                    item["pickup_address"] = pickupAddress;
+
+                string pickupAddressE = "";
+                try { pickupAddressE = (opt.pu_loc_address_e ?? "").ToString(); } catch { }
+
+                if (!string.IsNullOrWhiteSpace(pickupAddressE))
+                    item["pickup_address_e"] = pickupAddressE;
+
+                string pickupName = "";
+                try { pickupName = (opt.gen_pu_loc ?? "").ToString(); } catch { }
+
+                if (!string.IsNullOrWhiteSpace(pickupName))
+                    item["pickup_name"] = pickupName;
+
+                string pickupNameE = "";
+                try { pickupNameE = (opt.gen_pu_loc_e ?? "").ToString(); } catch { }
+
+                if (!string.IsNullOrWhiteSpace(pickupNameE))
+                    item["pickup_name_e"] = pickupNameE;
+
+                string pickupCity = "";
+                try { pickupCity = (opt.pickup_city ?? "").ToString(); } catch { }
+
+                if (!string.IsNullOrWhiteSpace(pickupCity))
+                    item["pickup_city"] = pickupCity;
+
+                string pickupCityE = "";
+                try { pickupCityE = (opt.pickup_city_e ?? "").ToString(); } catch { }
+
+                if (!string.IsNullOrWhiteSpace(pickupCityE))
+                    item["pickup_city_e"] = pickupCityE;
+
+                int mainPickupArea = 0;
+                try { mainPickupArea = Convert.ToInt32(opt.main_pickup_area); } catch { }
+
+                if (mainPickupArea > 0)
+                    item["main_pickup_area"] = mainPickupArea;
+
+                int pickupArea = 0;
+                try { pickupArea = Convert.ToInt32(opt.pickup_area); } catch { }
+
+                if (pickupArea > 0)
+                    item["pickup_area"] = pickupArea;
+
+                int pickupLead = 0;
+                try { pickupLead = Convert.ToInt32(opt.pu_lead_time); } catch { }
+
+                if (pickupLead > 0)
+                    item["pickup_lead_min"] = pickupLead;
+            }
+
+            int minDispatch = 0;
+            try { minDispatch = Convert.ToInt32(opt.min_to_dispatch); } catch { }
+
+            if (minDispatch > 0)
+                item["min_dispatch"] = minDispatch;
+
+            /*
+             * Opening hours.
+             */
+            var hours = new Dictionary<string, object>();
+
+            Action<string, bool, object, object> AddDay = (day, enabled, startValue, endValue) =>
+            {
+                if (!enabled)
+                    return;
+
+                var dayHours = new Dictionary<string, object>();
+
+                try
+                {
+                    DateTime start = Convert.ToDateTime(startValue);
+                    dayHours["start"] = start.ToString("HH:mm");
+                }
+                catch { }
+
+                try
+                {
+                    DateTime end = Convert.ToDateTime(endValue);
+                    dayHours["end"] = end.ToString("HH:mm");
+                }
+                catch { }
+
+                if (dayHours.Any())
+                    hours[day] = dayHours;
+            };
+
+            bool isSun = false; try { isSun = Convert.ToBoolean(opt.is_sun); } catch { }
+            bool isMon = false; try { isMon = Convert.ToBoolean(opt.is_mon); } catch { }
+            bool isTue = false; try { isTue = Convert.ToBoolean(opt.is_tue); } catch { }
+            bool isWed = false; try { isWed = Convert.ToBoolean(opt.is_wed); } catch { }
+            bool isThu = false; try { isThu = Convert.ToBoolean(opt.is_thu); } catch { }
+            bool isFri = false; try { isFri = Convert.ToBoolean(opt.is_fri); } catch { }
+            bool isSat = false; try { isSat = Convert.ToBoolean(opt.is_sat); } catch { }
+
+            AddDay("sun", isSun, opt.sun_start_time, opt.sun_end_time);
+            AddDay("mon", isMon, opt.mon_start_time, opt.mon_end_time);
+            AddDay("tue", isTue, opt.tue_start_time, opt.tue_end_time);
+            AddDay("wed", isWed, opt.wed_start_time, opt.wed_end_time);
+            AddDay("thu", isThu, opt.thu_start_time, opt.thu_end_time);
+            AddDay("fri", isFri, opt.fri_start_time, opt.fri_end_time);
+            AddDay("sat", isSat, opt.sat_start_time, opt.sat_end_time);
+
+            if (hours.Any())
+                item["hours"] = hours;
+
+            /*
+             * Areas
+             *
+             * IMPORTANT:
+             *
+             * Every RoundAreas row independently means that this fulfillment
+             * option is available to that area.
+             *
+             * main_area_id is only used for optional inheritance.
+             *
+             * A sub-area DOES NOT require a corresponding main-area row.
+             *
+             * Effective hierarchy:
+             *
+             * Option defaults
+             *      ↓
+             * Main-area overrides (only if a main-area row exists)
+             *      ↓
+             * Specific-area overrides
+             */
+            if (!isPickup)
+            {
+                sqlSelect = "SELECT area_id,main_area_id,shipping_charge,free_shipping_marker,min_shipping_marker,express_eta_min,is_main_area FROM RoundAreas WHERE round_id=@0 AND fulfilment_option_id=@1 ORDER BY is_main_area DESC,main_area_id,area_id";
+                var roundAreas = db.Query(sqlSelect, round_id, optionId).ToList();
+
+                var areas = new List<object>();
+
+                /*
+                 * Store the actual values of main-area definitions that exist.
+                 *
+                 * No main-area entry is created implicitly.
+                 */
+                var mainAreaValues = new Dictionary<int, Dictionary<string, object>>();
+
+                foreach (var row in roundAreas)
+                {
+                    bool isMainArea = false;
+                    try { isMainArea = Convert.ToBoolean(row.is_main_area); } catch { }
+
+                    if (!isMainArea)
+                        continue;
+
+                    int areaId = 0;
+                    try { areaId = Convert.ToInt32(row.area_id); } catch { }
+
+                    decimal areaShippingCharge = shippingCharge;
+                    decimal areaFreeShippingMin = freeShippingMin;
+                    decimal areaMinShipping = minShipping;
+                    int areaEta = optionEta;
+
+                    try { areaShippingCharge = Convert.ToDecimal(row.shipping_charge); } catch { }
+                    try { areaFreeShippingMin = Convert.ToDecimal(row.free_shipping_marker); } catch { }
+                    try { areaMinShipping = Convert.ToDecimal(row.min_shipping_marker); } catch { }
+                    try { areaEta = Convert.ToInt32(row.express_eta_min); } catch { }
+
+                    mainAreaValues[areaId] = new Dictionary<string, object>
+            {
+                    { "ship_charge", areaShippingCharge },
+                    { "free_ship_min", areaFreeShippingMin },
+                    { "min_ship", areaMinShipping },
+                    { "eta_min", areaEta }
+                };
+                }
+
+                /*
+                 * Every row is written because the row itself defines availability.
+                 */
+                foreach (var row in roundAreas)
+                {
+                    var area = new Dictionary<string, object>();
+
+                    int areaId = 0;
+                    int mainAreaId = 0;
+
+                    try { areaId = Convert.ToInt32(row.area_id); } catch { }
+                    try { mainAreaId = Convert.ToInt32(row.main_area_id); } catch { }
+
+                    bool isMainArea = false;
+                    try { isMainArea = Convert.ToBoolean(row.is_main_area); } catch { }
+
+                    area["area"] = areaId;
+                    area["main_area"] = mainAreaId;
+
+                    if (isMainArea)
+                        area["main"] = true;
+
+                    decimal areaShippingCharge = shippingCharge;
+                    decimal areaFreeShippingMin = freeShippingMin;
+                    decimal areaMinShipping = minShipping;
+                    int areaEta = optionEta;
+
+                    try { areaShippingCharge = Convert.ToDecimal(row.shipping_charge); } catch { }
+                    try { areaFreeShippingMin = Convert.ToDecimal(row.free_shipping_marker); } catch { }
+                    try { areaMinShipping = Convert.ToDecimal(row.min_shipping_marker); } catch { }
+                    try { areaEta = Convert.ToInt32(row.express_eta_min); } catch { }
+
+                    /*
+                     * Default parent is ALWAYS the fulfillment option.
+                     *
+                     * Only switch to main-area defaults if:
+                     *
+                     * 1. this is a sub-area
+                     * 2. a corresponding main-area definition actually exists
+                     */
+                    decimal parentShippingCharge = shippingCharge;
+                    decimal parentFreeShippingMin = freeShippingMin;
+                    decimal parentMinShipping = minShipping;
+                    int parentEta = optionEta;
+
+                    if (!isMainArea && mainAreaValues.ContainsKey(mainAreaId))
+                    {
+                        var parent = mainAreaValues[mainAreaId];
+
+                        parentShippingCharge = Convert.ToDecimal(parent["ship_charge"]);
+                        parentFreeShippingMin = Convert.ToDecimal(parent["free_ship_min"]);
+                        parentMinShipping = Convert.ToDecimal(parent["min_ship"]);
+                        parentEta = Convert.ToInt32(parent["eta_min"]);
+                    }
+
+                    /*
+                     * Only store values that differ from the effective parent.
+                     *
+                     * If there is no main-area definition, these are compared
+                     * directly against the fulfillment-option defaults.
+                     */
+                    if (areaShippingCharge != parentShippingCharge)
+                        area["ship_charge"] = areaShippingCharge;
+
+                    if (areaFreeShippingMin != parentFreeShippingMin)
+                        area["free_ship_min"] = areaFreeShippingMin;
+
+                    if (areaMinShipping != parentMinShipping)
+                        area["min_ship"] = areaMinShipping;
+
+                    if (areaEta != parentEta)
+                        area["eta_min"] = areaEta;
+
+                    areas.Add(area);
+                }
+
+                if (areas.Any())
+                    item["areas"] = areas;
+            }
+
+            options.Add(item);
+        }
+
+        db.Close();
+
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+        return serializer.Serialize(options);
     }
 
     public static string CreateSpecialOfferJson(int spOffer_id, bool update_record = false)
@@ -324,6 +845,7 @@
 
         return serializer.Serialize(result);
     }
+
     public static string CreateMenuSpecialOffersJson(int menu_id, bool update_record = false)
     {
         var db = Database.Open("op_data");
@@ -356,14 +878,16 @@
 
         string ids = string.Join(",", offerIds);
 
-        var spOfferItems = db.Query("SELECT spOffer_id,spOfferCatId,quan,title,title_e,itemunit_type,spItemType,p_id FROM SpecialOffersItems WHERE spOffer_id IN (" + ids + ") ORDER BY spOffer_id,id").ToList();
+        var spOfferItems = db.Query("SELECT id,spOffer_id,spOfferCatId,main_cat_id,quan,title,title_e,itemunit_type,spItemType,p_id FROM SpecialOffersItems WHERE spOffer_id IN (" + ids + ") ORDER BY spOffer_id,id").ToList();
 
         var itemsByOffer = new Dictionary<int, List<object>>();
 
         foreach (var spItem in spOfferItems)
         {
+            int itemId = 0;
             int spOfferId = 0;
             int refId = 0;
+            int mainCatId = 0;
             int qty = 0;
             int unitType = 0;
             int itemType = 0;
@@ -371,7 +895,9 @@
             string itemHe = "";
             string itemEn = "";
 
+            try { itemId = Convert.ToInt32(spItem.id); } catch { }
             try { spOfferId = Convert.ToInt32(spItem.spOffer_id); } catch { }
+            try { mainCatId = Convert.ToInt32(spItem.main_cat_id); } catch { }
             try { qty = Convert.ToInt32(spItem.quan); } catch { }
             try { unitType = Convert.ToInt32(spItem.itemunit_type); } catch { }
             try { itemType = Convert.ToInt32(spItem.spItemType); } catch { }
@@ -390,8 +916,10 @@
 
             var offerItem = new Dictionary<string, object>();
 
+            offerItem["iid"] = itemId;
             offerItem["type"] = itemType;
             offerItem["ref"] = refId;
+            offerItem["cat"] = mainCatId;
             offerItem["qty"] = qty;
             offerItem["he"] = itemHe;
             offerItem["en"] = itemEn;
@@ -462,17 +990,58 @@
             result.Add(item);
         }
 
-        string json= new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+        string json = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+
         if (update_record)
         {
             db.Execute("UPDATE Rounds SET spOffersJson=@0 WHERE id=@1", json, menu_id);
         }
+
         db.Close();
 
         return json;
     }
+    public static string CreateMenuSpecialOffersAvailabilityJson(int menu_id, bool update_record = false)
+    {
+        var db = Database.Open("op_data");
 
-    public static string CreateFeaturedItemsJson(int round_id)
+        var menuItems = db.Query("SELECT DISTINCT p_id,spOfferCatId FROM roundMenuItems WHERE round_id=@0 AND SpOffersOk=1 AND is_active=1 AND is_available=1", menu_id).ToList();
+
+        var productIds = new List<int>();
+        var categoryIds = new List<int>();
+
+        foreach (var menuItem in menuItems)
+        {
+            int p_id = 0;
+            int spOfferCatId = 0;
+
+            try { p_id = Convert.ToInt32(menuItem.p_id); } catch { }
+            try { spOfferCatId = Convert.ToInt32(menuItem.spOfferCatId); } catch { }
+
+            if (p_id > 0 && !productIds.Contains(p_id)) productIds.Add(p_id);
+            if (spOfferCatId > 0 && !categoryIds.Contains(spOfferCatId)) categoryIds.Add(spOfferCatId);
+        }
+
+        productIds.Sort();
+        categoryIds.Sort();
+
+        var result = new Dictionary<string, object>();
+
+        result["p"] = productIds;
+        result["c"] = categoryIds;
+
+        string json = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result);
+
+        if (update_record)
+        {
+            db.Execute("UPDATE Rounds SET SpOfferAvailabilityJson=@0 WHERE id=@1", json, menu_id);
+        }
+
+        db.Close();
+
+        return json;
+    }
+    public static string CreateFeaturedItemsJson(int round_id,bool update_record=false)
     {
         var db = Database.Open("op_data");
 
@@ -517,14 +1086,48 @@
 
             items.Add(item);
         }
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+
+        string json = serializer.Serialize(items);
+        if (update_record)
+        {
+            sqlSelect = "UPDATE rounds SET FeaturedItemsJson=@0 WHERE id=@1";
+            db.Execute(sqlSelect, json, round_id);
+
+        }
+
+        db.Close();
+
+        return json;
+    }
+
+
+    public static string CreateSpecialOffersTypesJson()
+    {
+        var db = Database.Open("op_data");
+
+        var spOfferTypes = db.Query("SELECT id,title,title_e,type_code,HeaderIcon FROM SpOfferTypes ORDER BY id");
+
+        var items = new List<object>();
+
+        foreach (var spOfferType in spOfferTypes)
+        {
+            var item = new Dictionary<string, object>();
+
+            item["id"] = Convert.ToInt32(spOfferType.id);
+            item["he"] = Convert.ToString(spOfferType.title) ?? "";
+            item["en"] = Convert.ToString(spOfferType.title_e) ?? "";
+            item["code"] = Convert.ToString(spOfferType.type_code) ?? "";
+            item["icon"] = Convert.ToString(spOfferType.HeaderIcon) ?? "";
+
+            items.Add(item);
+        }
 
         db.Close();
 
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
         return serializer.Serialize(items);
     }
-
-
     public static int func()
     {
         int ret_val = 0;
