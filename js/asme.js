@@ -670,6 +670,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddMenuItemPricingOption":
             case "UpdateProductPricingOption":
             case "AddProductType":
+            case "AddSpOffer":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1363,15 +1364,37 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
 
                         break;
                         
-                    case "UpdateSpecialOfferDetails":
+                   
                     case "RemoveSpecialItemFromOffer":
                     case "AddSpecialItemToOffer":
-                        RepAjaxUpdate('RemoveSpecialItemFromOffer', 'AddSpecialItemDiv', 'spOfferAddItemsLoader', value);
-                        RepAjaxUpdate('UpdateSpecialOfferInfo', 'spOfferItemsListDiv', 'spOfferItemsLoader', value);
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate('RemoveSpecialItemFromOffer', 'AddSpecialItemDiv', 'spOfferAddItemsLoader', value);
+                            RepAjaxUpdate('UpdateSpecialOfferInfo', 'spOfferItemsListDiv', 'spOfferItemsLoader', value);
+                        }
+                        break;
+                    case "UpdateSpecialOfferDetails":
+                        if (!theRes.startsWith("!$!")) {
+                            
+                            sbload('GenSb', 'Caller?p1=SpecialEdit&p2=' + value);
+                            PageNavigator('SPOFFERS');
+                        }
+                        break;
+                    case "DeleteSpOffer":
+                        if (!theRes.startsWith("!$!")) {
+
+                            sbClose('GenSb');
+                            PageNavigator('SPOFFERS');
+                        }
                         break;
 
+                  
                     case "NewSpecialOffer":
                         PageNavigator('SPOFFERS');
+                        break;
+                    case "ActivateSpOffer":
+                        sbload('GenSb', 'Caller?p1=SpecialEdit&p2=' + value);
+                        PageNavigator('SPOFFERS');
+                        AdjustMainView();
                         break;
 
                     case "DeleteRoundMenuPricingOption":
@@ -2066,6 +2089,8 @@ function RepAjaxUpdate(theAction,return_container,loaderElement,param1,param2,pa
             
             break;
 
+
+
         default:
         break;
 
@@ -2103,7 +2128,10 @@ function RepAjaxUpdate(theAction,return_container,loaderElement,param1,param2,pa
 
                         break;
 
-                        
+                    case "LoadSpOfferCatList":
+                        FixAccordion('AccAddItemToSpecial');
+                        console.log('AccAddItemToSpecial');
+                        break;
                     default:
                         break;
                 }

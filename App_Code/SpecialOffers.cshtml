@@ -1,0 +1,1140 @@
+﻿@using System
+@using System.Collections.Generic
+@using System.Globalization
+
+@using System.Web.Script.Serialization
+
+@helper SpecialOffersAdmin(int spOfferType = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+
+    sqlSelect = "SELECT id,title FROM SpOfferTypes";
+    var spOfferTypes = db.Query(sqlSelect);
+
+    //SpOffersAdminDefaultId
+
+    if (spOfferType == 0)
+    {
+        try { spOfferType = Convert.ToInt32(AppFunctions.GetAppProperty("SpOffersAdminDefaultId")); } catch { }
+    }
+
+
+
+    sqlSelect = "SELECT * FROM SpecialOffers where spOfferType=@0 order by vendor_id,is_activated,is_active DESC,id DESC";
+    var SpecialOffers = db.Query(sqlSelect, spOfferType);
+
+
+    <div style="overflow:auto" id="SpOfferAdminDiv">
+        <div style="overflow: auto;background-color: #fff;min-height: 500px;">
+            <div style="overflow: auto;padding: 5px;">
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    sbload('GenSb','Caller?p1=AddNewSpOffer');AdjustMainView();">חדש</button>
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    AjaxActions('ReCreateSpecialOffersJson'); ">JSON</button>
+                <div style="font-size: 20px;float: right;color: #000">
+                    ניהול
+                    <select style="font-size: 16px;padding: 5px;margin: 5px;background: transparent" onchange="RepAjaxUpdate('SpOfferAdmin','SpOfferAdminDiv','SpOfferAdminLoader',this.value);">
+                        @foreach (var offerType in spOfferTypes)
+                        {
+                            <option value="@offerType.id" @if (offerType.id == spOfferType) { <text> selected</text>}>@offerType.title</option>
+                        }
+
+                    </select>
+
+
+                </div>
+                <div class="spinner" style="text-align: center;display: none;float: left" id="SpOfferAdminLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+
+            </div>
+
+            <div style="overflow: auto;clear: both;" id="spOfferDiv">
+                @foreach (var spItem in SpecialOffers)
+                {
+                    string rowColor = "#e3e3e3;";
+                    bool is_active = false; try { is_active = spItem.is_active; } catch { }
+                    bool is_activated = false; try { is_activated = spItem.is_activated; } catch { }
+                    int vendor_id = 0; try { vendor_id = spItem.vendor_id; } catch { }
+                    if (!is_active) { rowColor = "#ffffcc;"; }
+                    if (!is_activated) { rowColor = "#ffcccc;"; }
+
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowColor">
+                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">עריכה</button>
+                        <div style="overflow: auto;"> @spItem.id - @spItem.title</div>
+                        @if (vendor_id > 0)
+                        {
+                            <div class="B">@vendor_id</div>
+                        }
+
+                    </div>
+                }
+            </div>
+        </div>
+        <div style="overflow: auto;height: 100px;background-color: #e3e3e3">&nbsp;</div>
+    </div>
+    db.Close();
+}
+
+@helper AddNewSpOffer()
+{
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    int product_id = 0;
+    var sqlSelect = "SELECT id,title FROM SpOfferTypes";
+    var spOfferTypes = db.Query(sqlSelect);
+    sqlSelect = "SELECT vendor_id,vendor_name FROM vendors WHERE is_active=1";
+    var vendors = db.Query(sqlSelect);
+
+    <div class="ADDSPOFFERPAGE">
+        <div style="overflow: auto;font-size: 24px;color: #000;">
+            <div style="overflow: auto">
+                <div style="color: #fff;background-color: #000;overflow: auto;padding: 5px;">הגדרת מבצע חדש</div>
+
+            </div>
+            <div style="overflow: auto">
+            </div>
+
+
+        </div>
+        <div class="B" style="padding:5px;">
+
+            <form id="AddSpOffer">
+                <div class="B">
+                    <div class="SpOfferAddRow">
+                        יצירה עבור
+                        <span style="float: left">
+                            <select class="A" name="vendor_id">
+                                <option value="-1">כל הספקים</option>
+                                @foreach (var vendor in vendors)
+                                {
+                                    <option value="@vendor.vendor_id">@vendor.vendor_name</option>
+                                }
+
+                            </select>
+                        </span>
+                    </div>
+                    <div class="SpOfferAddRow">
+                        סוג מבצע
+                        <span style="float: left">
+                            <select class="A" name="spOfferType">
+                                @foreach (var offerType in spOfferTypes)
+                                {
+                                    <option value="@offerType.id">@offerType.title</option>
+                                }
+
+                            </select>
+                        </span>
+                    </div>
+                    <div style="overflow: auto;">
+                        <div class="SpOfferAddRow">
+                            כותרת מבצע<br>
+                            <input type="text" class="A" style="width:90%" id="special_title" name="special_title">
+                        </div>
+                        <div class="SpOfferAddRow">
+                            Title<br>
+                            <input type="text" class="A" style="width:90%" id="special_title_e" name="special_title_e">
+                        </div>
+
+                    </div>
+                    <div style="overflow: auto;">
+                        <div class="SpOfferAddRow">
+
+                            תיאור<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="special_desc" name="special_desc"></textarea>
+                        </div>
+                        <div class="SpOfferAddRow">
+
+                            Description<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="special_desc_e" name="special_desc_e"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="Spacer50"></div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;">
+                        <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;width: 45%;color: #000;font-weight: bold" onclick="    AjaxActions('AddSpOffer', '','MainLoader','AddSpOffer');">✅ הוספת מבצע</button>
+                    </div>
+
+
+                </div>
+            </form>
+
+
+        </div>
+    </div>
+
+    db.Close();
+}
+
+
+@helper SpecialOfferEdit(int sp_offer_id)
+{
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * from specialOffers WHERE id=@0";
+var spOffer = db.QuerySingle(sqlSelect, sp_offer_id);
+sqlSelect = "SELECT id,title FROM SpOfferTypes";
+var spOfferTypes = db.Query(sqlSelect);
+
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+int spOfferId = 0;
+try { spOfferId = spOffer.id; } catch { }
+int spOfferType = 0;
+try { spOfferType = spOffer.spOfferType; } catch { }
+sqlSelect = "SELECT id,title from rounds WHERE is_catalog=1 ORDER BY vendor_id";
+var CatalogRounds = db.Query(sqlSelect);
+sqlSelect = "SELECT rounds.id,rounds.title FROM rounds INNER JOIN RoundSpecials ON rounds.id=RoundSpecials.round_id WHERE RoundSpecials.specialOfferId=@0";
+var SpOfferInRounds = db.Query(sqlSelect, spOfferId);
+
+sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0";
+var spItemsIncluded = db.Query(sqlSelect, spOfferId);
+string item_commision = spOffer.special_commision > 0 ? ((int)spOffer.special_commision).ToString() : "";
+
+bool is_active = false; try { is_active = spOffer.is_active; } catch { }
+bool is_activated = false; try { is_activated = spOffer.is_activated; } catch { }
+try { spOfferType = spOffer.spOfferType; } catch { }
+string offer_type_title = ""; try { offer_type_title = NewAppFunctions.GetTitleById("spOfferTypes", spOfferType); } catch { }
+
+
+    <div class="B" style="overflow: auto;color: #000;background-color: #fff">
+
+        <div>
+            <div style="overflow: auto;font-size: 20px;background-color:#000;color:yellow;">
+                הגדרות מבצע - <span>@spOffer.title</span>
+
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 14px;background-color: #b200ff;color: #fff;font-weight: bold;text-align: center;margin-left:40px;" id="StartEditBtn" onclick="showElement('EditSpOfferDiv');hideElement('spOfferItemsListDiv');hideElement('StartEditBtn');showElement('DoneEditBtn');">עריכה</button>
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 14px;background-color: #b200ff;color: #fff;font-weight: bold;text-align: center;margin-left:40px;display: none" id="DoneEditBtn" onclick="hideElement('EditSpOfferDiv');showElement('spOfferItemsListDiv');hideElement('DoneEditBtn');showElement('StartEditBtn');"> סיום עריכה </button>
+                @if (!is_activated)
+                {
+                    <div class="NONACTIVESPOFFERALERT">
+                        המבצע לא הופעל!
+                    </div>
+                }
+                else
+                {
+                    if (!is_active)
+                    {
+                        <div class="NONACTIVESPOFFERALERT">
+                            המבצע לא פעיל!
+                        </div>
+                    }
+                }
+
+            </div>
+            <div style="overflow: auto;">
+            </div>
+            <div id="spOfferItemsListDiv">
+                @SpecialOffers.SpecialOfferInfo(spOfferId)
+            </div>
+
+            <div style="padding: 0;margin: 0">
+
+                <div style="overflow: auto;min-height: 500px;display: none" id="EditSpOfferDiv">
+
+                    <form id="UpdateSpecialOfferDetails">
+                        <input type="hidden" name="spOfferType" value="@spOfferType" />
+                        <div style="overflow: auto;background-color: #e3e3e3;">
+                            <div style="overflow: auto;">
+                                <div class="SpOfferAddRow">
+                                    המבצע פעיל?
+                                    <input type="checkbox" style="float: left; padding: 5px; margin: 5px; height: 20px; width: 20px;" id="is_active" name="is_active" value="true" @if (spOffer.is_active) { <text> checked </text> } onclick="AjaxActions('ActivateSpOffer', @spOfferId,'MainLoader',this.checked);">
+                                </div>
+                                <div class="SpOfferAddRow">
+                                    כותרת מבצע<br>
+                                    <input type="text" class="A" style="width:90%" id="special_title" name="special_title" value="@spOffer.title">
+                                </div>
+                                <div class="SpOfferAddRow">
+                                    Title<br>
+                                    <input type="text" class="A" style="width:90%" id="special_title_e" name="special_title_e" value="@spOffer.title_e">
+                                </div>
+
+                            </div>
+                            <div style="overflow: auto;">
+                                <div class="SpOfferAddRow">
+                                    תיאור<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="special_desc" name="special_desc">@spOffer.description</textarea>
+                                </div>
+                                <div class="SpOfferAddRow">
+
+                                    Description<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="special_desc_e" name="special_desc_e">@spOffer.desc_e</textarea>
+                                </div>
+                            </div>
+
+
+                            <div style="overflow: auto;font-size: 20px;font-weight: bold">מחיר מבוקש (₪)<span style="float: left"><input type="text" style="padding: 5px;margin: 5px;font-size: 18px;width: 50px;" id="special_price" name="special_price" value="@Convert.ToInt32(spOffer.price)"></span></div>
+                            <div style="overflow: auto;font-size: 20px;font-weight: bold">עמלת מערכת (₪)<span style="float: left"><input type="text" style="padding: 5px;margin: 5px;font-size: 18px;width: 50px;" id="special_commision" name="special_commision" value="@item_commision"></span></div>
+                            <div style="overflow: auto;font-size: 20px;font-weight: bold">מקסימום יח בהזמנה <span style="float: left"><input type="text" style="padding: 5px;margin: 5px;font-size: 18px;width: 50px;" id="max_in_cart" name="max_in_cart" @if (spOffer.max_in_cart > 0) { <text> value="@spOffer.max_in_cart" </text> }></span></div>
+                            <div style="overflow: auto;font-size: 20px;font-weight: bold">איפשור כפל הנחות <span style="float: left"><input type="checkbox" style="padding: 5px;margin: 5px;height: 20px;width: 20px;" id="is_discountable" name="is_discountable" @if (spOffer.discountable) { <text> checked</text>}></span></div>
+                            <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;">
+                                <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #f00;width: 45%;color: #fff;font-weight: bold" onclick="    AjaxActions('DeleteSpOffer', @spOfferId,'MainLoader',@spOfferType);">מחיקה</button>
+                                <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;width: 45%;color: #000;font-weight: bold" onclick="    AjaxActions('UpdateSpecialOfferDetails', @spOfferId,'MainLoader','UpdateSpecialOfferDetails');">✅ שמירת שינוים</button>
+                            </div>
+
+
+                        </div>
+                    </form>
+
+
+                </div>
+            </div>
+        </div>
+
+        <div style="overflow: auto;min-height: 500px;display: none;">
+            <div style="overflow: auto;" id="AddSpecialToRoundContainer">
+                @SpecialOffers.AddSpecialToRound(spOfferId)
+            </div>
+
+            <div style="overflow: auto;display: none">
+                <div style="overflow: auto;" id="RoundsListForSpOfferContainer">
+                    @SpecialOffers.RoundsListForSpOffer(spOfferId)
+                </div>
+            </div>
+        </div>
+
+
+
+
+    </div>
+    <div style="overflow: auto;height: 200px;">&nbsp;</div>
+
+
+    db.Close();
+}
+
+@helper SpecialOfferInfo(int specialOfferId)
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * from specialOffers WHERE id=@0";
+var spOffer = db.QuerySingle(sqlSelect, specialOfferId);
+sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0 order by SpItemType,main_cat_id";
+var spItemsIncluded = db.Query(sqlSelect, specialOfferId);
+sqlSelect = "SELECT id,title FROM rounds WHERE is_active=1 ";
+var rounds = db.Query(sqlSelect, specialOfferId);
+sqlSelect = "SELECT COUNT(id) AS the_cnt FROM SpOfferRoundsAvailability WHERE round_id>0 AND specialOfferId=@0";
+var inRoundsCnt = db.QuerySingle(sqlSelect, specialOfferId);
+int spOffersInRoundsCnt = 0; try { spOffersInRoundsCnt = inRoundsCnt.the_cnt; } catch { }
+int spOfferType = 0;
+try { spOfferType = spOffer.spOfferType; } catch { }
+string offer_type_title = ""; try { offer_type_title = NewAppFunctions.GetTitleById("spOfferTypes", spOfferType); } catch { }
+string offer_type_icon = ""; try { offer_type_icon = NewAppFunctions.GetTitleById("spOfferTypeIcon", spOfferType); } catch { }
+
+    <div class="B">
+        <div class="SPOFFERVIEWERTITLE">
+            @spOffer.title
+            <div style="float: left">
+                @spOffer.price.ToString("C", culture)
+
+            </div>
+        </div>
+        <div class="Spacer10"></div>
+        <div class="SPOFFERVIEWERITEMS">
+
+            @offer_type_icon הטבה מסוג <span>@offer_type_title</span>
+        </div>
+        <div class="SPOFFERVIEWERITEMS" id="spOfferItemsList">
+
+            <div class="B">
+                <div class="B">
+                    <button type="button" class="SPOFFERVIEWERITEMDELBTN" onclick="Accordionize('AccAddItemToSpecial');">➕</button>
+                    @if (spItemsIncluded.Count() > 0)
+                    {
+                        <div style="color: #4800ff;overflow: auto">כולל  </div>
+                    }
+                    else
+                    {
+                        <div style="color: #ff6a00;overflow: auto">אין עדיין פריטים במבצע  </div>
+                    }
+                </div>
+
+                <div class="B">
+                    <button class="accordion" style="display:none" id="AccAddItemToSpecial"></button>
+                    <div class="panel">
+                        <div style="overflow: auto" id="AddSpecialItemDiv">
+                            @SpecialOffers.AddSpecialItem(specialOfferId)
+                        </div>
+                    </div>
+                </div>
+                <div style="overflow: auto;margin-right:15px;">
+                    @foreach (var item in spItemsIncluded)
+                    {
+                        string cat_title = "";
+                        string item_color = "#000";
+
+                        if (item.SpItemType == 1)
+                        {
+                            item_color = "#ff6a00";
+                        }
+                        if (item.SpItemType == 2)
+                        {
+                            try { cat_title = NewAppFunctions.GetTitleById("Cat", item.main_cat_id); } catch { }
+                            cat_title = "מקטגוריית " + cat_title;
+                        }
+                        if (item.SpItemType == 3) { item_color = "blue"; cat_title = "מהמוצר הקטגורי "; }
+                        <div style="overflow: auto; font-size: 18px; color: @item_color;">
+                            <button type="button" class="SPOFFERVIEWERITEMDELBTN" onclick="AjaxActions('RemoveSpecialItemFromOffer', @specialOfferId,'MainLoader',@item.id);">🗑️</button>
+                            @item.quan @item.itemunit @cat_title @item.title
+                        </div>
+
+                    }
+
+                </div>
+                <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+            </div>
+
+
+        </div>
+
+
+        @if (spOffer.special_commision > 0)
+        {
+            <div class="Spacer20"></div>
+            <div class="SPOFFERVIEWERITEMS">עמלת מערכת @spOffer.special_commision.ToString("C", culture)</div>
+        }
+
+        <div class="Spacer20"></div>
+
+        @if (!String.IsNullOrEmpty(spOffer.description))
+        {
+            <div class="Spacer20"></div>
+            <div class="SPOFFERVIEWERITEMS">
+                @spOffer.description
+            </div>
+        }
+
+        @if (!String.IsNullOrEmpty(spOffer.desc_e))
+        {
+            <div class="Spacer20"></div>
+            <div class="SPOFFERVIEWERITEMS">
+                @spOffer.desc_e
+            </div>
+        }
+
+        <div class="SPOFFERVIEWERITEMS">
+
+            המבצע זמין ב<span>@spOffersInRoundsCnt</span> תפריטים
+        </div>
+
+        <div class="B">
+            @foreach (var round in rounds)
+            {
+                sqlSelect = "SELECT * FROM SpOfferRoundsAvailability WHERE round_id=@0 AND specialOfferId=@1";
+                var isSpOfferAvaialbleInRound = db.QuerySingle(sqlSelect, round.id, specialOfferId);
+                bool isInRound = false;
+                if (isSpOfferAvaialbleInRound != null)
+                {
+                    isInRound = true;
+                }
+                <div style="overflow: auto;">
+                    <input type="checkbox" style="height: 20px;width: 20px;padding: 5px;margin: 5px" @if (isInRound) { <text> checked</text>} onclick="    if (this.checked) { AjaxActions('AddOfferToRound', @specialOfferId, 'MainLoader',@round.id, '1'); } else { AjaxActions('AddOfferToRound', @specialOfferId,'MainLoader',@round.id,'');} " /> @round.title
+                </div>
+            }
+            <div class="B">
+                <button style="padding:5px;margin:5px;font-size:16px;float:left" onclick="    AjaxActions('AddOfferToAllRounds', @specialOfferId,'MainLoader','1');">✅ הפעלת הכל</button>
+                <button style="padding:5px;margin:5px;font-size:16px;float:left" onclick="    AjaxActions('AddOfferToAllRounds', @specialOfferId,'MainLoader','0');">❌ כיבוי הכל</button>
+
+            </div>
+        </div>
+
+    </div>
+    db.Close();
+}
+
+@helper AddSpecialItem(int specialOfferId)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM SpecialOffers WHERE id=@0";
+    var spOffer = db.QuerySingle(sqlSelect, specialOfferId);
+    int vendor_id = 0; try { vendor_id = spOffer.vendor_id; } catch { }
+    sqlSelect = "SELECT * from ItemUnitTypes ";
+    var itemTypes = db.Query(sqlSelect);
+    sqlSelect = "SELECT * from categories WHERE is_spOffersCat=1 ";
+    var OfferCategories = db.Query(sqlSelect);
+    sqlSelect = "SELECT * from categories WHERE is_maincat=1 ";
+    var mainCats = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0 order by main_cat_id";
+    var spItemsIncluded = db.Query(sqlSelect, specialOfferId);
+
+    <div style="overflow: auto">
+        <div style="overflow: auto;background-color: #ffffcc;padding: 5px;border: 1px dotted #000">
+            <div style="overflow: auto;border-bottom: 1px dotted #000">
+                <div style="overflow: auto;font-size: 14px;font-weight: bold">הוספה למבצע..</div>
+                <form id="AddSpecialItemToOffer">
+                    <div style="overflow: auto;padding: 5px;">
+                        <input type="text" style="padding: 5px;font-size: 16px;margin-right: 5px;width: 40px" name="QuanToAdd" id="QuanToAdd" placeholder="x">
+                        <select style="padding: 5px;font-size: 16px;margin-right: 5px;" name="itemunit_type" id="itemunit_type">
+                            @foreach (var itemType in itemTypes)
+                            {
+                                <option value="@itemType.id">@itemType.title</option>
+                            }
+
+                        </select>
+                        <select style="padding: 5px;font-size: 16px;margin-right: 5px;" name="MainOfferCatId" id="MainOfferCatId" onchange="RepAjaxUpdate('LoadSpOfferCatList', 'SpOfferSubCatDiv', 'spOfferSubCatLoader', this.value,@specialOfferId);">
+                            <option value="">נא לבחור..</option>
+                            @if (vendor_id > 0)
+                            {
+                                <option value="-1">מוצר ספציפי</option>
+                            }
+                      
+
+                            @foreach (var cat in mainCats)
+                            {
+                                <option value="@cat.id">@cat.title</option>
+                            }
+
+                        </select>
+                        <div style="overflow: auto">
+                            <div class="spinner" style="text-align: center;display: none;" id="spOfferSubCatLoader">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="overflow: auto;padding: 5px;" id="SpOfferSubCatDiv">
+
+                    </div>
+                </form>
+            </div>
+
+
+
+            <div style="overflow: auto;text-align: center">
+                <div class="spinner" style="text-align: center;display: none;" id="spOfferAddItemsLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    db.Close();
+}
+
+@helper LoadSpOfferCatSelector(int main_cat_id, int specialOfferId, int vendor_id = 0)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+
+    switch (main_cat_id)
+    {
+        case 0:
+            break;
+        case -1:
+            sqlSelect = "SELECT * FROM products WHERE is_active=1 AND vendor_id=@0";
+            var products = db.Query(sqlSelect, vendor_id);
+            if (products.Count() > 0)
+            {
+                <div style="overflow: auto;width: 100%;">
+                    מוצר
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;" id="item_p_id" name="item_p_id">
+                        <option value="-1">נא לבחור </option>
+                        @foreach (var product in products)
+                        {
+                            <option value="@product.p_id">@product.title</option>
+                        }
+                    </select>
+                    <button type="button" style="margin: 5px;padding: 5px;font-size: 16px;border: 0;background-color: #57d600;color: #fff;float: left" onclick="AjaxActions('AddSpecialItemToOffer', @specialOfferId,'MainLoader','AddSpecialItemToOffer');">הוספה</button>
+                </div>
+            }
+            else
+            {
+                <div>אין מוצרים</div>
+            }
+
+            break;
+        case -2:
+            sqlSelect = "SELECT * FROM products WHERE is_active=1 AND is_catalog=1 ORDER BY maincat_id,sub_cat_id";
+            var catalog = db.Query(sqlSelect);
+            if (catalog.Count() > 0)
+            {
+                <div style="overflow: auto;width: 100%;">
+                    מוצר קטלוגי:
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;" id="catalog_p_id" name="catalog_p_id">
+                        <option value="-1">נא לבחור </option>
+                        @foreach (var product in catalog)
+                        {
+                            <option value="@product.p_id">@product.title</option>
+                        }
+                    </select>
+                    <button type="button" style="margin: 5px;padding: 5px;font-size: 16px;border: 0;background-color: #57d600;color: #fff;float: left" onclick="    AjaxActions('AddSpecialItemToOffer', @specialOfferId,'MainLoader','AddSpecialItemToOffer');">הוספה</button>
+                </div>
+            }
+            else
+            {
+                <div>אין מוצרים</div>
+            }
+
+            break;
+        default:
+            sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1 AND (maincat_id=@0)";
+            var spOfferCategries = db.Query(sqlSelect, main_cat_id);
+            if (spOfferCategries.Count() > 0)
+            {
+                <div style="overflow: auto;width: 100%;">
+                    <input type="hidden" value="0" id="item_p_id" name="item_p_id">
+                    קטגורית מבצעים
+                    <select style="padding: 5px;margin: 5px;font-size: 16px;" id="spOfferCatId" name="spOfferCatId">
+
+                        <option value="-1">נא לבחור </option>
+                        @foreach (var cat in spOfferCategries)
+                        {
+                            <option value="@cat.id">@cat.title</option>
+                        }
+                    </select>
+                    <button type="button" style="margin: 5px;padding: 5px;font-size: 16px;border: 0;background-color: #57d600;color: #fff;float: left" onclick="    AjaxActions('AddSpecialItemToOffer', @specialOfferId,'MainLoader','AddSpecialItemToOffer');">הוספה</button>
+                </div>
+            }
+            else
+            {
+                <div>אין קטגורית מבצעים</div>
+            }
+
+            break;
+
+    }
+
+
+    db.Close();
+}
+
+@helper AddRoundSpecial(int round_id, int specialOfferId)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from roundMenuItems WHERE round_id=@0 ORDER BY p_id";
+    var roundMenuItems = db.Query(sqlSelect, round_id);
+    sqlSelect = "SELECT title FROM rounds WHERE id=@0";
+    var theRound = db.QuerySingle(sqlSelect, round_id);
+    sqlSelect = "SELECT * from SpecialOffers WHERE id=@0 ";
+    var spOffer = db.QuerySingle(sqlSelect, specialOfferId);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    decimal price = 0; try { price = spOffer.price; } catch { }
+    <div style="overflow: auto;color: #000;padding: 5px;;background-color: #fff">
+        <form id="RoundSpOffer">
+            <div style="overflow: auto;">
+                <div style="overflow: auto;padding: 5px;border: 2px dashed #808080;background-color: #ffffcc">
+                    @foreach (var item in roundMenuItems)
+                    {
+                        <div style="font-size:20px;overflow: auto;padding: 5px;text-align: right;border-bottom: 2px dashed #e3e3e3;">
+                            <span style="float: left">
+                                <input type="text" style="font-size: 16px;padding: 5px;margin-right: 5px;width: 40px;" id="sp_item_@item.p_id" name="sp_item_@item.p_id"><br><span style="font-size: 12px;float: left">@item.itemunit </span>
+                            </span>
+                            <img style="width:40px;float: right;margin: 5px;padding: 5px;" src="imgViewer?size=tn&p_id=@item.p_id&id=0&time=@DateTime.Now" alt="@item.title">
+
+                            <div>
+                                <div>
+                                    @item.title<br>
+                                    <span style="font-size: 12px">@item.price.ToString("C", culture) / @item.cost.ToString("C", culture) </span>
+                                </div>
+                            </div>
+
+                        </div>
+                    }
+                    <div style="overflow: auto;margin: 5px;font-size: 30px;font-weight: bold">
+                        מחיר למבצע
+                        <span style="float: left">
+                            <span id="spPriceContainer" onclick="showElement('EditSpecialPriceContainer');hideElement('spPriceContainer');">@spOffer.price.ToString("C", culture)<span style="font-size: 12px;color: #b200ff">שינוי</span></span>
+                            <span style="display: none" id="EditSpecialPriceContainer"><input type="text" style="font-size: 16px;padding: 5px;margin-right: 5px;width: 40px;" name="special_price" id="special_price"><br><span style="font-size: 12px;float: left">₪ </span></span>
+
+                        </span>
+
+                    </div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;">
+                        <button type="button" style="font-size: 16px;padding: 5px;margin: 5px;background-color: #e3e3e3;width: 90%;" id="RoundSpOfferBtn" onclick="    AjaxActions('AddRoundSpecial', @round_id,'MainLoader', 'RoundSpOffer',@specialOfferId);">✅ אישור</button>
+                        <div class="spinner" style="text-align: center;display: none;color: #000;float: left" id="RoundSpOfferBtnLoader">
+                            <div class="bounce1"></div>
+                            <div class="bounce2"></div>
+                            <div class="bounce3"></div>
+                        </div>
+
+                    </div>
+                </div>
+                <div style="overflow: auto;height: 100px;">&nbsp;</div>
+
+            </div>
+        </form>
+    </div>
+
+
+    db.Close();
+}
+
+
+@helper AddSpecialToRound(int spOfferId)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * from specialOffers WHERE id=@0 ";
+    var spOffer = db.QuerySingle(sqlSelect, spOfferId);
+    sqlSelect = "SELECT id,title from rounds WHERE is_catalog=1 ORDER BY vendor_id";
+    var CatalogRounds = db.Query(sqlSelect);
+
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    <div style="overflow: auto">
+        <div style="overflow: auto;">
+            <button style="float: left;background-color: #e3e3e3;color: #000;font-size: 12px;padding: 5px;margin: 5px" onclick="Accordionize('AccAddSpecial');">הוספה</button>
+            <span style="font-size: 24px;">זמינות</span>
+        </div>
+        <div style="overflow: auto;">
+            <button class="accordion" style="display: none;" id="AccAddSpecial"></button>
+            <div class="panel" style="padding: 0;margin: 0">
+                <div style="overflow: auto;font-size: 16px;padding: 5px;background-color: #e3e3e3;border: 2px solid #808080;">
+
+
+                    הוספת <b>@spOffer.title</b><br> ל
+                    <select style="font-size: 16px;" onchange="RepAjaxUpdate('RoundSpOfferCreator', 'RoundSpOfferCreatorDiv', 'RoundSpOfferCreatorLoader', this.value,@spOffer.id);">
+                        <option value="">נא לבחור..</option>
+                        @foreach (var round in CatalogRounds)
+                        {
+                            sqlSelect = "SELECT id,title FROM RoundSpecials WHERE specialOfferId=@0 AND round_id=@1";
+                            var isInRound = db.QuerySingle(sqlSelect, spOfferId, round.id);
+                            if (isInRound == null)
+                            {
+                                <option value="@round.id">@round.title</option>
+
+                            }
+
+
+                        }
+
+                    </select>
+                    <div class="spinner" style="text-align: center;display: none;color: #000;float: left" id="RoundSpOfferCreatorLoader">
+                        <div class="bounce1"></div>
+                        <div class="bounce2"></div>
+                        <div class="bounce3"></div>
+                    </div>
+                    <div style="overflow: auto;" id="RoundSpOfferCreatorDiv"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    db.Close();
+}
+
+@helper RoundsListForSpOffer(int spOfferId)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT rounds.id,rounds.title FROM rounds INNER JOIN RoundSpecials ON rounds.id=RoundSpecials.round_id WHERE RoundSpecials.specialOfferId=@0";
+    var SpOfferInRounds = db.Query(sqlSelect, spOfferId);
+
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+
+    <div style="overflow: auto;">
+        @foreach (var round in SpOfferInRounds)
+        {
+            sqlSelect = "SELECT * FROM RoundSpecials WHERE SpecialOfferId=@0 AND round_id=@1 ORDER BY is_setup_complete";
+            var RoundSpecial = db.QuerySingle(sqlSelect, spOfferId, round.id);
+            if (RoundSpecial != null)
+            {
+                sqlSelect = "SELECT * FROM RoundSpecialsItems WHERE bundle_id=@0";
+                var ItemsIncluded = db.Query(sqlSelect, RoundSpecial.id);
+                string tmpIcon = "";
+                string offerColor = "";
+                if (RoundSpecial.is_setup_complete)
+                {
+                    tmpIcon = "✅";
+                    offerColor = "#57d600";
+                }
+                else
+                {
+                    tmpIcon = "❌";
+                    offerColor = "#ffcccc";
+                }
+                <div style="overflow: auto;" id="RoundSpOffer_@RoundSpecial.id">
+                    <div style="overflow: auto;font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;border: 1px dotted @offerColor">
+                        <div style="overflow: auto" onclick="toggle_visibility('ItemsInfo_@round.id');">
+                            <span>@tmpIcon</span> @round.id - @round.title
+                        </div>
+                        <div style="display: none" id="ItemsInfo_@round.id">
+                            <span style="font-size: 12px;float: left" onclick="sbload('SideMenuSubDialog','AdminCaller?p1=EditRoundSpecial&p2=@RoundSpecial.id&p3=@round.id&p4=@RoundSpecial.specialOfferId');"><button style="font-size: 12px;">עריכה</button></span>
+                            @foreach (var item in ItemsIncluded)
+                            {
+                                <div style="overflow: auto;margin-right: 20px">@item.quan @item.itemunit @item.title</div>
+                            }
+                            <span style="font-size: 18px;float: left">@RoundSpecial.price.ToString("C", culture)</span>
+                            <div class="spinner" style="text-align: center;display: none;color: #000;float: right" id="RoundSpOfferLoader_@RoundSpecial.id">
+                                <div class="bounce1"></div>
+                                <div class="bounce2"></div>
+                                <div class="bounce3"></div>
+                            </div>
+                            <span style="font-size: 12px;float: right" onclick="sbload('SideMenuSubDialog','AdminCaller?p1=CopyRoundSpecial&p2=@RoundSpecial.id&p3=@round.id&p4=@RoundSpecial.specialOfferId');"><button style="font-size: 12px;">העתקה</button></span>
+
+                        </div>
+
+                    </div>
+                </div>
+            }
+        }
+
+
+
+    </div>
+
+
+    db.Close();
+}
+
+
+@functions {
+
+    public static string AddSpecialItemToOffer()
+    {
+        string theHtmlOutput = "";
+        if (theHtmlOutput == "")
+        {
+            int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
+            int itemunit_type = 0; try { itemunit_type = Convert.ToInt32(Request["itemunit_type"]); } catch { }
+            int spOfferCatId = 0; try { spOfferCatId = Convert.ToInt32(Request["spOfferCatId"]); } catch { }
+            int MainOfferCatId = 0; try { MainOfferCatId = Convert.ToInt32(Request["MainOfferCatId"]); } catch { }
+            int QuanToAdd = 0; try { QuanToAdd = Convert.ToInt32(Request["QuanToAdd"]); } catch { }
+            int item_p_id = 0; try { item_p_id = Convert.ToInt32(Request["item_p_id"]); } catch { }
+            int catalog_p_id = 0; try { catalog_p_id = Convert.ToInt32(Request["catalog_p_id"]); } catch { }
+            string spOfferItemType = "";
+            string title = "";
+            string title_e = "";
+            string itemunit = ""; itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type);
+            string itemunit_e = ""; itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2);
+
+            int spItemType = 0;
+
+            if (QuanToAdd <= 0)
+            {
+                theHtmlOutput += "חובה להזין כמות תקינה להוספת הפריט<br>";
+            }
+            if (catalog_p_id == -1)
+            {
+                theHtmlOutput += "חובה לבחור את המוצר הקטלוגי המבוקש להוספה<br>";
+            }
+            if (item_p_id == -1)
+            {
+                theHtmlOutput += "חובה לבחור את המוצר המבוקש להוספה<br>";
+            }
+            if (spOfferCatId == -1)
+            {
+                theHtmlOutput += "חובה לבחור את קטגורית המבצעים המבוקשת להוספה<br>";
+            }
+
+
+            if (theHtmlOutput == "")
+            {
+                var db = Database.Open("op_data");
+                var sqlSelect = "";
+
+                if (item_p_id == 0 && catalog_p_id == 0)
+                {
+
+                    spOfferItemType = "CAT";
+                    spItemType = 2;
+                    sqlSelect = "SELECT title,e_title FROM categories WHERE id=@0";
+                    var specialCat = db.QuerySingle(sqlSelect, spOfferCatId);
+                    if (specialCat != null)
+                    {
+                        title = specialCat.title;
+                        title_e = specialCat.e_title;
+                        sqlSelect = "INSERT INTO specialOffersItems(spOfferItemType,spOfferCatId,menuItemId,spOffer_id,quan,itemunit,itemunit_e,title,title_e,itemunit_type,spItemType,main_cat_id,p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,-1)";
+                        db.Execute(sqlSelect, spOfferItemType, spOfferCatId, item_p_id, spOffer_id, QuanToAdd, itemunit, itemunit_e, title, title_e, itemunit_type, spItemType, MainOfferCatId);
+
+                    }
+                    theHtmlOutput = " 👌 הפריט התווסף למבצע ";
+
+                }
+                else
+                {
+                    if (catalog_p_id == 0)
+                    {
+                        spOfferItemType = "PROD";
+                        spItemType = 1;
+                    }
+                    else
+                    {
+                        spOfferItemType = "CATALOG";
+                        spItemType = 3;
+                        item_p_id = catalog_p_id;
+                    }
+
+                    sqlSelect = "SELECT title,e_title,itemunit_type,maincat_id FROM products WHERE p_id=@0";
+                    var product = db.QuerySingle(sqlSelect, item_p_id);
+                    if (product != null)
+                    {
+                        title = product.title;
+                        title_e = product.e_title;
+                        itemunit_type = product.itemunit_type;
+                        MainOfferCatId = product.maincat_id;
+                        itemunit = ""; itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type);
+                        itemunit_e = ""; itemunit_e = NewAppFunctions.GetTitleById("ItemType", itemunit_type, 2);
+                        sqlSelect = "INSERT INTO specialOffersItems(spOfferItemType,spOfferCatId,menuItemId,spOffer_id,quan,itemunit,itemunit_e,title,title_e,itemunit_type,spItemType,main_cat_id,p_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12)";
+                        db.Execute(sqlSelect, spOfferItemType, spOfferCatId, item_p_id, spOffer_id, QuanToAdd, itemunit, itemunit_e, title, title_e, itemunit_type, spItemType, MainOfferCatId, item_p_id);
+                    }
+                    theHtmlOutput = " 👌 המוצר התווסף למבצע ";
+
+                }
+                string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id, true);
+                db.Close();
+
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+        }
+
+        return theHtmlOutput;
+    }
+
+
+    public static string RemoveSpecialItemFromOffer()
+    {
+        string theHtmlOutput = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+        int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
+        int spOffer_itemId = 0; try { spOffer_itemId = Convert.ToInt32(Request["param1"]); } catch { }
+        sqlSelect = "DELETE FROM specialOffersItems WHERE id=@0";
+        db.Execute(sqlSelect, spOffer_itemId);
+        string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id, true);
+        theHtmlOutput = " 👌 הוסר בהצלחה";
+        db.Close();
+        return theHtmlOutput;
+    }
+
+    public static string AddSpOffer()
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        string theHtmlOutput = "";
+
+        int u_id = WebSecurity.CurrentUserId;
+
+        string special_title = Request["special_title"] ?? "";
+        string special_title_e = Request["special_title_e"] ?? "";
+        string special_desc = Request["special_desc"] ?? "";
+        string special_desc_e = Request["special_desc_e"] ?? "";
+
+        decimal special_price = 0;
+        try { special_price = Convert.ToDecimal(Request["special_price"]); } catch { }
+
+        decimal special_commision = 0;
+        try { special_commision = Convert.ToDecimal(Request["special_commision"]); } catch { }
+
+        int spOfferType = 0;
+        try { spOfferType = Convert.ToInt32(Request["spOfferType"]); } catch { }
+
+        int vendor_id = 0;
+        try { vendor_id = Convert.ToInt32(Request["vendor_id"]); } catch { }
+        if (vendor_id == -1) vendor_id = 0;
+        int max_in_cart = 0;
+        try { max_in_cart = Convert.ToInt32(Request["max_in_cart"]); } catch { }
+
+        bool is_discountable = false;
+        if (!Request["is_discountable"].IsEmpty())
+        {
+            is_discountable = true;
+        }
+
+
+        if (special_title.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת למבצע<br>";
+        }
+
+        if (special_title_e.IsEmpty())
+        {
+            theHtmlOutput += "חובה להזין כותרת באנגלית למבצע<br>";
+        }
+
+
+
+
+        if (theHtmlOutput == "")
+        {
+            var db = Database.Open("op_data");
+
+            string sqlSelect = "INSERT INTO specialOffers (title,title_e,description,desc_e,price,create_ts,created_by,spOfferType,vendor_id,special_commision,max_in_cart,discountable,is_activated,is_active) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,0,0)";
+
+            db.Execute(
+                sqlSelect,
+                special_title,
+                special_title_e,
+                special_desc,
+                special_desc_e,
+                special_price,
+                local_time,
+                u_id,
+                spOfferType,
+                vendor_id,
+                special_commision,
+                max_in_cart,
+                is_discountable
+            );
+
+            db.Close();
+
+            theHtmlOutput = " 👌 מבצע חדש נוצר בהצלחה ";
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+
+        return theHtmlOutput;
+    }
+
+    public static string DeleteSpOffer()
+    {
+        string theHtmlOutput = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
+        sqlSelect = "DELETE FROM specialOffers WHERE id=@0";
+        db.Execute(sqlSelect, spOffer_id);
+
+        sqlSelect = "DELETE FROM specialOffersItems WHERE spOffer_id=@0";
+        db.Execute(sqlSelect, spOffer_id);
+        theHtmlOutput = " 👌 המבצע נמחק ";
+        db.Close();
+        return theHtmlOutput;
+    }
+
+
+    public static string ActivateSpOffer(int spOffer_id = 0)
+    {
+        string theHtmlOutput = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        bool is_active = false; try { is_active = Convert.ToBoolean(Request["param1"]); } catch { }
+        if (spOffer_id == 0) try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        if (is_active)
+        {
+            if (spOffer_id > 0)
+            {
+                theHtmlOutput = SpecialOffers.VerifySpOffer(spOffer_id);
+            }
+            else
+            {
+                theHtmlOutput = "יש שגיאה";
+            }
+
+            //  theHtmlOutput += is_active + "<br>";
+
+            if (theHtmlOutput == "")
+            {
+                sqlSelect = "UPDATE specialOffers SET is_active=1,is_activated=1 WHERE id=@0";
+                db.Execute(sqlSelect, spOffer_id);
+                string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id,true);
+                theHtmlOutput = " 👌 המבצע הופעל ";
+
+            }
+            else
+            {
+                theHtmlOutput = "!$!" + theHtmlOutput;
+            }
+
+        }
+        else
+        {
+            sqlSelect = "UPDATE specialOffers SET is_active=0 WHERE id=@0";
+            db.Execute(sqlSelect, spOffer_id);
+            theHtmlOutput = " 👌 המבצע לא יהיה פעיל ";
+
+        }
+
+
+        db.Close();
+        return theHtmlOutput;
+    }
+
+
+    public static string VerifySpOffer(int spOffer_id = 0)
+    {
+        string theHtmlOutput = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        if(spOffer_id == 0) try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        sqlSelect = "SELECT title,title_e,price,spOfferItemsJson FROM specialOffers WHERE id=@0";
+        var spOffer=db.QuerySingle(sqlSelect, spOffer_id);
+        sqlSelect = "SELECT top(1) id FROM SpecialOffersItems WHERE spOffer_id=@0";
+        var SpecialOffersItems = db.QuerySingle(sqlSelect, spOffer_id);
+
+        string title = ""; try { title = spOffer.title; } catch { }
+        string title_e = ""; try { title_e = spOffer.title_e; } catch { }
+        decimal price=0; try { price = spOffer.price; } catch { }
+        string spOfferItemsJson = ""; try { spOfferItemsJson = spOffer.spOfferItemsJson; } catch { }
+
+        if (String.IsNullOrEmpty(title)) { theHtmlOutput += "אין כותרת למבצע!<br/>"; }
+        if (String.IsNullOrEmpty(title_e)) { theHtmlOutput += "אין כותרת באנגלית למבצע!<br/>"; }
+        if (price<=0) { theHtmlOutput += "לא הוגדר מחיר למבצע!<br/>"; }
+        if (SpecialOffersItems == null) {theHtmlOutput += "לא הוגדרו מוצרים למבצע!<br/>";}
+        db.Close();
+        return theHtmlOutput;
+    }
+
+    public static string UpdateSpecialOfferDetails()
+    {
+        string theHtmlOutput = "";
+        int spOffer_id = 0; try { spOffer_id = Convert.ToInt32(Request["value"]); } catch { }
+        string special_title = ""; special_title = Request["special_title"];
+        string special_title_e = ""; special_title_e = Request["special_title_e"];
+        string special_desc = ""; special_desc = Request["special_desc"];
+        string special_desc_e = ""; special_desc_e = Request["special_desc_e"];
+        decimal special_price = 0; try { special_price = Convert.ToDecimal(Request["special_price"]); } catch { }
+        decimal special_commision = 0; try { special_commision = Convert.ToDecimal(Request["special_commision"]); } catch { }
+        int spOfferType = 0; try { spOfferType = Convert.ToInt32(Request["spOfferType"]); } catch { }
+        int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["max_in_cart"]); } catch { }
+        bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
+        bool is_charity = false; if (!Request["is_charity"].IsEmpty()) { is_charity = true; }
+
+        if (special_title.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין כותרת למבצע<br>";
+        }
+        if (special_title_e.IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין כותרת באנגלית למבצע<br>";
+        }
+        if (special_price <= 0 && !Request["special_price"].IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין מחיר תקין למבצע<br>";
+        }
+        if (special_commision == 0 && !Request["special_commision"].IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין עמלת מערכת תקינה למבצע<br>";
+        }
+
+        if (max_in_cart <= 0 && !Request["max_in_cart"].IsEmpty())
+        {
+            theHtmlOutput = theHtmlOutput + "חובה להזין ערך תקין בשדה מקסימום יח בהזמנה<br>";
+        }
+
+        if (theHtmlOutput == "")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "";
+            string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id);
+            sqlSelect = "UPDATE specialOffers SET title=@0,title_e=@1,description=@2,desc_e=@3,price=@4,is_charity=@5,max_in_cart=@6,discountable=@7,special_commision=@8,spOfferType=@9,spOfferItemsJson=@10 WHERE id=@11";
+            db.Execute(sqlSelect, special_title, special_title_e, special_desc, special_desc_e, special_price, is_charity, max_in_cart, is_discountable, special_commision, spOfferType, spOfferItemsJson, spOffer_id);
+            sqlSelect = "UPDATE SpOfferRoundsAvailability SET max_in_cart=@0 WHERE specialOfferId=@1";
+            db.Execute(sqlSelect, max_in_cart, spOffer_id);
+
+            theHtmlOutput = " 👌 פרטי המבצע נשמרו ";
+            db.Close();
+        }
+        else
+        {
+            theHtmlOutput = "!$!" + theHtmlOutput;
+        }
+        return theHtmlOutput;
+    }
+
+
+}

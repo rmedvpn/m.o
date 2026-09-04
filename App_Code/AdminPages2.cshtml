@@ -377,7 +377,7 @@
 
 @helper RoundEdit(int round_id, string viewMode = "GENERAL")
 {
-   <div>@Rounds.RoundControlPanel(round_id,viewMode)</div>
+    <div>@Rounds.RoundControlPanel(round_id, viewMode)</div>
 }
 
 
@@ -403,23 +403,23 @@
                 @round.title <span style="font-size:12px;">#@round.id</span>
                 @if (!is_active)
                 {<span style="font-size:12px;margin-right:10px;background-color:#f00;color:yellow;padding:2px;"><b>לא פעיל</b></span>}
-            <select name="viewType" style="padding: 3px;margin: 3px;font-size: 16px;float: left;margin-left: 10px;" onchange="RepAjaxUpdate('RoundSettingsView', 'GenSbContent', 'GenSbLoader',@round_id, this.value)">
+                <select name="viewType" style="padding: 3px;margin: 3px;font-size: 16px;float: left;margin-left: 10px;" onchange="RepAjaxUpdate('RoundSettingsView', 'GenSbContent', 'GenSbLoader',@round_id, this.value)">
 
-                <option value="GENERAL" @if (viewMode == "GENERAL") { <text> selected</text>}>הגדרות כלליות</option>
-                <option value="INVENTORY" @if (viewMode == "INVENTORY") { <text> selected</text>}>הגדרות מלאי</option>
-                <option value="SCHEDULE" @if (viewMode == "SCHEDULE") { <text> selected</text>}>לוח זמנים</option>
-                @if (round_type == 1)
-                {
-                    <option value="ROUND" @if (viewMode == "ROUND") { <text> selected</text>}>הגדרות קו חלוקה</option>
-                }
-                else
-                {
-                    <option value="ROUND" @if (viewMode == "ROUND") { <text> selected</text>}>הגדרות תחנה מקומית</option>
-                }
+                    <option value="GENERAL" @if (viewMode == "GENERAL") { <text> selected</text>}>הגדרות כלליות</option>
+                    <option value="INVENTORY" @if (viewMode == "INVENTORY") { <text> selected</text>}>הגדרות מלאי</option>
+                    <option value="SCHEDULE" @if (viewMode == "SCHEDULE") { <text> selected</text>}>לוח זמנים</option>
+                    @if (round_type == 1)
+                    {
+                        <option value="ROUND" @if (viewMode == "ROUND") { <text> selected</text>}>הגדרות קו חלוקה</option>
+                    }
+                    else
+                    {
+                        <option value="ROUND" @if (viewMode == "ROUND") { <text> selected</text>}>הגדרות תחנה מקומית</option>
+                    }
 
-                <option value="TEAM" @if (viewMode == "TEAM") { <text> selected</text>}>הגדרות צוות</option>
-                <option value="DELIVERY" @if (viewMode == "DELIVERY") { <text> selected</text>}>הגדרות משלוחים</option>
-            </select>
+                    <option value="TEAM" @if (viewMode == "TEAM") { <text> selected</text>}>הגדרות צוות</option>
+                    <option value="DELIVERY" @if (viewMode == "DELIVERY") { <text> selected</text>}>הגדרות משלוחים</option>
+                </select>
             </div>
 
             <div style="text-align: right;font-size: 18px;padding: 0;margin: 0;color: #000;min-height: 600px;overflow: auto;background-color: #fff">
@@ -2332,6 +2332,8 @@
     <div style="overflow: auto;background-color: #fff;min-height: 800px;">
         <div style="overflow: auto;padding: 5px;">
             <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="Accordionize('AccAddCat');">קטגוריה ראשית חדשה</button>
+            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    AjaxActions('ReCreateCategoriesJson'); ">JSON</button>
+
             <div style="font-size: 20px;float: right;color: #000;font-weight: bold">ניהול קטגוריות</div>
         </div>
         <div style="overflow: auto;clear: both;">
@@ -2363,9 +2365,10 @@
                         <div class="panel" style="padding: 0;margin: 0">
                             <div style="overflow: auto;padding: 5px;background-color: #ffffcc;color: #000">
                                 <div class="B">
-                                    @foreach(var subcat in subCategories) { 
+                                    @foreach (var subcat in subCategories)
+                                    {
                                         <div class="B">
-                                            
+
                                             <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@subcat.id');AdjustMainView();">עריכה</button>
                                             <div style="overflow: auto;"> @subcat.id - @subcat.title</div>
                                         </div>
@@ -2386,25 +2389,25 @@
 
 @helper CatInfo(int cat_id)
 {
-var db = Database.Open("op_data");
-var sqlSelect = "SELECT * FROM categories WHERE id=@0";
-var Category = db.QuerySingle(sqlSelect, cat_id);
-sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1";
-var SubCats = db.Query(sqlSelect, cat_id);
-sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1";
-var spOfferCats = db.Query(sqlSelect, cat_id);
-sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
-var CatTags = db.Query(sqlSelect, cat_id);
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM categories WHERE id=@0";
+    var Category = db.QuerySingle(sqlSelect, cat_id);
+    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1";
+    var SubCats = db.Query(sqlSelect, cat_id);
+    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1";
+    var spOfferCats = db.Query(sqlSelect, cat_id);
+    sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
+    var CatTags = db.Query(sqlSelect, cat_id);
 
-sqlSelect = "SELECT * FROM CustomProductFieldsType";
-var customProductFieldTypes = db.Query(sqlSelect, cat_id);
-sqlSelect = "SELECT * FROM  CustomFields WHERE cat_id=@0 AND is_active=1 ORDER BY sort_order";
-var customFields = db.Query(sqlSelect, cat_id);
-string fieldNamePrefix = "0_" + cat_id;
+    sqlSelect = "SELECT * FROM CustomProductFieldsType";
+    var customProductFieldTypes = db.Query(sqlSelect, cat_id);
+    sqlSelect = "SELECT * FROM  CustomFields WHERE cat_id=@0 AND is_active=1 ORDER BY sort_order";
+    var customFields = db.Query(sqlSelect, cat_id);
+    string fieldNamePrefix = "0_" + cat_id;
 
-bool is_subcat = false; try { is_subcat = Category.is_subcat; } catch { }
-string PageHdr = "הגדרות קטגוריה ראשית";
-if (is_subcat)
+    bool is_subcat = false; try { is_subcat = Category.is_subcat; } catch { }
+    string PageHdr = "הגדרות קטגוריה ראשית";
+    if (is_subcat)
     {
         PageHdr = "הגדרות תת הקטגוריה";
     }
@@ -2689,199 +2692,15 @@ if (is_subcat)
 
 @helper SpecialOffersAdmin(int spOfferType = 0)
 {
-    var db = Database.Open("op_data");
-    var sqlSelect = "";
-
-    sqlSelect = "SELECT id,title FROM SpOfferTypes";
-    var spOfferTypes = db.Query(sqlSelect);
-
-    //SpOffersAdminDefaultId
-
-    if (spOfferType == 0)
-    {
-        try { spOfferType = Convert.ToInt32(AppFunctions.GetAppProperty("SpOffersAdminDefaultId")); } catch { }
-    }
-
-
-
-    sqlSelect = "SELECT * FROM SpecialOffers where is_deleted=0 AND spOfferType=@0 order by is_charity,id DESC";
-    sqlSelect = "SELECT * FROM SpecialOffers where spOfferType=@0 order by is_charity,id DESC";
-    var SpecialOffers = db.Query(sqlSelect, spOfferType);
-
-
-    <div style="overflow:auto" id="SpOfferAdminDiv">
-        <div style="overflow: auto;background-color: #fff;min-height: 500px;">
-            <div style="overflow: auto;padding: 5px;">
-                <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="AjaxActions('NewSpecialOffer', @spOfferType,'', '0');">חדש</button>
-                <div style="font-size: 20px;float: right;color: #000">
-                    ניהול
-                    <select style="font-size: 16px;padding: 5px;margin: 5px;background: transparent" onchange="RepAjaxUpdate('SpOfferAdmin','SpOfferAdminDiv','SpOfferAdminLoader',this.value);">
-                        @foreach (var offerType in spOfferTypes)
-                        {
-                            <option value="@offerType.id" @if (offerType.id == spOfferType) { <text> selected</text>}>@offerType.title</option>
-                        }
-
-                    </select>
-
-
-                </div>
-                <div class="spinner" style="text-align: center;display: none;float: left" id="SpOfferAdminLoader">
-                    <div class="bounce1"></div>
-                    <div class="bounce2"></div>
-                    <div class="bounce3"></div>
-                </div>
-
-            </div>
-
-            <div style="overflow: auto;clear: both;" id="spOfferDiv">
-                @foreach (var spItem in SpecialOffers)
-                {
-                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: #e3e3e3">
-                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="Accordionize('menuAcc_@spItem.id');">פרטים</button>
-                        <div style="overflow: auto;"> @spItem.id - @spItem.title</div>
-                        <div style="overflow: auto;clear: both;">
-                            <button style="display: none" id="menuAcc_@spItem.id"></button>
-                            <div class="panel" style="padding: 0;margin: 0">
-                                <div style="overflow: auto;padding: 5px;background-color: #ffffcc;color: #000">
-                                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">עריכה</button>
-                                    <div style="overflow: auto;">
-                                        <div style="overflow: auto;color: #b200ff;font-size: 14px;font-weight: bold">שם / Title</div>
-                                        <div style="overflow: auto;font-size: 18px;">@spItem.title / @spItem.title_e</div>
-
-                                    </div>
-                                    <div style="overflow: auto;">
-                                        <div style="overflow: auto;color: #b200ff;font-size: 14px;font-weight: bold">תיאור</div>
-                                        <div style="overflow: auto;font-size: 18px;text-align: right">@spItem.Description </div>
-                                        <div style="overflow: auto;color: #b200ff;font-size: 14px;font-weight: bold">Description</div>
-                                        <div style="overflow: auto;font-size: 18px;">@spItem.desc_e</div>
-                                    </div>
-                                    <div style="overflow: auto;">
-                                        <div style="overflow: auto;color: #b200ff;font-size: 14px;font-weight: bold">תאריך יצירה</div>
-                                        <div style="overflow: auto;font-size: 18px;">@spItem.create_ts.ToShortDateString()</div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-        <div style="overflow: auto;height: 100px;background-color: #e3e3e3">&nbsp;</div>
+    <div>
+    @SpecialOffers.SpecialOffersAdmin(spOfferType);
     </div>
-    db.Close();
+
 }
 
 @helper SpecialOfferEdit(int sp_offer_id)
 {
-    var db = Database.Open("op_data");
-    var sqlSelect = "SELECT * from specialOffers WHERE id=@0";
-    var spOffer = db.QuerySingle(sqlSelect, sp_offer_id);
-    sqlSelect = "SELECT id,title FROM SpOfferTypes";
-    var spOfferTypes = db.Query(sqlSelect);
-
-    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-    int spOfferId = 0;
-    try { spOfferId = spOffer.id; } catch { }
-    int spOfferType = 0;
-    try { spOfferType = spOffer.spOfferType; } catch { }
-    sqlSelect = "SELECT id,title from rounds WHERE is_catalog=1 ORDER BY vendor_id";
-    var CatalogRounds = db.Query(sqlSelect);
-    sqlSelect = "SELECT rounds.id,rounds.title FROM rounds INNER JOIN RoundSpecials ON rounds.id=RoundSpecials.round_id WHERE RoundSpecials.specialOfferId=@0";
-    var SpOfferInRounds = db.Query(sqlSelect, spOfferId);
-
-    sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0";
-    var spItemsIncluded = db.Query(sqlSelect, spOfferId);
-
-    <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;background-color: #fff">
-
-        <div>
-            <div style="overflow: auto;font-size: 20px;">
-                <span>@spOffer.title</span> - הגדרות
-                <button style="float: left;padding: 5px;margin: 5px;font-size: 14px;background-color: #b200ff;color: #fff;font-weight: bold;text-align: center;" id="StartEditBtn" onclick="showElement('EditSpOfferDiv');hideElement('spOfferItemsListDiv');hideElement('StartEditBtn');showElement('DoneEditBtn');">עריכה</button>
-                <button style="float: left;padding: 5px;margin: 5px;font-size: 14px;background-color: #b200ff;color: #fff;font-weight: bold;text-align: center;display: none" id="DoneEditBtn" onclick="hideElement('EditSpOfferDiv');showElement('spOfferItemsListDiv');hideElement('DoneEditBtn');showElement('StartEditBtn');"> סיום עריכה </button>
-
-            </div>
-            <div style="overflow: auto;">
-            </div>
-            <div id="spOfferItemsListDiv">
-                @NewAppHelpers.SpecialOfferInfo(spOfferId)
-            </div>
-
-            <div style="padding: 0;margin: 0">
-
-                <div style="overflow: auto;min-height: 500px;display: none" id="EditSpOfferDiv">
-                    <div style="overflow: auto" id="AddSpecialItemDiv">
-                        @NewAppHelpers.AddSpecialItem(spOfferId)
-                    </div>
-
-
-                    <form id="UpdateSpecialOfferDetails">
-                        <div style="overflow: auto;background-color: #e3e3e3;">
-                            <div style="overflow: auto;">
-                                <div style="overflow: auto;font-size: 14px;font-weight: bold">
-                                    כותרת מבצע<br>
-                                    <input type="text" class="A" style="width:90%" id="special_title" name="special_title" value="@spOffer.title">
-                                </div>
-                                <div style="overflow: auto;font-size: 14px;font-weight: bold">
-                                    Title<br>
-                                    <input type="text" class="A" style="width:90%" id="special_title_e" name="special_title_e" value="@spOffer.title_e">
-                                </div>
-
-                            </div>
-                            <div style="overflow: auto;">
-                                <div style="overflow: auto;font-size: 14px;font-weight: bold">תיאור<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="special_desc" name="special_desc">@spOffer.description</textarea></div>
-                                <div style="overflow: auto;font-size: 14px;font-weight: bold">Description<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="special_desc_e" name="special_desc_e">@spOffer.desc_e</textarea></div>
-                            </div>
-                            <div style="overflow: auto;font-size: 20px;font-weight: bold">
-                                זמין ל
-                                <span style="float: left">
-                                    <select class="A" name="spOfferType">
-                                        @foreach (var offerType in spOfferTypes)
-                                        {
-                                            <option value="@offerType.id" @if (offerType.id == spOfferType) { <text> selected</text>}>@offerType.title</option>
-                                        }
-
-                                    </select>
-                                </span>
-                            </div>
-
-                            <div style="overflow: auto;font-size: 20px;font-weight: bold">מחיר מבוקש (₪)<span style="float: left"><input type="text" style="padding: 5px;margin: 5px;font-size: 18px;width: 50px;" id="special_price" name="special_price" value="@Convert.ToInt32(spOffer.price)"></span></div>
-                            <div style="overflow: auto;font-size: 20px;font-weight: bold">מקסימום יח בהזמנה <span style="float: left"><input type="text" style="padding: 5px;margin: 5px;font-size: 18px;width: 50px;" id="max_in_cart" name="max_in_cart" @if (spOffer.max_in_cart > 0) { <text> value="@spOffer.max_in_cart" </text> }></span></div>
-                            <div style="overflow: auto;font-size: 20px;font-weight: bold">איפשור כפל הנחות <span style="float: left"><input type="checkbox" style="padding: 5px;margin: 5px;height: 20px;width: 20px;" id="is_discountable" name="is_discountable" @if (spOffer.discountable) { <text> checked</text>}></span></div>
-                            <div style="overflow: auto;font-size: 20px;font-weight: bold">עמלת מערכת (₪)<span style="float: left"><input type="text" style="padding: 5px;margin: 5px;font-size: 18px;width: 50px;" id="special_commision" name="special_commision" value="@Convert.ToInt32(spOffer.special_commision)"></span></div>
-                            <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;">
-                                <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #f00;width: 45%;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteSpOffer', @spOfferId,'',@spOfferType);">מחיקה</button>
-                                <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;width: 45%;color: #000;font-weight: bold" onclick="AjaxActions('UpdateSpecialOfferDetails', @spOfferId,'','UpdateSpecialOfferDetails');">✅ שמירת שינוים</button>
-                            </div>
-
-
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div style="overflow: auto;min-height: 500px;display: none;">
-            <div style="overflow: auto;" id="AddSpecialToRoundContainer">
-                @NewAppHelpers.AddSpecialToRound(spOfferId)
-            </div>
-
-            <div style="overflow: auto;display: none">
-                <div style="overflow: auto;" id="RoundsListForSpOfferContainer">
-                    @NewAppHelpers.RoundsListForSpOffer(spOfferId)
-                </div>
-            </div>
-        </div>
-
-
-
-
-    </div>
-    <div style="overflow: auto;height: 200px;">&nbsp;</div>
-
-
-    db.Close();
+    <div>@SpecialOffers.SpecialOfferEdit(sp_offer_id);</div>
 }
 
 
@@ -2930,298 +2749,298 @@ if (is_subcat)
 
 @helper RoundBoard(int round_id, string showWhat = "PREP", int requested_z_id = 0)
 {
-System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 
-var u_id = WebSecurity.CurrentUserId;
-var db = Database.Open("op_data");
-var sqlSelect = "";
-DateTime local_time = AppFunctions.LocalTime();
-DateTime defTime = Convert.ToDateTime("1/1/1900");
-DateTime z_date = Convert.ToDateTime("1/1/1900");
-DateTime order_close_hour = Convert.ToDateTime("1/1/1900");
-DateTime round_start = Convert.ToDateTime("1/1/1900");
+    var u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime defTime = Convert.ToDateTime("1/1/1900");
+    DateTime z_date = Convert.ToDateTime("1/1/1900");
+    DateTime order_close_hour = Convert.ToDateTime("1/1/1900");
+    DateTime round_start = Convert.ToDateTime("1/1/1900");
 
-int active_z_id = 0;
-int active_z_serial = 0;
-int active_delivery_id = 0;
-int z_id = 0;
-sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
-var round_info = db.QuerySingle(sqlSelect, round_id);
-try { active_delivery_id = round_info.active_delivery_id; } catch { }
-sqlSelect = "SELECT TOP(1) * FROM ZREPORTS WHERE is_Active=1 AND round_id=@0 ORDER BY z_id DESC";
-var ActiveZ = db.QuerySingle(sqlSelect, round_id);
-if (ActiveZ != null)
-{
-    active_z_id = ActiveZ.z_id;
-    active_z_serial = ActiveZ.serial;
-    z_date = ActiveZ.z_date.Date;
-    z_id = 0;
-}
-
-if (requested_z_id != 0)
-{
-    sqlSelect = "SELECT * FROM ZREPORTS WHERE  round_id=@0 AND serial=@1";
-    var RequestedZ = db.QuerySingle(sqlSelect, round_id, requested_z_id);
-    if (RequestedZ != null)
+    int active_z_id = 0;
+    int active_z_serial = 0;
+    int active_delivery_id = 0;
+    int z_id = 0;
+    sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
+    var round_info = db.QuerySingle(sqlSelect, round_id);
+    try { active_delivery_id = round_info.active_delivery_id; } catch { }
+    sqlSelect = "SELECT TOP(1) * FROM ZREPORTS WHERE is_Active=1 AND round_id=@0 ORDER BY z_id DESC";
+    var ActiveZ = db.QuerySingle(sqlSelect, round_id);
+    if (ActiveZ != null)
     {
-        z_id = requested_z_id;
-        z_date = RequestedZ.z_date.Date;
+        active_z_id = ActiveZ.z_id;
+        active_z_serial = ActiveZ.serial;
+        z_date = ActiveZ.z_date.Date;
+        z_id = 0;
     }
 
-}
-if (requested_z_id == active_z_serial || requested_z_id == 0)
-{
-    z_id = 0;
-
-}
-
-string is_open_forOrders_text = "סגור";
-bool is_open_for_orders = false; try { is_open_for_orders = round_info.is_open_for_orders; } catch { }
-string is_open_for_orders_color = "#f00000";
-string title_bar_bg_color = "#000";
-int round_type = round_info.round_type;
-bool is_express = round_info.is_express;
-bool is_pickup = round_info.is_pickup;
-bool is_route = round_info.is_route;
-string round_type_title = "";
-string viewTitle = "";
-string viewTitleColor = "#57d600";
-string round_start_time_bg_color = "";
-
-if (round_type == 1)
-{
-    is_route = true;
-    is_express = false;
-    is_pickup = false;
-    try { order_close_hour = round_info.order_close_hour; } catch { }
-    try { round_start = round_info.round_start; } catch { }
-    //if (order_close_hour < local_time)
-    if (order_close_hour < local_time || order_close_hour== defTime)
+    if (requested_z_id != 0)
     {
-        round_start_time_bg_color = "#f00";
-        if (round_start < local_time || round_start==defTime)
+        sqlSelect = "SELECT * FROM ZREPORTS WHERE  round_id=@0 AND serial=@1";
+        var RequestedZ = db.QuerySingle(sqlSelect, round_id, requested_z_id);
+        if (RequestedZ != null)
         {
-            DataFunctions.WriteDebugLine("round_start1 " + round_start.ToString());
-
-            Rounds.InitializeRound(round_id);
-            sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
-            round_info = db.QuerySingle(sqlSelect, round_id);
-            try { order_close_hour = round_info.order_close_hour; } catch { }
-            try { round_start = round_info.round_start; } catch { }
-
+            z_id = requested_z_id;
+            z_date = RequestedZ.z_date.Date;
         }
 
     }
-
-    if (order_close_hour > local_time)
+    if (requested_z_id == active_z_serial || requested_z_id == 0)
     {
-        round_start_time_bg_color = "#57d600";
+        z_id = 0;
+
+    }
+
+    string is_open_forOrders_text = "סגור";
+    bool is_open_for_orders = false; try { is_open_for_orders = round_info.is_open_for_orders; } catch { }
+    string is_open_for_orders_color = "#f00000";
+    string title_bar_bg_color = "#000";
+    int round_type = round_info.round_type;
+    bool is_express = round_info.is_express;
+    bool is_pickup = round_info.is_pickup;
+    bool is_route = round_info.is_route;
+    string round_type_title = "";
+    string viewTitle = "";
+    string viewTitleColor = "#57d600";
+    string round_start_time_bg_color = "";
+
+    if (round_type == 1)
+    {
+        is_route = true;
+        is_express = false;
+        is_pickup = false;
+        try { order_close_hour = round_info.order_close_hour; } catch { }
+        try { round_start = round_info.round_start; } catch { }
+        //if (order_close_hour < local_time)
+        if (order_close_hour < local_time || order_close_hour == defTime)
+        {
+            round_start_time_bg_color = "#f00";
+            if (round_start < local_time || round_start == defTime)
+            {
+                DataFunctions.WriteDebugLine("round_start1 " + round_start.ToString());
+
+                Rounds.InitializeRound(round_id);
+                sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
+                round_info = db.QuerySingle(sqlSelect, round_id);
+                try { order_close_hour = round_info.order_close_hour; } catch { }
+                try { round_start = round_info.round_start; } catch { }
+
+            }
+
+        }
+
+        if (order_close_hour > local_time)
+        {
+            round_start_time_bg_color = "#57d600";
+        }
+        else
+        {
+            round_start_time_bg_color = "#f00";
+        }
+
+        // DataFunctions.WriteDebugLine("order_close_hour" + order_close_hour.ToString());
+    }
+
+    if (is_open_for_orders)
+    {
+        is_open_for_orders = true;
+        is_open_forOrders_text = "✌️ פתוח להזמנות";
+        is_open_for_orders_color = "#57d600";
+
     }
     else
     {
-        round_start_time_bg_color = "#f00";
+        is_open_forOrders_text = "❌ סגור להזמנות";
+        title_bar_bg_color = "#f00";
+
     }
 
-    // DataFunctions.WriteDebugLine("order_close_hour" + order_close_hour.ToString());
-}
-
-if (is_open_for_orders)
-{
-    is_open_for_orders = true;
-    is_open_forOrders_text = "✌️ פתוח להזמנות";
-    is_open_for_orders_color = "#57d600";
-
-}
-else
-{
-    is_open_forOrders_text = "❌ סגור להזמנות";
-    title_bar_bg_color = "#f00";
-
-}
-
-round_type_title = NewAppFunctions.GetRoundTypeTitleById(round_type);
+    round_type_title = NewAppFunctions.GetRoundTypeTitleById(round_type);
 
 
-bool is_sorted = false;
-is_sorted = round_info.is_sorted;
-bool has_started = false;
-has_started = round_info.has_started;
+    bool is_sorted = false;
+    is_sorted = round_info.is_sorted;
+    bool has_started = false;
+    has_started = round_info.has_started;
 
-// showWhat = "ALL";
-sqlSelect = "SELECT top(200)  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE ";
-switch (showWhat)
-{
+    // showWhat = "ALL";
+    sqlSelect = "SELECT top(200)  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE ";
+    switch (showWhat)
+    {
 
-    case "NEW":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND order_status<=0 AND  CAST(requested_delivery_date AS date) <= CAST(@2 AS date) ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות לטיפול";
-        break;
+        case "NEW":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND order_status<=0 AND  CAST(requested_delivery_date AS date) <= CAST(@2 AS date) ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות לטיפול";
+            break;
 
-    case "FUTURE":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND CAST(requested_delivery_date AS date) > CAST(@2 AS date) ORDER BY requested_delivery_date, order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות עתידיות";
-        break;
+        case "FUTURE":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND CAST(requested_delivery_date AS date) > CAST(@2 AS date) ORDER BY requested_delivery_date, order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות עתידיות";
+            break;
 
-    case "PREP":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=1 AND order_status<=3  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3) ORDER BY delivery_id,envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות בהכנה";
+        case "PREP":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=1 AND order_status<=3  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3) ORDER BY delivery_id,envelope_id,order_status,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות בהכנה";
 
-        break;
-    case "PROC":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=4 AND order_status<=6   ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "בתהליך אספקה";
+            break;
+        case "PROC":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=4 AND order_status<=6   ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "בתהליך אספקה";
 
-        break;
+            break;
 
-    case "COMPLETED":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=9  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות שבוצעו";
+        case "COMPLETED":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=9  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שבוצעו";
 
-        break;
-    case "CANCELLED":
-        sqlSelect += "  is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות שבוטלו";
-        break;
+            break;
+        case "CANCELLED":
+            sqlSelect += "  is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שבוטלו";
+            break;
 
 
 
-    case "TODAY":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date)) ORDER BY order_status, delivery_id ,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות להיום";
-        break;
+        case "TODAY":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date)) ORDER BY order_status, delivery_id ,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות להיום";
+            break;
 
 
-    case "NODELIVERY":
-        sqlSelect += " is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>=1 AND order_status<=3 AND CAST(requested_delivery_date AS date) <= CAST(@2 AS date)) ORDER BY delivery_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות שלא משובצות למשלוח";
-        viewTitleColor = "#f00";
-        break;
+        case "NODELIVERY":
+            sqlSelect += " is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>=1 AND order_status<=3 AND CAST(requested_delivery_date AS date) <= CAST(@2 AS date)) ORDER BY delivery_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שלא משובצות למשלוח";
+            viewTitleColor = "#f00";
+            break;
 
-    case "ALL":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "כל ההזמנות";
+        case "ALL":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "כל ההזמנות";
 
-        break;
+            break;
 
-    case "PENDING":
-        sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status=1  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות בהמתנה לאישור ספק";
+        case "PENDING":
+            sqlSelect += " is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status=1  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות בהמתנה לאישור ספק";
 
-        break;
-
-
-    case "VENDOR":
-        sqlSelect += " order_status=-6 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "ביטולי ספק";
-        break;
-}
-
-var order_data = db.Query(sqlSelect, z_id, round_id,local_time, active_delivery_id);
-int orders_counter = 0;
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-var CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-try { orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status<=0 AND  z_serial=@0 AND  round_id = @1  AND  CAST(requested_delivery_date AS date) <= CAST(@2 AS date)"; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id,local_time);
-int new_orders_counter = 0;
-try { new_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=4  AND order_status<=6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int in_proc_orders_counter = 0;
-try { in_proc_orders_counter = CntRs.the_cnt; } catch { }
+            break;
 
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=1  AND order_status<=3 AND  z_serial=@0 AND  round_id = @1  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3)"; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id,local_time,active_delivery_id);
-int in_prep_orders_counter = 0;
-try { in_prep_orders_counter = CntRs.the_cnt; } catch { }
+        case "VENDOR":
+            sqlSelect += " order_status=-6 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "ביטולי ספק";
+            break;
+    }
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=1  AND order_status<=3 AND  z_serial=@0 AND  round_id = @1  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3) AND packing_trouble_flag=1"; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time, active_delivery_id);
-int packing_issues_orders_counter = 0;
-try { packing_issues_orders_counter = CntRs.the_cnt; } catch { }
+    var order_data = db.Query(sqlSelect, z_id, round_id, local_time, active_delivery_id);
+    int orders_counter = 0;
 
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    var CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    try { orders_counter = CntRs.the_cnt; } catch { }
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=9 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int completed_orders_counter = 0;
-try { completed_orders_counter = CntRs.the_cnt; } catch { }
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status<=0 AND  z_serial=@0 AND  round_id = @1  AND  CAST(requested_delivery_date AS date) <= CAST(@2 AS date)"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time);
+    int new_orders_counter = 0;
+    try { new_orders_counter = CntRs.the_cnt; } catch { }
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int cancelled_orders_counter = 0;
-try { cancelled_orders_counter = CntRs.the_cnt; } catch { }
-
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int vendor_cancelled_orders_counter = 0;
-try { vendor_cancelled_orders_counter = CntRs.the_cnt; } catch { }
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=4  AND order_status<=6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int in_proc_orders_counter = 0;
+    try { in_proc_orders_counter = CntRs.the_cnt; } catch { }
 
 
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=1  AND order_status<=3 AND  z_serial=@0 AND  round_id = @1  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3)"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time, active_delivery_id);
+    int in_prep_orders_counter = 0;
+    try { in_prep_orders_counter = CntRs.the_cnt; } catch { }
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date))"; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id,local_time);
-int today_orders_counter = 0;
-try { today_orders_counter = CntRs.the_cnt; } catch { }
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=1  AND order_status<=3 AND  z_serial=@0 AND  round_id = @1  AND  (CAST(requested_delivery_date AS date) <= CAST(@2 AS date) OR delivery_id=@3) AND packing_trouble_flag=1"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time, active_delivery_id);
+    int packing_issues_orders_counter = 0;
+    try { packing_issues_orders_counter = CntRs.the_cnt; } catch { }
 
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND CAST(requested_delivery_date AS date) > CAST(@2 AS date)"; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id,local_time);
-int future_orders_counter = 0;
-try { future_orders_counter = CntRs.the_cnt; } catch { }
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=9 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int completed_orders_counter = 0;
+    try { completed_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int cancelled_orders_counter = 0;
+    try { cancelled_orders_counter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int vendor_cancelled_orders_counter = 0;
+    try { vendor_cancelled_orders_counter = CntRs.the_cnt; } catch { }
 
 
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int awaiting_vendor_approval_orders_counter = 0;
-try { awaiting_vendor_approval_orders_counter = CntRs.the_cnt; } catch { }
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date))"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time);
+    int today_orders_counter = 0;
+    try { today_orders_counter = CntRs.the_cnt; } catch { }
 
 
-sqlSelect += " is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>=1 AND order_status<=3 AND CAST(requested_delivery_date AS date) <= CAST(@2 AS date)) ORDER BY delivery_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE  is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>=1 AND order_status<=3 AND CAST(requested_delivery_date AS date) <= CAST(@2 AS date))";
-CntRs = db.QuerySingle(sqlSelect,0, round_id,local_time) ;
-int unAssignedOrdersCounter = 0;
-try { unAssignedOrdersCounter = CntRs.the_cnt; } catch { }
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND CAST(requested_delivery_date AS date) > CAST(@2 AS date)"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time);
+    int future_orders_counter = 0;
+    try { future_orders_counter = CntRs.the_cnt; } catch { }
 
 
-sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM MainOrders WHERE is_cancelled=0 AND delivery_id=@0"; // order by is_approved, order_id DESC";
-var current_orders = db.QuerySingle(sqlSelect, active_delivery_id);
-int delivery_orders_counter = 0; try { delivery_orders_counter = current_orders.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int awaiting_vendor_approval_orders_counter = 0;
+    try { awaiting_vendor_approval_orders_counter = CntRs.the_cnt; } catch { }
 
 
-var title = round_info.title;
+    sqlSelect += " is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>=1 AND order_status<=3 AND CAST(requested_delivery_date AS date) <= CAST(@2 AS date)) ORDER BY delivery_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
 
-sqlSelect = "SELECT id,prod_code FROM roundMenuItems where round_id=@0 ";
-var MenuItems = db.Query(sqlSelect, round_id);
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE  is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>=1 AND order_status<=3 AND CAST(requested_delivery_date AS date) <= CAST(@2 AS date))";
+    CntRs = db.QuerySingle(sqlSelect, 0, round_id, local_time);
+    int unAssignedOrdersCounter = 0;
+    try { unAssignedOrdersCounter = CntRs.the_cnt; } catch { }
 
-sqlSelect = "SELECT id FROM roundSpecials where round_id=@0 AND is_active=1";
-var MenuSpecials = db.Query(sqlSelect, round_id);
 
-sqlSelect = "SELECT id,title,round_start FROM rounds where is_active=1 ";
-//var Rounds = db.Query(sqlSelect);
+    sqlSelect = "SELECT COUNT(order_id) AS the_cnt FROM MainOrders WHERE is_cancelled=0 AND delivery_id=@0"; // order by is_approved, order_id DESC";
+    var current_orders = db.QuerySingle(sqlSelect, active_delivery_id);
+    int delivery_orders_counter = 0; try { delivery_orders_counter = current_orders.the_cnt; } catch { }
 
-sqlSelect = "SELECT serial,z_id,z_date,is_active FROM ZREPORTS where round_id=@0 order by is_active DESC, z_id DESC ";
-var AvailableZeds = db.Query(sqlSelect, round_id);
 
-decimal round_total = 0; try { round_total = Convert.ToInt32(NewAppFunctions.GetRoundTotalOrdersSum(round_id, z_id)); } catch { }
+    var title = round_info.title;
 
-string orders_counter_text = "🤩  " + orders_counter + " הזמנות פעילות";
-if (showWhat == "CANCELLED")
-{
-    orders_counter_text = "⛔  " + orders_counter + " הזמנות שבוטלו";
-}
+    sqlSelect = "SELECT id,prod_code FROM roundMenuItems where round_id=@0 ";
+    var MenuItems = db.Query(sqlSelect, round_id);
 
-string tmpOrdersList = "";
-//new code
-int tableColSpan = 8;
+    sqlSelect = "SELECT id FROM roundSpecials where round_id=@0 AND is_active=1";
+    var MenuSpecials = db.Query(sqlSelect, round_id);
 
-bool is_multi_select_mode = false;
+    sqlSelect = "SELECT id,title,round_start FROM rounds where is_active=1 ";
+    //var Rounds = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT serial,z_id,z_date,is_active FROM ZREPORTS where round_id=@0 order by is_active DESC, z_id DESC ";
+    var AvailableZeds = db.Query(sqlSelect, round_id);
+
+    decimal round_total = 0; try { round_total = Convert.ToInt32(NewAppFunctions.GetRoundTotalOrdersSum(round_id, z_id)); } catch { }
+
+    string orders_counter_text = "🤩  " + orders_counter + " הזמנות פעילות";
+    if (showWhat == "CANCELLED")
+    {
+        orders_counter_text = "⛔  " + orders_counter + " הזמנות שבוטלו";
+    }
+
+    string tmpOrdersList = "";
+    //new code
+    int tableColSpan = 8;
+
+    bool is_multi_select_mode = false;
 
     <input type="hidden" name="round_id" id="round_id" value="@round_id">
     <input type="hidden" name="board_round_id" id="board_round_id" value="@round_id">
@@ -3252,11 +3071,11 @@ bool is_multi_select_mode = false;
 
                         <div class="B" style="font-size: 28px;" id="RoundMainTitle">
                             <b>@round_info.title  <span style="color:@viewTitleColor">@viewTitle</span></b> <span class="WhiteMiniTag"> @round_type_title #@round_id</span>
-                                                    
+
                         </div>
                         <div class="B" style="font-size: 28px; color:yellow;display:none;" id="deliveriesTitle">
                             <b>@round_info.title ניהול משלוחים </b> <span class="WhiteMiniTag"> @round_type_title #@round_id</span>
-                                                    
+
                         </div>
 
 
@@ -3283,40 +3102,40 @@ bool is_multi_select_mode = false;
 
 
 
-                <div style="font-size: 30px;float: left">
-                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('CloseRoundZReport', 'round_board_container', 'MainLoader', @round_id);">✖️</div>
+                    <div style="font-size: 30px;float: left">
+                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('CloseRoundZReport', 'round_board_container', 'MainLoader', @round_id);">✖️</div>
 
-                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('ROUNDLOG',  'round_board_container', 'MainLoader', @round_id);">📜 </div>
-                    @if (round_type == 1)
-                    {
+                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('ROUNDLOG',  'round_board_container', 'MainLoader', @round_id);">📜 </div>
+                        @if (round_type == 1)
+                        {
 
 
-<div style="background-color: #57d600; color: white; padding: 5px; font-size: 16px; border-radius: 5px; margin: 5px; float: left">🚚</div><div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;">
+                            <div style="background-color: #57d600; color: white; padding: 5px; font-size: 16px; border-radius: 5px; margin: 5px; float: left">🚚</div><div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;">
 
-    📦 אריזה
-    @if (packing_issues_orders_counter > 0)
-    {
-        <span style="float:left;background-color:#f00;color:yellow;padding:2px"><b>@packing_issues_orders_counter</b></span>
-    }
+                                📦 אריזה
+                                @if (packing_issues_orders_counter > 0)
+                                {
+                                    <span style="float:left;background-color:#f00;color:yellow;padding:2px"><b>@packing_issues_orders_counter</b></span>
+                                }
 
-</div>
-                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, 0); hideElement('RoundMainTitle'); showElement('deliveriesTitle');">
-                            <b>🚚 משלוחים</b>
-                            
-                        </div>
+                            </div>
+                            <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, 0); hideElement('RoundMainTitle'); showElement('deliveriesTitle');">
+                                <b>🚚 משלוחים</b>
 
-                    }
-                    @if (round_type == 4)
-                    {
-                        string expressAvailabilityBgColor = "white;";
-                        string pickupAvailabilityBgColor = "white;";
-                        if (is_express) { expressAvailabilityBgColor = "#57d600;"; }
-                        if (is_pickup) { pickupAvailabilityBgColor = "#57d600;"; }
-                        <div style="background-color: @expressAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🛵</div>
-                        <div style="background-color: @pickupAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🏠</div>
-                    }
+                            </div>
 
-                </div>
+                        }
+                        @if (round_type == 4)
+                        {
+                            string expressAvailabilityBgColor = "white;";
+                            string pickupAvailabilityBgColor = "white;";
+                            if (is_express) { expressAvailabilityBgColor = "#57d600;"; }
+                            if (is_pickup) { pickupAvailabilityBgColor = "#57d600;"; }
+                            <div style="background-color: @expressAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🛵</div>
+                            <div style="background-color: @pickupAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🏠</div>
+                        }
+
+                    </div>
 
 
 
@@ -3446,62 +3265,62 @@ bool is_multi_select_mode = false;
 
                     }
 
-                <div class="B" style="float:right">
+                    <div class="B" style="float:right">
 
-                    @if (vendor_cancelled_orders_counter > 0)
-                    {
-                        <span class="RoundBoardToolTipBox" style="color:#f00" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'VENDOR', '@z_id');">
-                            😞 @vendor_cancelled_orders_counter
+                        @if (vendor_cancelled_orders_counter > 0)
+                        {
+                            <span class="RoundBoardToolTipBox" style="color:#f00" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'VENDOR', '@z_id');">
+                                😞 @vendor_cancelled_orders_counter
+                            </span>
+                        }
+
+
+
+
+                        @if (in_prep_orders_counter > 0)
+                        {
+                            <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'PREP', '@z_id');">
+                                ⌛ @in_prep_orders_counter
+                            </span>
+                        }
+
+
+                        @if (in_proc_orders_counter > 0)
+                        {
+                            <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'PROC', '@z_id');">
+                                💫 @in_proc_orders_counter
+                            </span>
+                        }
+
+
+                        @if (unAssignedOrdersCounter > 0)
+                        {
+                            <span class="RoundBoardToolTipBox" style="background-color:#f00;color:white;border:2px solid yellow" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'NODELIVERY', '@z_id');">
+                                ⛓️‍💥 @unAssignedOrdersCounter
+                            </span>
+                        }
+                        <span class="RoundBoardToolTipBox" style="background-color:#57d600;color:white;border:2px solid white" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, 0); hideElement('RoundMainTitle'); showElement('deliveriesTitle');">
+                            🚚 @delivery_orders_counter
                         </span>
-                    }
 
 
 
+                        @if (future_orders_counter > 0)
+                        {
+                            <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'FUTURE', '@z_id');">
+                                🌎 @future_orders_counter
+                            </span>
+                        }
 
-                    @if (in_prep_orders_counter > 0)
-                    {
-                        <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'PREP', '@z_id');">
-                            ⌛ @in_prep_orders_counter
-                        </span>
-                    }
-
-
-                    @if (in_proc_orders_counter > 0)
-                    {
-                        <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'PROC', '@z_id');">
-                            💫 @in_proc_orders_counter
-                        </span>
-                    }
-
-
-                    @if (unAssignedOrdersCounter > 0)
-                    {
-                        <span class="RoundBoardToolTipBox" style="background-color:#f00;color:white;border:2px solid yellow" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'NODELIVERY', '@z_id');">
-                            ⛓️‍💥 @unAssignedOrdersCounter
-                        </span>
-                    }
-                    <span class="RoundBoardToolTipBox" style="background-color:#57d600;color:white;border:2px solid white" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id, 0); hideElement('RoundMainTitle'); showElement('deliveriesTitle');">
-                        🚚 @delivery_orders_counter
-                    </span>
+                        @if (completed_orders_counter > 0)
+                        {
+                            <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'COMPLETED', '@z_id');">
+                                ✅ @completed_orders_counter
+                            </span>
+                        }
+                    </div>
 
 
-
-                    @if (future_orders_counter > 0)
-                    {
-                        <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'FUTURE', '@z_id');">
-                            🌎 @future_orders_counter
-                        </span>
-                    }
-
-                    @if (completed_orders_counter > 0)
-                    {
-                        <span class="RoundBoardToolTipBox" onclick="RepAjaxUpdate('RoundBoard', 'MainBoardContainer', 'RoundBoardLoader', '@round_id', 'COMPLETED', '@z_id');">
-                            ✅ @completed_orders_counter
-                        </span>
-                    }
-                </div>
-
-                    
 
 
 
@@ -3560,18 +3379,18 @@ bool is_multi_select_mode = false;
                                 <tr>
                                     <td colspan="999">
                                         <center>
-                                           <div class="A" style="text-align:right;background-color:#e3e3e3;vertical-align:middle">
-                                               <input type="checkbox" class="A" onclick="MiscActions('OrderSelector',this.checked); " />
-                                               <select class="A" style="float:left" onchange="AjaxActions('AddMultiOrdersToDelivery', document.getElementById('SelectedOrders').value, 'MainLoader', this.value,@round_id);">
-                                                   <option value="">נא לבחור פעולה..</option>
-                                                   @foreach (var delivery in deliveries)
-                                                   {
-                                                       DateTime scheduled_start = delivery.scheduled_start;
-                                                       <option value="@delivery.serial">הוספה למשלוח #@delivery.serial - @AppFunctions.FormatRelativeDate(scheduled_start) | @scheduled_start.ToString("HH:mm")</option>
-                                                   }
-                                               </select>
+                                            <div class="A" style="text-align:right;background-color:#e3e3e3;vertical-align:middle">
+                                                <input type="checkbox" class="A" onclick="MiscActions('OrderSelector',this.checked); " />
+                                                <select class="A" style="float:left" onchange="AjaxActions('AddMultiOrdersToDelivery', document.getElementById('SelectedOrders').value, 'MainLoader', this.value,@round_id);">
+                                                    <option value="">נא לבחור פעולה..</option>
+                                                    @foreach (var delivery in deliveries)
+                                                    {
+                                                        DateTime scheduled_start = delivery.scheduled_start;
+                                                        <option value="@delivery.serial">הוספה למשלוח #@delivery.serial - @AppFunctions.FormatRelativeDate(scheduled_start) | @scheduled_start.ToString("HH:mm")</option>
+                                                    }
+                                                </select>
 
-                                           </div>
+                                            </div>
                                         </center>
                                     </td>
                                 </tr>
@@ -3584,16 +3403,17 @@ bool is_multi_select_mode = false;
                                 {
                                     tmpOrdersList += "##" + order.order_id + "##";
 
-                                    @Order.RoundBoardEntry(order,"NEW",is_multi_select_mode)
+                                    @Order.RoundBoardEntry(order, "NEW", is_multi_select_mode)
                                 }
                             }
 
-                            <tr><td colspan="999" style="height: 50px; color: #808080;text-align:center">
-    <input type="hidden"  id="SelectedOrders" name="SelectedOrders" />
-    <input type="hidden"  id="AllViewableOrders" name="AllViewableOrders" value="@tmpOrdersList" />
+                            <tr>
+                                <td colspan="999" style="height: 50px; color: #808080;text-align:center">
+                                    <input type="hidden" id="SelectedOrders" name="SelectedOrders" />
+                                    <input type="hidden" id="AllViewableOrders" name="AllViewableOrders" value="@tmpOrdersList" />
 
-    -- סוף הרשימה --
-</td>
+                                    -- סוף הרשימה --
+                                </td>
                             </tr>
                         </table>
                     </form>
@@ -3615,250 +3435,250 @@ bool is_multi_select_mode = false;
 
 @helper RoundBoard_bck(int round_id, string showWhat = "TODAY", int requested_z_id = 0)
 {
-System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 
-var u_id = WebSecurity.CurrentUserId;
-var db = Database.Open("op_data");
-var sqlSelect = "";
-DateTime local_time = AppFunctions.LocalTime();
-DateTime defTime = Convert.ToDateTime("1/1/1900");
-DateTime z_date = Convert.ToDateTime("1/1/1900");
-DateTime order_close_hour = Convert.ToDateTime("1/1/1900");
-DateTime round_start = Convert.ToDateTime("1/1/1900");
+    var u_id = WebSecurity.CurrentUserId;
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    DateTime defTime = Convert.ToDateTime("1/1/1900");
+    DateTime z_date = Convert.ToDateTime("1/1/1900");
+    DateTime order_close_hour = Convert.ToDateTime("1/1/1900");
+    DateTime round_start = Convert.ToDateTime("1/1/1900");
 
-int active_z_id = 0;
-int active_z_serial = 0;
-int z_id = 0;
-sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
-var round_info = db.QuerySingle(sqlSelect, round_id);
+    int active_z_id = 0;
+    int active_z_serial = 0;
+    int z_id = 0;
+    sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
+    var round_info = db.QuerySingle(sqlSelect, round_id);
 
-sqlSelect = "SELECT TOP(1) * FROM ZREPORTS WHERE is_Active=1 AND round_id=@0 ORDER BY z_id DESC";
-var ActiveZ = db.QuerySingle(sqlSelect, round_id);
-if (ActiveZ != null)
-{
-    active_z_id = ActiveZ.z_id;
-    active_z_serial = ActiveZ.serial;
-    z_date = ActiveZ.z_date.Date;
-    z_id = 0;
-}
-
-if (requested_z_id != 0)
-{
-    sqlSelect = "SELECT * FROM ZREPORTS WHERE  round_id=@0 AND serial=@1";
-    var RequestedZ = db.QuerySingle(sqlSelect, round_id, requested_z_id);
-    if (RequestedZ != null)
+    sqlSelect = "SELECT TOP(1) * FROM ZREPORTS WHERE is_Active=1 AND round_id=@0 ORDER BY z_id DESC";
+    var ActiveZ = db.QuerySingle(sqlSelect, round_id);
+    if (ActiveZ != null)
     {
-        z_id = requested_z_id;
-        z_date = RequestedZ.z_date.Date;
+        active_z_id = ActiveZ.z_id;
+        active_z_serial = ActiveZ.serial;
+        z_date = ActiveZ.z_date.Date;
+        z_id = 0;
     }
 
-}
-if (requested_z_id == active_z_serial || requested_z_id == 0)
-{
-    z_id = 0;
-
-}
-
-string is_open_forOrders_text = "סגור";
-bool is_open_for_orders = false; try { is_open_for_orders = round_info.is_open_for_orders; } catch { }
-string is_open_for_orders_color = "#f00000";
-string title_bar_bg_color = "#000";
-int round_type = round_info.round_type;
-bool is_express = round_info.is_express;
-bool is_pickup = round_info.is_pickup;
-bool is_route = round_info.is_route;
-string round_type_title = "";
-string viewTitle = "";
-string round_start_time_bg_color = "";
-
-if (round_type == 1)
-{
-    is_route = true;
-    is_express = false;
-    is_pickup = false;
-    try { order_close_hour = round_info.order_close_hour; } catch { }
-    try { round_start = round_info.round_start; } catch { }
-    //if (order_close_hour < local_time)
-    if (order_close_hour < local_time || order_close_hour== defTime)
+    if (requested_z_id != 0)
     {
-        round_start_time_bg_color = "#f00";
-        if (round_start < local_time || round_start==defTime)
+        sqlSelect = "SELECT * FROM ZREPORTS WHERE  round_id=@0 AND serial=@1";
+        var RequestedZ = db.QuerySingle(sqlSelect, round_id, requested_z_id);
+        if (RequestedZ != null)
         {
-            DataFunctions.WriteDebugLine("round_start1 " + round_start.ToString());
-
-            Rounds.InitializeRound(round_id);
-            sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
-            round_info = db.QuerySingle(sqlSelect, round_id);
-            try { order_close_hour = round_info.order_close_hour; } catch { }
-            try { round_start = round_info.round_start; } catch { }
-
+            z_id = requested_z_id;
+            z_date = RequestedZ.z_date.Date;
         }
 
     }
-
-    if (order_close_hour > local_time)
+    if (requested_z_id == active_z_serial || requested_z_id == 0)
     {
-        round_start_time_bg_color = "#57d600";
+        z_id = 0;
+
+    }
+
+    string is_open_forOrders_text = "סגור";
+    bool is_open_for_orders = false; try { is_open_for_orders = round_info.is_open_for_orders; } catch { }
+    string is_open_for_orders_color = "#f00000";
+    string title_bar_bg_color = "#000";
+    int round_type = round_info.round_type;
+    bool is_express = round_info.is_express;
+    bool is_pickup = round_info.is_pickup;
+    bool is_route = round_info.is_route;
+    string round_type_title = "";
+    string viewTitle = "";
+    string round_start_time_bg_color = "";
+
+    if (round_type == 1)
+    {
+        is_route = true;
+        is_express = false;
+        is_pickup = false;
+        try { order_close_hour = round_info.order_close_hour; } catch { }
+        try { round_start = round_info.round_start; } catch { }
+        //if (order_close_hour < local_time)
+        if (order_close_hour < local_time || order_close_hour == defTime)
+        {
+            round_start_time_bg_color = "#f00";
+            if (round_start < local_time || round_start == defTime)
+            {
+                DataFunctions.WriteDebugLine("round_start1 " + round_start.ToString());
+
+                Rounds.InitializeRound(round_id);
+                sqlSelect = "SELECT * FROM Rounds WHERE id=@0";
+                round_info = db.QuerySingle(sqlSelect, round_id);
+                try { order_close_hour = round_info.order_close_hour; } catch { }
+                try { round_start = round_info.round_start; } catch { }
+
+            }
+
+        }
+
+        if (order_close_hour > local_time)
+        {
+            round_start_time_bg_color = "#57d600";
+        }
+        else
+        {
+            round_start_time_bg_color = "#f00";
+        }
+
+        // DataFunctions.WriteDebugLine("order_close_hour" + order_close_hour.ToString());
+    }
+
+    if (is_open_for_orders)
+    {
+        is_open_for_orders = true;
+        is_open_forOrders_text = "✌️ פתוח להזמנות";
+        is_open_for_orders_color = "#57d600";
+
     }
     else
     {
-        round_start_time_bg_color = "#f00";
+        is_open_forOrders_text = "❌ סגור להזמנות";
+        title_bar_bg_color = "#f00";
+
     }
 
-    // DataFunctions.WriteDebugLine("order_close_hour" + order_close_hour.ToString());
-}
-
-if (is_open_for_orders)
-{
-    is_open_for_orders = true;
-    is_open_forOrders_text = "✌️ פתוח להזמנות";
-    is_open_for_orders_color = "#57d600";
-
-}
-else
-{
-    is_open_forOrders_text = "❌ סגור להזמנות";
-    title_bar_bg_color = "#f00";
-
-}
-
-round_type_title = NewAppFunctions.GetRoundTypeTitleById(round_type);
+    round_type_title = NewAppFunctions.GetRoundTypeTitleById(round_type);
 
 
-bool is_sorted = false;
-is_sorted = round_info.is_sorted;
-bool has_started = false;
-has_started = round_info.has_started;
+    bool is_sorted = false;
+    is_sorted = round_info.is_sorted;
+    bool has_started = false;
+    has_started = round_info.has_started;
 
-// showWhat = "ALL";
-switch (showWhat)
-{
+    // showWhat = "ALL";
+    switch (showWhat)
+    {
 
-    case "NEW":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND order_status<=0 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות חדשות";
-        break;
+        case "NEW":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND order_status<=0 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות חדשות";
+            break;
 
-    case "TODAY":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date)) ORDER BY order_status, delivery_id ,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות להיום";
-        break;
-
-
-    case "NODELIVERY":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date)) ORDER BY delivery_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות שלא משובצות לאף משלוח";
-        break;
-
-    case "ALL":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "כל ההזמנות";
-
-        break;
-    case "PROC":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>1 AND order_status<=6  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות בביצוע";
-
-        break;
-    case "PENDING":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status=1  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות בהמתנה לאישור ספק";
-
-        break;
-
-    case "COMPLETED":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=9  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות שבוצעו";
-
-        break;
-    case "CANCELLED":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "הזמנות שבוטלו";
-        break;
-    case "VENDOR":
-        sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
-        viewTitle = "ביטולי ספק";
-        break;
-}
-
-var order_data = db.Query(sqlSelect, z_id, round_id,local_time);
-int orders_counter = 0;
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-var CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-try { orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int cancelled_orders_counter = 0;
-try { cancelled_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int vendor_cancelled_orders_counter = 0;
-try { vendor_cancelled_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status<=0 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int new_orders_counter = 0;
-try { new_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date))"; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id,local_time);
-int today_orders_counter = 0;
-try { today_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>1  AND order_status<=6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int in_proc_orders_counter = 0;
-try { in_proc_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=9 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int completed_orders_counter = 0;
-try { completed_orders_counter = CntRs.the_cnt; } catch { }
-
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
-CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
-int awaiting_vendor_approval_orders_counter = 0;
-try { awaiting_vendor_approval_orders_counter = CntRs.the_cnt; } catch { }
+        case "TODAY":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date)) ORDER BY order_status, delivery_id ,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות להיום";
+            break;
 
 
-sqlSelect = "SELECT * FROM MainOrders WHERE round_id=@0 AND (order_status>0 OR cast(requested_delivery_date as DATE) =cast(@1 as DATE))AND delivery_id<=0  ORDER BY requested_delivery_date";
-var unAssignedRoundOrders = db.Query(sqlSelect, round_id, local_time);
+        case "NODELIVERY":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND delivery_id<=0 AND z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date)) ORDER BY delivery_id,order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שלא משובצות לאף משלוח";
+            break;
 
-sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE round_id=@0 AND (order_status>0 OR cast(requested_delivery_date as DATE) =cast(@1 as DATE))AND delivery_id<=0 ";
-CntRs = db.QuerySingle(sqlSelect, round_id,local_time) ;
-int unAssignedOrdersCounter = 0;
-try { unAssignedOrdersCounter = CntRs.the_cnt; } catch { }
+        case "ALL":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "כל ההזמנות";
 
-var title = round_info.title;
+            break;
+        case "PROC":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>1 AND order_status<=6  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות בביצוע";
 
-sqlSelect = "SELECT id,prod_code FROM roundMenuItems where round_id=@0 ";
-var MenuItems = db.Query(sqlSelect, round_id);
+            break;
+        case "PENDING":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status=1  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות בהמתנה לאישור ספק";
 
-sqlSelect = "SELECT id FROM roundSpecials where round_id=@0 AND is_active=1";
-var MenuSpecials = db.Query(sqlSelect, round_id);
+            break;
 
-sqlSelect = "SELECT id,title,round_start FROM rounds where is_active=1 ";
-//var Rounds = db.Query(sqlSelect);
+        case "COMPLETED":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1  AND order_status>=9  ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שבוצעו";
 
-sqlSelect = "SELECT serial,z_id,z_date,is_active FROM ZREPORTS where round_id=@0 order by is_active DESC, z_id DESC ";
-var AvailableZeds = db.Query(sqlSelect, round_id);
+            break;
+        case "CANCELLED":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "הזמנות שבוטלו";
+            break;
+        case "VENDOR":
+            sqlSelect = "SELECT  MainOrders.*,rounds.short_title AS round_title,rounds.active_delivery_id FROM MainOrders JOIN rounds ON mainorders.round_id=rounds.id WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 ORDER BY order_status,envelope_id,order_id DESC"; // order by is_approved, order_id DESC";
+            viewTitle = "ביטולי ספק";
+            break;
+    }
 
-decimal round_total = 0; try { round_total = Convert.ToInt32(NewAppFunctions.GetRoundTotalOrdersSum(round_id, z_id)); } catch { }
+    var order_data = db.Query(sqlSelect, z_id, round_id, local_time);
+    int orders_counter = 0;
 
-string orders_counter_text = "🤩  " + orders_counter + " הזמנות פעילות";
-if (showWhat == "CANCELLED")
-{
-    orders_counter_text = "⛔  " + orders_counter + " הזמנות שבוטלו";
-}
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    var CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    try { orders_counter = CntRs.the_cnt; } catch { }
 
-string tmpOrdersList = "";
-//new code
-int tableColSpan = 8;
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int cancelled_orders_counter = 0;
+    try { cancelled_orders_counter = CntRs.the_cnt; } catch { }
 
-bool is_multi_select_mode = false;
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE order_status=-6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int vendor_cancelled_orders_counter = 0;
+    try { vendor_cancelled_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status<=0 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int new_orders_counter = 0;
+    try { new_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND   z_serial=@0 AND  round_id = @1 AND (order_status>0 OR CAST(requested_delivery_date AS date) = CAST(@2 AS date))"; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id, local_time);
+    int today_orders_counter = 0;
+    try { today_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>1  AND order_status<=6 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int in_proc_orders_counter = 0;
+    try { in_proc_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status>=9 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int completed_orders_counter = 0;
+    try { completed_orders_counter = CntRs.the_cnt; } catch { }
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE is_cancelled=0 AND order_status=1 AND  z_serial=@0 AND  round_id = @1 "; // order by is_approved, order_id DESC";
+    CntRs = db.QuerySingle(sqlSelect, z_id, round_id);
+    int awaiting_vendor_approval_orders_counter = 0;
+    try { awaiting_vendor_approval_orders_counter = CntRs.the_cnt; } catch { }
+
+
+    sqlSelect = "SELECT * FROM MainOrders WHERE round_id=@0 AND (order_status>0 OR cast(requested_delivery_date as DATE) =cast(@1 as DATE))AND delivery_id<=0  ORDER BY requested_delivery_date";
+    var unAssignedRoundOrders = db.Query(sqlSelect, round_id, local_time);
+
+    sqlSelect = "SELECT count(*) AS the_cnt  FROM MainOrders WHERE round_id=@0 AND (order_status>0 OR cast(requested_delivery_date as DATE) =cast(@1 as DATE))AND delivery_id<=0 ";
+    CntRs = db.QuerySingle(sqlSelect, round_id, local_time);
+    int unAssignedOrdersCounter = 0;
+    try { unAssignedOrdersCounter = CntRs.the_cnt; } catch { }
+
+    var title = round_info.title;
+
+    sqlSelect = "SELECT id,prod_code FROM roundMenuItems where round_id=@0 ";
+    var MenuItems = db.Query(sqlSelect, round_id);
+
+    sqlSelect = "SELECT id FROM roundSpecials where round_id=@0 AND is_active=1";
+    var MenuSpecials = db.Query(sqlSelect, round_id);
+
+    sqlSelect = "SELECT id,title,round_start FROM rounds where is_active=1 ";
+    //var Rounds = db.Query(sqlSelect);
+
+    sqlSelect = "SELECT serial,z_id,z_date,is_active FROM ZREPORTS where round_id=@0 order by is_active DESC, z_id DESC ";
+    var AvailableZeds = db.Query(sqlSelect, round_id);
+
+    decimal round_total = 0; try { round_total = Convert.ToInt32(NewAppFunctions.GetRoundTotalOrdersSum(round_id, z_id)); } catch { }
+
+    string orders_counter_text = "🤩  " + orders_counter + " הזמנות פעילות";
+    if (showWhat == "CANCELLED")
+    {
+        orders_counter_text = "⛔  " + orders_counter + " הזמנות שבוטלו";
+    }
+
+    string tmpOrdersList = "";
+    //new code
+    int tableColSpan = 8;
+
+    bool is_multi_select_mode = false;
 
     <input type="hidden" name="round_id" id="round_id" value="@round_id">
     <input type="hidden" name="board_round_id" id="board_round_id" value="@round_id">
@@ -3913,28 +3733,28 @@ bool is_multi_select_mode = false;
 
 
 
-                <div style="font-size: 30px;float: left">
-                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('CloseRoundZReport', 'round_board_container', 'MainLoader', @round_id);">✖️</div>
+                    <div style="font-size: 30px;float: left">
+                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('CloseRoundZReport', 'round_board_container', 'MainLoader', @round_id);">✖️</div>
 
-                    <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('ROUNDLOG',  'round_board_container', 'MainLoader', @round_id);">📜 </div>
-                    @if (round_type == 1)
-                    {
-                        <div style="background-color: #57d600; color: white; padding: 5px; font-size: 16px; border-radius: 5px; margin: 5px; float: left">🚚</div>
-                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;">📦 אריזה</div>
-                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id,0);">🚚 משלוחים</div>
+                        <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('ROUNDLOG',  'round_board_container', 'MainLoader', @round_id);">📜 </div>
+                        @if (round_type == 1)
+                        {
+                            <div style="background-color: #57d600; color: white; padding: 5px; font-size: 16px; border-radius: 5px; margin: 5px; float: left">🚚</div>
+                            <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;">📦 אריזה</div>
+                            <div style="background-color: #fff; color: #000; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #57d600; overflow: auto; margin: 5px; float: left;" onclick="RepAjaxUpdate('Deliveries', 'round_board_container', 'MainLoader', @round_id,0);">🚚 משלוחים</div>
 
-                    }
-                    @if (round_type == 4)
-                    {
-                        string expressAvailabilityBgColor = "white;";
-                        string pickupAvailabilityBgColor = "white;";
-                        if (is_express) { expressAvailabilityBgColor = "#57d600;"; }
-                        if (is_pickup) { pickupAvailabilityBgColor = "#57d600;"; }
-                        <div style="background-color: @expressAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🛵</div>
-                        <div style="background-color: @pickupAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🏠</div>
-                    }
+                        }
+                        @if (round_type == 4)
+                        {
+                            string expressAvailabilityBgColor = "white;";
+                            string pickupAvailabilityBgColor = "white;";
+                            if (is_express) { expressAvailabilityBgColor = "#57d600;"; }
+                            if (is_pickup) { pickupAvailabilityBgColor = "#57d600;"; }
+                            <div style="background-color: @expressAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🛵</div>
+                            <div style="background-color: @pickupAvailabilityBgColor; padding: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #000; margin: 5px; float: right">🏠</div>
+                        }
 
-                </div>
+                    </div>
 
 
 
@@ -4065,14 +3885,14 @@ bool is_multi_select_mode = false;
 
                     <div class="B" style="float:right">
 
-                        @if (unAssignedOrdersCounter > 0 && round_type== 1 && showWhat != "NODELIVERY")
+                        @if (unAssignedOrdersCounter > 0 && round_type == 1 && showWhat != "NODELIVERY")
                         {
                             <span class="RoundBoardToolTipBox" style="color:white;background-color:#f00" onclick="document.getElementById('board_show_what').value = 'NODELIVERY'; MiscActions('ROUNDBOARDUPDATE');">
                                 🚚 @unAssignedOrdersCounter
                             </span>
                         }
 
-                        
+
                         @if (today_orders_counter > 0 && showWhat != "TODAY")
                         {
                             <span class="RoundBoardToolTipBox" style="color:#000;" onclick="document.getElementById('board_show_what').value = 'TODAY'; MiscActions('ROUNDBOARDUPDATE');">
@@ -4169,18 +3989,18 @@ bool is_multi_select_mode = false;
                                 <tr>
                                     <td colspan="999">
                                         <center>
-                                           <div class="A" style="text-align:right;background-color:#e3e3e3;vertical-align:middle">
-                                               <input type="checkbox" class="A" onclick="MiscActions('OrderSelector',this.checked); " />
-                                               <select class="A" style="float:left">
-                                                   <option>נא לבחור פעולה..</option>
-                                                   @foreach (var delivery in deliveries)
-                                                   {
-                                                       DateTime scheduled_start = delivery.scheduled_start;
-                                                       <option value="@delivery.serial">הוספה למשלוח #@delivery.serial - @AppFunctions.FormatRelativeDate(scheduled_start) | @scheduled_start.ToString("HH:mm")</option>
-                                                   }
-                                               </select>
+                                            <div class="A" style="text-align:right;background-color:#e3e3e3;vertical-align:middle">
+                                                <input type="checkbox" class="A" onclick="MiscActions('OrderSelector',this.checked); " />
+                                                <select class="A" style="float:left">
+                                                    <option>נא לבחור פעולה..</option>
+                                                    @foreach (var delivery in deliveries)
+                                                    {
+                                                        DateTime scheduled_start = delivery.scheduled_start;
+                                                        <option value="@delivery.serial">הוספה למשלוח #@delivery.serial - @AppFunctions.FormatRelativeDate(scheduled_start) | @scheduled_start.ToString("HH:mm")</option>
+                                                    }
+                                                </select>
 
-                                           </div>
+                                            </div>
                                         </center>
                                     </td>
                                 </tr>
@@ -4193,16 +4013,17 @@ bool is_multi_select_mode = false;
                                 {
                                     tmpOrdersList += "##" + order.order_id + "##";
 
-                                    @Order.RoundBoardEntry(order,"NEW",is_multi_select_mode)
+                                    @Order.RoundBoardEntry(order, "NEW", is_multi_select_mode)
                                 }
                             }
 
-                            <tr><td colspan="999" style="height: 50px; color: #808080;text-align:center">
-    <input type="hidden"  id="SelectedOrders" name="SelectedOrders" />
-    <input type="hidden"  id="AllViewableOrders" name="AllViewableOrders" value="@tmpOrdersList" />
+                            <tr>
+                                <td colspan="999" style="height: 50px; color: #808080;text-align:center">
+                                    <input type="hidden" id="SelectedOrders" name="SelectedOrders" />
+                                    <input type="hidden" id="AllViewableOrders" name="AllViewableOrders" value="@tmpOrdersList" />
 
-    -- סוף הרשימה --
-</td>
+                                    -- סוף הרשימה --
+                                </td>
                             </tr>
                         </table>
                     </form>
@@ -4566,17 +4387,17 @@ bool is_multi_select_mode = false;
                                 </tr>
                             }
 
-                <tr style="overflow: auto;font-size:18px;color:@forecolor" onclick="PageNavigator('ZREPORT',@z.serial)">
-                    <td style="padding:5px;">@z.serial</td>
-                    <td>@z.z_date.ToShortDateString()</td>
+                            <tr style="overflow: auto;font-size:18px;color:@forecolor" onclick="PageNavigator('ZREPORT',@z.serial)">
+                                <td style="padding:5px;">@z.serial</td>
+                                <td>@z.z_date.ToShortDateString()</td>
 
-                    <td>@AppFunctions.GetRoundTitleById(z.round_id)</td>
-                    <td>@z_orders_count</td>
-                    <td>@z_total_sales.ToString("C", culture)</td>
-                    <td>@z_total_commision.ToString("C", culture) <span class="PrplMiniTag" style="display:none">@String.Format("{0:0.00}", commision_percantage)%</span></td>
-                    <td></td>
-                </tr>
-                          
+                                <td>@AppFunctions.GetRoundTitleById(z.round_id)</td>
+                                <td>@z_orders_count</td>
+                                <td>@z_total_sales.ToString("C", culture)</td>
+                                <td>@z_total_commision.ToString("C", culture) <span class="PrplMiniTag" style="display:none">@String.Format("{0:0.00}", commision_percantage)%</span></td>
+                                <td></td>
+                            </tr>
+
                         }
                     }
 
@@ -4710,49 +4531,49 @@ bool is_multi_select_mode = false;
 
 @helper ZReport(int z_serial = 0)
 {
-System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 
-var db = Database.Open("op_data");
-var sqlSelect = "";
-DateTime local_time = AppFunctions.LocalTime();
-sqlSelect = "SELECT * FROM ZREPORTS WHERE serial=@0";
-var zReport = db.QuerySingle(sqlSelect, z_serial);
-if (zReport != null)
-{
-    int vendor_id = zReport.vendor_id;
-    int round_id = zReport.round_id;
-    int z_id = zReport.z_id;
-    DateTime z_date = zReport.z_date;
-    int active_z_serial = z_serial;
-    bool is_active = zReport.is_active;
-    if (is_active)
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    DateTime local_time = AppFunctions.LocalTime();
+    sqlSelect = "SELECT * FROM ZREPORTS WHERE serial=@0";
+    var zReport = db.QuerySingle(sqlSelect, z_serial);
+    if (zReport != null)
     {
-        active_z_serial = 0;
-    }
-    int orders_count = 0;
+        int vendor_id = zReport.vendor_id;
+        int round_id = zReport.round_id;
+        int z_id = zReport.z_id;
+        DateTime z_date = zReport.z_date;
+        int active_z_serial = z_serial;
+        bool is_active = zReport.is_active;
+        if (is_active)
+        {
+            active_z_serial = 0;
+        }
+        int orders_count = 0;
 
 
-    string round_title = AppFunctions.GetRoundTitleById(round_id);
-    string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+        string round_title = AppFunctions.GetRoundTitleById(round_id);
+        string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
 
-    sqlSelect = "SELECT order_id,nick_name,ship_city,grand_total,envelope_id,commision FROM MainOrders WHERE order_status>0 AND round_id=@0 AND (z_serial=@1 OR z_serial=0) ORDER BY envelope_id";
-    var ordersInZ = db.Query(sqlSelect, round_id, active_z_serial);
+        sqlSelect = "SELECT order_id,nick_name,ship_city,grand_total,envelope_id,commision FROM MainOrders WHERE order_status>0 AND round_id=@0 AND (z_serial=@1 OR z_serial=0) ORDER BY envelope_id";
+        var ordersInZ = db.Query(sqlSelect, round_id, active_z_serial);
 
-    sqlSelect = "SELECT Count(order_id) AS the_cnt FROM MainOrders WHERE order_status>0 AND z_serial=@0 AND round_id=@1";
-    var ordersCounter = db.QuerySingle(sqlSelect, active_z_serial, round_id);
-    try { orders_count = ordersCounter.the_cnt; } catch { }
+        sqlSelect = "SELECT Count(order_id) AS the_cnt FROM MainOrders WHERE order_status>0 AND z_serial=@0 AND round_id=@1";
+        var ordersCounter = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+        try { orders_count = ordersCounter.the_cnt; } catch { }
 
-    //sqlSelect = "SELECT SUM(QUAN) AS the_quan FROM orderitems INNER JOIN mainorders ON orderitems.order_id=mainorders.order_id WHERE orderitems.p_id=@0 AND orderitems.z_serial=@1 AND orderitems.round_id=@2 AND mainorders.order_status>0";
+        //sqlSelect = "SELECT SUM(QUAN) AS the_quan FROM orderitems INNER JOIN mainorders ON orderitems.order_id=mainorders.order_id WHERE orderitems.p_id=@0 AND orderitems.z_serial=@1 AND orderitems.round_id=@2 AND mainorders.order_status>0";
 
-    sqlSelect = "SELECT distinct p_id,title,itemunit FROM orderitems INNER JOIN mainorders ON orderitems.order_id=mainorders.order_id WHERE orderitems.z_serial=@0 AND orderitems.p_id>0 AND orderitems.round_id=@1 AND mainorders.order_status>0";
-    var productsInZ = db.Query(sqlSelect, active_z_serial, round_id);
+        sqlSelect = "SELECT distinct p_id,title,itemunit FROM orderitems INNER JOIN mainorders ON orderitems.order_id=mainorders.order_id WHERE orderitems.z_serial=@0 AND orderitems.p_id>0 AND orderitems.round_id=@1 AND mainorders.order_status>0";
+        var productsInZ = db.Query(sqlSelect, active_z_serial, round_id);
 
-    sqlSelect = "SELECT COUNT(order_id) AS order_count,SUM(grand_total) as total_sales,SUM(commision) AS the_commision FROM mainorders WHERE  order_status>0 AND  z_serial=@0 AND round_id=@1";
-    var zStats = db.QuerySingle(sqlSelect, active_z_serial, round_id);
+        sqlSelect = "SELECT COUNT(order_id) AS order_count,SUM(grand_total) as total_sales,SUM(commision) AS the_commision FROM mainorders WHERE  order_status>0 AND  z_serial=@0 AND round_id=@1";
+        var zStats = db.QuerySingle(sqlSelect, active_z_serial, round_id);
 
-    decimal z_total_sales = 0;try { z_total_sales = zStats.total_sales; } catch { }
-    decimal z_total_commision = 0;try { z_total_commision = zStats.the_commision; } catch { }
-    int z_order_count = 0;try { z_order_count = zStats.order_count; } catch { }
+        decimal z_total_sales = 0; try { z_total_sales = zStats.total_sales; } catch { }
+        decimal z_total_commision = 0; try { z_total_commision = zStats.the_commision; } catch { }
+        int z_order_count = 0; try { z_order_count = zStats.order_count; } catch { }
 
         <div style="max-height: 95%;overflow: auto;color:#000">
             <div style="overflow: auto;">
@@ -4862,10 +4683,11 @@ if (zReport != null)
                             </div>
 
                         }
-                        else{
-                    <div class="zReportRowHeader">
-                        <span style="color:#808080">אין מוצרים בדו"ח</span>
-                    </div>
+                        else
+                        {
+                            <div class="zReportRowHeader">
+                                <span style="color:#808080">אין מוצרים בדו"ח</span>
+                            </div>
                         }
 
                     </div>

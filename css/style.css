@@ -2673,4 +2673,65 @@ img.VendorMenuItemImg {
     float: right;
 
 }
+div.SPOFFERVIEWERTITLE {
+    overflow: auto;
+    font-size: 24px;
+    font-weight: bold;
+        padding:10px;
+}
+div.SPOFFERVIEWERITEMS {
+    overflow: auto;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 5px;
+    margin-right:20px;
+}
+button.SPOFFERVIEWERBTN{
+    float:left;
+    background:transparent;
+    border:0;
+    padding:5px;
+    margin:5px;
+    font-size:18px;
+    cursor:pointer;
+}
+button.SPOFFERVIEWERITEMDELBTN {
+    float: right;
+    background: transparent;
+    border: 0;
+    padding-left: 15px;
+    font-size: 16px;
+    cursor: pointer;
+}
+div.ADDSPOFFERPAGE{
+    overflow:auto;
+    color:#000;
+    background-color:#e3e3e3;
+}
+div.SpOfferAddRow{
+    overflow:auto;
+    padding:5px;
+    font-size:18px;
+    border-bottom:1px dotted #808080;
+}
+div.NONACTIVESPOFFERALERT{
+    float:left;
+    background-color:#f00;
+    color:#fff;
+    margin-left:20px;
+    margin:5px;
+}
+div.RoundMenuItemsEditorTitle {
+    overflow: auto;
+    background-color: #e3e3e3;
+    padding: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #000
+}
+button.RoundMenuItemsEditorTitleBtn{
+    float:left;
+    padding:5px;
+    margin-left:5px;
+}
 /*END MY CUSTOM STYLING*/

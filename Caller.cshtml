@@ -443,7 +443,7 @@
 
         case "MenuItemEdit":
             Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
-            <div >@Products.ViewMenuItem(param2)</div>
+            <div>@Products.ViewMenuItem(param2)</div>
             <div style="display:none">Products.RoundMenuItemEdit(param2)</div>
             break;
 
@@ -487,7 +487,7 @@
 
         case "SpecialEdit":
             Layout = "~/Shared/Layouts/_BasicLayout.cshtml";
-            <div>@AdminPages2.SpecialOfferEdit(param2)</div>
+            <div>@SpecialOffers.SpecialOfferEdit(param2)</div>
             break;
 
         case "CouponEdit":
@@ -554,7 +554,10 @@
             <div>@Menus.EditMenuItems(param2)</div>
             break;
 
-
+        case "AddNewSpOffer":
+            Layout = "~/Shared/Layouts/_MiniLayout.cshtml";
+            <div>@SpecialOffers.AddNewSpOffer()</div>
+            break;
     }
 
 

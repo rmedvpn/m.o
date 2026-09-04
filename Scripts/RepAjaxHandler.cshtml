@@ -831,7 +831,7 @@
 
 
         case "SPOFFERSADMIN":
-            <div style="direction:rtl">@AdminPages2.SpecialOffersAdmin()</div>
+            <div style="direction:rtl">@SpecialOffers.SpecialOffersAdmin()</div>
             break;
 
         case "LoadSpOfferCatList":
@@ -839,7 +839,7 @@
             {
                 int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
                 int specialOfferId = 0; try { specialOfferId = Convert.ToInt32(Request["param2"]); } catch { }
-                <div>@NewAppHelpers.LoadSpOfferCatSelector(main_cat_id, specialOfferId)</div>
+                <div>@SpecialOffers.LoadSpOfferCatSelector(main_cat_id, specialOfferId)</div>
             }
             break;
 
@@ -879,7 +879,7 @@
             {
                 int specialOfferId = 0;
                 try { specialOfferId = Convert.ToInt32(Request["param1"]); } catch { }
-                <div>@NewAppHelpers.AddSpecialItem(specialOfferId)</div>
+                <div>@SpecialOffers.AddSpecialItem(specialOfferId)</div>
             }
             break;
 
@@ -888,7 +888,7 @@
             {
                 int specialOfferId = 0;
                 try { specialOfferId = Convert.ToInt32(Request["param1"]); } catch { }
-                <div>@NewAppHelpers.SpecialOfferInfo(specialOfferId)</div>
+                <div>@SpecialOffers.SpecialOfferInfo(specialOfferId)</div>
             }
             break;
 

@@ -340,6 +340,12 @@
             case "SpecialOffer":
                 sqlSelect = "SELECT title AS the_label FROM SpecialOffers WHERE id=@0";
                 break;
+            case "spOfferTypes":
+                sqlSelect = "SELECT title AS the_label FROM spOfferTypes WHERE id=@0";
+                break;
+            case "spOfferTypeIcon":
+                sqlSelect = "SELECT HeaderIcon AS the_label FROM spOfferTypes WHERE id=@0";
+                break;
 
 
             case "Coupon":

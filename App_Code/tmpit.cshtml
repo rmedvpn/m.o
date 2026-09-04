@@ -4575,13 +4575,12 @@ bool is_multi_select_mode = false;
             var sqlSelect = "";
 
             sqlSelect = "SELECT id FROM rounds ";
-            var rounds = db.Query(sqlSelect);
-            foreach (var round in rounds)
+            var spOffers = db.Query(sqlSelect);
+            foreach (var spOffer in spOffers)
             {
 
-                string json = Menus.CreateFeaturedItemsJson(round.id);
-                sqlSelect = "UPDATE rounds SET FeaturedItemsJson=@0 WHERE id=@1";
-                db.Execute(sqlSelect, json, round.id);
+                string json = AppJson.CreateMenuSpecialOffersAvailabilityJson(spOffer.id,true);
+           
             }
             db.Close();
             // ProductsFunctions.CleanUpOfDeletedProducts();
