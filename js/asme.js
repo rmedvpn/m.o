@@ -1516,6 +1516,12 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                             noti_break = true;
                         }
                         break;
+                    case "DeleteFullfilmentOption":
+                        if (!theRes.startsWith("!$!")) {
+                            sbload('GenSb', 'Caller?p1=VendorMenuEdit&p2=' + param1);
+                        }
+                        
+                        break;
 
                     case "MenuItemIsFeaturedToggle":
                         if (!theRes.startsWith("!$!")) {

@@ -672,6 +672,9 @@ var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
             <div class="Spacer100"></div>
         </form>
     </div>
+
+
+<div class="Spacer100"></div>
 }
 
 
@@ -1711,7 +1714,9 @@ var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
 
 
                     <div style="overflow: auto;text-align: center">
-                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateFullfilmentOption', '@round_id', '','UpdateFullfilmentOption');">שמירת שינויים</button>
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #f00;color: #fff;font-weight: bold" onclick="    AjaxActions('DeleteFullfilmentOption', '@opt_id', 'MainLoader','@round_id');">מחיקת האפשרות</button>
+                        <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateFullfilmentOption', '@round_id', 'MainLoader','UpdateFullfilmentOption');">שמירת שינויים</button>
+
                     </div>
                     <div class="Spacer50"></div>
                 </div>
@@ -2504,6 +2509,31 @@ var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
         return theHtmlOutput;
     }
 
+
+    public static string DeleteFullfilmentOption()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+        int opt_id = 0; try { opt_id = Convert.ToInt32(Request["value"]); } catch { }
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+
+        sqlSelect = "DELETE FROM RoundFullfilmentOptions WHERE id=@0";
+        db.Execute(sqlSelect, opt_id);
+        sqlSelect = "DELETE FROM RoundAreas WHERE round_id=@0 AND fulfilment_option_id=@1";
+        db.Execute(sqlSelect, round_id, opt_id);
+        Menus.UpdateMenuStatsAndParams(round_id);
+
+        db.Close();
+
+        theHtmlOutput = "👌 אפשרות האספקה נמחקה!";
+
+        return theHtmlOutput;
+    }
+
     public static string AddNewVendorMenu()
     {
         int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
@@ -2598,7 +2628,7 @@ var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
         string json = AppJson.CreateFulfillmentOptionsJson(round_id);
         string SpOfferAvailabilityJson = AppJson.CreateMenuSpecialOffersAvailabilityJson(round_id, true);
 
-        sqlSelect = "UPDATE ROUNDS set is_route=@0,is_express=@1,is_pickup=@2,ActiveProductsCount=@3,ActiveSpOffersCount=@4,FulfillmentJson=@5,SpOfferAvailabilityJson=@6 WHERE id=@6";
+        sqlSelect = "UPDATE ROUNDS set is_route=@0,is_express=@1,is_pickup=@2,ActiveProductsCount=@3,ActiveSpOffersCount=@4,FulfillmentJson=@5,SpOfferAvailabilityJson=@6 WHERE id=@7";
         db.Execute(sqlSelect, is_route, is_express, is_pickup, ActiveProductsCount, ActiveSpOffersCount, json, SpOfferAvailabilityJson, round_id);
 
         db.Close();
