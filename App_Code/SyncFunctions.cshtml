@@ -936,7 +936,9 @@ id, order_status, heb_status, eng_status
     deleted_by=@12,
     image_hash=CONVERT(varbinary(max), @13),
     tn_image_hash=CONVERT(varbinary(max), @14),
-    product_id=@15
+    product_id=@15,
+    rec_id=@16,
+    rec_type=@17
     WHERE file_id=@0";
 
             dest_db.Execute(sqlSelect,
@@ -955,7 +957,9 @@ id, order_status, heb_status, eng_status
                 item.deleted_by,
                 item.image_hash,
                 item.tn_image_hash,
-                item.product_id
+                item.product_id,
+                item.rec_id,
+                item.rec_type
             );
             ClientExport.ClearRowUpdateFlag(src_db_name, "ProductImages", "file_id", item.file_id);
 

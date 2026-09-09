@@ -1635,7 +1635,7 @@
         </div>
 
         <div style="overflow: auto;" id="ProductImagesContainer">
-            @NewAppHelpers.ProductImages(product_id, true)
+            NewAppHelpers.ProductImages(product_id, true)
         </div>
 
         <div style="overflow: auto;padding: 5px;font-weight: bold;background-color: #ffffcc;font-size: 18px;color: #000;">
@@ -2733,7 +2733,7 @@
                 }
 
 
-                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;" onclick="AjaxActions('DeletePic', @file_id,'',@p_id);">מחיקת תמונה</button>
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 16px;" onclick="AjaxActions('DeletePic', @file_id,'MainLoader',@p_id);">מחיקת תמונה</button>
             </div>
         }
 

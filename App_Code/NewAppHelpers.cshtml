@@ -209,7 +209,7 @@
 
         </div>
         <div style="overflow: auto;" id="ProductImagesContainer">
-            @NewAppHelpers.ProductImages(product_id)
+            NewAppHelpers.ProductImages(product_id)
         </div>
 
 
@@ -543,9 +543,9 @@
 }
 
 
-@helper ProductImages(int p_id, bool is_RoundMenuItem = false)
+@helper ProductImages(int rec_id,int rec_type, bool is_actions = true)
 {
-<div>@Products.ProductImages(p_id,is_RoundMenuItem)</div>
+<div>@Products.ProductImages(rec_id,rec_type,is_actions )</div>
 }
 
 

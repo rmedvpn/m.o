@@ -700,9 +700,11 @@
         case "PRODUCTIMAGES":
             if (true)
             {
-                int product_id = 0;
-                try { product_id = Convert.ToInt32(Request["param1"]); } catch { }
-                <div>@NewAppHelpers.ProductImages(product_id)</div>
+                int rec_type = 0; try { rec_type = Convert.ToInt32(Request["param1"]); } catch { }
+                int rec_id = 0; try { rec_id = Convert.ToInt32(Request["param2"]); } catch { }
+                bool is_actions = false;
+                if (rec_type == 1) { is_actions = true; }
+                <div>@NewAppHelpers.ProductImages(rec_id, rec_type,is_actions)</div>
             }
             break;
 
