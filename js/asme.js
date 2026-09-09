@@ -1199,6 +1199,12 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         sbload('GenSb', 'Caller?p1=ProductEdit&p2=' + param1);
                         break;
 
+                    case "ClearAppImage":
+                        if (param1 == 3) { sbload('GenSb', 'Caller?p1=SpecialEdit&p2=' + value); }
+                        if (param1 == 2) { sbload('GenSb', 'Caller?p1=CatInfo&p2=' + value); }
+                        
+                        break;
+
 
                     case "CreateProductFromCatalog":
                     case "CreateVendorProductFromCatalog":
@@ -3035,14 +3041,56 @@ function ProductTagSelectChanged(cat_id, value) {
     if (value != "")
         ProductTagSelect(cat_id);
 }
-function ProductImageUpload(theBlob) {
-    var p_id = document.getElementById('upload_p_id').value;
+function FileUpload(upd_type = "PROD") {
+    document.getElementById('picfilebox').click();
+    document.getElementById('picfilebox').onchange = function (evt) {
+
+        ImageTools.resize(this.files[0], {
+            width: 640, // maximum width
+            height: 1136 // maximum height
+        }, function (blob, didItResize) {
+            // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
+            //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
+            ProductImageUpload(blob, upd_type);
+            // you can also now upload this blob using an XHR.
+        });
+    };
+
+
+}
+function ProductImageUpload(theBlob,upd_type="PROD") {
     var theHandler = "Scripts/Ajax/AjaxActions";
+    var rec_type = 0;
+    var rec_id = 0;
     var formData = new FormData();
+
     formData.append("file", theBlob, "temp.jpg");
-    formData.append("p_id", p_id);
-    formData.append("theAction", "UploadProductImage");
-    formData.append("field", "UploadProductImage");
+    formData.append("theAction", "UploadImage");
+    formData.append("field", "UploadImage");
+
+    switch (upd_type) {
+        case "PROD":
+            var p_id = document.getElementById('upload_p_id').value;
+            formData.append("p_id", p_id);
+            rec_type = 1;
+            rec_id = p_id;
+            break;
+        case "CAT":
+            var cat_id = document.getElementById('upload_cat_id').value;
+            formData.append("cat_id", cat_id);
+            rec_type = 2;
+            rec_id = cat_id;
+            break;
+
+        case "SPOFFER":
+            var spOfferId = document.getElementById('upload_spOffer_id').value;
+            formData.append("spOfferId", spOfferId);
+            rec_type = 3;
+            rec_id = spOfferId;
+            break;
+
+    }
+    console.log("c:" + cat_id + "p:" + p_id + "s:" + spOfferId + "type:" + rec_type+ "id:" + rec_id);
     
     showElement("ImgUploadLoader");
     hideElement("ImgUploadBtn");
@@ -3051,7 +3099,7 @@ function ProductImageUpload(theBlob) {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
-            RepAjaxUpdate("PRODUCTIMAGES", "ProductImagesContainer", "ImgUploadLoader", p_id);
+            RepAjaxUpdate("PRODUCTIMAGES", "ProductImagesContainer", "ImgUploadLoader", rec_type, rec_id);
             hideElement("ImgUploadLoader");
             showElement("ImgUploadBtn");
         }

@@ -184,6 +184,9 @@ var CatalogRounds = db.Query(sqlSelect);
 sqlSelect = "SELECT rounds.id,rounds.title FROM rounds INNER JOIN RoundSpecials ON rounds.id=RoundSpecials.round_id WHERE RoundSpecials.specialOfferId=@0";
 var SpOfferInRounds = db.Query(sqlSelect, spOfferId);
 
+sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND rec_type=3 AND rec_id = @0 ORDER BY is_primary DESC,timestamp DESC";
+var files = db.Query(sqlSelect, spOfferId);
+
 sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0";
 var spItemsIncluded = db.Query(sqlSelect, spOfferId);
 string item_commision = spOffer.special_commision > 0 ? ((int)spOffer.special_commision).ToString() : "";
@@ -220,6 +223,87 @@ string offer_type_title = ""; try { offer_type_title = NewAppFunctions.GetTitleB
 
             </div>
             <div style="overflow: auto;">
+                <div class="prodSection">
+                    <form id="picupload" name="picupload" enctype="multipart/form-data">
+                        <input class="B" style="float:left;margin:5px;" type="button" value="➕" id="ImgUploadBtn" onclick="FileUpload('SPOFFER');" />
+                        @if (files.Count() > 0)
+                        { 
+                        <input class="B" style="float:left;margin:5px;" type="button" value="🗑️" id="ImgUploadBtn" onclick="AjaxActions('ClearAppImage', @spOfferId,'MainLoader',3);" />
+                        }
+                            
+
+                            <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
+                        </form>
+                    <div class="prodSectionTitle" style="display:none">
+
+
+                        תמונות מוצר
+
+                    </div>
+                    <div class="ProductViewImagesContainer" id="ProductImagesContainer">
+                        <input type="hidden" name="upload_spOffer_id" id="upload_spOffer_id" value="@spOfferId">
+
+
+
+                        @if (files.Count() > 0)
+                        {
+                            int cnt = 0;
+                            string imgClass = "ProductViewPrimaryImage";
+
+
+                            foreach (var item in files)
+                            {
+                                cnt++;
+                                string imgLink = "ImgViewer?Id=" + item.file_id;
+                                if (!item.is_primary)
+                                {
+                                    imgClass = "ProductViewSmallImage";
+                                    imgLink = "ImgViewer?size=tn&Id=" + item.file_id;
+
+
+                                }
+
+                                if (item.MimeType.StartsWith("image"))
+                                {
+                                    if (item.is_primary)
+                                    {
+                                        <div class="B">
+                                            <span class="ProductViewImageSpan">
+
+                                                <img class="@imgClass" src="@imgLink" alt="אלט" />
+
+
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="ProductViewImageSpan">
+
+                                            <img class="@imgClass" src="@imgLink" alt="אלט" />
+
+
+                                        </span>
+                                    }
+
+                                }
+                            }
+                        }
+                        else
+                        {
+
+                            <span class="ProductViewImageSpan">
+
+                                <img class="ProductViewNoImage" src="~/Images/nopic.png" />
+
+
+                            </span>
+                        }
+                    </div>
+
+
+                </div>
+
             </div>
             <div id="spOfferItemsListDiv">
                 @SpecialOffers.SpecialOfferInfo(spOfferId)

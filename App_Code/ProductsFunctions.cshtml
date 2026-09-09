@@ -2632,6 +2632,53 @@
         }
         db.Close();
     }
+    public static void ClearAppImage(int rec_id, int rec_type, bool is_archive = true)
+    {
+        DateTime local_time = AppFunctions.LocalTime();
+        int rep_id = WebSecurity.CurrentUserId;
+
+        var db = Database.Open("op_data");
+
+        string sqlSelect = "SELECT TOP 1 file_id,product_id,fileContent,MimeType,ImageThumb,image_hash,tn_image_hash FROM ProductImages WHERE rec_id=@0 AND rec_type=@1 ORDER BY file_id";
+        var image = db.QuerySingle(sqlSelect, rec_id, rec_type);
+
+        if (image != null)
+        {
+            byte[] fileContent = null;
+            byte[] imageThumb = null;
+            byte[] imageHash = null;
+            byte[] tnImageHash = null;
+
+            try { fileContent = (byte[])image.fileContent; } catch { }
+            try { imageThumb = (byte[])image.ImageThumb; } catch { }
+            try { imageHash = (byte[])image.image_hash; } catch { }
+            try { tnImageHash = (byte[])image.tn_image_hash; } catch { }
+
+            if (imageHash == null && fileContent != null)
+            {
+                using (var sha = System.Security.Cryptography.SHA256.Create()) { imageHash = sha.ComputeHash(fileContent); }
+            }
+
+            if (tnImageHash == null && imageThumb != null)
+            {
+                using (var sha = System.Security.Cryptography.SHA256.Create()) { tnImageHash = sha.ComputeHash(imageThumb); }
+            }
+
+            if (is_archive)
+            {
+                var dupChk = imageHash != null ? db.QuerySingle("SELECT TOP 1 file_id FROM DeletedProductImages WHERE rec_id=@0 AND rec_type=@1 AND image_hash=@2", rec_id, rec_type, imageHash) : null;
+
+                if (dupChk == null)
+                {
+                    db.Execute("INSERT INTO DeletedProductImages (product_id,fileContent,MimeType,ImageThumb,image_hash,tn_image_hash,delete_ts,deleted_by,rec_id,rec_type) VALUES (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9)", image.product_id, fileContent, image.MimeType, imageThumb, imageHash, tnImageHash, local_time, rep_id, rec_id, rec_type);
+                }
+            }
+
+            db.Execute("DELETE FROM ProductImages WHERE file_id=@0", image.file_id);
+        }
+
+        db.Close();
+    }
     public static string SetupCatalogProduct()
     {
         string theHtmlOutput = "";

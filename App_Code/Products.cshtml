@@ -380,7 +380,7 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
                 <input type="hidden" name="upload_p_id" id="upload_p_id" value="@product_id">
 
                 <form id="picupload" name="picupload" enctype="multipart/form-data">
-                    <input class="B" style="float:left" type="button" value="➕" id="ImgUploadBtn" onclick="document.getElementById('picfilebox').click();" />
+                    <input class="B" style="float:left" type="button" value="➕" id="ImgUploadBtn" onclick="FileUpload('PROD');" />
                     <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
                 </form>
 
@@ -4702,18 +4702,26 @@ var PricingOptions = db.Query(sqlSelect, product_id,round_id);
     </div>
     db.Close();
 }
-@helper ProductImages(int product_id, bool is_RoundMenuItem = false, bool is_actions = true)
+@helper ProductImages(int rec_id,int rec_type, bool is_actions = true)
 {
 
-    var db = Database.Open("op_data");
-    var sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND product_id = @0 ORDER BY is_primary DESC,timestamp DESC";
-    var files = db.Query(sqlSelect, product_id);
+var db = Database.Open("op_data");
+var sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND rec_type = @0 AND rec_id=@1 ORDER BY is_primary DESC,timestamp DESC";
+var files = db.Query(sqlSelect, rec_type,rec_id);
+int product_id = 0;
+int cat_id = 0;
+int spOfferId = 0;
+if (rec_type == 1) {product_id = rec_id; }
+if (rec_type == 2) { cat_id = rec_id; }
+if (rec_type == 3) { spOfferId = rec_id; }
 
-    db.Close();
+db.Close();
 
 
     <div style="background-color: #fff;color: #808080;padding: 5px;">
         <input type="hidden" name="upload_p_id" id="upload_p_id" value="@product_id">
+        <input type="hidden" name="upload_spOffer_id" id="upload_spOffer_id" value="@spOfferId">
+        <input type="hidden" name="upload_cat_id" id="upload_cat_id" value="@cat_id">
 
 
         <div class="ProductViewImagesContainer">
@@ -4775,61 +4783,6 @@ var PricingOptions = db.Query(sqlSelect, product_id,round_id);
             }
         </div>
 
-        <div class="hide">
-            @if (!is_RoundMenuItem && is_actions)
-            {
-                <div style="float:left;">
-                    <form id="picupload" name="picupload" enctype="multipart/form-data">
-                        <input style="float: left;font-size: 12px;padding: 5px;margin: 5px;" type="button" value="הוספה" id="ImgUploadBtn" onclick="document.getElementById('picfilebox').click();" />
-                        <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
-                    </form>
-                    <div style="overflow: auto;padding: 0;margin: 0;background-color: #fff;text-align: center;" id="pbContainer">
-                        <div style="overflow: auto;background-color: #b200ff;color: #fff;float: right;width: 0%;height: 10px" id="pbar_bar">
-                            <span style="color:#b200ff;height: 10px;"></span>
-                        </div>
-                    </div>
-                </div>
-            }
-
-
-
-            @if (files.Count() > 0)
-            {
-
-                foreach (var item in files)
-                {
-                    if (item.MimeType.StartsWith("image"))
-                    {
-                        <span style="padding: 2px;">
-                            @if (item.is_primary)
-                            {
-                                <small style="color: #808080;font-size: 11px;left: 0px;">תמונה ראשית</small><br>
-                            }
-                            @if (is_RoundMenuItem)
-                            {
-                                <img style="height: 50px;max-width: 50px;border-radius: 10px;margin: 3px;padding: 3px;" src="ImgViewer?size=tn&Id=@item.file_id" alt="אלט" onclick="    sbload('SubMenuLeft','Caller?p1=ImgInfo&p2=@product_id&p3=@item.file_id&p4=1');" />
-                            }
-                            else
-                            {
-                                <img style="height: 50px;max-width: 50px;border-radius: 10px;margin: 3px;padding: 3px;" src="ImgViewer?size=tn&Id=@item.file_id" alt="אלט" onclick="    sbload('SubMenuLeft','Caller?p1=ImgInfo&p2=@product_id&p3=@item.file_id');" />
-                            }
-
-
-                        </span>
-                    }
-                }
-            }
-            else
-            {
-                <span style="padding: 5px;font-size: 14px;color: #808080;">אין תמונות למוצר</span>
-            }
-            <div class="spinner" style="text-align: center;float: left;display: none" id="ImgUploadLoader">
-                <div class="bounce1"></div>
-                <div class="bounce2"></div>
-                <div class="bounce3"></div>
-            </div>
-
-        </div>
 
     </div>
 
