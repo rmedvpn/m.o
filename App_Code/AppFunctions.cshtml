@@ -729,4 +729,79 @@
         op_data.Close();
     }
 
+    public static string CatChangeOrder()
+    {
+        string theHtmlOutput = "";
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["value"]); } catch { }
+        int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+        string direction = ""; direction = Request["param2"];
+        DataFunctions.WriteDebugLine("cat_id"+ cat_id + "main_cat_id" + main_cat_id);
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,sort_order FROM Categories WHERE id=@0";
+        var item = db.QuerySingle(sqlSelect, cat_id);
+        int cur_sort_order = 0; try { cur_sort_order = item.sort_order; } catch { }
+        int new_sort_order = cur_sort_order;
+        if (direction == "up")
+        {
+            new_sort_order = new_sort_order - 101;
+        }
+        else
+        {
+            new_sort_order = new_sort_order + 101;
+        }
+        sqlSelect = "UPDATE Categories SET sort_order=@0 WHERE id=@1 AND maincat_id=@2";
+
+        db.Execute(sqlSelect, new_sort_order, cat_id,main_cat_id);
+        db.Close();
+        //AppFunctions.DoCatSortSequencing(main_cat_id);
+        AppFunctions.DoCatOrderSequence(cat_id);
+
+        theHtmlOutput = "הפעולה בוצעה!";
+
+
+        return theHtmlOutput;
+    }
+    public static void DoCatSortSequencing(int main_cat_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id FROM Categories WHERE  is_deleted=0 AND maincat_id =@0 ORDER BY sort_order";
+        var catRs = db.Query(sqlSelect, main_cat_id);
+        int i = 0;
+        foreach (var item in catRs)
+        {
+            i += 100;
+            sqlSelect = "UPDATE Categories SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
+    public static void DoCatOrderSequence(int cat_id)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT maincat_id,is_spOffersCat FROM Categories WHERE  id=@0";
+        var cat = db.QuerySingle(sqlSelect, cat_id);
+        int maincat_id = 0; try { maincat_id = cat.maincat_id; } catch { }
+        bool is_spOffersCat = false; try { is_spOffersCat = cat.is_spOffersCat; } catch { }
+
+        if (is_spOffersCat)
+        {
+            sqlSelect = "SELECT id FROM Categories WHERE  is_deleted=0 AND is_spOffersCat=1 AND maincat_id =@0   ORDER BY sort_order";
+        }
+        else
+        {
+            sqlSelect = "SELECT id FROM Categories WHERE  is_deleted=0 AND maincat_id =@0   ORDER BY sort_order";
+        }
+        var catRs = db.Query(sqlSelect, maincat_id);
+        int i = 0;
+        foreach (var item in catRs)
+        {
+            i += 100;
+            sqlSelect = "UPDATE Categories SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
+
 }

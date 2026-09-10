@@ -622,6 +622,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "SetupProductFromCatalog":
             case "AddProductsCat":
             case "UpdateCatInfo":
+            case "UpdateSpOfferMainCatInfo":
             case "UpdateProductField":
             case "AddProductField":
             case "AddProductTag":
@@ -1383,9 +1384,20 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         if (!theRes.startsWith("!$!")) {
                             
                             sbload('GenSb', 'Caller?p1=SpecialEdit&p2=' + value);
-                            PageNavigator('SPOFFERS');
+                            RepAjaxUpdate("SPOFFERSADMIN", "MainBoardContainer", 'MainLoader', param1);
                         }
                         break;
+
+                    case "UpdateSpOfferMainCatInfo":
+                    case "SpOffCatChangeOrder":
+                    case "DeleteSpOfferMainCat":
+
+                        RepAjaxUpdate('SpOffCatChangeOrder', 'SpOfferCatContainer', 'MainLoader', param2);
+                        RepAjaxUpdate("SPOFFERSADMIN", "MainBoardContainer", 'MainLoader', param1);
+
+                       // PageNavigator('SPOFFERS');
+                        break;
+                    case "AddSpOffer":
                     case "DeleteSpOffer":
                         if (!theRes.startsWith("!$!")) {
 
@@ -1542,6 +1554,8 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         RepAjaxUpdate('ViewProductOptions', 'ViewProductOptionsDiv', 'MainLoader', param2);
                         RepAjaxUpdate('ProductOptions', 'ProductOptionsDiv', 'MainLoader', param2);
                         break;
+                    
+                  
 
                     case "AddProductOptionitem":
                     case "DeleteProductOptionitem":

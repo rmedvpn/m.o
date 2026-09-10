@@ -2392,9 +2392,9 @@
     var db = Database.Open("op_data");
     var sqlSelect = "SELECT * FROM categories WHERE id=@0";
     var Category = db.QuerySingle(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1";
+    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1 ORDER BY sort_order";
     var SubCats = db.Query(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1";
+    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1 ORDER BY sort_order";
     var spOfferCats = db.Query(sqlSelect, cat_id);
     sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
     var CatTags = db.Query(sqlSelect, cat_id);

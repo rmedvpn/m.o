@@ -4771,6 +4771,15 @@
                 theHtmlOutput = ProductsFunctions.CustomFieldMove();
             }
             break;
+
+        case "CatChangeOrder":
+        case "SpOffCatChangeOrder":
+
+            if (true)
+            {
+                theHtmlOutput = AppFunctions.CatChangeOrder();
+            }
+            break;
         case "DeleteCustomField":
 
             if (true)
@@ -5497,6 +5506,24 @@
                 }
                 db.Close();
             }
+            break;
+
+
+        case "UpdateSpOfferMainCatInfo":
+            if (theHtmlOutput == "")
+            {
+                theHtmlOutput = SpecialOffers.UpdateSpOfferMainCatInfo();
+
+            }
+
+            break;
+        case "DeleteSpOfferMainCat":
+            if (theHtmlOutput == "")
+            {
+                theHtmlOutput = SpecialOffers.DeleteSpOfferMainCat();
+
+            }
+
             break;
 
         case "UpdateProductField":

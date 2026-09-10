@@ -1638,12 +1638,17 @@ var sqlSelect = "select * from ItemUnitTypes";
 var ItemUnitTypes= db.Query(sqlSelect);
 sqlSelect = "select * from productTypes";
 var productTypes = db.Query(sqlSelect);
-sqlSelect = "SELECT def_product_type,def_itemunit_type FROM Categories WHERE id=@0";
+sqlSelect = "SELECT def_product_type,def_itemunit_type,maincat_id FROM Categories WHERE id=@0 ORDER BY sort_order";
 var cat=db.QuerySingle(sqlSelect, cat_id);
 int def_product_type = 0;try { def_product_type = cat.def_product_type; } catch { }
 int def_itemunit_type = 0;try { def_itemunit_type = cat.def_itemunit_type; } catch { }
+int maincat_id = 0;try { maincat_id = cat.maincat_id; } catch { }
 db.Close();
     <div style="overflow: auto;font-size: 18px;color: #000" id="cat_info_@cat_id">
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat_id','MainLoader',@maincat_id,'up','');">⬆️</button>
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat_id', 'MainLoader', @maincat_id, 'down', '');">⬇️</button>
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0; background: transparent" onclick="    showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">⚙️</button>
+
         @title | @e_title
         <button style="float: right;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">עריכה</button>
     </div>
