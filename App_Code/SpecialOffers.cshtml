@@ -6,29 +6,30 @@
 
 @helper SpecialOffersAdmin(int spOfferType = 0)
 {
-    var db = Database.Open("op_data");
-    var sqlSelect = "";
+var db = Database.Open("op_data");
+var sqlSelect = "";
 
-    sqlSelect = "SELECT id,title FROM SpOfferTypes";
-    var spOfferTypes = db.Query(sqlSelect);
+sqlSelect = "SELECT id,title FROM SpOfferTypes";
+var spOfferTypes = db.Query(sqlSelect);
 
-    //SpOffersAdminDefaultId
+//SpOffersAdminDefaultId
 
-    if (spOfferType == 0)
-    {
-        try { spOfferType = Convert.ToInt32(AppFunctions.GetAppProperty("SpOffersAdminDefaultId")); } catch { }
-    }
+if (spOfferType == 0)
+{
+    try { spOfferType = Convert.ToInt32(AppFunctions.GetAppProperty("SpOffersAdminDefaultId")); } catch { }
+}
 
+int cur_cat = 0;
 
-
-    sqlSelect = "SELECT * FROM SpecialOffers where spOfferType=@0 order by vendor_id,is_activated,is_active DESC,id DESC";
-    var SpecialOffers = db.Query(sqlSelect, spOfferType);
+sqlSelect = "SELECT * FROM SpecialOffers where spOfferType=@0 ORDER BY spOfferMainCatId,vendor_id,is_activated,is_active DESC,id DESC";
+var SpecialOffers = db.Query(sqlSelect, spOfferType);
 
 
     <div style="overflow:auto" id="SpOfferAdminDiv">
         <div style="overflow: auto;background-color: #fff;min-height: 500px;">
             <div style="overflow: auto;padding: 5px;">
                 <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    sbload('GenSb','Caller?p1=AddNewSpOffer');AdjustMainView();">חדש</button>
+                <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    sbload('GenSb','Caller?p1=SpOfferCategories');AdjustMainView();">⚙️</button>
                 <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    AjaxActions('ReCreateSpecialOffersJson'); ">JSON</button>
                 <div style="font-size: 20px;float: right;color: #000">
                     ניהול
@@ -57,11 +58,17 @@
                     bool is_active = false; try { is_active = spItem.is_active; } catch { }
                     bool is_activated = false; try { is_activated = spItem.is_activated; } catch { }
                     int vendor_id = 0; try { vendor_id = spItem.vendor_id; } catch { }
+                    int spOfferMainCatId = 0; try { spOfferMainCatId = spItem.spOfferMainCatId; } catch { }
                     if (!is_active) { rowColor = "#ffffcc;"; }
                     if (!is_activated) { rowColor = "#ffcccc;"; }
 
-                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowColor">
-                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">עריכה</button>
+                    if (cur_cat != spOfferMainCatId)
+                    {
+                        cur_cat = spOfferMainCatId;
+                        <div class="B" style="background-color:#fff;color:#000;font-size:24px;text-align:center;padding:10px;"><h3>@NewAppFunctions.GetTitleById("Cat",cur_cat)</h3></div>
+                    }
+                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowColor" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">
+                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" >עריכה</button>
                         <div style="overflow: auto;"> @spItem.id - @spItem.title</div>
                         @if (vendor_id > 0)
                         {
@@ -72,10 +79,90 @@
                 }
             </div>
         </div>
-        <div style="overflow: auto;height: 100px;background-color: #e3e3e3">&nbsp;</div>
     </div>
+    <div class="Spacer100" style="overflow: auto;height: 100px;background-color: #fff"></div>
+    <div class="Spacer100" style="overflow: auto;height: 100px;background-color: #fff"></div>
+    <div class="Spacer100" style="overflow: auto;height: 100px;background-color: #fff"></div>
     db.Close();
 }
+
+@helper SpOfferCategories()
+{
+System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM categories WHERE mainCat_id=-2 AND is_deleted=0";
+var MainSpOfferCategories = db.Query(sqlSelect);
+
+
+    <div class="B" style="overflow: auto;color: #000;">
+        <div style="overflow: auto;font-size: 24px;color: #000;">
+            <div style="overflow: auto; color: #fff; background-color: #000; overflow: auto;">
+                <button type="button" style="float: left; padding: 5px; margin: 5px; margin-left: 50px;margin-right: 30px;" onclick="Accordionize('AddSpOfferCatAcc');">➕</button>
+                <div style="padding: 5px;">ניהול קטגוריות מבצעים</div>
+
+            </div>
+            <div style="overflow: auto">
+            </div>
+
+
+        </div>
+
+        <button class="accordion" style="display:none;" id="AddSpOfferCatAcc"></button>
+        <div class="panel">
+            <div class="B" style="padding:5px;">
+
+                <form id="AddSpOfferCategory">
+                    <div class="B">
+
+                        <div style="overflow: auto;">
+                            <div class="SpOfferAddRow">
+                                כותרת קטגוריה<br>
+                                <input type="text" class="A" style="width:90%" id="cat_title" name="cat_title">
+                            </div>
+                            <div class="SpOfferAddRow">
+                                Title<br>
+                                <input type="text" class="A" style="width:90%" id="cat_title_e" name="cat_title_e">
+                            </div>
+
+                        </div>
+                        <div style="overflow: auto;">
+                            <div class="SpOfferAddRow">
+
+                                תיאור<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="cat_desc" name="cat_desc"></textarea>
+                            </div>
+                            <div class="SpOfferAddRow">
+
+                                Description<br><textarea style="font-size: 16px;padding: 5px;margin: 5px;width: 90%;resize: none" id="cat_desc_e" name="cat_desc_e"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="Spacer50"></div>
+                        <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;text-align: center;">
+                            <button type="button" style="font-size: 18px;padding: 5px;margin: 5px;background-color: #fff;width: 45%;color: #000;font-weight: bold" onclick="    AjaxActions('AddSpOfferCategory', '','MainLoader','AddSpOfferCategory');">✅ הוספת קטגוריית מבצעים</button>
+                        </div>
+
+
+                    </div>
+                </form>
+
+
+            </div>
+
+        </div>
+    
+    <div class="B">
+        @foreach(var cat in MainSpOfferCategories) {
+        <div class="B" style="margin:5px;padding:5px;font-size:18px;background-color:#fff;border-bottom:1px dotted #808080;">
+            @cat.title
+            </div>
+            }
+    </div>
+    
+    </div>
+
+    db.Close();
+}
+
 
 @helper AddNewSpOffer()
 {
@@ -179,8 +266,16 @@ int spOfferId = 0;
 try { spOfferId = spOffer.id; } catch { }
 int spOfferType = 0;
 try { spOfferType = spOffer.spOfferType; } catch { }
+int spOfferMainCatId = 0;
+try { spOfferMainCatId = spOffer.spOfferMainCatId; } catch { }
+
+
+
 sqlSelect = "SELECT id,title from rounds WHERE is_catalog=1 ORDER BY vendor_id";
 var CatalogRounds = db.Query(sqlSelect);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=-2 AND is_deleted=0";
+var MainSpOfferCategories = db.Query(sqlSelect);
+
 sqlSelect = "SELECT rounds.id,rounds.title FROM rounds INNER JOIN RoundSpecials ON rounds.id=RoundSpecials.round_id WHERE RoundSpecials.specialOfferId=@0";
 var SpOfferInRounds = db.Query(sqlSelect, spOfferId);
 
@@ -234,12 +329,7 @@ string offer_type_title = ""; try { offer_type_title = NewAppFunctions.GetTitleB
 
                             <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
                         </form>
-                    <div class="prodSectionTitle" style="display:none">
-
-
-                        תמונות מוצר
-
-                    </div>
+    
                     <div class="ProductViewImagesContainer" id="ProductImagesContainer">
                         <input type="hidden" name="upload_spOffer_id" id="upload_spOffer_id" value="@spOfferId">
 
@@ -322,6 +412,15 @@ string offer_type_title = ""; try { offer_type_title = NewAppFunctions.GetTitleB
                                     <input type="checkbox" style="float: left; padding: 5px; margin: 5px; height: 20px; width: 20px;" id="is_active" name="is_active" value="true" @if (spOffer.is_active) { <text> checked </text> } onclick="AjaxActions('ActivateSpOffer', @spOfferId,'MainLoader',this.checked);">
                                 </div>
                                 <div class="SpOfferAddRow">
+                                    קטגוריה
+                                    <select class="A" style="float:left" name="spOfferMainCatId" id="spOfferMainCatId">
+                                        @foreach (var cat in MainSpOfferCategories)
+                                        {
+                                            <option value="@cat.id">@cat.title</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="SpOfferAddRow">
                                     כותרת מבצע<br>
                                     <input type="text" class="A" style="width:90%" id="special_title" name="special_title" value="@spOffer.title">
                                 </div>
@@ -400,8 +499,13 @@ int spOfferType = 0;
 try { spOfferType = spOffer.spOfferType; } catch { }
 string offer_type_title = ""; try { offer_type_title = NewAppFunctions.GetTitleById("spOfferTypes", spOfferType); } catch { }
 string offer_type_icon = ""; try { offer_type_icon = NewAppFunctions.GetTitleById("spOfferTypeIcon", spOfferType); } catch { }
+int spOfferMainCatId = 0;
+try { spOfferMainCatId = spOffer.spOfferMainCatId; } catch { }
 
     <div class="B">
+        <div class="SPOFFERVIEWERTITLE">
+            @NewAppFunctions.GetTitleById("Cat", spOfferMainCatId)
+        </div>
         <div class="SPOFFERVIEWERTITLE">
             @spOffer.title
             <div style="float: left">
@@ -1069,6 +1173,51 @@ string offer_type_icon = ""; try { offer_type_icon = NewAppFunctions.GetTitleByI
         return theHtmlOutput;
     }
 
+    public static string AddSpOfferCategory()
+    {
+        string theHtmlOutput = "";
+        var db = Database.Open("op_data");
+        var sqlSelect = "";
+
+        string cat_title=""; try { cat_title = Request["cat_title"]; } catch { }
+        string cat_title_e=""; try { cat_title_e = Request["cat_title_e"]; } catch { }
+        string cat_desc=""; try { cat_desc = Request["cat_desc"]; } catch { }
+        string cat_desc_e=""; try { cat_desc_e = Request["cat_desc_e"]; } catch { }
+
+        if (String.IsNullOrEmpty(cat_title))
+        {
+            theHtmlOutput += "חובה להזין כותרת לקטגוריה<br>";
+        }
+        if (String.IsNullOrEmpty(cat_title_e))
+        {
+            theHtmlOutput += "חובה להזין כותרת לקטגוריה גם באנגלית<br>";
+        }
+
+        if (theHtmlOutput == "") {
+            sqlSelect = "SELECT id FROM categories WHERE maincat_id=-2 AND (title=@0 OR e_title=@1)";
+            var dupChk = db.QuerySingle(sqlSelect, cat_title, cat_title_e);
+
+            if (dupChk == null)
+            {
+                sqlSelect = "INSERT INTO categories(title,e_title,cat_desc,cat_e_desc,maincat_id) VALUES(@0,@1,@2,@3,@4)";
+                db.Execute(sqlSelect, cat_title, cat_title_e, cat_desc, cat_desc_e, -2);
+
+            }
+            else
+            {
+                theHtmlOutput += "קיימת כבר קטגורית מבצעים בשם הזה<br>";
+            }
+        }
+
+
+        if (theHtmlOutput == "") { theHtmlOutput += "הקטגוריה התווספה בהצלחה!<br>"; }
+        else { theHtmlOutput = "!$!" + theHtmlOutput; }
+
+        db.Close();
+        return theHtmlOutput;
+    }
+
+
     public static string DeleteSpOffer()
     {
         string theHtmlOutput = "";
@@ -1173,6 +1322,7 @@ string offer_type_icon = ""; try { offer_type_icon = NewAppFunctions.GetTitleByI
         string special_desc_e = ""; special_desc_e = Request["special_desc_e"];
         decimal special_price = 0; try { special_price = Convert.ToDecimal(Request["special_price"]); } catch { }
         decimal special_commision = 0; try { special_commision = Convert.ToDecimal(Request["special_commision"]); } catch { }
+        int spOfferMainCatId = 0; try { spOfferMainCatId = Convert.ToInt32(Request["spOfferMainCatId"]); } catch { }
         int spOfferType = 0; try { spOfferType = Convert.ToInt32(Request["spOfferType"]); } catch { }
         int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["max_in_cart"]); } catch { }
         bool is_discountable = false; if (!Request["is_discountable"].IsEmpty()) { is_discountable = true; }
@@ -1205,8 +1355,8 @@ string offer_type_icon = ""; try { offer_type_icon = NewAppFunctions.GetTitleByI
             var db = Database.Open("op_data");
             var sqlSelect = "";
             string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id);
-            sqlSelect = "UPDATE specialOffers SET title=@0,title_e=@1,description=@2,desc_e=@3,price=@4,is_charity=@5,max_in_cart=@6,discountable=@7,special_commision=@8,spOfferType=@9,spOfferItemsJson=@10 WHERE id=@11";
-            db.Execute(sqlSelect, special_title, special_title_e, special_desc, special_desc_e, special_price, is_charity, max_in_cart, is_discountable, special_commision, spOfferType, spOfferItemsJson, spOffer_id);
+            sqlSelect = "UPDATE specialOffers SET title=@0,title_e=@1,description=@2,desc_e=@3,price=@4,is_charity=@5,max_in_cart=@6,discountable=@7,special_commision=@8,spOfferType=@9,spOfferItemsJson=@10,spOfferMainCatId=@11 WHERE id=@12";
+            db.Execute(sqlSelect, special_title, special_title_e, special_desc, special_desc_e, special_price, is_charity, max_in_cart, is_discountable, special_commision, spOfferType, spOfferItemsJson, spOfferMainCatId, spOffer_id);
             sqlSelect = "UPDATE SpOfferRoundsAvailability SET max_in_cart=@0 WHERE specialOfferId=@1";
             db.Execute(sqlSelect, max_in_cart, spOffer_id);
 

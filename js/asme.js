@@ -671,6 +671,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "UpdateProductPricingOption":
             case "AddProductType":
             case "AddSpOffer":
+            case "AddSpOfferCategory":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1638,6 +1639,12 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "AddProductType":
                         if (!theRes.startsWith("!$!")) {
                             sbload('GenSb', 'Caller?p1=EditProductTypesSettings');
+                        }
+                        break;
+
+                    case "AddSpOfferCategory":
+                        if (!theRes.startsWith("!$!")) {
+                            sbload('GenSb', 'Caller?p1=SpOfferCategories');
                         }
                         break;
 
