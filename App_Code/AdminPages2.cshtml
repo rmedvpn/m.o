@@ -2325,7 +2325,7 @@
 @helper CatManager()
 {
     var db = Database.Open("op_data");
-    var sqlSelect = "SELECT * FROM categories WHERE is_maincat=1 AND is_deleted=0";
+    var sqlSelect = "SELECT * FROM categories WHERE is_maincat=1 AND is_deleted=0 ORDER BY sort_order";
     var MainCategories = db.Query(sqlSelect);
 
 
@@ -2357,9 +2357,11 @@
                 var subCategories = db.Query(sqlSelect, cat.id);
 
                 <div style="overflow: auto;padding: 5px;font-size: 18px;color: #000;border-bottom: 1px dashed #000;background-color: #e3e3e3" id="catDiv_@cat.id">
+                    <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat.id','MainLoader',0,'up','');">⬆️</button>
+                    <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat.id', 'MainLoader', 0, 'down', '');">⬇️</button>
                     <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="Accordionize('menuAcc_@cat.id');">תתי קטגוריה</button>
                     <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@cat.id');AdjustMainView();">עריכה</button>
-                    <div style="overflow: auto;"> @cat.id - @cat.title</div>
+                    <div style="overflow: auto;">@cat.title</div>
                     <div style="overflow: auto;clear: both;">
                         <button style="display: none" id="menuAcc_@cat.id"></button>
                         <div class="panel" style="padding: 0;margin: 0">
@@ -2417,7 +2419,7 @@
         </div>
 
         <div style="overflow: auto;padding: 5px;margin: 5px;font-weight: bold;direction:rtl" id="catDiv_@Category.id">
-            @NewAppHelpers.CatEditRow(Category.id, Category.title, Category.e_title, true)
+            @NewAppHelpers.CatEditRow(Category.id, "")
         </div>
 
 
@@ -2459,7 +2461,7 @@
                     </div>
                     <div style="overflow: auto;padding: 5px;margin: 5px;">
                         <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
-                            קטגוריות מבצעים
+                            קטגוריות למוצרים במבצעים
                             <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">הוספה</button>
                         </div>
                         <div style="overflow: auto">

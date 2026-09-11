@@ -663,12 +663,29 @@
             }
             break;
 
+        case "RefreshCatInfo":
+            if (true)
+            {
+                int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+                string sub_cat_type = Request["param2"];
+
+                <div>@NewAppHelpers.CatEditRow(cat_id, sub_cat_type)</div>
+            }
+            break;
         case "CatList":
             if (true)
             {
                 int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
                 string sub_cat_type = Request["param2"];
-                <div>@NewAppHelpers.SubCatList(cat_id, sub_cat_type)</div>
+                if (cat_id > 0 & !String.IsNullOrEmpty(sub_cat_type))
+                {
+                    <div>@NewAppHelpers.SubCatList(cat_id, sub_cat_type)</div>
+
+                }
+            else
+                        {
+                            <div></div>
+                        }
             }
             break;
 
@@ -704,7 +721,7 @@
                 int rec_id = 0; try { rec_id = Convert.ToInt32(Request["param2"]); } catch { }
                 bool is_actions = false;
                 if (rec_type == 1) { is_actions = true; }
-                <div>@NewAppHelpers.ProductImages(rec_id, rec_type,is_actions)</div>
+                <div>@NewAppHelpers.ProductImages(rec_id, rec_type, is_actions)</div>
             }
             break;
 

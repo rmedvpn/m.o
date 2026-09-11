@@ -1630,27 +1630,32 @@ db.Close();
     db.Close();
 }
 
-@helper CatEditRow(int cat_id, string title, string e_title, bool is_main = false)
+@helper CatEditRow(int cat_id, string SubCatType = "")
 {
-string isMain = ""; if (is_main) { isMain = "MAIN"; }
 var db = Database.Open("op_data");
 var sqlSelect = "select * from ItemUnitTypes";
 var ItemUnitTypes= db.Query(sqlSelect);
 sqlSelect = "select * from productTypes";
 var productTypes = db.Query(sqlSelect);
-sqlSelect = "SELECT def_product_type,def_itemunit_type,maincat_id FROM Categories WHERE id=@0 ORDER BY sort_order";
+sqlSelect = "SELECT id,title,e_title,def_product_type,def_itemunit_type,maincat_id FROM Categories WHERE id=@0 ORDER BY sort_order";
 var cat=db.QuerySingle(sqlSelect, cat_id);
 int def_product_type = 0;try { def_product_type = cat.def_product_type; } catch { }
 int def_itemunit_type = 0;try { def_itemunit_type = cat.def_itemunit_type; } catch { }
 int maincat_id = 0;try { maincat_id = cat.maincat_id; } catch { }
+bool is_maincat = false;
+string e_title = "";
+string title = "";
+try { title = cat.title; } catch { }
+try { e_title = cat.e_title; } catch { }
+try { is_maincat = cat.is_maincat; } catch { }
 db.Close();
     <div style="overflow: auto;font-size: 18px;color: #000" id="cat_info_@cat_id">
-        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat_id','MainLoader',@maincat_id,'up','');">⬆️</button>
-        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat_id', 'MainLoader', @maincat_id, 'down', '');">⬇️</button>
-        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0; background: transparent" onclick="    showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">⚙️</button>
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat_id','MainLoader',@maincat_id,'up','@SubCatType');">⬆️</button>
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat_id', 'MainLoader', @maincat_id, 'down', '@SubCatType');">⬇️</button>
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0; background: transparent" onclick="showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">⚙️</button>
 
-        @title | @e_title
-        <button style="float: right;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">עריכה</button>
+        @title
+
     </div>
     <div style="overflow: auto; font-size: 18px; color: #000; display: none; border: 1px dashed #000; text-align: center; direction: rtl" id="cat_edit_@cat_id">
         <form id="EditCat_@cat_id">
@@ -1662,37 +1667,41 @@ db.Close();
                 <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" placeholder="שם הקטגוריה" name="cat_title" id="cat_title_@cat_id" value="@title">
                 <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" placeholder="Title" name="cat_e_title" id="cat_e_title_@cat_id" value="@e_title">
             </div>
-            <div class="B" style="text-align:right">
-                ברירות מחדל
-            </div>
-            <div class="B">
-                <div class="B" style="float:right;width:45%;">
-                     סוג מוצר 
-                    <select class="A" name="productType" id="productType">
-                        <option>ללא</option>
-                        @foreach (var pt in productTypes)
-                        {
-                            <option value="@pt.id" selected="@(pt.id == def_product_type)">@pt.title</option>
-                        }
-                    </select>
+
+            @if (SubCatType != "SPOFFER")
+            {<div class="B" style="text-align:right">
+                    ברירות מחדל
                 </div>
-                <div class="B" style="float: right; width: 45%;">
-                    יחידת מידה 
-                    <select class="A" name="ItemUnitType" id="ItemUnitType">
-                        <option>ללא</option>
-                        @foreach (var item in ItemUnitTypes)
-                        {
-                            <option value="@item.id" selected="@(item.id == def_itemunit_type)">@item.title</option>
-                        }
-                    </select>
+                <div class="B">
+                    <div class="B" style="float:right;width:45%;">
+                        סוג מוצר
+                        <select class="A" name="productType" id="productType">
+                            <option>ללא</option>
+                            @foreach (var pt in productTypes)
+                            {
+                                <option value="@pt.id" selected="@(pt.id == def_product_type)">@pt.title</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="B" style="float: right; width: 45%;">
+                        יחידת מידה
+                        <select class="A" name="ItemUnitType" id="ItemUnitType">
+                            <option>ללא</option>
+                            @foreach (var item in ItemUnitTypes)
+                            {
+                                <option value="@item.id" selected="@(item.id == def_itemunit_type)">@item.title</option>
+                            }
+                        </select>
+                    </div>
                 </div>
-            </div>
+
+            }
 
             <div style="overflow: auto;text-align: center;padding: 5px;">
                 <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="hideElement('cat_edit_@cat_id');showElement('cat_info_@cat_id');">ביטול</button>
                 <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateCatInfo', @cat_id,'MainLoader', 'EditCat_@cat_id');">שמירת שינוים</button>
 
-                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteCat', @cat_id,'','@isMain');">מחיקת קטגוריה</button>
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteCat', @cat_id,'MainLoader','@is_maincat');">מחיקת קטגוריה</button>
             </div>
         </form>
     </div>
@@ -1709,15 +1718,15 @@ db.Close();
     switch (SubCatType)
     {
         case "SUBCAT":
-            sqlSelect = "SELECT * FROM categories WHERE is_subcat=1 AND mainCat_id=@0";
+            sqlSelect = "SELECT * FROM categories WHERE is_subcat=1 AND mainCat_id=@0 ORDER BY sort_order";
             emptyTxt = "אין תתי קטגוריה";
             break;
         case "SPOFFER":
-            sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1 AND mainCat_id=@0";
+            sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1 AND mainCat_id=@0 ORDER BY sort_order";
             emptyTxt = "אין קטגוריות מבצעים";
             break;
         case "TAG":
-            sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND mainCat_id=@0";
+            sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND mainCat_id=@0 ORDER BY sort_order";
             emptyTxt = "אין תגיות";
             break;
     }
@@ -1728,7 +1737,7 @@ db.Close();
         <div>
             @foreach (var Category in catList)
             {
-                <div style="; direction: rtl" id="catDiv_@Category.id">@NewAppHelpers.CatEditRow(Category.id, Category.title, Category.e_title)</div>
+                <div style="; direction: rtl" id="catDiv_@Category.id">@NewAppHelpers.CatEditRow(Category.id, SubCatType)</div>
             }
 
         </div>

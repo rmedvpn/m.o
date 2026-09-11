@@ -749,9 +749,9 @@
         {
             new_sort_order = new_sort_order + 101;
         }
-        sqlSelect = "UPDATE Categories SET sort_order=@0 WHERE id=@1 AND maincat_id=@2";
+        sqlSelect = "UPDATE Categories SET sort_order=@0 WHERE id=@1 ";
 
-        db.Execute(sqlSelect, new_sort_order, cat_id,main_cat_id);
+        db.Execute(sqlSelect, new_sort_order, cat_id);
         db.Close();
         //AppFunctions.DoCatSortSequencing(main_cat_id);
         AppFunctions.DoCatOrderSequence(cat_id);
@@ -783,6 +783,7 @@
         var cat = db.QuerySingle(sqlSelect, cat_id);
         int maincat_id = 0; try { maincat_id = cat.maincat_id; } catch { }
         bool is_spOffersCat = false; try { is_spOffersCat = cat.is_spOffersCat; } catch { }
+        DataFunctions.WriteDebugLine("SEQ cat_id" + cat_id + "main_cat_id" + maincat_id);
 
         if (is_spOffersCat)
         {
@@ -790,7 +791,7 @@
         }
         else
         {
-            sqlSelect = "SELECT id FROM Categories WHERE  is_deleted=0 AND maincat_id =@0   ORDER BY sort_order";
+            sqlSelect = "SELECT id FROM Categories WHERE  is_deleted=0 AND maincat_id =@0 AND is_spOffersCat=0  ORDER BY sort_order";
         }
         var catRs = db.Query(sqlSelect, maincat_id);
         int i = 0;

@@ -1191,6 +1191,11 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                        
                         break;
 
+                    case "UpdateCatInfo":
+                        RepAjaxUpdate('RefreshCatInfo', 'catDiv_' + value, 'MainLoader', value);
+                        PageNavigator("CATMANAGER", '', true);
+                        break;
+
                     case "UpdateProductField":
                         RepAjaxUpdate('ProductFieldEntry', 'fieldDiv_' + value, 'ContentLoader', value);
                         break;
@@ -1394,6 +1399,15 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
 
                         RepAjaxUpdate('SpOffCatChangeOrder', 'SpOfferCatContainer', 'MainLoader', param2);
                         RepAjaxUpdate("SPOFFERSADMIN", "MainBoardContainer", 'MainLoader', param1);
+
+                       // PageNavigator('SPOFFERS');
+                        break;
+
+                    case "CatChangeOrder":
+                        let contName = param3 + "LISTDIV";
+                        RepAjaxUpdate('CatList', contName, 'MainLoader', param1, param3);
+                        PageNavigator("CATMANAGER", '', true);
+                      //  RepAjaxUpdate("SPOFFERSADMIN", "MainBoardContainer", 'MainLoader', param1);
 
                        // PageNavigator('SPOFFERS');
                         break;
@@ -2140,41 +2154,37 @@ function RepAjaxUpdate(theAction,return_container,loaderElement,param1,param2,pa
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
 
-               
+                let returnElement = document.getElementById(return_container);
 
-                if (!isUpdateDisabled) {
-                    document.getElementById(return_container).innerHTML = this.responseText;
-                }
-                else {
-                    if (theAction != "LoadOrdersView") {
-                        document.getElementById(return_container).innerHTML = this.responseText;
+                if (!isUpdateDisabled || theAction != "LoadOrdersView") {
+                    if (returnElement) {
+                        returnElement.innerHTML = this.responseText;
+                    }
+                    else {
+                        console.log("RepAjaxUpdate: return container not found:", return_container, "Action:", theAction);
                     }
                 }
-                
 
                 switch (theAction) {
+
                     case "RepListSettings":
-                             FixAccordion('ListSettingsAcc');
+                        FixAccordion('ListSettingsAcc');
                         break;
+
                     case "MemberDiscount":
                         FixAccordion('DiscountsInfoAcc');
-
                         break;
 
                     case "LoadSpOfferCatList":
                         FixAccordion('AccAddItemToSpecial');
                         console.log('AccAddItemToSpecial');
                         break;
-                    default:
-                        break;
                 }
-
 
                 if (loaderElement != "") {
                     hideElement(loaderElement);
                 }
             }
-
         };
 
         xmlhttp.open("POST", handlerUrl, true);
