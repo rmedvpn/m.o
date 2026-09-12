@@ -172,7 +172,7 @@
 @helper MenuItems(int round_id)
 {
     var db = Database.Open("op_data");
-    var sqlSelect = "SELECT * from roundMenuItems WHERE  is_deleted=0 AND round_id=@0 ORDER BY maincat_id,sub_cat_id";
+    var sqlSelect = "SELECT * from roundMenuItems WHERE  is_deleted=0 AND round_id=@0 ORDER BY cat_sort_order,maincat_id,sort_order";
     var roundMenuItems = db.Query(sqlSelect, round_id);
     System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
     int vendor_id = 0;
@@ -270,11 +270,20 @@
                 if (curCat != cur_main_cat)
                 {
                     curCat = cur_main_cat;
-                    <div style="overflow:auto;margin-right:10px;padding:5px;font-size:18px;color:white;background-color:#808080">@cur_main_cat_name</div>
+                    <div style="overflow:auto;padding:5px;font-size:18px;color:white;background-color:#808080">
+                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuCategoryChangeOrder', '@item.maincat_id','MainLoader','@round_id','up','');">⬆️</button>
+                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuCategoryChangeOrder', '@item.maincat_id', 'MainLoader', '@round_id', 'down', '');">⬇️</button>
+
+                        @cur_main_cat_name
+                    </div>
                 }
-                <div class="VendorMenuItemDiv" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">
+                <div class="VendorMenuItemDiv" >
 
                     <div style="overflow: auto;color: #000">
+
+                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuItemChangeOrder', '@item.id','MainLoader','@round_id','up','');">⬆️</button>
+                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuItemChangeOrder', '@item.id', 'MainLoader', '@round_id', 'down', '');">⬇️</button>
+                        <button type="button" class="UpDownBtn" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">⚙️</button>
 
 
 
@@ -2789,5 +2798,158 @@ var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
         return theHtmlOutput;
     }
 
+    public static string MenuCategoryChangeOrder()
+    {
+        string theHtmlOutput = "";
+        int maincat_id = 0; try { maincat_id = Convert.ToInt32(Request["value"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+        string direction = ""; try { direction = Request["param2"]; } catch { }
+
+        var db = Database.Open("op_data");
+
+        string sqlSelect = "SELECT maincat_id,MAX(cat_sort_order) AS cat_sort_order FROM RoundMenuItems WHERE round_id=@0 AND maincat_id=@1 GROUP BY maincat_id";
+        var category = db.QuerySingle(sqlSelect, round_id, maincat_id);
+
+        if (category != null)
+        {
+            int cur_sort_order = 0; try { cur_sort_order = Convert.ToInt32(category.cat_sort_order); } catch { }
+            int new_sort_order = cur_sort_order;
+
+            if (direction == "up") { new_sort_order -= 101; } else { new_sort_order += 101; }
+
+            sqlSelect = "UPDATE RoundMenuItems SET cat_sort_order=@0 WHERE round_id=@1 AND maincat_id=@2";
+            db.Execute(sqlSelect, new_sort_order, round_id, maincat_id);
+
+            sqlSelect = "SELECT maincat_id,MIN(cat_sort_order) AS cat_sort_order FROM RoundMenuItems WHERE round_id=@0 GROUP BY maincat_id ORDER BY MIN(cat_sort_order),maincat_id";
+            var categories = db.Query(sqlSelect, round_id);
+
+            int i = 0;
+            foreach (var cat in categories)
+            {
+                i += 100;
+                sqlSelect = "UPDATE RoundMenuItems SET cat_sort_order=@0 WHERE round_id=@1 AND maincat_id=@2";
+                db.Execute(sqlSelect, i, round_id, cat.maincat_id);
+            }
+
+            theHtmlOutput = "הפעולה בוצעה!";
+        }
+        else
+        {
+            theHtmlOutput = "שגיאה בפעולה!";
+        }
+
+        db.Close();
+        return theHtmlOutput;
+    }
+    public static string MenuCategoryChangeOrder_OLD()
+    {
+        string theHtmlOutput = "";
+        int maincat_id = 0; try { maincat_id = Convert.ToInt32(Request["value"]); } catch { }
+        string direction = ""; try { direction = Request["param2"]; } catch { }
+
+        var db = Database.Open("op_data");
+
+        string sqlSelect = "SELECT TOP(1) id,cat_sort_order,maincat_id,round_id FROM RoundMenuItems WHERE maincat_id=@0";
+        var item = db.QuerySingle(sqlSelect, maincat_id);
+        if (item != null)
+        {
+            int cur_sort_order = 0; try { cur_sort_order = item.cat_sort_order; } catch { }
+            int new_sort_order = cur_sort_order;
+
+            if (direction == "up") { new_sort_order -= 101; } else { new_sort_order += 101; }
+
+            sqlSelect = "UPDATE RoundMenuItems SET cat_sort_order=@0 WHERE maincat_id=@1";
+            db.Execute(sqlSelect, new_sort_order, maincat_id);
+
+            //int maincat_id = 0; try { maincat_id = item.maincat_id; } catch { }
+
+            sqlSelect = "SELECT id FROM RoundMenuItems WHERE round_id=@0 AND maincat_id=@1 ORDER BY cat_sort_order";
+            var menuItems = db.Query(sqlSelect, item.round_id, maincat_id);
+
+            int i = 0;
+            foreach (var menuItem in menuItems)
+            {
+                i += 100;
+                sqlSelect = "UPDATE RoundMenuItems SET cat_sort_order=@0 WHERE id=@1";
+                db.Execute(sqlSelect, i, menuItem.id);
+            }
+            theHtmlOutput = "הפעולה בוצעה!";
+        }
+        else {
+            theHtmlOutput = "שגיאה בפעולה!";
+        }
+
+        db.Close();
+
+        //AppSettings.ReCreateSpecialOffersJson();
+
+
+        return theHtmlOutput;
+    }
+    public static string MenuItemChangeOrder()
+    {
+        string theHtmlOutput = "";
+        int item_id = 0; try { item_id = Convert.ToInt32(Request["value"]); } catch { }
+        string direction = ""; try { direction = Request["param2"]; } catch { }
+
+        var db = Database.Open("op_data");
+
+        string sqlSelect = "SELECT id,sort_order,maincat_id,round_id FROM RoundMenuItems WHERE id=@0";
+        var item = db.QuerySingle(sqlSelect, item_id);
+        if (item != null)
+        {
+            int cur_sort_order = 0; try { cur_sort_order = item.sort_order; } catch { }
+            int new_sort_order = cur_sort_order;
+
+            if (direction == "up") { new_sort_order -= 101; } else { new_sort_order += 101; }
+
+            sqlSelect = "UPDATE RoundMenuItems SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, new_sort_order, item_id);
+
+            int maincat_id = 0; try { maincat_id = item.maincat_id; } catch { }
+
+            sqlSelect = "SELECT id FROM RoundMenuItems WHERE round_id=@0 AND maincat_id=@1 ORDER BY sort_order";
+            var menuItems = db.Query(sqlSelect, item.round_id, maincat_id);
+
+            int i = 0;
+            foreach (var menuItem in menuItems)
+            {
+                i += 100;
+                sqlSelect = "UPDATE RoundMenuItems SET sort_order=@0 WHERE id=@1";
+                db.Execute(sqlSelect, i, menuItem.id);
+            }
+            theHtmlOutput = "הפעולה בוצעה!";
+        }
+        else {
+            theHtmlOutput = "!$!הפריט לא נמצא!";
+        }
+
+        db.Close();
+
+        //AppSettings.ReCreateSpecialOffersJson();
+
+
+        return theHtmlOutput;
+    }
+
+    public static void DoMenuItemOrderSequence(int spOfferId)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,spOfferMainCatId FROM SpecialOffers WHERE  id=@0";
+        var spOffer = db.QuerySingle(sqlSelect, spOfferId);
+        int spOfferMainCatId = 0; try { spOfferMainCatId = spOffer.spOfferMainCatId; } catch { }
+
+        sqlSelect = "SELECT id FROM SpecialOffers WHERE spOfferMainCatId=@0  ORDER BY sort_order";
+        var spOffersRs = db.Query(sqlSelect, spOfferMainCatId);
+        int i = 0;
+        foreach (var item in spOffersRs)
+        {
+            i += 100;
+            sqlSelect = "UPDATE SpecialOffers SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
 
 }

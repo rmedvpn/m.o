@@ -2734,4 +2734,12 @@ button.RoundMenuItemsEditorTitleBtn{
     padding:5px;
     margin-left:5px;
 }
+button.UpDownBtn {
+    float: right;
+    padding: 1px;
+    margin: 1px;
+    font-size: 14px;
+    border: 0;
+    background: transparent
+}
 /*END MY CUSTOM STYLING*/
