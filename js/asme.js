@@ -1415,6 +1415,10 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "MenuItemChangeOrder":
                         RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param1);
                         break;
+                    case "MenuSpOfferChangeOrder":
+                    case "MenuSpOfferCategoryChangeOrder":
+                        RepAjaxUpdate('RoundSpecials', 'RoundSpecialsDiv', 'MainLoader', param1);
+                        break;
                     case "AddSpOffer":
                     case "DeleteSpOffer":
                     case "SpOffChangeOrder":

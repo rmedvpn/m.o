@@ -1415,6 +1415,15 @@
             }
 
             break;
+        case "RoundSpecials":
+            if (true)
+            {
+                int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
+
+                <div> @Menus.RoundSpecials(round_id)</div>
+            }
+
+            break;
 
         ////////////////////////////////////
 
