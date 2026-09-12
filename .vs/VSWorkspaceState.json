@@ -1,8 +1,10 @@
 {
   "ExpandedNodes": [
     "",
-    "\\App_Code"
+    "\\App_Code",
+    "\\Scripts",
+    "\\Scripts\\Ajax"
   ],
-  "SelectedNode": "\\App_Code\\SpecialOffers.cshtml",
+  "SelectedNode": "\\Scripts\\Ajax\\AjaxActions.cshtml",
   "PreviewInSolutionExplorer": false
 }

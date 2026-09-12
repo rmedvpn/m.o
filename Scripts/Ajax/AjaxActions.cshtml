@@ -4780,6 +4780,13 @@
                 theHtmlOutput = AppFunctions.CatChangeOrder();
             }
             break;
+        case "SpOffChangeOrder":
+
+            if (true)
+            {
+                theHtmlOutput = SpecialOffers.SpOffChangeOrder();
+            }
+            break;
         case "DeleteCustomField":
 
             if (true)
@@ -5428,7 +5435,8 @@
                             break;
                     }
 
-                    db.Execute(sqlSelect, cat_title, cat_e_title, DateTime.Now, u_id, main_cat_id);
+                    db.Execute(sqlSelect, cat_title, cat_e_title, local_time, u_id, main_cat_id);
+                    AppSettings.ReCreateCategoriesJson();
                     theHtmlOutput = " 👌 הקטגוריה התווספה ";
                 }
             }
@@ -5459,6 +5467,7 @@
                     var db = Database.Open("op_data");
                     var sqlSelect = "UPDATE categories SET title=@0,e_title=@1,def_itemunit_type=@2,def_product_type=@3 WHERE id=@4";
                     db.Execute(sqlSelect, cat_title, cat_e_title, ItemUnitType, productType, cat_id);
+                    AppSettings.ReCreateCategoriesJson();
                     theHtmlOutput = " 👌 השינויים נשמרו ";
                     db.Close();
                 }

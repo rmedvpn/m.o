@@ -21,7 +21,7 @@
 
     int cur_cat = 0;
 
-    sqlSelect = "SELECT s.*,c.sort_order AS category_sort_order FROM SpecialOffers s JOIN Categories c ON s.spOfferMainCatId=c.id WHERE s.spOfferType=@0 ORDER BY c.sort_order,s.spOfferMainCatId,s.vendor_id,s.is_activated,s.is_active DESC,s.id DESC";
+    sqlSelect = "SELECT s.*,c.sort_order AS category_sort_order FROM SpecialOffers s JOIN Categories c ON s.spOfferMainCatId=c.id WHERE s.spOfferType=@0 ORDER BY c.sort_order,s.spOfferMainCatId,s.sort_order,s.vendor_id,s.is_activated,s.is_active DESC,s.id DESC";
     var SpecialOffers = db.Query(sqlSelect, spOfferType);
 
     <div style="overflow:auto" id="SpOfferAdminDiv">
@@ -66,15 +66,21 @@
                         cur_cat = spOfferMainCatId;
                         <div class="B" style="background-color:#fff;color:#000;font-size:24px;text-align:center;padding:10px;"><h3>@NewAppFunctions.GetTitleById("Cat", cur_cat)</h3></div>
                     }
-                    <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowColor" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">
-                        <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000">עריכה</button>
-                        <div style="overflow: auto;"> @spItem.id - @spItem.title</div>
-                        @if (vendor_id > 0)
-                        {
-                            <div class="B">@vendor_id</div>
-                        }
+            <div style="overflow: auto;padding: 5px;margin: 5px;font-size: 18px;color: #000;background-color: @rowColor" >
+                <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('SpOffChangeOrder', '@spItem.id','MainLoader','@spOfferMainCatId','up','');">⬆️</button>
+                <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('SpOffChangeOrder', '@spItem.id', 'MainLoader', '@spOfferMainCatId', 'down', '');">⬇️</button>
 
-                    </div>
+                <button style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">⚙️</button>
+                <div style="overflow: auto;">
+                    @spItem.title
+                                @if (vendor_id > 0)
+                                {
+                                    <span class="PrplMiniTag">מבצע של הספק @AppFunctions.GetVendorTitleById(vendor_id)</span>
+                                }
+                            </div>
+                
+
+            </div>
                 }
             </div>
         </div>
@@ -1128,6 +1134,7 @@ var MainSpOfferCategories = db.Query(sqlSelect);
 
                 }
                 string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id, true);
+                AppSettings.ReCreateSpecialOffersJson();
                 db.Close();
 
             }
@@ -1153,6 +1160,7 @@ var MainSpOfferCategories = db.Query(sqlSelect);
         string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id, true);
         theHtmlOutput = " 👌 הוסר בהצלחה";
         db.Close();
+        AppSettings.ReCreateSpecialOffersJson();
         return theHtmlOutput;
     }
 
@@ -1236,13 +1244,14 @@ var MainSpOfferCategories = db.Query(sqlSelect);
             );
 
             db.Close();
-
+            AppSettings.ReCreateSpecialOffersJson();
             theHtmlOutput = " 👌 מבצע חדש נוצר בהצלחה ";
         }
         else
         {
             theHtmlOutput = "!$!" + theHtmlOutput;
         }
+
 
         return theHtmlOutput;
     }
@@ -1289,8 +1298,8 @@ var MainSpOfferCategories = db.Query(sqlSelect);
         else { theHtmlOutput = "!$!" + theHtmlOutput; }
 
         db.Close();
-        AppFunctions.DoCatSortSequencing(-2);
-
+        AppFunctions.DoCatOrderSequence(-2);
+        AppSettings.ReCreateCategoriesJson();
         return theHtmlOutput;
     }
     public static string DeleteSpOfferMainCat()
@@ -1312,7 +1321,9 @@ var MainSpOfferCategories = db.Query(sqlSelect);
             {
                 sqlSelect = "DELETE FROM categories WHERE id=@0";
                 db.Execute(sqlSelect, spOfferMainCatId);
-                AppFunctions.DoCatSortSequencing(-2);
+                AppFunctions.DoCatOrderSequence(-2);
+                AppSettings.ReCreateCategoriesJson();
+
                 theHtmlOutput = " 👌 הקטגוריה נמחקה בהצלחה ";
             }
 
@@ -1342,6 +1353,8 @@ var MainSpOfferCategories = db.Query(sqlSelect);
         db.Execute(sqlSelect, spOffer_id);
         theHtmlOutput = " 👌 המבצע נמחק ";
         db.Close();
+        AppSettings.ReCreateSpecialOffersJson();
+
         return theHtmlOutput;
     }
 
@@ -1373,6 +1386,7 @@ var MainSpOfferCategories = db.Query(sqlSelect);
                 sqlSelect = "UPDATE specialOffers SET is_active=1,is_activated=1 WHERE id=@0";
                 db.Execute(sqlSelect, spOffer_id);
                 string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id, true);
+                AppSettings.ReCreateSpecialOffersJson();
                 theHtmlOutput = " 👌 המבצע הופעל ";
 
             }
@@ -1386,6 +1400,8 @@ var MainSpOfferCategories = db.Query(sqlSelect);
         {
             sqlSelect = "UPDATE specialOffers SET is_active=0 WHERE id=@0";
             db.Execute(sqlSelect, spOffer_id);
+            string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id, true);
+            AppSettings.ReCreateSpecialOffersJson();
             theHtmlOutput = " 👌 המבצע לא יהיה פעיל ";
 
         }
@@ -1464,11 +1480,17 @@ var MainSpOfferCategories = db.Query(sqlSelect);
         {
             var db = Database.Open("op_data");
             var sqlSelect = "";
+            sqlSelect = "UPDATE specialOffers SET title=@0,title_e=@1,description=@2,desc_e=@3,price=@4,is_charity=@5,max_in_cart=@6,discountable=@7,special_commision=@8,spOfferType=@9,spOfferMainCatId=@10 WHERE id=@11";
+            db.Execute(sqlSelect, special_title, special_title_e, special_desc, special_desc_e, special_price, is_charity, max_in_cart, is_discountable, special_commision, spOfferType,  spOfferMainCatId, spOffer_id);
+
             string spOfferItemsJson = AppJson.CreateSpecialOfferJson(spOffer_id);
-            sqlSelect = "UPDATE specialOffers SET title=@0,title_e=@1,description=@2,desc_e=@3,price=@4,is_charity=@5,max_in_cart=@6,discountable=@7,special_commision=@8,spOfferType=@9,spOfferItemsJson=@10,spOfferMainCatId=@11 WHERE id=@12";
-            db.Execute(sqlSelect, special_title, special_title_e, special_desc, special_desc_e, special_price, is_charity, max_in_cart, is_discountable, special_commision, spOfferType, spOfferItemsJson, spOfferMainCatId, spOffer_id);
+            sqlSelect = "UPDATE specialOffers SET spOfferItemsJson=@0 WHERE id=@1";
+            db.Execute(sqlSelect, spOfferItemsJson, spOffer_id);
+
+
             sqlSelect = "UPDATE SpOfferRoundsAvailability SET max_in_cart=@0 WHERE specialOfferId=@1";
             db.Execute(sqlSelect, max_in_cart, spOffer_id);
+            AppSettings.ReCreateSpecialOffersJson();
 
             theHtmlOutput = " 👌 פרטי המבצע נשמרו ";
             db.Close();
@@ -1504,12 +1526,64 @@ var MainSpOfferCategories = db.Query(sqlSelect);
             var sqlSelect = "UPDATE categories SET title=@0,e_title=@1 WHERE id=@2";
             db.Execute(sqlSelect, cat_title, cat_e_title,  cat_id);
             theHtmlOutput = " 👌 השינויים נשמרו ";
+            AppSettings.ReCreateCategoriesJson();
+
             db.Close();
         }
 
         return theHtmlOutput;
     }
 
+    public static string SpOffChangeOrder()
+    {
+        string theHtmlOutput = "";
+        int spOfferId = 0; try { spOfferId = Convert.ToInt32(Request["value"]); } catch { }
+        int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+        string direction = ""; direction = Request["param2"];
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,sort_order FROM SpecialOffers WHERE id=@0";
+        var item = db.QuerySingle(sqlSelect, spOfferId);
+        int cur_sort_order = 0; try { cur_sort_order = item.sort_order; } catch { }
+        int new_sort_order = cur_sort_order;
+        if (direction == "up")
+        {
+            new_sort_order = new_sort_order - 101;
+        }
+        else
+        {
+            new_sort_order = new_sort_order + 101;
+        }
+        sqlSelect = "UPDATE SpecialOffers SET sort_order=@0 WHERE id=@1 ";
+
+        db.Execute(sqlSelect, new_sort_order, spOfferId);
+        db.Close();
+        SpecialOffers.DoSpOfferOrderSequence(spOfferId);
+        AppSettings.ReCreateSpecialOffersJson();
+        theHtmlOutput = "הפעולה בוצעה!";
+
+
+        return theHtmlOutput;
+    }
+
+    public static void DoSpOfferOrderSequence(int spOfferId)
+    {
+        var db = Database.Open("op_data");
+        var sqlSelect = "SELECT id,spOfferMainCatId FROM SpecialOffers WHERE  id=@0";
+        var spOffer = db.QuerySingle(sqlSelect, spOfferId);
+        int spOfferMainCatId = 0; try { spOfferMainCatId = spOffer.spOfferMainCatId; } catch { }
+
+        sqlSelect = "SELECT id FROM SpecialOffers WHERE spOfferMainCatId=@0  ORDER BY sort_order";
+        var spOffersRs = db.Query(sqlSelect, spOfferMainCatId);
+        int i = 0;
+        foreach (var item in spOffersRs)
+        {
+            i += 100;
+            sqlSelect = "UPDATE SpecialOffers SET sort_order=@0 WHERE id=@1";
+            db.Execute(sqlSelect, i, item.id);
+        }
+        db.Close();
+        return;
+    }
 
 
 }

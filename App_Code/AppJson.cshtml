@@ -11,10 +11,11 @@
     {
         var db = Database.Open("op_data");
 
-        var rows = db.Query("SELECT id,title,e_title,is_maincat,cat_desc,cat_e_desc,mainCat_id,def_itemunit_type,is_subcat,is_spOffersCat,is_active,vendor_id FROM Categories WHERE is_active=1 ORDER BY is_maincat DESC,id").ToList();
+        var rows = db.Query("SELECT id,title,e_title,is_maincat,cat_desc,cat_e_desc,mainCat_id,def_itemunit_type,is_subcat,is_spOffersCat,is_active,vendor_id,sort_order FROM Categories WHERE is_active=1 ORDER BY is_maincat DESC,id").ToList();
 
         var mainCategories = new List<object>();
         var categories = new List<object>();
+        var specialOfferCategories = new List<object>();
 
 
         // ---------------------------------------------------------
@@ -30,6 +31,7 @@
             int mainId = 0;
             int defItemUnitType = 0;
             int vendorId = 0;
+            int sortOrder = 0;
 
             string title_h = "";
             string title_e = "";
@@ -39,6 +41,7 @@
             try { mainId = Convert.ToInt32(main.id); } catch { }
             try { defItemUnitType = Convert.ToInt32(main.def_itemunit_type); } catch { }
             try { vendorId = Convert.ToInt32(main.vendor_id); } catch { }
+            try { sortOrder = Convert.ToInt32(main.sort_order); } catch { }
 
             try { title_h = Convert.ToString(main.title) ?? ""; } catch { }
             try { title_e = Convert.ToString(main.e_title) ?? ""; } catch { }
@@ -93,6 +96,7 @@
             mainItem["de"] = desc_e;
             mainItem["unit"] = defItemUnitType;
             mainItem["vid"] = vendorId;
+            mainItem["sort"] = sortOrder;
             mainItem["categories"] = childIds;
             mainItem["spCategories"] = spOfferCategoryIds;
 
@@ -101,20 +105,28 @@
 
 
         // ---------------------------------------------------------
-        // All non-main categories
-        // Flat list so every category can be accessed directly by ID
+        // Normal non-main categories
+        // Excludes standalone special-offer categories (mainCat_id = -2)
         // ---------------------------------------------------------
 
         foreach (var row in rows.Where(x =>
         {
-            try { return !Convert.ToBoolean(x.is_maincat); }
-            catch { return false; }
+            try
+            {
+                return !Convert.ToBoolean(x.is_maincat) &&
+                       Convert.ToInt32(x.mainCat_id) != -2;
+            }
+            catch
+            {
+                return false;
+            }
         }))
         {
             int id = 0;
             int mainCatId = 0;
             int defItemUnitType = 0;
             int vendorId = 0;
+            int sortOrder = 0;
 
             string title_h = "";
             string title_e = "";
@@ -128,6 +140,7 @@
             try { mainCatId = Convert.ToInt32(row.mainCat_id); } catch { }
             try { defItemUnitType = Convert.ToInt32(row.def_itemunit_type); } catch { }
             try { vendorId = Convert.ToInt32(row.vendor_id); } catch { }
+            try { sortOrder = Convert.ToInt32(row.sort_order); } catch { }
 
             try { title_h = Convert.ToString(row.title) ?? ""; } catch { }
             try { title_e = Convert.ToString(row.e_title) ?? ""; } catch { }
@@ -150,8 +163,64 @@
             category["sub"] = isSubCat;
             category["sp"] = isSpOffersCat;
             category["vid"] = vendorId;
+            category["sort"] = sortOrder;
 
             categories.Add(category);
+        }
+
+
+        // ---------------------------------------------------------
+        // Standalone special-offer categories
+        // mainCat_id = -2
+        // These do not have child categories
+        // ---------------------------------------------------------
+
+        foreach (var row in rows.Where(x =>
+        {
+            try
+            {
+                return !Convert.ToBoolean(x.is_maincat) &&
+                       Convert.ToInt32(x.mainCat_id) == -2;
+            }
+            catch
+            {
+                return false;
+            }
+        }))
+        {
+            int id = 0;
+            int defItemUnitType = 0;
+            int vendorId = 0;
+            int sortOrder = 0;
+
+            string title_h = "";
+            string title_e = "";
+            string desc_h = "";
+            string desc_e = "";
+
+            try { id = Convert.ToInt32(row.id); } catch { }
+            try { defItemUnitType = Convert.ToInt32(row.def_itemunit_type); } catch { }
+            try { vendorId = Convert.ToInt32(row.vendor_id); } catch { }
+            try { sortOrder = Convert.ToInt32(row.sort_order); } catch { }
+
+            try { title_h = Convert.ToString(row.title) ?? ""; } catch { }
+            try { title_e = Convert.ToString(row.e_title) ?? ""; } catch { }
+            try { desc_h = (Convert.ToString(row.cat_desc) ?? "").Trim(); } catch { }
+            try { desc_e = (Convert.ToString(row.cat_e_desc) ?? "").Trim(); } catch { }
+
+
+            var category = new Dictionary<string, object>();
+
+            category["id"] = id;
+            category["he"] = title_h;
+            category["en"] = title_e;
+            category["dh"] = desc_h;
+            category["de"] = desc_e;
+            category["unit"] = defItemUnitType;
+            category["vid"] = vendorId;
+            category["sort"] = sortOrder;
+
+            specialOfferCategories.Add(category);
         }
 
 
@@ -163,6 +232,7 @@
 
         result["main"] = mainCategories;
         result["categories"] = categories;
+        result["specialOfferCategories"] = specialOfferCategories;
 
 
         db.Close();
@@ -688,7 +758,7 @@
         var db = Database.Open("op_data");
         var sqlSelect = "";
 
-        var spOffer = db.QuerySingle("SELECT id,title,title_e,description,desc_e,price,spOfferType,discountable,max_in_cart,special_commision,vendor_id FROM SpecialOffers WHERE id=@0 AND is_active=1", spOffer_id);
+        var spOffer = db.QuerySingle("SELECT id,title,title_e,description,desc_e,price,spOfferType,discountable,max_in_cart,special_commision,vendor_id,sort_order FROM SpecialOffers WHERE id=@0 AND is_active=1", spOffer_id);
 
         if (spOffer == null)
         {
@@ -702,6 +772,7 @@
         int spOfferType = 0;
         int maxInCart = 0;
         int vendorId = 0;
+        int sortOrder = 0;
 
         decimal price = 0;
         decimal specialCommision = 0;
@@ -717,6 +788,7 @@
         try { spOfferType = Convert.ToInt32(spOffer.spOfferType); } catch { }
         try { maxInCart = Convert.ToInt32(spOffer.max_in_cart); } catch { }
         try { vendorId = Convert.ToInt32(spOffer.vendor_id); } catch { }
+        try { sortOrder = Convert.ToInt32(spOffer.sort_order); } catch { }
 
         try { price = Convert.ToDecimal(spOffer.price); } catch { }
         try { specialCommision = Convert.ToDecimal(spOffer.special_commision); } catch { }
@@ -791,6 +863,7 @@
         item["disc"] = discountable;
         item["max"] = maxInCart;
         item["vid"] = vendorId;
+        item["sort"] = sortOrder;
         item["items"] = items;
 
         string json = new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(item);
@@ -805,6 +878,8 @@
 
         return json;
     }
+
+
     public static string CreateFullSpecialOffersJson()
     {
         var db = Database.Open("op_data");

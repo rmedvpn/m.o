@@ -755,13 +755,14 @@
         db.Close();
         //AppFunctions.DoCatSortSequencing(main_cat_id);
         AppFunctions.DoCatOrderSequence(cat_id);
+        AppSettings.ReCreateCategoriesJson();
 
         theHtmlOutput = "הפעולה בוצעה!";
 
 
         return theHtmlOutput;
     }
-    public static void DoCatSortSequencing(int main_cat_id)
+    public static void DoCatSortSequencingOLDTODEL(int main_cat_id)
     {
         var db = Database.Open("op_data");
         var sqlSelect = "SELECT id FROM Categories WHERE  is_deleted=0 AND maincat_id =@0 ORDER BY sort_order";
@@ -783,7 +784,6 @@
         var cat = db.QuerySingle(sqlSelect, cat_id);
         int maincat_id = 0; try { maincat_id = cat.maincat_id; } catch { }
         bool is_spOffersCat = false; try { is_spOffersCat = cat.is_spOffersCat; } catch { }
-        DataFunctions.WriteDebugLine("SEQ cat_id" + cat_id + "main_cat_id" + maincat_id);
 
         if (is_spOffersCat)
         {

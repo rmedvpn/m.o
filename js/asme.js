@@ -1413,6 +1413,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         break;
                     case "AddSpOffer":
                     case "DeleteSpOffer":
+                    case "SpOffChangeOrder":
                         if (!theRes.startsWith("!$!")) {
 
                             sbClose('GenSb');
