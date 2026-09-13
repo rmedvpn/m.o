@@ -213,15 +213,21 @@
                 try { price_options_json = item.price_options_json; } catch { }
 
                 bool is_featured = false;
+                bool is_available = true;
                 bool is_active = true;
+                int max_in_cart = 0;
+
                 try { is_featured = item.is_featured; } catch { }
+                try { is_available = item.is_available; } catch { }
                 try { is_active = item.is_active; } catch { }
+                try { max_in_cart = item.max_in_cart; } catch { }
 
                 string favRes = is_featured ? "true" : "false";
 
                 string is_active_class = "PPOBtnItem"; if (is_active) { is_active_class = "PPOBtnItemSelected"; }
                 string is_featured_class = "PPOBtnItem"; if (is_featured) { is_featured_class = "PPOBtnItemSelected"; }
 
+                
                 var PricingOptions = new List<Dictionary<string, object>>();
 
                 if (!string.IsNullOrWhiteSpace(price_options_json))
@@ -277,35 +283,72 @@
                         @cur_main_cat_name
                     </div>
                 }
-                <div class="VendorMenuItemDiv" >
+        <div class="VendorMenuItemDiv">
 
-                    <div style="overflow: auto;color: #000">
+            <div style="overflow: auto;color: #000">
 
-                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuItemChangeOrder', '@item.id','MainLoader','@round_id','up','');">⬆️</button>
-                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuItemChangeOrder', '@item.id', 'MainLoader', '@round_id', 'down', '');">⬇️</button>
-                        <button type="button" class="UpDownBtn" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">⚙️</button>
-
-
-
-                        <img class="VendorMenuItemImg" src="ImgViewer?size=tn&p_id=@item.p_id" alt="אלט" />
-                        <div style="font-size: 18px; color: #000; float: right; padding: 5px;">
-                            <div class="B" style="padding:1px;">
-                                @item.Title
-                            </div>
-                            <div class="B" style="font-size: 14px; padding: 1px;color:#808080">
-                                @cur_sub_cat_name
-                            </div>
+                <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuItemChangeOrder', '@item.id','MainLoader','@round_id','up','');">⬆️</button>
+                <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuItemChangeOrder', '@item.id', 'MainLoader', '@round_id', 'down', '');">⬇️</button>
+                <button type="button" class="UpDownBtn" onclick="sbload('SubMenuLeft','Caller?p1=MenuItemEdit&p2=@item.id');">👁️</button>
+                <button type="button" class="UpDownBtn" onclick="Accordionize('MenuItemAcc_@item.id');">⚙️</button>
+                
 
 
-                        </div>
-                        @if (is_featured)
-                        {
-                            <div class="B" style="float:left;padding:5px;margin:5px;">⭐</div>
-                        }
+
+                <img class="VendorMenuItemImg" src="ImgViewer?size=tn&p_id=@item.p_id" alt="אלט" />
+                <div style="font-size: 18px; color: #000; float: right; padding: 5px;">
+                    <div class="B" style="padding:1px;">
+                        @item.Title
+                    </div>
+                    <div class="B" style="font-size: 14px; padding: 1px;color:#808080">
+                        @cur_sub_cat_name
                     </div>
 
 
                 </div>
+                @if (is_featured)
+                {
+                    <div class="B" style="float:left;padding:5px;margin:5px;">⭐</div>
+                }
+                @if (!is_active)
+                {
+                    <div class="B" style="float:left;padding:5px;margin:5px;">‼️</div>
+                }
+                @if (!is_available)
+                {
+                    <div class="B" style="float:left;padding:5px;margin:5px;">⚠️</div>
+                }
+            </div>
+            <button class="accordion" style="display:none" id="MenuItemAcc_@item.id"></button>
+            <div class="panel" style="padding: 0; margin: 0; background-color: #e3e3e3">
+                
+                <div class="B">
+                    <div class="B" style="float:right;padding:5px;margin:5px;background-color:#e3e3e3">
+                        <input type="checkbox" checked="@(is_available ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle',this.checked,'MainLoader',@item.id,@round_id,'av');" />
+                        המוצר זמין
+
+                    </div>
+
+                    <div class="B" style="float: right; padding: 5px; margin: 5px; background-color: #e3e3e3">
+                        <input type="checkbox" checked="@(is_featured ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle', this.checked, 'MainLoader',@item.id,@round_id, 'hp');" />
+                        דף בית
+
+                    </div>
+
+                    <div class="B" style="float: right; padding: 5px; margin: 5px; background-color: #e3e3e3">
+
+                        מוגבל ל <input type="text" style="width:40px;" name="max_in_cart" id="max_in_cart_@item.id" @if (max_in_cart > 0) {<text>value=@max_in_cart </text> }  /> 
+                        @item.itemunit בהזמנה <button type="button" style="background:transparent;border:0"  onclick="    AjaxActions('SetMenuItemMaxInCart', @item.id, 'MainLoader', document.getElementById('max_in_cart_@item.id').value,@round_id);">💾</button>
+                    </div>
+                </div>
+             
+            
+          
+
+            </div>
+
+
+        </div>
             }
 
         </div>
@@ -319,7 +362,7 @@
 {
 System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 var db = Database.Open("op_data");
-var sqlSelect = "SELECT s.title,s.price,s.id,s.spOfferMainCatId,s.img_file_id FROM specialOffers s JOIN SpOfferRoundsAvailability ra ON s.id=ra.specialOfferId WHERE ra.round_id=@0 AND s.is_deleted<>1 ORDER BY ra.cat_sort_order,s.spOfferMainCatId,ra.sort_order";
+var sqlSelect = "SELECT s.title,s.price,s.id,s.spOfferMainCatId,s.img_file_id,ra.is_featured,ra.is_active,ra.max_in_cart FROM specialOffers s JOIN SpOfferRoundsAvailability ra ON s.id=ra.specialOfferId WHERE ra.round_id=@0 AND s.is_deleted<>1 ORDER BY ra.cat_sort_order,s.spOfferMainCatId,ra.sort_order";
 var specials = db.Query(sqlSelect, round_id);
 
 int vendor_id = 0;
@@ -330,6 +373,9 @@ try { vendor_id = roundInfo.vendor_id; } catch { }
 sqlSelect = "SELECT * FROM specialOffers where is_active=1 AND (vendor_id=@0 OR vendor_id=0) ORDER BY vendor_id DESC,spOfferMainCatId";
 var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
 int cur_cat = 0;
+
+
+
 
     <div style="overflow: auto;">
 
@@ -363,6 +409,9 @@ int cur_cat = 0;
         {
             foreach (var spOffer in specials)
             {
+                bool is_featured = spOffer.is_featured;
+                bool is_active = spOffer.is_active;
+                int max_in_cart = 0; try { max_in_cart = spOffer.max_in_cart; } catch { }
 
                 int spOfferMainCatId = 0; try { spOfferMainCatId = spOffer.spOfferMainCatId; } catch { }
                 if (cur_cat != spOfferMainCatId)
@@ -395,45 +444,75 @@ int cur_cat = 0;
                     <div class="B" style="padding:1px;">
                         @spOffer.Title
                     </div>
-
-
-
-                </div>
-                <div class="B" style="float:left;padding:5px;margin:5px;">@spOffer.price.ToString("C", culture)</div>
-
-            </div>
-
-
-        </div>
-        <button class="Accordion" style="display: none" id="sp_@spOffer.id"></button>
-        <div class="panel" style="padding:0;margin:0">
-            <button type="button" style="float:left">🗑️</button>
-            <div style="overflow: auto;margin-right:15px;">
-                @foreach (var item in spItemsIncluded)
-                {
-                    string cat_title = "";
-                    try { cat_title = NewAppFunctions.GetTitleById("Cat", item.main_cat_id); } catch { }
-                    <div>
-                        @if (item.SpItemType == 1)
-                        {
-                            <div style="overflow: auto;font-size: 18px;color: #ff6a00">@item.quan @item.itemunit @cat_title @item.title</div>
-                        }
-                        else
-                        {
-                            <div style="overflow: auto;font-size: 18px;">@item.quan @item.itemunit @cat_title @item.title </div>
-                        }
+                    <div class="B" style="font-size: 14px; padding: 1px;color:#808080">
+                        @spOffer.price.ToString("C", culture)
                     </div>
 
 
+                </div>
+                @if (is_featured)
+                {
+                    <div class="B" style="float:left;padding:5px;margin:5px;">⭐</div>
                 }
-
+                @if (!is_active)
+                {
+                    <div class="B" style="float:left;padding:5px;margin:5px;">⚠️</div>
+                }
             </div>
 
+            <button class="Accordion" style="display: none" id="sp_@spOffer.id"></button>
+            <div class="panel" style="padding:0;margin:0">
+                
+                <div style="overflow: auto;margin-right:15px;">
+                    @foreach (var item in spItemsIncluded)
+                    {
+                        string cat_title = "";
+                        try { cat_title = NewAppFunctions.GetTitleById("Cat", item.main_cat_id); } catch { }
+                        <div class="B">
+                            @if (item.SpItemType == 1)
+                            {
+                                <div style="overflow: auto;font-size: 18px;color: #ff6a00">@item.quan @item.itemunit @cat_title @item.title</div>
+                            }
+                            else
+                            {
+                                <div style="overflow: auto;font-size: 18px;">@item.quan @item.itemunit @cat_title @item.title </div>
+                            }
+                        </div>
 
-            <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
-                <div class="bounce1"></div>
-                <div class="bounce2"></div>
-                <div class="bounce3"></div>
+                    }
+
+                </div>
+                <div class="B">
+                    <div class="B" style="float:right;padding:5px;margin:5px;background-color:#e3e3e3">
+                        <input type="checkbox" checked="@(is_active ? "checked" : null)" onclick="    AjaxActions('SpOfferMenuItemFeaturesToggle',this.checked,'MainLoader',@spOffer.id,@round_id,'SPav');" />
+                        המבצע זמין
+
+                    </div>
+
+                    <div class="B" style="float: right; padding: 5px; margin: 5px; background-color: #e3e3e3">
+                        <input type="checkbox" checked="@(is_featured ? "checked" : null)" onclick="    AjaxActions('SpOfferMenuItemFeaturesToggle', this.checked, 'MainLoader',@spOffer.id,@round_id, 'SPhp');" />
+                        דף בית
+
+                    </div>
+
+                    <div class="B" style="float: right; padding: 5px; margin: 5px; background-color: #e3e3e3">
+
+                        מוגבל ל <input type="text" style="width:40px;" name="max_in_cart" id="offer_max_in_cart_@spOffer.id" @if (max_in_cart > 0) { <text> value=@max_in_cart </text> } />
+                        יחידות בהזמנה <button type="button" style="background:transparent;border:0" onclick="    AjaxActions('SetSpOfferMenuItemMaxInCart', @spOffer.id, 'MainLoader', document.getElementById('offer_max_in_cart_@spOffer.id').value,@round_id);">💾</button>
+                    </div>
+                    <div class="B" style="float: left; padding: 5px; margin: 5px; background-color: #e3e3e3">
+
+                        <button type="button" style="float:left" onclick="    AjaxActions('RemoveSpOfferMenuItemFromRound', @spOffer.id, 'MainLoader', document.getElementById('offer_max_in_cart_@spOffer.id').value,@round_id);">🗑️</button>
+                    </div>
+                </div>
+
+
+                <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                </div>
+
             </div>
 
         </div>
@@ -2690,7 +2769,7 @@ int cur_cat = 0;
 
         try { set_to = Convert.ToBoolean(theValue); } catch { }
 
-        set_to = !set_to;
+        //  set_to = !set_to;
         try { MenuItemId = Convert.ToInt32(Request["param1"]); } catch { }
         try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
         string feature = Request["param3"];
@@ -2738,6 +2817,35 @@ int cur_cat = 0;
                 else
                 {
                     theHtmlOutput = " 👌 המוצר סומן כלא פעיל ";
+                }
+
+                break;
+
+            case "SPav":
+                sqlSelect = "UPDATE SpOfferRoundsAvailability SET is_active=@0 WHERE specialOfferId=@1 AND round_id=@2";
+                db.Execute(sqlSelect, set_to, MenuItemId,round_id);
+
+                if (set_to)
+                {
+                    theHtmlOutput = " 👌 המבצע יהיה זמין לרכישה ";
+                }
+                else
+                {
+                    theHtmlOutput = " 👌 המבצע לא יהיה זמין לרכישה ";
+                }
+
+                break;
+            case "SPhp":
+                sqlSelect = "UPDATE SpOfferRoundsAvailability SET is_featured=@0 WHERE specialOfferId=@1 AND round_id=@2";
+                db.Execute(sqlSelect, set_to, MenuItemId,round_id);
+
+                if (set_to)
+                {
+                    theHtmlOutput = " 👌 המבצע יוצג בדף הראשי ";
+                }
+                else
+                {
+                    theHtmlOutput = " 👌 המבצע לא יוצג בדף הראשי ";
                 }
 
                 break;
@@ -3092,6 +3200,107 @@ int cur_cat = 0;
         }
         db.Close();
         return;
+    }
+
+    public static string SetMenuItemMaxInCart()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["param1"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+        int item_id = 0; try { item_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        if (max_in_cart <= 0) {
+            theHtmlOutput += "!$!חובה להזין ערך תקין בשדה הגבלת הכמות בהזמנה!";
+        }
+        if (item_id <= 0) {
+            theHtmlOutput += "!$!שגיאה!";
+        }
+
+        if (theHtmlOutput == "")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "";
+            sqlSelect = "UPDATE roundMenuItems SET max_in_cart=@0 WHERE id=@1";
+            db.Execute(sqlSelect, max_in_cart, item_id);
+            // Menus.UpdateMenuStatsAndParams(round_id);
+
+            db.Close();
+
+            theHtmlOutput = "👌 ההגדרה נשמרה!";
+
+        }
+
+
+        return theHtmlOutput;
+    }
+
+
+    public static string SetSpOfferMenuItemMaxInCart()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["param1"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+        int item_id = 0; try { item_id = Convert.ToInt32(Request["value"]); } catch { }
+
+        if (max_in_cart <= 0) {
+            theHtmlOutput += "!$!חובה להזין ערך תקין בשדה הגבלת הכמות בהזמנה!";
+        }
+        if (item_id <= 0) {
+            theHtmlOutput += "!$!שגיאה!";
+        }
+
+        if (theHtmlOutput == "")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "";
+            sqlSelect = "UPDATE SpOfferRoundsAvailability SET max_in_cart=@0 WHERE specialOfferId=@1 AND round_id=@2";
+            db.Execute(sqlSelect, max_in_cart, item_id,round_id);
+            // Menus.UpdateMenuStatsAndParams(round_id);
+
+            db.Close();
+
+            theHtmlOutput = "👌 ההגדרה נשמרה!";
+
+        }
+
+
+        return theHtmlOutput;
+    }
+
+    public static string RemoveSpOfferMenuItemFromRound()
+    {
+        string theHtmlOutput = "";
+        DateTime local_time = AppFunctions.LocalTime();
+        DateTime defDate = Convert.ToDateTime("1/1/1900");
+        int max_in_cart = 0; try { max_in_cart = Convert.ToInt32(Request["param1"]); } catch { }
+        int round_id = 0; try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
+        int item_id = 0; try { item_id = Convert.ToInt32(Request["value"]); } catch { }
+
+  
+        if (item_id <= 0) {
+            theHtmlOutput += "!$!שגיאה!";
+        }
+
+        if (theHtmlOutput == "")
+        {
+            var db = Database.Open("op_data");
+            var sqlSelect = "";
+            sqlSelect = "DELETE FROM SpOfferRoundsAvailability WHERE specialOfferId=@1 AND round_id=@2";
+            db.Execute(sqlSelect, max_in_cart, item_id,round_id);
+            // Menus.UpdateMenuStatsAndParams(round_id);
+
+            db.Close();
+
+            theHtmlOutput = "👌 המבצע נמחק מהתפריט!";
+
+        }
+
+
+        return theHtmlOutput;
     }
 
 }

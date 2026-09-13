@@ -1413,12 +1413,25 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         break;
                     case "MenuCategoryChangeOrder":
                     case "MenuItemChangeOrder":
-                        RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param1);
+                         RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param1);
                         break;
+                    case "MenuItemFeaturesToggle":
+                    case "SetMenuItemMaxInCart":
+                        RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param2);
+
+                        break;
+                    case "SpOfferMenuItemFeaturesToggle":
+                    case "RemoveSpOfferMenuItemFromRound":
+                    case "SetSpOfferMenuItemMaxInCart":
+                        RepAjaxUpdate('RoundSpecials', 'RoundSpecialsDiv', 'MainLoader', param2);
+
+                        break;
+                    case "AddOfferToRound":
                     case "MenuSpOfferChangeOrder":
                     case "MenuSpOfferCategoryChangeOrder":
                         RepAjaxUpdate('RoundSpecials', 'RoundSpecialsDiv', 'MainLoader', param1);
                         break;
+
                     case "AddSpOffer":
                     case "DeleteSpOffer":
                     case "SpOffChangeOrder":

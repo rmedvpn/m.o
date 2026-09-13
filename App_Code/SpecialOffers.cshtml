@@ -31,6 +31,7 @@
                 <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    sbload('GenSb','Caller?p1=SpOfferCategories');AdjustMainView();">⚙️</button>
                 <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    AjaxActions('ReCreateSpecialOffersJson'); ">JSON</button>
                 <div style="font-size: 20px;float: right;color: #000">
+
                     ניהול
                     <select style="font-size: 16px;padding: 5px;margin: 5px;background: transparent" onchange="RepAjaxUpdate('SpOfferAdmin','SpOfferAdminDiv','SpOfferAdminLoader',this.value);">
                         @foreach (var offerType in spOfferTypes)
@@ -72,12 +73,14 @@
 
                 <button style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="sbload('GenSb', 'Caller?p1=SpecialEdit&p2=@spItem.id'); AdjustMainView();">⚙️</button>
                 <div style="overflow: auto;">
+                    <img class="VendorMenuItemImg" src="ImgViewer?size=tn&id=@spItem.img_file_id" alt="אלט" />
+
                     @spItem.title
-                                @if (vendor_id > 0)
-                                {
-                                    <span class="PrplMiniTag">מבצע של הספק @AppFunctions.GetVendorTitleById(vendor_id)</span>
-                                }
-                            </div>
+                    @if (vendor_id > 0)
+                    {
+                        <span class="PrplMiniTag">מבצע של הספק @AppFunctions.GetVendorTitleById(vendor_id)</span>
+                    }
+                </div>
                 
 
             </div>

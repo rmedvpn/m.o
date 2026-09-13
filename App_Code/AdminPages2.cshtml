@@ -2427,8 +2427,6 @@ if (is_subcat)
                 {
                     <input class="B" style="float:left;margin:5px;" type="button" value="🗑️" id="ImgUploadBtn" onclick="AjaxActions('ClearAppImage', @cat_id,'MainLoader',2);" />
                 }
-
-
                 <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
             </form>
 
@@ -2496,7 +2494,7 @@ if (is_subcat)
 
         </div>
         <div style="overflow: auto;padding: 5px;margin: 5px;font-weight: bold;direction:rtl" id="catDiv_@Category.id">
-            @NewAppHelpers.CatEditRow(Category.id, "")
+            @NewAppHelpers.CatEditRow(Category.id, "",false)
         </div>
 
 

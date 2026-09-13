@@ -183,7 +183,7 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
                                         <div class="B" style="text-align:right">
 
                                             <div class="ProdListImgContainer">
-                                                <img class="ProductsListTemplateImg" src="ImgViewer?size=tn&p_id=@product.p_id" alt="אלט" />
+                                                <img class="ProductsListTemplateImg" src="ImgViewer?size=tn&id=@product.img_file_id" alt="אלט" />
                                             </div>
 
                                             <div class="B" style="font-size:24px;text-align:right">
@@ -1894,14 +1894,14 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                         <div class="ProdViewItem">
                             המוצר פעיל
                             <span class="PPOInfoSpan">
-                                <input type="checkbox" checked="@(is_active ? "checked" : null)"  onclick="AjaxActions('MenuItemFeaturesToggle','@is_active_favRes','MainLoader',@MenuItemId,@round_id,'ac');"/>
+                                <input type="checkbox" checked="@(is_active ? "checked" : null)"  onclick="AjaxActions('MenuItemFeaturesToggle',this.checked,'MainLoader',@MenuItemId,@round_id,'ac');"/>
                             </span>
                         </div>
 
                         <div class="ProdViewItem">
                             המוצר זמין
                             <span class="PPOInfoSpan">
-                                <input type="checkbox" checked="@(is_available ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle','@is_available_favRes','MainLoader',@MenuItemId,@round_id,'av');" />
+                                <input type="checkbox" checked="@(is_available ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle',this.checked,'MainLoader',@MenuItemId,@round_id,'av');" />
 
                             </span>
                         </div>
@@ -1909,7 +1909,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                         <div class="ProdViewItem">
                             מוצר דף בית
                             <span class="PPOInfoSpan">
-                                <input type="checkbox" checked="@(is_featured ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle', '@is_featured_favRes','MainLoader',@MenuItemId,@round_id,'hp');" />
+                                <input type="checkbox" checked="@(is_featured ? "checked" : null)" onclick="    AjaxActions('MenuItemFeaturesToggle', this.checked,'MainLoader',@MenuItemId,@round_id,'hp');" />
 
                             </span>
                         </div>

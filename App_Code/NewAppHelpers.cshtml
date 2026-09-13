@@ -1630,27 +1630,29 @@ db.Close();
     db.Close();
 }
 
-@helper CatEditRow(int cat_id, string SubCatType = "")
+@helper CatEditRow(int cat_id, string SubCatType = "",bool is_actions=true)
 {
 var db = Database.Open("op_data");
 var sqlSelect = "select * from ItemUnitTypes";
 var ItemUnitTypes= db.Query(sqlSelect);
 sqlSelect = "select * from productTypes";
 var productTypes = db.Query(sqlSelect);
-sqlSelect = "SELECT id,title,e_title,def_product_type,def_itemunit_type,maincat_id,is_maincat FROM Categories WHERE id=@0 ORDER BY sort_order";
+sqlSelect = "SELECT id,title,e_title,def_product_type,def_itemunit_type,maincat_id,is_maincat,is_subcat FROM Categories WHERE id=@0 ORDER BY sort_order";
 var cat=db.QuerySingle(sqlSelect, cat_id);
 int def_product_type = 0;try { def_product_type = cat.def_product_type; } catch { }
 int def_itemunit_type = 0;try { def_itemunit_type = cat.def_itemunit_type; } catch { }
 int maincat_id = 0;try { maincat_id = cat.maincat_id; } catch { }
 bool is_maincat = false;
+bool is_subcat = false;
 string e_title = "";
 string title = "";
 try { title = cat.title; } catch { }
 try { e_title = cat.e_title; } catch { }
 try { is_maincat = cat.is_maincat; } catch { }
+try { is_subcat = cat.is_subcat; } catch { }
 db.Close();
     <div style="overflow: auto;font-size: 18px;color: #000" id="cat_info_@cat_id">
-        @if (!is_maincat)
+        @if (is_actions)
         {
             <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent;" onclick="    AjaxActions('CatChangeOrder', '@cat_id','MainLoader',@maincat_id,'up','@SubCatType');">⬆️</button>
             <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent;" onclick="    AjaxActions('CatChangeOrder', '@cat_id', 'MainLoader', @maincat_id, 'down', '@SubCatType');">⬇️</button>
