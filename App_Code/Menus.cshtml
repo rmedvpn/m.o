@@ -319,7 +319,7 @@
 {
 System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 var db = Database.Open("op_data");
-var sqlSelect = "SELECT s.title,s.price,s.id,s.spOfferMainCatId FROM specialOffers s JOIN SpOfferRoundsAvailability ra ON s.id=ra.specialOfferId WHERE ra.round_id=@0 AND s.is_deleted<>1 ORDER BY ra.cat_sort_order,s.spOfferMainCatId,ra.sort_order";
+var sqlSelect = "SELECT s.title,s.price,s.id,s.spOfferMainCatId,s.img_file_id FROM specialOffers s JOIN SpOfferRoundsAvailability ra ON s.id=ra.specialOfferId WHERE ra.round_id=@0 AND s.is_deleted<>1 ORDER BY ra.cat_sort_order,s.spOfferMainCatId,ra.sort_order";
 var specials = db.Query(sqlSelect, round_id);
 
 int vendor_id = 0;
@@ -378,48 +378,68 @@ int cur_cat = 0;
                 }
                 sqlSelect = "SELECT * FROM SpecialOffersItems WHERE spOffer_id=@0 order by main_cat_id";
                 var spItemsIncluded = db.Query(sqlSelect, spOffer.id);
-                <div style="overflow: auto; color: #000; border-bottom: 1px dotted #000" id="spOfferItemsList">
-                    <div style="overflow: auto;font-size: 22px;font-weight: bold;margin: 5px;">
-                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuSpOfferChangeOrder', '@spOffer.id','MainLoader','@round_id','up','');">⬆️</button>
-                        <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuSpOfferChangeOrder', '@spOffer.id', 'MainLoader', '@round_id', 'down', '');">⬇️</button>
-                        <button type="button" class="UpDownBtn"  onclick="Accordionize('sp_@spOffer.id');">⚙️</button>
-                        @spOffer.title <span style="float: left">@spOffer.price.ToString("C", culture)</span>
+    <div style="overflow: auto; color: #000; border-bottom: 1px dotted #000" id="spOfferItemsList">
+        <div class="VendorMenuItemDiv">
+
+            <div style="overflow: auto;color: #000">
+
+                <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuSpOfferChangeOrder', '@spOffer.id','MainLoader','@round_id','up','');">⬆️</button>
+                <button type="button" class="UpDownBtn" onclick="    AjaxActions('MenuSpOfferChangeOrder', '@spOffer.id', 'MainLoader', '@round_id', 'down', '');">⬇️</button>
+                <button type="button" class="UpDownBtn" onclick="Accordionize('sp_@spOffer.id');">⚙️</button>
+
+
+
+                <img class="VendorMenuItemImg" src="ImgViewer?size=tn&id=@spOffer.img_file_id" alt="אלט" />
+
+                <div style="font-size: 18px; color: #000; float: right; padding: 5px;">
+                    <div class="B" style="padding:1px;">
+                        @spOffer.Title
                     </div>
-                    <button class="Accordion" style="display: none" id="sp_@spOffer.id"></button>
-                    <div class="panel" style="padding:0;margin:0">
-                        <button type="button" style="float:left">🗑️</button>
-                        <div style="overflow: auto;margin-right:15px;">
-                            @foreach (var item in spItemsIncluded)
-                            {
-                                string cat_title = "";
-                                try { cat_title = NewAppFunctions.GetTitleById("Cat", item.main_cat_id); } catch { }
-                                <div>
-                                    @if (item.SpItemType == 1)
-                                    {
-                                        <div style="overflow: auto;font-size: 18px;color: #ff6a00">@item.quan @item.itemunit @cat_title @item.title</div>
-                                    }
-                                    else
-                                    {
-                                        <div style="overflow: auto;font-size: 18px;">@item.quan @item.itemunit @cat_title @item.title </div>
-                                    }
-                                </div>
 
-
-                            }
-
-                        </div>
-
-
-                        <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
-                            <div class="bounce1"></div>
-                            <div class="bounce2"></div>
-                            <div class="bounce3"></div>
-                        </div>
-
-                    </div>
 
 
                 </div>
+                <div class="B" style="float:left;padding:5px;margin:5px;">@spOffer.price.ToString("C", culture)</div>
+
+            </div>
+
+
+        </div>
+        <button class="Accordion" style="display: none" id="sp_@spOffer.id"></button>
+        <div class="panel" style="padding:0;margin:0">
+            <button type="button" style="float:left">🗑️</button>
+            <div style="overflow: auto;margin-right:15px;">
+                @foreach (var item in spItemsIncluded)
+                {
+                    string cat_title = "";
+                    try { cat_title = NewAppFunctions.GetTitleById("Cat", item.main_cat_id); } catch { }
+                    <div>
+                        @if (item.SpItemType == 1)
+                        {
+                            <div style="overflow: auto;font-size: 18px;color: #ff6a00">@item.quan @item.itemunit @cat_title @item.title</div>
+                        }
+                        else
+                        {
+                            <div style="overflow: auto;font-size: 18px;">@item.quan @item.itemunit @cat_title @item.title </div>
+                        }
+                    </div>
+
+
+                }
+
+            </div>
+
+
+            <div class="spinner" style="text-align: center;display: none;float: left" id="spOfferItemsLoader">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+
+        </div>
+
+
+    </div>
             <div class="Spacer10"></div>
                 }
 

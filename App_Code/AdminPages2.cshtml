@@ -2353,12 +2353,13 @@
         <div style="overflow: auto;clear: both;">
             @foreach (var cat in MainCategories)
             {
-                sqlSelect = "SELECT * FROM categories WHERE maincat_id=@0 AND is_subcat=1 AND is_deleted=0";
+                sqlSelect = "SELECT * FROM categories WHERE maincat_id=@0 AND is_subcat=1 AND is_deleted=0 ORDER BY sort_order";
                 var subCategories = db.Query(sqlSelect, cat.id);
 
                 <div style="overflow: auto;padding: 5px;font-size: 18px;color: #000;border-bottom: 1px dashed #000;background-color: #e3e3e3" id="catDiv_@cat.id">
                     <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat.id','MainLoader',0,'up','');">⬆️</button>
                     <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat.id', 'MainLoader', 0, 'down', '');">⬇️</button>
+                    <img class="VendorMenuItemImg" src="ImgViewer?size=tn&id=@cat.img_file_id" alt="אלט" />
                     <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="Accordionize('menuAcc_@cat.id');">תתי קטגוריה</button>
                     <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@cat.id');AdjustMainView();">עריכה</button>
                     <div style="overflow: auto;">@cat.title</div>
@@ -2391,33 +2392,109 @@
 
 @helper CatInfo(int cat_id)
 {
-    var db = Database.Open("op_data");
-    var sqlSelect = "SELECT * FROM categories WHERE id=@0";
-    var Category = db.QuerySingle(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1 ORDER BY sort_order";
-    var SubCats = db.Query(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1 ORDER BY sort_order";
-    var spOfferCats = db.Query(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
-    var CatTags = db.Query(sqlSelect, cat_id);
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM categories WHERE id=@0";
+var Category = db.QuerySingle(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1 ORDER BY sort_order";
+var SubCats = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1 ORDER BY sort_order";
+var spOfferCats = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
+var CatTags = db.Query(sqlSelect, cat_id);
 
-    sqlSelect = "SELECT * FROM CustomProductFieldsType";
-    var customProductFieldTypes = db.Query(sqlSelect, cat_id);
-    sqlSelect = "SELECT * FROM  CustomFields WHERE cat_id=@0 AND is_active=1 ORDER BY sort_order";
-    var customFields = db.Query(sqlSelect, cat_id);
-    string fieldNamePrefix = "0_" + cat_id;
+sqlSelect = "SELECT * FROM CustomProductFieldsType";
+var customProductFieldTypes = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM  CustomFields WHERE cat_id=@0 AND is_active=1 ORDER BY sort_order";
+var customFields = db.Query(sqlSelect, cat_id);
+string fieldNamePrefix = "0_" + cat_id;
+sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND rec_type=2 AND rec_id = @0 ORDER BY is_primary DESC,timestamp DESC";
+var files = db.Query(sqlSelect, cat_id);
 
-    bool is_subcat = false; try { is_subcat = Category.is_subcat; } catch { }
-    string PageHdr = "הגדרות קטגוריה ראשית";
-    if (is_subcat)
-    {
-        PageHdr = "הגדרות תת הקטגוריה";
-    }
+bool is_subcat = false; try { is_subcat = Category.is_subcat; } catch { }
+string PageHdr = "הגדרות הקטגוריה הראשית " + Category.title; ;
+if (is_subcat)
+{
+    PageHdr = "הגדרות תת הקטגוריה";
+}
     <div style="overflow: auto;background-color: #fff;min-height: 500px;">
-        <div style="overflow: auto;padding: 5px;font-size: 20px;color: #000;font-weight: bold">
+        <div style="overflow: auto;padding: 5px;font-size: 20px;color: #000;font-weight: bold;background-color:#000;color:#fff;">
             @PageHdr
         </div>
+        <div class="prodSection">
+            <form id="picupload" name="picupload" enctype="multipart/form-data">
+                <input class="B" style="float:left;margin:5px;" type="button" value="➕" id="ImgUploadBtn" onclick="FileUpload('CAT');" />
+                @if (files.Count() > 0)
+                {
+                    <input class="B" style="float:left;margin:5px;" type="button" value="🗑️" id="ImgUploadBtn" onclick="AjaxActions('ClearAppImage', @cat_id,'MainLoader',2);" />
+                }
 
+
+                <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
+            </form>
+
+            <div class="ProductViewImagesContainer" id="ProductImagesContainer">
+                <input type="hidden" name="upload_cat_id" id="upload_cat_id" value="@cat_id">
+
+
+
+                @if (files.Count() > 0)
+                {
+                    int cnt = 0;
+                    string imgClass = "ProductViewPrimaryImage";
+
+
+                    foreach (var item in files)
+                    {
+                        cnt++;
+                        string imgLink = "ImgViewer?Id=" + item.file_id;
+                        if (!item.is_primary)
+                        {
+                            imgClass = "ProductViewSmallImage";
+                            imgLink = "ImgViewer?size=tn&Id=" + item.file_id;
+
+
+                        }
+
+                        if (item.MimeType.StartsWith("image"))
+                        {
+                            if (item.is_primary)
+                            {
+                                <div class="B">
+                                    <span class="ProductViewImageSpan">
+
+                                        <img class="@imgClass" src="@imgLink" alt="אלט" />
+
+
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="ProductViewImageSpan">
+
+                                    <img class="@imgClass" src="@imgLink" alt="אלט" />
+
+
+                                </span>
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+
+                    <span class="ProductViewImageSpan">
+
+                        <img class="ProductViewNoImage" src="~/Images/nopic.png" />
+
+
+                    </span>
+                }
+            </div>
+
+
+        </div>
         <div style="overflow: auto;padding: 5px;margin: 5px;font-weight: bold;direction:rtl" id="catDiv_@Category.id">
             @NewAppHelpers.CatEditRow(Category.id, "")
         </div>

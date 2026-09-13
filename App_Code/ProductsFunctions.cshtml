@@ -2629,6 +2629,16 @@
 
             sqlSelect = "UPDATE ProductImages SET is_primary=1 WHERE file_id=(SELECT TOP(1) file_id FROM ProductImages WHERE is_deleted=0 AND product_id=@0)";
             db.Execute(sqlSelect, p_id);
+            sqlSelect = "SELECT file_id FROM ProductImages WHERE is_primary=1 AND product_id=@0";
+            var newPrimaryPic = db.QuerySingle(sqlSelect, p_id);
+            int img_file_id = 0; try { img_file_id = newPrimaryPic.file_id; } catch { }
+            if (img_file_id > 0)
+            {
+                sqlSelect = "UPDATE products SET img_file_id=@0 WHERE p_id=@1";
+                db.Execute(sqlSelect, img_file_id, p_id);
+                sqlSelect = "UPDATE roundMenuItems SET img_file_id=@0 WHERE p_id=@1";
+                db.Execute(sqlSelect, img_file_id, p_id);
+            }
         }
         db.Close();
     }
@@ -2639,7 +2649,7 @@
 
         var db = Database.Open("op_data");
 
-        string sqlSelect = "SELECT TOP 1 file_id,product_id,fileContent,MimeType,ImageThumb,image_hash,tn_image_hash FROM ProductImages WHERE rec_id=@0 AND rec_type=@1 ORDER BY file_id";
+        string sqlSelect = "SELECT TOP 1 file_id,product_id,fileContent,MimeType,ImageThumb,image_hash,tn_image_hash,is_primary FROM ProductImages WHERE rec_id=@0 AND rec_type=@1 ORDER BY file_id";
         var image = db.QuerySingle(sqlSelect, rec_id, rec_type);
 
         if (image != null)
@@ -2648,7 +2658,7 @@
             byte[] imageThumb = null;
             byte[] imageHash = null;
             byte[] tnImageHash = null;
-
+            bool is_primary = image.is_primary;
             try { fileContent = (byte[])image.fileContent; } catch { }
             try { imageThumb = (byte[])image.ImageThumb; } catch { }
             try { imageHash = (byte[])image.image_hash; } catch { }
@@ -2675,6 +2685,29 @@
             }
 
             db.Execute("DELETE FROM ProductImages WHERE file_id=@0", image.file_id);
+
+            switch (rec_type)
+            {
+                case 1: //product
+                    if (is_primary)
+                    {
+                        sqlSelect = "UPDATE products SET img_file_id=0 WHERE p_id=@0";
+                        db.Execute(sqlSelect,  rec_id);
+                        sqlSelect = "UPDATE RoundMenuItems SET img_file_id=0 WHERE p_id=@0";
+                        db.Execute(sqlSelect,  rec_id);
+                    }
+                    break;
+                case 2: //category
+                    sqlSelect = "UPDATE Categories SET img_file_id=0 WHERE id=@0";
+                    db.Execute(sqlSelect,  rec_id);
+                    break;
+                case 3: //spOffer
+                    sqlSelect = "UPDATE SpecialOffers SET img_file_id=0 WHERE id=@0";
+                    db.Execute(sqlSelect,  rec_id);
+                    break;
+
+            }
+
         }
 
         db.Close();
