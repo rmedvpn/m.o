@@ -4569,41 +4569,17 @@ bool is_multi_select_mode = false;
 
     public static void tmpAction()
     {
-        if (false)
+        if (true)
         {
             var db = WebMatrix.Data.Database.Open("op_data");
             var sqlSelect = "";
 
-            sqlSelect = "SELECT file_id,rec_type,rec_id,is_primary FROM ProductImages order by file_id ";
-            var imgs = db.Query(sqlSelect);
-            foreach (var img in imgs)
+            sqlSelect = "SELECT id FROM rounds order by id ";
+            var rounds = db.Query(sqlSelect);
+            foreach (var round in rounds)
             {
-                int img_id = img.file_id;
-                int rec_type = img.rec_type;
-                int rec_id = img.rec_id;
-                bool is_primary = img.is_primary;
-                switch (rec_type)
-                {
-                    case 1: //product
-                        if (is_primary)
-                        {
-                            sqlSelect = "UPDATE products SET img_file_id=@0 WHERE p_id=@1";
-                            db.Execute(sqlSelect, img_id, rec_id);
-                            sqlSelect = "UPDATE RoundMenuItems SET img_file_id=@0 WHERE p_id=@1";
-                            db.Execute(sqlSelect, img_id, rec_id);
-                        }
-                        break;
-                    case 2: //category
-                        sqlSelect = "UPDATE Categories SET img_file_id=@0 WHERE id=@1";
-                        db.Execute(sqlSelect, img_id, rec_id);
-                        break;
-                    case 3: //spOffer
-                        sqlSelect = "UPDATE SpecialOffers SET img_file_id=@0 WHERE id=@1";
-                        db.Execute(sqlSelect, img_id, rec_id);
-                        break;
-
-                }
-
+                var json = AppJson.CreateMenuSpecialOffersJson(round.id, true);
+                //var json = AppJson.CreateMenuItemsJson(round.id, true);
             }
             db.Close();
             // ProductsFunctions.CleanUpOfDeletedProducts();
