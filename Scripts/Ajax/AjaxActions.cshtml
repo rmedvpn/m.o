@@ -4392,74 +4392,6 @@
             break;
 
 
-        case "DeleteProduct":
-            if (true)
-            {
-                var db = Database.Open("op_data");
-                var sqlSelect = "";
-
-                if (Request["param1"] == "1") { set_to = true; }
-                int p_id = 0; try { p_id = Convert.ToInt32(Request["value"]); } catch { }
-                sqlSelect = "SELECT * FROM products WHERE p_id=@0";
-                var product = db.QuerySingle(sqlSelect, p_id);
-
-                sqlSelect = "SELECT id FROM orderitems WHERE p_id=@0";
-                var orderItems = db.Query(sqlSelect, p_id);
-
-                if (orderItems.Count() > 0)
-                {
-                    theHtmlOutput = " לא ניתן למחוק מוצר, ישנן הזמנות פעילות למוצר זה ";
-                }
-                //else
-                if (true)
-                {
-                    //delete from all round menu items
-                    sqlSelect = "DELETE FROM RoundMenuItems WHERE p_id=@0";
-                    db.Execute(sqlSelect, p_id);
-                    //delete from all special offers
-                    sqlSelect = "SELECT * FROM SpecialOffersItems WHERE p_id=@0";
-                    var spOfferItemsRs = db.Query(sqlSelect, p_id);
-                    foreach (var spOfItem in spOfferItemsRs)
-                    {
-                        string ActionCode = "ITEMDELETED";
-                        sqlSelect = "UPDATE specialOffers SET is_active=0,ActionCode=@0 WHERE id=@1";
-                        db.Execute(sqlSelect, ActionCode, spOfItem.spOffer_id);
-                    }
-                    sqlSelect = "DELETE FROM SpecialOffersItems WHERE p_id=@0";
-                    db.Execute(sqlSelect, p_id);
-                    //backup & delete product pics
-                    sqlSelect = "SELECT * FROM ProductImages WHERE product_id=@0";
-                    var productPics = db.Query(sqlSelect, p_id);
-                    foreach (var p_pic in productPics)
-                    {
-                        sqlSelect = "INSERT INTO DeletedProductImages(product_id,fileContent,MimeType,ImageThumb) VALUES(@0,@1,@2,@3)";
-                        db.Execute(sqlSelect, p_id, p_pic.fileContent, p_pic.MimeType, p_pic.ImageThumb);
-                    }
-                    sqlSelect = "DELETE FROM ProductImages WHERE product_id=@0";
-                    db.Execute(sqlSelect, p_id);
-
-                    //delete category tags
-                    sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
-                    db.Execute(sqlSelect, p_id);
-
-                    sqlSelect = "DELETE FROM ProductsCustomFields WHERE p_id=@0";
-                    db.Execute(sqlSelect, p_id);
-
-                    sqlSelect = "DELETE FROM ProductPricingOptions WHERE p_id=@0";
-                    db.Execute(sqlSelect, p_id);
-
-                    //backup & delete product data
-                    sqlSelect = "INSERT INTO DeletedProducts(p_id,v_id,title,price,cost,Description,product_type,prod_code,e_title,e_desc,cat_id,add_timestamp,itemunit_type,clerk_id,maincat_id,sub_cat_id,delete_timestamp,is_catalog,is_setup,catalog_p_id) ";
-                    sqlSelect = sqlSelect + " VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19)";
-                    db.Execute(sqlSelect, product.p_id, product.v_id, product.title, product.price, product.cost, product.Description, product.product_type, product.prod_code, product.e_title, product.e_desc, product.cat_id, product.add_timestamp, product.itemunit_type, product.clerk_id, product.maincat_id, product.sub_cat_id, DateTime.Now, product.is_catalog, product.is_setup, product.catalog_p_id);
-                    //delete product
-                    sqlSelect = "DELETE FROM products WHERE p_id=@0";
-                    db.Execute(sqlSelect, p_id);
-                    theHtmlOutput = " 👌 המוצר נמחק מהמערכת ";
-                    db.Close();
-                }
-            }
-            break;
 
         case "AddProduct":
             if (theHtmlOutput == "")
@@ -5786,8 +5718,6 @@
                 theHtmlOutput = "👌 תמונה ראשית נבחרה!";
             }
             break;
-
-
         case "RemoveMenuItemFromRound":
             if (theHtmlOutput == "")
             {
@@ -5821,7 +5751,6 @@
             }
 
             break;
-
         case "MenuItemChangeOrder":
 
             if (true)
@@ -5850,7 +5779,6 @@
                 theHtmlOutput = Menus.MenuSpOfferCategoryChangeOrder();
             }
             break;
-
         case "AddProductToRound":
             if (true)
             {
@@ -5859,7 +5787,6 @@
             }
 
             break;
-
         case "AddRoundMenuPricingOption":
             if (theHtmlOutput == "")
             {
@@ -7103,62 +7030,153 @@
                 int round_id = 0; try { round_id = Convert.ToInt32(Request["param1"]); } catch { }
                 set_to = false;
 
-
                 if (theHtmlOutput == "")
                 {
+                    int rec_id = 0;
                     var db = Database.Open("op_data");
                     var sqlSelect = "";
+
                     sqlSelect = "SELECT title,vendor_id FROM rounds WHERE id=@0";
                     var round = db.QuerySingle(sqlSelect, round_id);
+
                     if (round != null)
                     {
-                        int vendor_id = 0; try { vendor_id = round.vendor_id; } catch { }
-                        if (spOffer_id == -1)
+                        int vendor_id = 0; try { vendor_id = Convert.ToInt32(round.vendor_id); } catch { }
+
+                        if (spOffer_id > 0)
                         {
-                            sqlSelect = "SELECT * FROM specialOffers where is_active=1 AND (vendor_id=@0 OR vendor_id=0) ORDER BY vendor_id DESC,spOfferType";
-                            var AllSpecialOffers = db.Query(sqlSelect, vendor_id);
-                            foreach (var spOffer in AllSpecialOffers)
+                            sqlSelect = "SELECT * FROM SpecialOffers WHERE id=@0";
+                            rec_id = spOffer_id;
+                        }
+                        else if (spOffer_id == -1)
+                        {
+                            sqlSelect = "SELECT * FROM SpecialOffers WHERE is_active=1 AND (vendor_id=@0 OR vendor_id=0) ORDER BY cat_sort_order,spOfferMainCatId,sort_order,vendor_id,is_activated,is_active DESC,id DESC";
+                            rec_id = vendor_id;
+                        }
+
+                        if (sqlSelect != "")
+                        {
+                            var SpOffers = db.Query(sqlSelect, rec_id);
+
+                            foreach (var spOffer in SpOffers)
                             {
                                 sqlSelect = "SELECT id FROM SpOfferRoundsAvailability WHERE specialOfferId=@0 AND round_id=@1";
                                 var isInMenuCheck = db.QuerySingle(sqlSelect, spOffer.id, round_id);
+
                                 if (isInMenuCheck == null)
                                 {
-                                    sqlSelect = "INSERT INTO SpOfferRoundsAvailability(round_id,specialOfferId) VALUES (@0,@1)";
-                                    db.Execute(sqlSelect, round_id, spOffer.id);
-                                    theHtmlOutput += " 👌 " + spOffer.title + " יהיה זמין ב" + round.title + "<BR>";
+                                    int spOfferMainCatId = 0;
+                                    int cat_sort_order = 100;
+                                    int sort_order = 100;
+                                    int max_in_cart = 0;
+                                    int master_cat_sort_order = 100;
+                                    int master_sort_order = 100;
 
+                                    try { spOfferMainCatId = Convert.ToInt32(spOffer.spOfferMainCatId); } catch { }
+                                    try { max_in_cart = Convert.ToInt32(spOffer.max_in_cart); } catch { }
+                                    try { master_cat_sort_order = Convert.ToInt32(spOffer.cat_sort_order); } catch { }
+                                    try { master_sort_order = Convert.ToInt32(spOffer.sort_order); } catch { }
+
+                                    // ---------------------------------------------------------
+                                    // CATEGORY ORDER
+                                    // ---------------------------------------------------------
+
+                                    sqlSelect = "SELECT TOP 1 cat_sort_order FROM SpOfferRoundsAvailability WHERE round_id=@0 AND spOfferMainCatId=@1 ORDER BY cat_sort_order,id";
+                                    var roundCategory = db.QuerySingle(sqlSelect, round_id, spOfferMainCatId);
+
+                                    if (roundCategory != null)
+                                    {
+                                        // Category already exists in the round:
+                                        // keep its round-specific category position.
+                                        try { cat_sort_order = Convert.ToInt32(roundCategory.cat_sort_order); } catch { }
+                                    }
+                                    else
+                                    {
+                                        // New category:
+                                        // use master category position as initial insertion point.
+                                        cat_sort_order = master_cat_sort_order;
+
+                                        sqlSelect = "SELECT COUNT(*) AS cnt FROM SpOfferRoundsAvailability WHERE round_id=@0 AND cat_sort_order>=@1";
+                                        var categoryPositionCheck = db.QuerySingle(sqlSelect, round_id, master_cat_sort_order);
+
+                                        int categoryCount = 0;
+                                        try { categoryCount = Convert.ToInt32(categoryPositionCheck.cnt); } catch { }
+
+                                        if (categoryCount > 0)
+                                        {
+                                            cat_sort_order = master_cat_sort_order - 1;
+                                        }
+                                    }
+
+                                    // ---------------------------------------------------------
+                                    // OFFER ORDER
+                                    // ---------------------------------------------------------
+
+                                    sort_order = master_sort_order;
+
+                                    sqlSelect = "SELECT COUNT(*) AS cnt FROM SpOfferRoundsAvailability WHERE round_id=@0 AND spOfferMainCatId=@1 AND sort_order>=@2";
+                                    var offerPositionCheck = db.QuerySingle(sqlSelect, round_id, spOfferMainCatId, master_sort_order);
+
+                                    int offerCount = 0;
+                                    try { offerCount = Convert.ToInt32(offerPositionCheck.cnt); } catch { }
+
+                                    if (offerCount > 0)
+                                    {
+                                        sort_order = master_sort_order - 1;
+                                    }
+
+                                    // ---------------------------------------------------------
+                                    // INSERT
+                                    // ---------------------------------------------------------
+
+                                    sqlSelect = "INSERT INTO SpOfferRoundsAvailability(round_id,specialOfferId,is_active,cat_sort_order,max_in_cart,spOfferMainCatId,sort_order) VALUES (@0,@1,1,@2,@3,@4,@5)";
+                                    db.Execute(sqlSelect, round_id, spOffer.id, cat_sort_order, max_in_cart, spOfferMainCatId, sort_order);
+
+                                    // ---------------------------------------------------------
+                                    // RESEQUENCE OFFERS IN THIS CATEGORY
+                                    // ---------------------------------------------------------
+
+                                    sqlSelect = "SELECT id FROM SpOfferRoundsAvailability WHERE round_id=@0 AND spOfferMainCatId=@1 ORDER BY sort_order,id";
+                                    var specials = db.Query(sqlSelect, round_id, spOfferMainCatId);
+
+                                    int i = 0;
+
+                                    foreach (var special in specials)
+                                    {
+                                        i += 100;
+
+                                        sqlSelect = "UPDATE SpOfferRoundsAvailability SET sort_order=@0 WHERE id=@1";
+                                        db.Execute(sqlSelect, i, special.id);
+                                    }
+
+                                    // ---------------------------------------------------------
+                                    // RESEQUENCE CATEGORIES IN THIS ROUND
+                                    // ---------------------------------------------------------
+
+                                    sqlSelect = "SELECT spOfferMainCatId,MIN(cat_sort_order) AS cat_sort_order FROM SpOfferRoundsAvailability WHERE round_id=@0 GROUP BY spOfferMainCatId ORDER BY MIN(cat_sort_order),spOfferMainCatId";
+                                    var categories = db.Query(sqlSelect, round_id);
+
+                                    int cat_i = 0;
+
+                                    foreach (var category in categories)
+                                    {
+                                        cat_i += 100;
+
+                                        sqlSelect = "UPDATE SpOfferRoundsAvailability SET cat_sort_order=@0 WHERE round_id=@1 AND spOfferMainCatId=@2";
+                                        db.Execute(sqlSelect, cat_i, round_id, category.spOfferMainCatId);
+                                    }
+
+                                    theHtmlOutput += " 👌 " + spOffer.title + " יהיה זמין ב" + round.title + "<BR>";
                                 }
                             }
                         }
-                        if (spOffer_id > 0)
-                        {
-
-                            sqlSelect = "SELECT title FROM specialOffers WHERE id=@0";
-                            var sp_offer = db.QuerySingle(sqlSelect, spOffer_id);
-                            if (sp_offer != null)
-                            {
-                                sqlSelect = "INSERT INTO SpOfferRoundsAvailability(round_id,specialOfferId) VALUES (@0,@1)";
-                                db.Execute(sqlSelect, round_id, spOffer_id);
-                                theHtmlOutput += " 👌 " + sp_offer.title + " יהיה זמין ב" + round.title;
-
-                            }
-                        }
-
-
-
-
                     }
-
-
 
                     db.Close();
 
-                    string json = AppJson.CreateMenuSpecialOffersJson(round_id,true);
-
+                    string json = AppJson.CreateMenuSpecialOffersJson(round_id, true);
                 }
             }
-
-
 
             break;
 
@@ -8239,6 +8257,7 @@
             }
             break;
 
+        case "DeleteProduct":
         case "MarkProductDeleted":
             if (true)
             {

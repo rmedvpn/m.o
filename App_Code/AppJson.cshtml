@@ -593,7 +593,7 @@
 
 
     ///Round Specific Jsons
-    public static string CreateFulfillmentOptionsJson(int round_id)
+    public static string CreateFulfillmentOptionsJson(int round_id, bool update_record = false)
     {
         var db = Database.Open("op_data");
 
@@ -950,7 +950,15 @@
         db.Close();
 
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-        return serializer.Serialize(options);
+        string json = serializer.Serialize(options);
+        if (update_record)
+        {
+            sqlSelect = "UPDATE rounds SET FulfillmentJson=@0 WHERE id=@1";
+            db.Execute(sqlSelect, json, round_id);
+
+        }
+
+        return json;
     }
     public static string CreateMenuItemsJson(int menu_id, bool update_record = false)
     {

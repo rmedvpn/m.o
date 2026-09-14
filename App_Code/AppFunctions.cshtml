@@ -800,6 +800,13 @@
             i += 100;
             sqlSelect = "UPDATE Categories SET sort_order=@0 WHERE id=@1";
             db.Execute(sqlSelect, i, item.id);
+
+            if (maincat_id == -2) //special offer main categry
+            {
+                sqlSelect = "UPDATE SpecialOffers SET cat_sort_order=@0 WHERE spOfferMainCatId=@1";
+                db.Execute(sqlSelect, i, item.id);
+
+            }
         }
         db.Close();
         return;
