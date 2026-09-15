@@ -1,6 +1,23 @@
 ﻿@functions {
 
-    public static void ClearRowUpdateFlag(string dbName, string tableName, string keyColumn, int keyValue)
+    public static bool ClearRowUpdateFlag(string dbName, string tableName, string keyColumn, int keyValue, DateTime last_update_ts)
+    {
+        var db = Database.Open(dbName);
+
+        string timestamp = last_update_ts.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
+
+        string sessioncontextOn = "EXEC sys.sp_set_session_context @key=N'skip_sync',@value=1; ";
+        string sessioncontextOff = "EXEC sys.sp_set_session_context @key=N'skip_sync',@value=NULL;";
+
+        string sql = sessioncontextOn + "UPDATE " + tableName + " SET is_update=0 WHERE " + keyColumn + "=@0 AND is_update=1 AND CONVERT(varchar(23),last_update_ts,121)=@1;" + sessioncontextOff;
+
+        int affected = db.Execute(sql, keyValue, timestamp);
+
+        db.Close();
+
+        return affected > 0;
+    }
+    public static void ClearRowUpdateFlag2(string dbName, string tableName, string keyColumn, int keyValue,DateTime last_update_ts)
     {
         DateTime local_time = AppFunctions.LocalTime();
 

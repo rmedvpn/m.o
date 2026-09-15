@@ -947,7 +947,6 @@
             options.Add(item);
         }
 
-        db.Close();
 
         var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
         string json = serializer.Serialize(options);
@@ -957,6 +956,7 @@
             db.Execute(sqlSelect, json, round_id);
 
         }
+        db.Close();
 
         return json;
     }

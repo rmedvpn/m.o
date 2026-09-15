@@ -52,19 +52,19 @@
                     case "SETTINGS":
                         if (true)
                         {
-                            theHtmlOutput = SyncFunctions.SyncAppProperties();
+                            SyncFunctions.SyncAppProperties();
                         }
                         break;
                     case "ROUNDS":
                         if (true)
                         {
-                            theHtmlOutput = SyncFunctions.SyncRoundInfo();
+                             SyncFunctions.SyncRoundInfo();
                         }
                         break;
                     case "RMI":
                         if (true)
                         {
-                            theHtmlOutput = SyncFunctions.SyncRoundMenuItems();
+                             SyncFunctions.SyncRoundMenuItems();
                         }
                         break;
                     case "RMIPO":
@@ -94,7 +94,7 @@
                     case "PRODIMG":
                         if (true)
                         {
-                            theHtmlOutput = SyncFunctions.SyncProductImages();
+                             SyncFunctions.SyncProductImages();
                         }
                         break;
                     case "PPO":
@@ -8394,6 +8394,14 @@
             if (true)
             {
                 theHtmlOutput = Menus.RemoveSpOfferMenuItemFromRound();
+
+            }
+            break;
+        case "SyncCLientSites":
+            if (true)
+            {
+                SyncFunctions.Sync();
+                theHtmlOutput = "הסנכרון בוצע!";
 
             }
             break;

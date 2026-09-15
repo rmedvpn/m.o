@@ -2208,7 +2208,7 @@ int cur_cat = 0;
             }
 
             Menus.UpdateMenuStatsAndParams(round_id);
-
+            string json = AppJson.CreateFulfillmentOptionsJson(round_id, true);
             db.Close();
 
             theHtmlOutput = "👌 השינויים נשמרו!";
@@ -2518,7 +2518,7 @@ int cur_cat = 0;
             }
 
             Menus.UpdateMenuStatsAndParams(round_id);
-
+            string json = AppJson.CreateFulfillmentOptionsJson(round_id, true);
             db.Close();
 
             theHtmlOutput = "👌 השינויים נשמרו!";
@@ -2548,7 +2548,7 @@ int cur_cat = 0;
         sqlSelect = "DELETE FROM RoundAreas WHERE round_id=@0 AND fulfilment_option_id=@1";
         db.Execute(sqlSelect, round_id, opt_id);
         Menus.UpdateMenuStatsAndParams(round_id);
-
+        string json = AppJson.CreateFulfillmentOptionsJson(round_id, true);
         db.Close();
 
         theHtmlOutput = "👌 אפשרות האספקה נמחקה!";
@@ -2659,7 +2659,7 @@ int cur_cat = 0;
         try { MenuItemId = Convert.ToInt32(Request["param1"]); } catch { }
         try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
         string feature = Request["param3"];
-
+        string json = "";
         switch (feature)
         {
             case "hp":
@@ -2674,7 +2674,7 @@ int cur_cat = 0;
                 {
                     theHtmlOutput = " 👌 המוצר לא יוצג בדף הראשי ";
                 }
-
+                json = AppJson.CreateFeaturedItemsJson(round_id, true);
                 break;
 
             case "av":
@@ -2733,7 +2733,7 @@ int cur_cat = 0;
                 {
                     theHtmlOutput = " 👌 המבצע לא יוצג בדף הראשי ";
                 }
-
+                json = AppJson.CreateFeaturedItemsJson(round_id, true);
                 break;
         }
 
@@ -3124,6 +3124,14 @@ int cur_cat = 0;
 
 
         return theHtmlOutput;
+    }
+
+    public static void RebuildAllRoundJson(int round_id)
+    {
+        AppJson.CreateMenuItemsJson(round_id, true);
+        AppJson.CreateMenuSpecialOffersJson(round_id, true);
+        AppJson.CreateFeaturedItemsJson(round_id, true);
+        AppJson.CreateFulfillmentOptionsJson(round_id, true);
     }
 
 }
