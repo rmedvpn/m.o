@@ -735,7 +735,6 @@
         int cat_id = 0; try { cat_id = Convert.ToInt32(Request["value"]); } catch { }
         int main_cat_id = 0; try { main_cat_id = Convert.ToInt32(Request["param1"]); } catch { }
         string direction = ""; direction = Request["param2"];
-        DataFunctions.WriteDebugLine("cat_id"+ cat_id + "main_cat_id" + main_cat_id);
         var db = Database.Open("op_data");
         var sqlSelect = "SELECT id,sort_order FROM Categories WHERE id=@0";
         var item = db.QuerySingle(sqlSelect, cat_id);

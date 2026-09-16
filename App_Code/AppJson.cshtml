@@ -1019,11 +1019,12 @@
 
         return json;
     }
+
     public static string CreateMenuSpecialOffersJson(int menu_id, bool update_record = false)
     {
         var db = Database.Open("op_data");
 
-        var offers = db.Query("SELECT s.id,s.title,s.title_e,s.description,s.desc_e,s.price,s.spOfferType,s.discountable,s.vendor_id,s.spOfferMainCatId,s.img_file_id,r.max_in_cart,r.is_featured,r.cat_sort_order,r.sort_order FROM SpecialOffers s INNER JOIN SpOfferRoundsAvailability r ON s.id=r.specialOfferId WHERE s.is_active=1 AND r.is_active=1 AND r.round_id=@0 ORDER BY r.cat_sort_order,r.sort_order,s.id", menu_id).ToList();
+        var offers = db.Query("SELECT s.id,s.title,s.title_e,s.description,s.desc_e,s.price,s.spOfferType,s.discountable,s.vendor_id,r.spOfferMainCatId,s.img_file_id,r.max_in_cart,r.is_featured,r.cat_sort_order,r.sort_order FROM SpecialOffers s INNER JOIN SpOfferRoundsAvailability r ON s.id=r.specialOfferId WHERE s.is_active=1 AND r.is_active=1 AND r.round_id=@0 ORDER BY r.cat_sort_order,r.sort_order,s.id", menu_id).ToList();
 
         if (!offers.Any())
         {
@@ -1058,7 +1059,6 @@
         foreach (var offer in offers)
         {
             int id = 0;
-
             try { id = Convert.ToInt32(offer.id); } catch { }
 
             if (id > 0) offerIds.Add(id);
@@ -1110,38 +1110,31 @@
             try { title = Convert.ToString(spItem.title) ?? ""; } catch { }
             try { title_e = Convert.ToString(spItem.title_e) ?? ""; } catch { }
 
+            if (!validByOffer.ContainsKey(spOffer_id))
+            {
+                continue;
+            }
+
             if (spItemType == 1)
             {
                 try { refId = Convert.ToInt32(spItem.p_id); } catch { }
 
-                if (requirementCountByOffer.ContainsKey(spOffer_id))
-                {
-                    requirementCountByOffer[spOffer_id]++;
-                }
+                requirementCountByOffer[spOffer_id]++;
 
                 if (refId <= 0 || !productIds.Contains(refId))
                 {
-                    if (validByOffer.ContainsKey(spOffer_id))
-                    {
-                        validByOffer[spOffer_id] = false;
-                    }
+                    validByOffer[spOffer_id] = false;
                 }
             }
             else if (spItemType == 2)
             {
                 try { refId = Convert.ToInt32(spItem.spOfferCatId); } catch { }
 
-                if (requirementCountByOffer.ContainsKey(spOffer_id))
-                {
-                    requirementCountByOffer[spOffer_id]++;
-                }
+                requirementCountByOffer[spOffer_id]++;
 
                 if (refId <= 0 || !spOfferCatIds.Contains(refId))
                 {
-                    if (validByOffer.ContainsKey(spOffer_id))
-                    {
-                        validByOffer[spOffer_id] = false;
-                    }
+                    validByOffer[spOffer_id] = false;
                 }
             }
             else
@@ -1177,6 +1170,8 @@
             int vendor_id = 0;
             int spOfferMainCatId = 0;
             int img_file_id = 0;
+            int cat_sort_order = 0;
+            int sort_order = 0;
 
             decimal price = 0;
 
@@ -1199,6 +1194,8 @@
             try { vendor_id = Convert.ToInt32(spOffer.vendor_id); } catch { }
             try { spOfferMainCatId = Convert.ToInt32(spOffer.spOfferMainCatId); } catch { }
             try { img_file_id = Convert.ToInt32(spOffer.img_file_id); } catch { }
+            try { cat_sort_order = Convert.ToInt32(spOffer.cat_sort_order); } catch { }
+            try { sort_order = Convert.ToInt32(spOffer.sort_order); } catch { }
 
             try { price = Convert.ToDecimal(spOffer.price); } catch { }
 
@@ -1223,6 +1220,8 @@
             item["max"] = max_in_cart;
             item["vid"] = vendor_id;
             item["cat"] = spOfferMainCatId;
+            item["cat_sort"] = cat_sort_order;
+            item["sort"] = sort_order;
             item["fav"] = is_featured;
             item["img"] = img_file_id;
 

@@ -50,8 +50,7 @@
               "RelativeToolTip": "App_Code\\AppSettings.cshtml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-09-12T09:07:41.708Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-12T09:07:41.708Z"
             },
             {
               "$type": "Document",
@@ -61,7 +60,7 @@
               "RelativeDocumentMoniker": "Scripts\\Ajax\\AjaxActions.cshtml",
               "ToolTip": "D:\\source\\m.o\\Scripts\\Ajax\\AjaxActions.cshtml",
               "RelativeToolTip": "Scripts\\Ajax\\AjaxActions.cshtml",
-              "ViewState": "AgIAAI4UAAAAAAAAAAAlwA8VAAAeAAAAAAAAAA==",
+              "ViewState": "AgIAAFIUAAAAAAAAAAAlwA8VAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-09-12T09:06:09.466Z",
               "EditorCaption": ""
@@ -76,8 +75,7 @@
               "RelativeToolTip": "App_Code\\SpecialOffers.cshtml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-09-10T14:58:57.477Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-10T14:58:57.477Z"
             },
             {
               "$type": "Document",
@@ -101,8 +99,7 @@
               "RelativeToolTip": "App_Code\\AdminPages2.cshtml",
               "ViewState": "AgIAAAYAAAAAAAAAAAAAAAMAAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-09-10T14:55:55.379Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-10T14:55:55.379Z"
             }
           ]
         }

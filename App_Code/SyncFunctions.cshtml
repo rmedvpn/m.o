@@ -11,9 +11,15 @@
         //sync product images
         SyncProductImages(0,src_db_name, dest_db_name);
 
+        //Sync SpecialOffers
+        //SyncSpOffers(0, src_db_name, dest_db_name);
+        //SyncSpOfferItems(0, src_db_name, dest_db_name);
+        //SyncSpOfferRoundAvailability(0, src_db_name, dest_db_name);
+
         //sync roundmenuitems
         SyncRoundMenuItems(0,src_db_name, dest_db_name);
 
+        SyncSpOfferChanges(src_db_name, dest_db_name);
         //sync rounds
         SyncRoundInfo(0, src_db_name, dest_db_name);
 
@@ -57,7 +63,17 @@
                 dest_db.Execute("SET IDENTITY_INSERT ProductImages OFF");
             }
 
-            sqlSelect = "UPDATE ProductImages SET full_path=@1,fileName=@2,timestamp=@3,clerk_id=@4,is_deleted=@5,fileContent=@6,MimeType=@7,is_tn=@8,ImageThumb=@9,is_primary=@10,delete_ts=@11,deleted_by=@12,image_hash=@13,tn_image_hash=@14,product_id=@15,rec_id=@16,rec_type=@17 WHERE file_id=@0";
+            byte[] fileContent = null;
+            byte[] ImageThumb = null;
+            byte[] image_hash = null;
+            byte[] tn_image_hash = null;
+
+            try { fileContent = item.fileContent as byte[]; } catch { }
+            try { ImageThumb = item.ImageThumb as byte[]; } catch { }
+            try { image_hash = item.image_hash as byte[]; } catch { }
+            try { tn_image_hash = item.tn_image_hash as byte[]; } catch { }
+
+            sqlSelect = "UPDATE ProductImages SET full_path=@1,fileName=@2,timestamp=@3,clerk_id=@4,is_deleted=@5,fileContent=CAST(@6 AS varbinary(max)),MimeType=@7,is_tn=@8,ImageThumb=CAST(@9 AS varbinary(max)),is_primary=@10,delete_ts=@11,deleted_by=@12,image_hash=CAST(@13 AS varbinary(32)),tn_image_hash=CAST(@14 AS varbinary(32)),product_id=@15,rec_id=@16,rec_type=@17 WHERE file_id=@0";
 
             dest_db.Execute(sqlSelect,
                 item.file_id,
@@ -66,21 +82,21 @@
                 item.timestamp,
                 item.clerk_id,
                 item.is_deleted,
-                item.fileContent,
+                (object)fileContent ?? DBNull.Value,
                 item.MimeType,
                 item.is_tn,
-                item.ImageThumb,
+                (object)ImageThumb ?? DBNull.Value,
                 item.is_primary,
                 item.delete_ts,
                 item.deleted_by,
-                item.image_hash,
-                item.tn_image_hash,
+                (object)image_hash ?? DBNull.Value,
+                (object)tn_image_hash ?? DBNull.Value,
                 item.product_id,
                 item.rec_id,
                 item.rec_type
             );
 
-            ClientExport.ClearRowUpdateFlag(src_db_name, "ProductImages", "file_id", item.file_id,item.last_update_ts);
+            ClientExport.ClearRowUpdateFlag(src_db_name, "ProductImages", "file_id", item.file_id, item.last_update_ts);
         }
 
         src_db.Close();
@@ -208,7 +224,7 @@
         // Publish the affected rounds only after their menu items are in zion.
         foreach (var round in rounds)
         {
-            SyncFunctions.SyncRoundInfo(Convert.ToInt32(round.round_id), src_db_name, dest_db_name);
+            SyncRoundInfo(Convert.ToInt32(round.round_id), src_db_name, dest_db_name);
         }
 
         src_db.Close();
@@ -359,6 +375,375 @@
         string json = "";
         json = AppJson.CreateMenuItemsJson(round_id, true);
         json = AppJson.CreateMenuSpecialOffersJson(round_id, true);
+
+    }
+    public static string SyncSpOffers(int spOfferId = 0, string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+        string theHtmlOutput = "not ok";
+
+        var src_db = Database.Open(src_db_name);
+        var dest_db = Database.Open(dest_db_name);
+
+        string sqlSelect = "SELECT * FROM SpecialOffers WHERE is_update=1 AND id=@0 ORDER BY id";
+        if (spOfferId == 0) { sqlSelect = "SELECT * FROM SpecialOffers WHERE is_update=1 ORDER BY id"; }
+        if (spOfferId == -1) { sqlSelect = "SELECT * FROM SpecialOffers ORDER BY id"; }
+
+        var spOffers = src_db.Query(sqlSelect, spOfferId).ToList();
+
+        // Capture affected rounds BEFORE clearing SpecialOffers.is_update.
+        var spOfferIds = new List<int>();
+
+        foreach (var item in spOffers)
+        {
+            int id = 0;
+            try { id = Convert.ToInt32(item.id); } catch { }
+
+            if (id > 0) spOfferIds.Add(id);
+        }
+
+        var rounds = new List<dynamic>();
+
+        if (spOfferIds.Any())
+        {
+            string ids = string.Join(",", spOfferIds);
+
+            rounds = src_db.Query("SELECT DISTINCT round_id FROM SpOfferRoundsAvailability WHERE specialOfferId IN (" + ids + ") ORDER BY round_id").ToList();
+        }
+
+        foreach (var item in spOffers)
+        {
+            sqlSelect = "SELECT id FROM SpecialOffers WHERE id=@0";
+            var dupChk = dest_db.QuerySingle(sqlSelect, item.id);
+
+            if (dupChk == null)
+            {
+                dest_db.Execute("SET IDENTITY_INSERT SpecialOffers ON");
+                dest_db.Execute("INSERT INTO SpecialOffers (id) VALUES (@0)", item.id);
+                dest_db.Execute("SET IDENTITY_INSERT SpecialOffers OFF");
+            }
+
+            sqlSelect = "UPDATE SpecialOffers SET title=@1,title_e=@2,description=@3,desc_e=@4,price=@5,sp_offer_type=@6,is_deleted=@7,is_active=@8,create_ts=@9,is_activated=@10,created_by=@11,status_code=@12,ActionCode=@13,is_charity=@14,spOfferType=@15,discountable=@16,service_plan_id=@17,max_in_cart=@18,special_commision=@19,vendor_id=@20,spOfferItemsJson=@21,spOfferMainCatId=@22,sort_order=@23,img_file_id=@24,cat_sort_order=@25 WHERE id=@0";
+
+            dest_db.Execute(sqlSelect,
+                item.id,
+                item.title,
+                item.title_e,
+                item.description,
+                item.desc_e,
+                item.price,
+                item.sp_offer_type,
+                item.is_deleted,
+                item.is_active,
+                item.create_ts,
+                item.is_activated,
+                item.created_by,
+                item.status_code,
+                item.ActionCode,
+                item.is_charity,
+                item.spOfferType,
+                item.discountable,
+                item.service_plan_id,
+                item.max_in_cart,
+                item.special_commision,
+                item.vendor_id,
+                item.spOfferItemsJson,
+                item.spOfferMainCatId,
+                item.sort_order,
+                item.img_file_id,
+                item.cat_sort_order
+            );
+
+            ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffers", "id", item.id, item.last_update_ts);
+        }
+
+        // Rebuild and sync every round affected by the changed offers.
+        foreach (var round in rounds)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(round.round_id); } catch { }
+
+            if (round_id <= 0) continue;
+
+            AppJson.CreateMenuSpecialOffersJson(round_id, true);
+            SyncRoundInfo(round_id, src_db_name, dest_db_name);
+        }
+
+        theHtmlOutput = "ok";
+
+        src_db.Close();
+        dest_db.Close();
+
+        return theHtmlOutput;
+    }
+    public static string SyncSpOfferItems(int spOfferItemId = 0, string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+        string theHtmlOutput = "not ok";
+
+        var src_db = Database.Open(src_db_name);
+        var dest_db = Database.Open(dest_db_name);
+
+        string sqlSelect = "SELECT * FROM SpecialOffersItems WHERE is_update=1 AND id=@0 ORDER BY id";
+        if (spOfferItemId == 0) { sqlSelect = "SELECT * FROM SpecialOffersItems WHERE is_update=1 ORDER BY id"; }
+        if (spOfferItemId == -1) { sqlSelect = "SELECT * FROM SpecialOffersItems ORDER BY id"; }
+
+        var spOfferItems = src_db.Query(sqlSelect, spOfferItemId).ToList();
+
+        // Capture affected special offers BEFORE clearing SpecialOffersItems.is_update.
+        var spOfferIds = new HashSet<int>();
+
+        foreach (var item in spOfferItems)
+        {
+            int spOffer_id = 0;
+            try { spOffer_id = Convert.ToInt32(item.spOffer_id); } catch { }
+
+            if (spOffer_id > 0) spOfferIds.Add(spOffer_id);
+        }
+
+        // Capture affected rounds.
+        var rounds = new List<dynamic>();
+
+        if (spOfferIds.Any())
+        {
+            string ids = string.Join(",", spOfferIds);
+
+            rounds = src_db.Query("SELECT DISTINCT round_id FROM SpOfferRoundsAvailability WHERE specialOfferId IN (" + ids + ") ORDER BY round_id").ToList();
+        }
+
+        foreach (var item in spOfferItems)
+        {
+            sqlSelect = "SELECT id FROM SpecialOffersItems WHERE id=@0";
+            var dupChk = dest_db.QuerySingle(sqlSelect, item.id);
+
+            if (dupChk == null)
+            {
+                dest_db.Execute("SET IDENTITY_INSERT SpecialOffersItems ON");
+                dest_db.Execute("INSERT INTO SpecialOffersItems (id) VALUES (@0)", item.id);
+                dest_db.Execute("SET IDENTITY_INSERT SpecialOffersItems OFF");
+            }
+
+            sqlSelect = "UPDATE SpecialOffersItems SET spOfferItemType=@1,spOfferCatId=@2,menuItemId=@3,spOffer_id=@4,quan=@5,itemunit=@6,Title=@7,Title_e=@8,itemunit_e=@9,itemunit_type=@10,spItemType=@11,main_cat_id=@12,p_id=@13 WHERE id=@0";
+
+            dest_db.Execute(sqlSelect,
+                item.id,
+                item.spOfferItemType,
+                item.spOfferCatId,
+                item.menuItemId,
+                item.spOffer_id,
+                item.quan,
+                item.itemunit,
+                item.Title,
+                item.Title_e,
+                item.itemunit_e,
+                item.itemunit_type,
+                item.spItemType,
+                item.main_cat_id,
+                item.p_id
+            );
+
+            ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffersItems", "id", item.id, item.last_update_ts);
+        }
+
+        // Rebuild spOffersJson and sync every affected round.
+        foreach (var round in rounds)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(round.round_id); } catch { }
+
+            if (round_id <= 0) continue;
+
+            AppJson.CreateMenuSpecialOffersJson(round_id, true);
+            SyncRoundInfo(round_id, src_db_name, dest_db_name);
+        }
+
+        theHtmlOutput = "ok";
+
+        src_db.Close();
+        dest_db.Close();
+
+        return theHtmlOutput;
+    }
+    public static string SyncSpOfferRoundAvailability(int spOfferItemId = 0, string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+        string theHtmlOutput = "not ok";
+
+        var src_db = Database.Open(src_db_name);
+        var dest_db = Database.Open(dest_db_name);
+
+        string sqlSelect = "SELECT * FROM SpOfferRoundsAvailability WHERE is_update=1 AND id=@0 ORDER BY id";
+        if (spOfferItemId == 0) { sqlSelect = "SELECT * FROM SpOfferRoundsAvailability WHERE is_update=1 ORDER BY id"; }
+        if (spOfferItemId == -1) { sqlSelect = "SELECT * FROM SpOfferRoundsAvailability ORDER BY id"; }
+
+        var spOfferAvailability = src_db.Query(sqlSelect, spOfferItemId).ToList();
+
+        // Capture affected rounds BEFORE clearing SpOfferRoundsAvailability.is_update.
+        var roundIds = new HashSet<int>();
+
+        foreach (var item in spOfferAvailability)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(item.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        foreach (var item in spOfferAvailability)
+        {
+            sqlSelect = "SELECT id FROM SpOfferRoundsAvailability WHERE id=@0";
+            var dupChk = dest_db.QuerySingle(sqlSelect, item.id);
+
+            if (dupChk == null)
+            {
+                dest_db.Execute("SET IDENTITY_INSERT SpOfferRoundsAvailability ON");
+                dest_db.Execute("INSERT INTO SpOfferRoundsAvailability (id) VALUES (@0)", item.id);
+                dest_db.Execute("SET IDENTITY_INSERT SpOfferRoundsAvailability OFF");
+            }
+
+            sqlSelect = "UPDATE SpOfferRoundsAvailability SET round_id=@1,specialOfferId=@2,is_active=@3,max_in_cart=@4,sort_order=@5,cat_sort_order=@6,spOfferMainCatId=@7,is_featured=@8 WHERE id=@0";
+
+            dest_db.Execute(sqlSelect,
+                item.id,
+                item.round_id,
+                item.specialOfferId,
+                item.is_active,
+                item.max_in_cart,
+                item.sort_order,
+                item.cat_sort_order,
+                item.spOfferMainCatId,
+                item.is_featured
+            );
+
+            ClientExport.ClearRowUpdateFlag(src_db_name, "SpOfferRoundsAvailability", "id", item.id, item.last_update_ts);
+        }
+
+        // Rebuild spOffersJson and sync every affected round.
+        foreach (var round_id in roundIds)
+        {
+            AppJson.CreateMenuSpecialOffersJson(round_id, true);
+            SyncRoundInfo(round_id, src_db_name, dest_db_name);
+        }
+
+        theHtmlOutput = "ok";
+
+        src_db.Close();
+        dest_db.Close();
+
+        return theHtmlOutput;
+    }
+
+    public static void SyncSpOfferChanges(string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+
+        var src_db = Database.Open(src_db_name);
+
+        // ---------------------------------------------------------
+        // Capture all affected rounds BEFORE clearing any flags.
+        // ---------------------------------------------------------
+
+        var roundIds = new HashSet<int>();
+
+        // SpecialOffers changed:
+        // Find every round that uses one of the changed offers.
+        var roundsFromOffers = src_db.Query("SELECT DISTINCT ra.round_id FROM SpOfferRoundsAvailability ra INNER JOIN SpecialOffers s ON ra.specialOfferId=s.id WHERE s.is_update=1 ORDER BY ra.round_id").ToList();
+
+        foreach (var row in roundsFromOffers)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        // SpecialOffersItems changed:
+        // Find the parent offer and every round that uses that offer.
+        var roundsFromItems = src_db.Query("SELECT DISTINCT ra.round_id FROM SpOfferRoundsAvailability ra INNER JOIN SpecialOffersItems i ON ra.specialOfferId=i.spOffer_id WHERE i.is_update=1 ORDER BY ra.round_id").ToList();
+
+        foreach (var row in roundsFromItems)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        // SpOfferRoundsAvailability changed:
+        // round_id is already directly available.
+        var roundsFromAvailability = src_db.Query("SELECT DISTINCT round_id FROM SpOfferRoundsAvailability WHERE is_update=1 ORDER BY round_id").ToList();
+
+        foreach (var row in roundsFromAvailability)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        // ---------------------------------------------------------
+        // Snapshot changed rows BEFORE clearing flags.
+        // We need last_update_ts for safe flag clearing.
+        // ---------------------------------------------------------
+
+        var changedOffers = src_db.Query("SELECT id,last_update_ts FROM SpecialOffers WHERE is_update=1").ToList();
+        var changedItems = src_db.Query("SELECT id,last_update_ts FROM SpecialOffersItems WHERE is_update=1").ToList();
+        var changedAvailability = src_db.Query("SELECT id,last_update_ts FROM SpOfferRoundsAvailability WHERE is_update=1").ToList();
+
+        src_db.Close();
+
+        // ---------------------------------------------------------
+        // Rebuild and sync each affected round ONCE.
+        // ---------------------------------------------------------
+
+        foreach (var round_id in roundIds.OrderBy(x => x))
+        {
+            AppJson.CreateMenuSpecialOffersJson(round_id, true);
+            SyncRoundInfo(round_id, src_db_name, dest_db_name);
+        }
+
+        // ---------------------------------------------------------
+        // Clear source dependency flags.
+        // Timestamp protection prevents clearing a newer change.
+        // ---------------------------------------------------------
+
+        foreach (var item in changedOffers)
+        {
+            int id = 0;
+            DateTime last_update_ts = DateTime.MinValue;
+
+            try { id = Convert.ToInt32(item.id); } catch { }
+            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
+
+            if (id > 0 && last_update_ts != DateTime.MinValue)
+            {
+                ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffers", "id", id, last_update_ts);
+            }
+        }
+
+        foreach (var item in changedItems)
+        {
+            int id = 0;
+            DateTime last_update_ts = DateTime.MinValue;
+
+            try { id = Convert.ToInt32(item.id); } catch { }
+            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
+
+            if (id > 0 && last_update_ts != DateTime.MinValue)
+            {
+                ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffersItems", "id", id, last_update_ts);
+            }
+        }
+
+        foreach (var item in changedAvailability)
+        {
+            int id = 0;
+            DateTime last_update_ts = DateTime.MinValue;
+
+            try { id = Convert.ToInt32(item.id); } catch { }
+            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
+
+            if (id > 0 && last_update_ts != DateTime.MinValue)
+            {
+                ClientExport.ClearRowUpdateFlag(src_db_name, "SpOfferRoundsAvailability", "id", id, last_update_ts);
+            }
+        }
 
     }
 
@@ -606,175 +991,6 @@
         dest_db.Close();
 
         return theHtmlOutput;
-
-    }
-    public static string SyncSpOffers(int spOfferId = 0, string src_db_name = "op_data", string dest_db_name = "zion")
-    {
-        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-        DateTime local_time = AppFunctions.LocalTime();
-        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
-        int rep_id = u_id;
-        string theHtmlOutput = "not ok";
-
-        var src_db = Database.Open(src_db_name);
-        var dest_db = Database.Open(dest_db_name);
-
-        var sqlSelect = "SELECT * FROM SpecialOffers WHERE is_update=1 AND id=@0 ORDER BY id";
-        if (spOfferId == 0) { sqlSelect = "SELECT * FROM SpecialOffers WHERE is_update=1 ORDER BY id"; }
-        if (spOfferId == -1) { sqlSelect = "SELECT * FROM SpecialOffers ORDER BY id"; }
-
-        var spOffers = src_db.Query(sqlSelect, spOfferId);
-
-        foreach (var item in spOffers)
-        {
-            sqlSelect = "SELECT id FROM SpecialOffers WHERE id=@0";
-            var dupChk = dest_db.QuerySingle(sqlSelect, item.id);
-            if (dupChk == null)
-            {
-                dest_db.Execute("SET IDENTITY_INSERT SpecialOffers ON");
-
-                sqlSelect = "INSERT INTO SpecialOffers (id) VALUES (@0)";
-                dest_db.Execute(sqlSelect, item.id);
-                dest_db.Execute("SET IDENTITY_INSERT SpecialOffers OFF");
-            }
-
-
-
-            sqlSelect = "UPDATE SpecialOffers SET title=@1, title_e=@2, description=@3, desc_e=@4, price=@5, sp_offer_type=@6, is_deleted=@7, is_active=@8, create_ts=@9, is_activated=@10, created_by=@11, status_code=@12, ActionCode=@13, is_charity=@14, spOfferType=@15, discountable=@16, service_plan_id=@17, max_in_cart=@18, special_commision=@19 WHERE id=@0";
-
-            try
-            {
-                dest_db.Execute(sqlSelect,
-                    item.id, item.title, item.title_e, item.description, item.desc_e, item.price,
-                    item.sp_offer_type, item.is_deleted, item.is_active, item.create_ts,
-                    item.is_activated, item.created_by, item.status_code, item.ActionCode,
-                    item.is_charity, item.spOfferType, item.discountable, item.service_plan_id,
-                    item.max_in_cart, item.special_commision
-                );
-            }
-            catch { }
-            ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffers", "id", item.id, item.last_update_ts);
-
-        }
-
-
-
-        theHtmlOutput = "ok";
-        src_db.Close();
-        dest_db.Close();
-
-        return theHtmlOutput;
-
-    }
-    public static string SyncSpOfferItems(int spOfferItemId = 0, string src_db_name = "op_data", string dest_db_name = "zion")
-    {
-        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-        DateTime local_time = AppFunctions.LocalTime();
-        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
-        int rep_id = u_id;
-        string theHtmlOutput = "not ok";
-
-        var src_db = Database.Open(src_db_name);
-        var dest_db = Database.Open(dest_db_name);
-
-        var sqlSelect = "SELECT * FROM SpecialOffersItems WHERE is_update=1 AND id=@0 ORDER BY id";
-        if (spOfferItemId == 0) { sqlSelect = "SELECT * FROM SpecialOffersItems WHERE is_update=1 ORDER BY id"; }
-        if (spOfferItemId == -1) { sqlSelect = "SELECT * FROM SpecialOffersItems ORDER BY id"; }
-
-        var spOfferItems = src_db.Query(sqlSelect, spOfferItemId);
-
-        foreach (var item in spOfferItems)
-        {
-            sqlSelect = "SELECT id FROM SpecialOffersItems WHERE id=@0";
-            var dupChk = dest_db.QuerySingle(sqlSelect, item.id);
-            if (dupChk == null)
-            {
-                dest_db.Execute("SET IDENTITY_INSERT SpecialOffersItems ON");
-
-                sqlSelect = "INSERT INTO SpecialOffersItems (id) VALUES (@0)";
-                dest_db.Execute(sqlSelect, item.id);
-                dest_db.Execute("SET IDENTITY_INSERT SpecialOffersItems OFF");
-            }
-
-
-
-            sqlSelect = "UPDATE SpecialOffersItems SET spOfferItemType=@1, spOfferCatId=@2, menuItemId=@3, spOffer_id=@4, quan=@5, itemunit=@6, Title=@7, Title_e=@8, itemunit_e=@9, itemunit_type=@10, spItemType=@11, main_cat_id=@12, p_id=@13 WHERE id=@0";
-
-            try
-            {
-                dest_db.Execute(sqlSelect,
-                    item.id, item.spOfferItemType, item.spOfferCatId, item.menuItemId, item.spOffer_id,
-                    item.quan, item.itemunit, item.Title, item.Title_e, item.itemunit_e,
-                    item.itemunit_type, item.spItemType, item.main_cat_id, item.p_id
-                );
-            }
-            catch { }
-            ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffersItems", "id", item.id, item.last_update_ts);
-
-        }
-
-
-
-        theHtmlOutput = "ok";
-        src_db.Close();
-        dest_db.Close();
-
-        return theHtmlOutput;
-
-    }
-    public static string SyncSpOfferRoundAvailability(int spOfferItemId = 0, string src_db_name = "op_data", string dest_db_name = "zion")
-    {
-        System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-        DateTime local_time = AppFunctions.LocalTime();
-        int u_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
-        int rep_id = u_id;
-        string theHtmlOutput = "not ok";
-
-        var src_db = Database.Open(src_db_name);
-        var dest_db = Database.Open(dest_db_name);
-
-        var sqlSelect = "SELECT * FROM SpOfferRoundsAvailability WHERE is_update=1 AND id=@0 ORDER BY id";
-        if (spOfferItemId == 0) { sqlSelect = "SELECT * FROM SpOfferRoundsAvailability WHERE is_update=1 ORDER BY id"; }
-        if (spOfferItemId == -1) { sqlSelect = "SELECT * FROM SpOfferRoundsAvailability ORDER BY id"; }
-
-        var spOfferAvailability = src_db.Query(sqlSelect, spOfferItemId);
-
-        foreach (var item in spOfferAvailability)
-        {
-            sqlSelect = "SELECT id FROM SpOfferRoundsAvailability WHERE id=@0";
-            var dupChk = dest_db.QuerySingle(sqlSelect, item.id);
-            if (dupChk == null)
-            {
-                dest_db.Execute("SET IDENTITY_INSERT SpOfferRoundsAvailability ON");
-
-                sqlSelect = "INSERT INTO SpOfferRoundsAvailability (id) VALUES (@0)";
-                dest_db.Execute(sqlSelect, item.id);
-                dest_db.Execute("SET IDENTITY_INSERT SpOfferRoundsAvailability OFF");
-            }
-
-
-            sqlSelect = "UPDATE SpOfferRoundsAvailability SET round_id=@1, specialOfferId=@2, is_active=@3, max_in_cart=@4 WHERE id=@0";
-
-            try
-            {
-                dest_db.Execute(sqlSelect,
-                    item.id, item.round_id, item.specialOfferId, item.is_active, item.max_in_cart
-                );
-            }
-            catch { }
-            ClientExport.ClearRowUpdateFlag(src_db_name, "SpOfferRoundsAvailability", "id", item.id, item.last_update_ts);
-
-
-        }
-
-        theHtmlOutput = "ok";
-        src_db.Close();
-        dest_db.Close();
-
-        return theHtmlOutput;
-
-
-
 
     }
 
