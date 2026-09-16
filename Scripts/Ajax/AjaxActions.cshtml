@@ -58,13 +58,13 @@
                     case "ROUNDS":
                         if (true)
                         {
-                             SyncFunctions.SyncRoundInfo();
+                            SyncFunctions.SyncRoundInfo();
                         }
                         break;
                     case "RMI":
                         if (true)
                         {
-                             SyncFunctions.SyncRoundMenuItems();
+                            SyncFunctions.SyncRoundMenuItems();
                         }
                         break;
                     case "RMIPO":
@@ -94,7 +94,7 @@
                     case "PRODIMG":
                         if (true)
                         {
-                             SyncFunctions.SyncProductImages();
+                            SyncFunctions.SyncProductImages();
                         }
                         break;
                     case "PPO":
@@ -8400,8 +8400,8 @@
         case "SyncCLientSites":
             if (true)
             {
-                SyncFunctions.Sync();
-                theHtmlOutput = "הסנכרון בוצע!";
+                theHtmlOutput = SyncFunctions.Sync();
+                //theHtmlOutput = "הסנכרון בוצע!";
 
             }
             break;

@@ -1,30 +1,72 @@
 ﻿@functions {
 
 
-    public static void Sync(string src_db_name = "op_data", string dest_db_name = "zion")
+    public static string Sync(string src_db_name = "op_data", string dest_db_name = "zion")
     {
-        /// sync process
+        string theHtmlOutput = "ok";
 
-        //sync app properties
+        // ---------------------------------------------------------
+        // Sync App Properties
+        // ---------------------------------------------------------
+
         SyncAppProperties(src_db_name, dest_db_name);
 
-        //sync product images
-        SyncProductImages(0,src_db_name, dest_db_name);
 
-        //Sync SpecialOffers
+        // ---------------------------------------------------------
+        // Sync Product Images
+        // ---------------------------------------------------------
+
+        SyncProductImages(0, src_db_name, dest_db_name);
+
+
+        // ---------------------------------------------------------
+        // Sync Special Offers
+        // ---------------------------------------------------------
+
         //SyncSpOffers(0, src_db_name, dest_db_name);
         //SyncSpOfferItems(0, src_db_name, dest_db_name);
         //SyncSpOfferRoundAvailability(0, src_db_name, dest_db_name);
 
-        //sync roundmenuitems
-        SyncRoundMenuItems(0,src_db_name, dest_db_name);
+
+        // ---------------------------------------------------------
+        // Sync Round Menu Items
+        // ---------------------------------------------------------
+
+        SyncRoundMenuItems(0, src_db_name, dest_db_name);
+
+
+        // ---------------------------------------------------------
+        // Sync Special Offer Changes
+        // ---------------------------------------------------------
 
         SyncSpOfferChanges(src_db_name, dest_db_name);
-        //sync rounds
+
+
+        // ---------------------------------------------------------
+        // Sync Rounds
+        // ---------------------------------------------------------
+
         SyncRoundInfo(0, src_db_name, dest_db_name);
 
 
+        // ---------------------------------------------------------
+        // Refresh Rav Application Cache
+        // ---------------------------------------------------------
+
+        string cacheResult = PushCacheRefresh("all");
+
+        if (cacheResult != "ok")
+        {
+            theHtmlOutput= "!$!Storefront cache refresh failed: " + cacheResult;
+        }
+        else
+        {
+            theHtmlOutput = cacheResult;
+        }
+
+        return theHtmlOutput;
     }
+
     public static void SyncAppProperties(string src_db_name = "op_data", string dest_db_name = "zion")
     {
 
@@ -230,6 +272,123 @@
         src_db.Close();
         dest_db.Close();
     }
+    public static void SyncSpOfferChanges(string src_db_name = "op_data", string dest_db_name = "zion")
+    {
+
+        var src_db = Database.Open(src_db_name);
+
+        // ---------------------------------------------------------
+        // Capture all affected rounds BEFORE clearing any flags.
+        // ---------------------------------------------------------
+
+        var roundIds = new HashSet<int>();
+
+        // SpecialOffers changed:
+        // Find every round that uses one of the changed offers.
+        var roundsFromOffers = src_db.Query("SELECT DISTINCT ra.round_id FROM SpOfferRoundsAvailability ra INNER JOIN SpecialOffers s ON ra.specialOfferId=s.id WHERE s.is_update=1 ORDER BY ra.round_id").ToList();
+
+        foreach (var row in roundsFromOffers)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        // SpecialOffersItems changed:
+        // Find the parent offer and every round that uses that offer.
+        var roundsFromItems = src_db.Query("SELECT DISTINCT ra.round_id FROM SpOfferRoundsAvailability ra INNER JOIN SpecialOffersItems i ON ra.specialOfferId=i.spOffer_id WHERE i.is_update=1 ORDER BY ra.round_id").ToList();
+
+        foreach (var row in roundsFromItems)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        // SpOfferRoundsAvailability changed:
+        // round_id is already directly available.
+        var roundsFromAvailability = src_db.Query("SELECT DISTINCT round_id FROM SpOfferRoundsAvailability WHERE is_update=1 ORDER BY round_id").ToList();
+
+        foreach (var row in roundsFromAvailability)
+        {
+            int round_id = 0;
+            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+
+            if (round_id > 0) roundIds.Add(round_id);
+        }
+
+        // ---------------------------------------------------------
+        // Snapshot changed rows BEFORE clearing flags.
+        // We need last_update_ts for safe flag clearing.
+        // ---------------------------------------------------------
+
+        var changedOffers = src_db.Query("SELECT id,last_update_ts FROM SpecialOffers WHERE is_update=1").ToList();
+        var changedItems = src_db.Query("SELECT id,last_update_ts FROM SpecialOffersItems WHERE is_update=1").ToList();
+        var changedAvailability = src_db.Query("SELECT id,last_update_ts FROM SpOfferRoundsAvailability WHERE is_update=1").ToList();
+
+        src_db.Close();
+
+        // ---------------------------------------------------------
+        // Rebuild and sync each affected round ONCE.
+        // ---------------------------------------------------------
+
+        foreach (var round_id in roundIds.OrderBy(x => x))
+        {
+            AppJson.CreateMenuSpecialOffersJson(round_id, true);
+            SyncRoundInfo(round_id, src_db_name, dest_db_name);
+        }
+
+        // ---------------------------------------------------------
+        // Clear source dependency flags.
+        // Timestamp protection prevents clearing a newer change.
+        // ---------------------------------------------------------
+
+        foreach (var item in changedOffers)
+        {
+            int id = 0;
+            DateTime last_update_ts = DateTime.MinValue;
+
+            try { id = Convert.ToInt32(item.id); } catch { }
+            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
+
+            if (id > 0 && last_update_ts != DateTime.MinValue)
+            {
+                ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffers", "id", id, last_update_ts);
+            }
+        }
+
+        foreach (var item in changedItems)
+        {
+            int id = 0;
+            DateTime last_update_ts = DateTime.MinValue;
+
+            try { id = Convert.ToInt32(item.id); } catch { }
+            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
+
+            if (id > 0 && last_update_ts != DateTime.MinValue)
+            {
+                ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffersItems", "id", id, last_update_ts);
+            }
+        }
+
+        foreach (var item in changedAvailability)
+        {
+            int id = 0;
+            DateTime last_update_ts = DateTime.MinValue;
+
+            try { id = Convert.ToInt32(item.id); } catch { }
+            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
+
+            if (id > 0 && last_update_ts != DateTime.MinValue)
+            {
+                ClientExport.ClearRowUpdateFlag(src_db_name, "SpOfferRoundsAvailability", "id", id, last_update_ts);
+            }
+        }
+
+    }
+
     public static void SyncRoundInfo(int round_id = 0, string src_db_name = "op_data", string dest_db_name = "zion")
     {
         var src_db = Database.Open(src_db_name);
@@ -630,121 +789,108 @@
         return theHtmlOutput;
     }
 
-    public static void SyncSpOfferChanges(string src_db_name = "op_data", string dest_db_name = "zion")
+    public static string PushCacheRefresh(string purpose, int id = 0)
     {
+        System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+        string storefrontUrl = "";
 
-        var src_db = Database.Open(src_db_name);
-
-        // ---------------------------------------------------------
-        // Capture all affected rounds BEFORE clearing any flags.
-        // ---------------------------------------------------------
-
-        var roundIds = new HashSet<int>();
-
-        // SpecialOffers changed:
-        // Find every round that uses one of the changed offers.
-        var roundsFromOffers = src_db.Query("SELECT DISTINCT ra.round_id FROM SpOfferRoundsAvailability ra INNER JOIN SpecialOffers s ON ra.specialOfferId=s.id WHERE s.is_update=1 ORDER BY ra.round_id").ToList();
-
-        foreach (var row in roundsFromOffers)
+        try
         {
-            int round_id = 0;
-            try { round_id = Convert.ToInt32(row.round_id); } catch { }
+            storefrontUrl = AppFunctions.GetAppProperty("StorefrontUrl") ?? "";
+            string cacheRefreshSecret = AppFunctions.GetAppProperty("CacheRefreshSecret") ?? "";
 
-            if (round_id > 0) roundIds.Add(round_id);
-        }
-
-        // SpecialOffersItems changed:
-        // Find the parent offer and every round that uses that offer.
-        var roundsFromItems = src_db.Query("SELECT DISTINCT ra.round_id FROM SpOfferRoundsAvailability ra INNER JOIN SpecialOffersItems i ON ra.specialOfferId=i.spOffer_id WHERE i.is_update=1 ORDER BY ra.round_id").ToList();
-
-        foreach (var row in roundsFromItems)
-        {
-            int round_id = 0;
-            try { round_id = Convert.ToInt32(row.round_id); } catch { }
-
-            if (round_id > 0) roundIds.Add(round_id);
-        }
-
-        // SpOfferRoundsAvailability changed:
-        // round_id is already directly available.
-        var roundsFromAvailability = src_db.Query("SELECT DISTINCT round_id FROM SpOfferRoundsAvailability WHERE is_update=1 ORDER BY round_id").ToList();
-
-        foreach (var row in roundsFromAvailability)
-        {
-            int round_id = 0;
-            try { round_id = Convert.ToInt32(row.round_id); } catch { }
-
-            if (round_id > 0) roundIds.Add(round_id);
-        }
-
-        // ---------------------------------------------------------
-        // Snapshot changed rows BEFORE clearing flags.
-        // We need last_update_ts for safe flag clearing.
-        // ---------------------------------------------------------
-
-        var changedOffers = src_db.Query("SELECT id,last_update_ts FROM SpecialOffers WHERE is_update=1").ToList();
-        var changedItems = src_db.Query("SELECT id,last_update_ts FROM SpecialOffersItems WHERE is_update=1").ToList();
-        var changedAvailability = src_db.Query("SELECT id,last_update_ts FROM SpOfferRoundsAvailability WHERE is_update=1").ToList();
-
-        src_db.Close();
-
-        // ---------------------------------------------------------
-        // Rebuild and sync each affected round ONCE.
-        // ---------------------------------------------------------
-
-        foreach (var round_id in roundIds.OrderBy(x => x))
-        {
-            AppJson.CreateMenuSpecialOffersJson(round_id, true);
-            SyncRoundInfo(round_id, src_db_name, dest_db_name);
-        }
-
-        // ---------------------------------------------------------
-        // Clear source dependency flags.
-        // Timestamp protection prevents clearing a newer change.
-        // ---------------------------------------------------------
-
-        foreach (var item in changedOffers)
-        {
-            int id = 0;
-            DateTime last_update_ts = DateTime.MinValue;
-
-            try { id = Convert.ToInt32(item.id); } catch { }
-            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
-
-            if (id > 0 && last_update_ts != DateTime.MinValue)
+            if (string.IsNullOrWhiteSpace(storefrontUrl))
             {
-                ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffers", "id", id, last_update_ts);
+                return "StorefrontUrl is missing";
+            }
+
+            if (string.IsNullOrWhiteSpace(cacheRefreshSecret))
+            {
+                return "CacheRefreshSecret is missing";
+            }
+
+            storefrontUrl = storefrontUrl.TrimEnd('/') + "/CacheRefresh";
+
+            string postData =
+                "purpose=" + System.Web.HttpUtility.UrlEncode(purpose ?? "") +
+                "&id=" + System.Web.HttpUtility.UrlEncode(id.ToString());
+
+            byte[] data = System.Text.Encoding.UTF8.GetBytes(postData);
+
+            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(storefrontUrl);
+
+            request.Method = "POST";
+            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentLength = data.Length;
+            request.Timeout = 15000;
+            request.ReadWriteTimeout = 15000;
+            request.Headers["X-Cache-Secret"] = cacheRefreshSecret;
+
+            using (var stream = request.GetRequestStream())
+            {
+                stream.Write(data, 0, data.Length);
+            }
+
+            using (var response = (System.Net.HttpWebResponse)request.GetResponse())
+            {
+                string responseText = "";
+
+                using (var responseStream = response.GetResponseStream())
+                {
+                    if (responseStream != null)
+                    {
+                        using (var reader = new System.IO.StreamReader(responseStream))
+                        {
+                            responseText = reader.ReadToEnd();
+                        }
+                    }
+                }
+
+                return responseText.Trim();
             }
         }
-
-        foreach (var item in changedItems)
+        catch (System.Net.WebException ex)
         {
-            int id = 0;
-            DateTime last_update_ts = DateTime.MinValue;
+            string responseText = "";
+            int statusCode = 0;
 
-            try { id = Convert.ToInt32(item.id); } catch { }
-            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
-
-            if (id > 0 && last_update_ts != DateTime.MinValue)
+            try
             {
-                ClientExport.ClearRowUpdateFlag(src_db_name, "SpecialOffersItems", "id", id, last_update_ts);
-            }
-        }
+                var response = ex.Response as System.Net.HttpWebResponse;
 
-        foreach (var item in changedAvailability)
+                if (response != null)
+                {
+                    statusCode = (int)response.StatusCode;
+
+                    using (var responseStream = response.GetResponseStream())
+                    {
+                        if (responseStream != null)
+                        {
+                            using (var reader = new System.IO.StreamReader(responseStream))
+                            {
+                                responseText = reader.ReadToEnd();
+                            }
+                        }
+                    }
+
+                    response.Close();
+                }
+            }
+            catch (Exception readEx)
+            {
+                responseText = "Could not read response: " + readEx.Message;
+            }
+
+            return "Cache refresh failed: " +
+                   statusCode +
+                   " | URL: " + storefrontUrl +
+                   " | Response: [" + responseText + "]" +
+                   " | Error: " + ex.Message;
+        }
+        catch (Exception ex)
         {
-            int id = 0;
-            DateTime last_update_ts = DateTime.MinValue;
-
-            try { id = Convert.ToInt32(item.id); } catch { }
-            try { last_update_ts = Convert.ToDateTime(item.last_update_ts); } catch { }
-
-            if (id > 0 && last_update_ts != DateTime.MinValue)
-            {
-                ClientExport.ClearRowUpdateFlag(src_db_name, "SpOfferRoundsAvailability", "id", id, last_update_ts);
-            }
+            return "Cache refresh failed: " + ex.Message;
         }
-
     }
 
     /// <summary>
