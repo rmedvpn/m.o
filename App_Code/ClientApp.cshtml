@@ -179,6 +179,33 @@
 
 @helper ClientSync()
 {
+int AutoSyncSecondsInterval = 0; try { AutoSyncSecondsInterval = Convert.ToInt32(AppFunctions.GetAppProperty("AutoSyncSecondsInterval")); } catch { }
+bool ClientAutoSync = false; try { ClientAutoSync = Convert.ToBoolean(AppFunctions.GetAppProperty("ClientAutoSync")); } catch { }
+
+    <div class="A" style="direction:rtl">
+        <div class="A">
+            <button class="A" type="button" style="float:left" onclick="AjaxActions('SyncCLientSites');">סנכרון</button>
+            <h2>סנכרון אתר לקוחות</h2>
+
+        </div>
+        <div class="A">
+            <div class="B">הגדרות סנכרון</div>
+
+            <div class="B">
+                <input type="checkbox" class="A" checked="@ClientAutoSync" onclick="    AjaxActions('SetClientAutoSync','ClientAutoSync','MainLoader',this.checked);" /> סנכרון אוטומטי כל <input type="text" id="SyncSeconds" class="A" value="@AutoSyncSecondsInterval" style="width:30px;" /> שניות <button type="button" class="A" onclick="    AjaxActions('SetSyncSeconds', 'AutoSyncSecondsInterval', 'MainLoader', document.getElementById('SyncSeconds').value);">✅</button>
+
+            </div>
+
+        </div>
+        </div>
+        <div class="A" style="height:200px;">&nbsp;</div>
+
+
+
+        }
+
+@helper ClientSyncOld()
+{
 
     /*Tables To sync
     TABLES TO PUSH TO CLIENT

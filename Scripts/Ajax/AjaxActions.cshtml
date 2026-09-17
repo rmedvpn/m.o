@@ -8406,6 +8406,48 @@
             }
             break;
 
+        case "SyncCLientsProcess":
+            if (true)
+            {
+                //theHtmlOutput = SyncFunctions.Sync();
+                theHtmlOutput = "הסנכרון בוצע!";
+
+            }
+            break;
+        case "SetClientAutoSync":
+            if (true)
+            {
+                string req_action = Request["value"];
+                bool ClientAutoSync = false; try { ClientAutoSync = Convert.ToBoolean(Request["param1"]); } catch { }
+                AppFunctions.SetAppProperty("ClientAutoSync", ClientAutoSync.ToString());
+
+                theHtmlOutput = "סנכרון אוטומטי נקבע ל" + ClientAutoSync;
+
+            }
+            break;
+        case "SetSyncSeconds":
+            if (true)
+            {
+                string req_action = Request["value"];
+                int AutoSyncSecondsInterval = 0; try { AutoSyncSecondsInterval = Convert.ToInt32(Request["param1"]); } catch { }
+                int MinSyncSecondsInterval = 0; try { MinSyncSecondsInterval = Convert.ToInt32(AppFunctions.GetAppProperty("MinSyncSecondsInterval")); } catch { }
+
+                if (AutoSyncSecondsInterval <= MinSyncSecondsInterval)
+                {
+                    theHtmlOutput = "!$!נא להזין ערך שניות תקין עבור הסנכרון האוטומטי!";
+
+                }
+
+                if (theHtmlOutput =="")
+                {
+
+                    AppFunctions.SetAppProperty("AutoSyncSecondsInterval", AutoSyncSecondsInterval.ToString());
+                    theHtmlOutput = "הסנכרון יתבצע כל " + AutoSyncSecondsInterval + " שניות";
+                }
+
+
+            }
+            break;
     }
 
 

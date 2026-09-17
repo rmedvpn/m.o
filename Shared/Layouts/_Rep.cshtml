@@ -9,6 +9,8 @@
     DateTime local_time = AppFunctions.LocalTime();
 
     int z_id = 0; try { z_id = Convert.ToInt32(AppFunctions.GetAppProperty("ActiveZ")); } catch { }
+    int AutoSyncSecondsInterval = 0; try { AutoSyncSecondsInterval = Convert.ToInt32(AppFunctions.GetAppProperty("AutoSyncSecondsInterval")); } catch { }
+    bool ClientAutoSync = false; try { ClientAutoSync = Convert.ToBoolean(AppFunctions.GetAppProperty("ClientAutoSync")); } catch { }
 }
 
 <!DOCTYPE html>
@@ -63,6 +65,8 @@
 
  </head>
  <body onload="startTime()" style="min-height:1000px;direction:rtl">
+     <input type="hidden" name="AutoSyncSecondsInterval" id="AutoSyncSecondsInterval" value="@AutoSyncSecondsInterval">
+
      <div style="position: fixed;display: none;z-index: 50000;width: 100%;height: 100%;background-color: #002070;opacity: 0.5;text-align: center;" id="MainLoader">
          <div class="cssload-loading"></div>
          <button type="button" style="font-size:50px;margin:100px;display:none" onclick="hideElement('MainLoader')">❎</button>
@@ -262,30 +266,35 @@
 
 
      <script>
-         setInterval(MonitorUser, 10000);
+                           setInterval(MonitorUser, 10000);
 
 
-         var OrdersAutoUpdate = setInterval(function () { RefreshOrdersView(); console.log("."); }, ordersRefreshTimer);
+                           var OrdersAutoUpdate = setInterval(function () { RefreshOrdersView(); console.log("."); }, ordersRefreshTimer);
 
      </script>
 
-
+     @if (ClientAutoSync)
+     {
+         <script>
+StartClientsAutoSync();
+         </script>
+     }
 
      <script src="js/jquery-3.2.1.min.js"></script>
      <script src="js/slidebars.js"></script>
      <script src="js/sb_scripts.js"></script>
      <script>
-         window._savedModule = window.module;
-         window._savedExports = window.exports;
-         window.module = undefined;
-         window.exports = undefined;
+                           window._savedModule = window.module;
+                           window._savedExports = window.exports;
+                           window.module = undefined;
+                           window.exports = undefined;
      </script>
 
      <script src="/lib/summernote/summernote-lite.min.js"></script>
 
      <script>
-         window.module = window._savedModule;
-         window.exports = window._savedExports;
+                           window.module = window._savedModule;
+                           window.exports = window._savedExports;
      </script>
 
 
@@ -295,34 +304,34 @@
 
 
      <script>
-         document.getElementById('filebox').onchange = function (evt) {
-             ImageTools.resize(this.files[0], {
-                 width: 640, // maximum width
-                 height: 1136 // maximum height
-             }, function (blob, didItResize) {
-                 // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
-                 //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
-                 ImageUpload(blob);
-                 // you can also now upload this blob using an XHR.
-             });
-         };
+                           document.getElementById('filebox').onchange = function (evt) {
+                               ImageTools.resize(this.files[0], {
+                                   width: 640, // maximum width
+                                   height: 1136 // maximum height
+                               }, function (blob, didItResize) {
+                                   // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
+                                   //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
+                                   ImageUpload(blob);
+                                   // you can also now upload this blob using an XHR.
+                               });
+                           };
 
-         document.getElementById('picfilebox').onchange = function (evt) {
-             ImageTools.resize(this.files[0], {
-                 width: 640, // maximum width
-                 height: 1136 // maximum height
-             }, function (blob, didItResize) {
-                 // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
-                 //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
-                 ProductImageUpload(blob);
-                 // you can also now upload this blob using an XHR.
-             });
-         };
+                           document.getElementById('picfilebox').onchange = function (evt) {
+                               ImageTools.resize(this.files[0], {
+                                   width: 640, // maximum width
+                                   height: 1136 // maximum height
+                               }, function (blob, didItResize) {
+                                   // didItResize will be true if it managed to resize it, otherwise false (and will return the original file as 'blob')
+                                   //  document.getElementById('preview').src = window.URL.createObjectURL(blob);
+                                   ProductImageUpload(blob);
+                                   // you can also now upload this blob using an XHR.
+                               });
+                           };
      </script>
 
      <script>
-         var controller = new slidebars();
-         controller.init();
+                           var controller = new slidebars();
+                           controller.init();
      </script>
 
      <script>

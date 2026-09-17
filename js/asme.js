@@ -14,8 +14,37 @@ var searchBoxCloseTimer = "";
 var currentProductsView = "CATALOG";
 var currSelectedOrder = 0;
 var currSelectedEntry = 0;
-
 var DisplayAdjsutmentBreak = 0;
+var AutoSyncTimer = 0;
+
+function StartClientsAutoSync() {
+    let SecInterval = 0;
+    let AutoSyncSecondsInterval = document.getElementById("AutoSyncSecondsInterval");
+
+    if (AutoSyncSecondsInterval) {
+        SecInterval = parseInt(AutoSyncSecondsInterval.value) || 0;
+
+        if (SecInterval > 0) {
+            clearInterval(AutoSyncTimer);
+            AutoSyncTimer = setInterval(ClientsAutoSync, SecInterval * 1000);
+        }
+    }
+
+    console.log("Timer: " + SecInterval + " seconds");
+}
+
+function StopClientsAutoSync() {
+    clearInterval(AutoSyncTimer);
+    AutoSyncTimer = 0;
+}
+
+function ClientsAutoSync() {
+    console.log("timer2");
+    AjaxActions("SyncCLientsProcess");
+}
+
+
+
 function MonitorUser() {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function () {

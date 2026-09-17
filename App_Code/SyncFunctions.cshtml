@@ -3,68 +3,27 @@
 
     public static string Sync(string src_db_name = "op_data", string dest_db_name = "zion")
     {
-        string theHtmlOutput = "ok";
-
-        // ---------------------------------------------------------
-        // Sync App Properties
-        // ---------------------------------------------------------
-
         SyncAppProperties(src_db_name, dest_db_name);
-
-
-        // ---------------------------------------------------------
-        // Sync Product Images
-        // ---------------------------------------------------------
-
         SyncProductImages(0, src_db_name, dest_db_name);
-
-
-        // ---------------------------------------------------------
-        // Sync Special Offers
-        // ---------------------------------------------------------
-
-        //SyncSpOffers(0, src_db_name, dest_db_name);
-        //SyncSpOfferItems(0, src_db_name, dest_db_name);
-        //SyncSpOfferRoundAvailability(0, src_db_name, dest_db_name);
-
-
-        // ---------------------------------------------------------
-        // Sync Round Menu Items
-        // ---------------------------------------------------------
-
         SyncRoundMenuItems(0, src_db_name, dest_db_name);
-
-
-        // ---------------------------------------------------------
-        // Sync Special Offer Changes
-        // ---------------------------------------------------------
-
         SyncSpOfferChanges(src_db_name, dest_db_name);
-
-
-        // ---------------------------------------------------------
-        // Sync Rounds
-        // ---------------------------------------------------------
-
         SyncRoundInfo(0, src_db_name, dest_db_name);
 
+        string cleanupResult = CleanupClientOrphans(src_db_name, dest_db_name);
 
-        // ---------------------------------------------------------
-        // Refresh Rav Application Cache
-        // ---------------------------------------------------------
+        if (cleanupResult != "ok")
+        {
+            return "!$!" + cleanupResult;
+        }
 
         string cacheResult = PushCacheRefresh("all");
 
         if (cacheResult != "ok")
         {
-            theHtmlOutput= "!$!Storefront cache refresh failed: " + cacheResult;
-        }
-        else
-        {
-            theHtmlOutput = cacheResult;
+            return "!$!Storefront cache refresh failed: " + cacheResult;
         }
 
-        return theHtmlOutput;
+        return "ok";
     }
 
     public static void SyncAppProperties(string src_db_name = "op_data", string dest_db_name = "zion")
@@ -82,6 +41,7 @@
         SyncFunctions.SetRemoteAppProperty(dest_db_name, "SpecialOffersTypesJson", SpecialOffersTypesJson, true);
         SyncFunctions.SetRemoteAppProperty(dest_db_name, "CategoriesJson", CategoriesJson, true);
     }
+
     public static void SyncProductImages(int p_id = 0, string src_db_name = "op_data", string dest_db_name = "zion")
     {
         var src_db = Database.Open(src_db_name);
@@ -529,6 +489,63 @@
         src_db.Close();
         dest_db.Close();
     }
+    public static string CleanupClientOrphans(string admin_db_name = "op_data", string client_db_name = "zion")
+    {
+        var admin_db = Database.Open(admin_db_name);
+        var client_db = Database.Open(client_db_name);
+
+        try
+        {
+            CleanupClientTable(admin_db, client_db, "ProductImages", "file_id");
+            CleanupClientTable(admin_db, client_db, "roundMenuItems", "id");
+            CleanupClientTable(admin_db, client_db, "Rounds", "id");
+
+            return "ok";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Client cleanup failed: " + ex.Message);
+            return "Client cleanup failed: " + ex.Message;
+        }
+        finally
+        {
+            admin_db.Close();
+            client_db.Close();
+        }
+    }
+
+
+    private static int CleanupClientTable(dynamic admin_db, dynamic client_db, string table, string key)
+    {
+        var adminIds = new HashSet<int>();
+
+        foreach (var row in admin_db.Query("SELECT " + key + " AS id FROM " + table))
+        {
+            int id = 0;
+            try { id = Convert.ToInt32(row.id); } catch { }
+
+            if (id > 0) adminIds.Add(id);
+        }
+
+        var orphanIds = new List<int>();
+
+        foreach (var row in client_db.Query("SELECT " + key + " AS id FROM " + table))
+        {
+            int id = 0;
+            try { id = Convert.ToInt32(row.id); } catch { }
+
+            if (id > 0 && !adminIds.Contains(id))
+            {
+                orphanIds.Add(id);
+            }
+        }
+
+        if (!orphanIds.Any()) return 0;
+
+        string ids = string.Join(",", orphanIds);
+
+        return client_db.Execute("DELETE FROM " + table + " WHERE " + key + " IN (" + ids + ")");
+    }
     public static void PrepareRoundForSync(int round_id)
     {
         string json = "";
@@ -892,6 +909,83 @@
             return "Cache refresh failed: " + ex.Message;
         }
     }
+
+    public static string TestCacheRefresh()
+    {
+        string storefrontUrl = "";
+
+        try
+        {
+            System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+
+            storefrontUrl = AppFunctions.GetAppProperty("StorefrontUrl") ?? "";
+
+            if (string.IsNullOrWhiteSpace(storefrontUrl))
+            {
+                return "StorefrontUrl is missing";
+            }
+
+            storefrontUrl = storefrontUrl.TrimEnd('/') + "/CacheRefresh";
+
+            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(storefrontUrl);
+
+            request.Method = "POST";
+            request.ContentLength = 0;
+            request.Timeout = 15000;
+            request.ReadWriteTimeout = 15000;
+
+            using (var response = (System.Net.HttpWebResponse)request.GetResponse())
+            using (var responseStream = response.GetResponseStream())
+            using (var reader = new System.IO.StreamReader(responseStream))
+            {
+                return reader.ReadToEnd().Trim();
+            }
+        }
+        catch (System.Net.WebException ex)
+        {
+            string responseText = "";
+            int statusCode = 0;
+
+            try
+            {
+                var response = ex.Response as System.Net.HttpWebResponse;
+
+                if (response != null)
+                {
+                    statusCode = (int)response.StatusCode;
+
+                    using (var responseStream = response.GetResponseStream())
+                    {
+                        if (responseStream != null)
+                        {
+                            using (var reader = new System.IO.StreamReader(responseStream))
+                            {
+                                responseText = reader.ReadToEnd();
+                            }
+                        }
+                    }
+
+                    response.Close();
+                }
+            }
+            catch { }
+
+            return "FAILED: " +
+                   statusCode +
+                   " | URL: " +
+                   storefrontUrl +
+                   " | Response: [" +
+                   responseText +
+                   "] | Error: " +
+                   ex.Message;
+        }
+        catch (Exception ex)
+        {
+            return "FAILED: " + ex.Message;
+        }
+    }
+
+
 
     /// <summary>
     /// /////////////////////////////////////////////////////////////////////////////////////////////////////////
