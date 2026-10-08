@@ -551,6 +551,7 @@
         string json = "";
         json = AppJson.CreateMenuItemsJson(round_id, true);
         json = AppJson.CreateMenuSpecialOffersJson(round_id, true);
+        json = AppJson.CreateFeaturedItemsJson(round_id, true);
 
     }
     public static string SyncSpOffers(int spOfferId = 0, string src_db_name = "op_data", string dest_db_name = "zion")

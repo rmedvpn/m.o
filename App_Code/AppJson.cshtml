@@ -1352,6 +1352,97 @@
         return json;
     }
 
+    public static string CreatePriceOptionsJson(int p_id, int round_id = 0, bool update_record = false)
+    {
+        var db = Database.Open("op_data");
+        var priceOptionsList = new List<Dictionary<string, object>>();
+
+        string sqlSelect = "SELECT * FROM ProductPricingOptions WHERE is_deleted=0 AND is_activated=1 AND p_id=@0";
+
+        if (round_id > 0)
+            sqlSelect += " AND round_id=@1 ORDER BY quan,price";
+        else
+            sqlSelect += " ORDER BY quan,price";
+
+        var PricingOptions = round_id > 0 ? db.Query(sqlSelect, p_id, round_id) : db.Query(sqlSelect, p_id);
+
+        foreach (var po in PricingOptions)
+        {
+            decimal unit = 0;
+            try { if (po.quan > 0) unit = Math.Round((decimal)po.price / (decimal)po.quan, 2); } catch { }
+
+            var priceOption = new Dictionary<string, object>();
+
+            priceOption.Add("round", po.round_id);
+            priceOption.Add("quan", po.quan);
+            priceOption.Add("price", po.price);
+            priceOption.Add("unit", unit);
+            priceOption.Add("fav", po.is_fav);
+            priceOption.Add("spOffer", po.is_spOffer);
+
+            priceOptionsList.Add(priceOption);
+        }
+        var serializer = new JavaScriptSerializer();
+        string json = serializer.Serialize(priceOptionsList);
+
+        if (update_record)
+        {
+            sqlSelect = "UPDATE products SET price_options_json=@0 WHERE p_id=@1";
+            db.Execute(sqlSelect, json, p_id);
+
+        }
+
+        db.Close();
+
+        return json;
+    }
+
+    public static string CreateCategoryPricingOptionsJson(int cat_id, int round_id = 0, bool update_record = false)
+    {
+        var db = Database.Open("op_data");
+        var priceOptionsList = new List<Dictionary<string, object>>();
+
+        string sqlSelect = "SELECT * FROM ProductPricingOptions WHERE ISNULL(is_deleted,0)=0 AND is_activated=1 AND cat_id=@0 AND ISNULL(p_id,0)=0";
+
+        if (round_id > 0)
+            sqlSelect += " AND round_id=@1 ORDER BY quan,price";
+        else
+            sqlSelect += " ORDER BY quan,price";
+
+        var PricingOptions = round_id > 0 ? db.Query(sqlSelect, cat_id, round_id) : db.Query(sqlSelect, cat_id);
+
+        foreach (var po in PricingOptions)
+        {
+            decimal unit = 0;
+            try { if (po.quan > 0) unit = Math.Round((decimal)po.price / (decimal)po.quan, 2); } catch { }
+
+            var priceOption = new Dictionary<string, object>();
+
+            priceOption.Add("round", po.round_id);
+            priceOption.Add("quan", po.quan);
+            priceOption.Add("price", po.price);
+            priceOption.Add("unit", unit);
+            priceOption.Add("fav", po.is_fav);
+            priceOption.Add("spOffer", false);
+
+            priceOptionsList.Add(priceOption);
+        }
+
+        var serializer = new JavaScriptSerializer();
+        string json = serializer.Serialize(priceOptionsList);
+
+        if (update_record)
+        {
+            sqlSelect = "UPDATE Categories SET price_options_json=@0 WHERE id=@1";
+            db.Execute(sqlSelect, json, cat_id);
+        }
+
+        db.Close();
+
+        return json;
+    }
+
+
 
     public static int func()
     {

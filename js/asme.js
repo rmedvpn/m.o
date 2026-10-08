@@ -702,6 +702,9 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "AddProductType":
             case "AddSpOffer":
             case "AddSpOfferCategory":
+            case "UpdateCategoryPricingOption":
+            case "UpdateCategoryPricingOption":
+            case "AddCategoryPricingOption":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1432,6 +1435,17 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                        // PageNavigator('SPOFFERS');
                         break;
 
+                    case "UpdateCategoryPricingOption":
+                    case "AddCategoryPricingOption":
+                    case "DeleteCategoryPriceOption":
+                        let ppo_cat_id = param2;
+                        if (field == "DeleteCategoryPriceOption") { ppo_cat_id = param1; }
+                        let ViewCatPpoContainer = "CategoryPricingOptionsDiv_" + ppo_cat_id;
+                        let EditCatPpoContainer = "EditCategoryPricingOptionsDiv_" + ppo_cat_id;
+                        RepAjaxUpdate('ViewCatPpo', ViewCatPpoContainer, 'MainLoader', ppo_cat_id);
+                        RepAjaxUpdate('EditCatPpo', EditCatPpoContainer, 'MainLoader', ppo_cat_id);
+                        
+                        break;
                     case "CatChangeOrder":
                         let contName = param3 + "LISTDIV";
                         RepAjaxUpdate('CatList', contName, 'MainLoader', param1, param3);

@@ -3125,47 +3125,8 @@
 
     public static string CreatePriceOptionsJson(int p_id, int round_id = 0, bool update_product_json = false)
     {
-        var db = Database.Open("op_data");
-        var priceOptionsList = new List<Dictionary<string, object>>();
+        return AppJson.CreatePriceOptionsJson(p_id, round_id, update_product_json);
 
-        string sqlSelect = "SELECT * FROM ProductPricingOptions WHERE is_deleted=0 AND is_activated=1 AND p_id=@0";
-
-        if (round_id > 0)
-            sqlSelect += " AND round_id=@1 ORDER BY quan,price";
-        else
-            sqlSelect += " ORDER BY quan,price";
-
-        var PricingOptions = round_id > 0 ? db.Query(sqlSelect, p_id, round_id) : db.Query(sqlSelect, p_id);
-
-        foreach (var po in PricingOptions)
-        {
-            decimal unit = 0;
-            try { if (po.quan > 0) unit = Math.Round((decimal)po.price / (decimal)po.quan, 2); } catch { }
-
-            var priceOption = new Dictionary<string, object>();
-
-            priceOption.Add("round", po.round_id);
-            priceOption.Add("quan", po.quan);
-            priceOption.Add("price", po.price);
-            priceOption.Add("unit", unit);
-            priceOption.Add("fav", po.is_fav);
-            priceOption.Add("spOffer", po.is_spOffer);
-
-            priceOptionsList.Add(priceOption);
-        }
-        var serializer = new JavaScriptSerializer();
-        string json= serializer.Serialize(priceOptionsList);
-
-        if (update_product_json)
-        {
-            sqlSelect = "UPDATE products SET price_options_json=@0 WHERE p_id=@1";
-            db.Execute(sqlSelect, json, p_id);
-
-        }
-
-        db.Close();
-
-        return json;
     }
 
     public static string AddProductOption()
@@ -3645,7 +3606,7 @@
 
         var serializer = new JavaScriptSerializer();
         string json = serializer.Serialize(ProductOptionsList);
-
+        DataFunctions.WriteDebugLine("json: " + json + "p_id: " + p_id);
         if (update_product)
         {
             sqlSelect = "UPDATE Products SET product_options_json=@0 WHERE p_id=@1";

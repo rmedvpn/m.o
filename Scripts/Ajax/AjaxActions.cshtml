@@ -8344,6 +8344,8 @@
 
             }
             break;
+
+
         case "SyncSubProductsToCatalog":
             if (true)
             {
@@ -8445,6 +8447,28 @@
                     theHtmlOutput = "הסנכרון יתבצע כל " + AutoSyncSecondsInterval + " שניות";
                 }
 
+
+            }
+            break;
+        case "UpdateCategoryPricingOption":
+            if (true)
+            {
+                theHtmlOutput = Categories.UpdateCategoryPricingOption();
+
+            }
+            break;
+
+        case "AddCategoryPricingOption":
+            if (true)
+            {
+                theHtmlOutput = Categories.AddCategoryPricingOption();
+
+            }
+            break;
+        case "DeleteCategoryPriceOption":
+            if (true)
+            {
+                theHtmlOutput = Categories.DeleteCategoryPriceOption();
 
             }
             break;

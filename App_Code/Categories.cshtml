@@ -1,0 +1,867 @@
+﻿
+@helper CatManager()
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM categories WHERE is_maincat=1 AND is_deleted=0 ORDER BY sort_order";
+    var MainCategories = db.Query(sqlSelect);
+
+
+    <div style="overflow: auto;background-color: #fff;min-height: 800px;">
+        <div style="overflow: auto;padding: 5px;">
+            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="Accordionize('AccAddCat');">קטגוריה ראשית חדשה</button>
+            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000;" onclick="    AjaxActions('ReCreateCategoriesJson'); ">JSON</button>
+
+            <div style="font-size: 20px;float: right;color: #000;font-weight: bold">ניהול קטגוריות</div>
+        </div>
+        <div style="overflow: auto;clear: both;">
+            <button style="display: none" class="Accordion" id="AccAddCat"></button>
+            <div class="panel" style="padding: 0;margin: 0">
+                <div style="overflow: auto;color: #000;padding: 5px;margin: 5px;font-size: 18px;">
+                    <form id="AddMainCat">
+                        <input type="hidden" name="sub_cat_type" value="MAINCAT">
+                        <div style="overflow: auto">שם קטגוריה<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" id="cat_title" name="cat_title"></div>
+                        <div style="overflow: auto">Category Title<br><input type="text" style="font-size: 16px;padding: 5px;margin: 5px;width: 90%" id="cat_e_title" name="cat_e_title"></div>
+                        <div style="overflow: auto;text-align: center"><button type="button" style="font-size: 16px;padding: 5px;margin: 5px;width: 50%;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', 0, '', 'AddMainCat', 'MAINCAT');">הוספה</button></div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div style="overflow: auto;clear: both;">
+            @foreach (var cat in MainCategories)
+            {
+                sqlSelect = "SELECT * FROM categories WHERE maincat_id=@0 AND is_subcat=1 AND is_deleted=0 ORDER BY sort_order";
+                var subCategories = db.Query(sqlSelect, cat.id);
+
+                <div style="overflow: auto;padding: 5px;font-size: 18px;color: #000;border-bottom: 1px dashed #000;background-color: #e3e3e3" id="catDiv_@cat.id">
+                    <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat.id','MainLoader',0,'up','');">⬆️</button>
+                    <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent" onclick="    AjaxActions('CatChangeOrder', '@cat.id', 'MainLoader', 0, 'down', '');">⬇️</button>
+                    <img class="VendorMenuItemImg" src="ImgViewer?size=tn&id=@cat.img_file_id" alt="אלט" />
+                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="Accordionize('menuAcc_@cat.id');">תתי קטגוריה</button>
+                    <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@cat.id');AdjustMainView();">עריכה</button>
+                    <div style="overflow: auto;">@cat.title</div>
+                    <div style="overflow: auto;clear: both;">
+                        <button style="display: none" id="menuAcc_@cat.id"></button>
+                        <div class="panel" style="padding: 0;margin: 0">
+                            <div style="overflow: auto;padding: 5px;background-color: #ffffcc;color: #000">
+                                <div class="B">
+                                    @foreach (var subcat in subCategories)
+                                    {
+                                        <div class="B">
+
+                                            <button style="float: left;padding: 5px;margin: 5px;font-size: 16px;background-color: #fff;color: #000" onclick="sbload('GenSb','Caller?p1=CatInfo&p2=@subcat.id');AdjustMainView();">עריכה</button>
+                                            <div style="overflow: auto;"> @subcat.id - @subcat.title</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+
+
+    db.Close();
+}
+
+
+@helper CatInfo(int cat_id)
+{
+var db = Database.Open("op_data");
+var sqlSelect = "SELECT * FROM categories WHERE id=@0";
+var Category = db.QuerySingle(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_subcat=1 ORDER BY sort_order";
+var SubCats = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE mainCat_id=@0 AND is_spOffersCat=1 ORDER BY sort_order";
+var spOfferCats = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND (maincat_id=@0 OR maincat_id=99999)";
+var CatTags = db.Query(sqlSelect, cat_id);
+
+sqlSelect = "SELECT * FROM CustomProductFieldsType";
+var customProductFieldTypes = db.Query(sqlSelect, cat_id);
+sqlSelect = "SELECT * FROM  CustomFields WHERE cat_id=@0 AND is_active=1 ORDER BY sort_order";
+var customFields = db.Query(sqlSelect, cat_id);
+string fieldNamePrefix = "0_" + cat_id;
+sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND rec_type=2 AND rec_id = @0 ORDER BY is_primary DESC,timestamp DESC";
+var files = db.Query(sqlSelect, cat_id);
+
+bool is_subcat = false; try { is_subcat = Category.is_subcat; } catch { }
+string PageHdr = "הגדרות הקטגוריה הראשית " + Category.title; ;
+if (is_subcat)
+{
+    PageHdr = "הגדרות תת הקטגוריה";
+}
+
+int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type; } catch { }
+
+    <div style="overflow: auto;background-color: #fff;min-height: 500px;">
+        <div style="overflow: auto;padding: 5px;font-size: 20px;color: #000;font-weight: bold;background-color:#000;color:#fff;">
+            @PageHdr
+        </div>
+        <div class="prodSection">
+            <form id="picupload" name="picupload" enctype="multipart/form-data">
+                <input class="B" style="float:left;margin:5px;" type="button" value="➕" id="ImgUploadBtn" onclick="FileUpload('CAT');" />
+                @if (files.Count() > 0)
+                {
+                    <input class="B" style="float:left;margin:5px;" type="button" value="🗑️" id="ImgUploadBtn" onclick="AjaxActions('ClearAppImage', @cat_id,'MainLoader',2);" />
+                }
+                <span id="pbar_txt" style="background-color: #b200ff;color: #fff;float: left;display: none;">0%</span>
+            </form>
+
+            <div class="ProductViewImagesContainer" id="ProductImagesContainer">
+                <input type="hidden" name="upload_cat_id" id="upload_cat_id" value="@cat_id">
+
+
+
+                @if (files.Count() > 0)
+                {
+                    int cnt = 0;
+                    string imgClass = "ProductViewPrimaryImage";
+
+
+                    foreach (var item in files)
+                    {
+                        cnt++;
+                        string imgLink = "ImgViewer?Id=" + item.file_id;
+                        if (!item.is_primary)
+                        {
+                            imgClass = "ProductViewSmallImage";
+                            imgLink = "ImgViewer?size=tn&Id=" + item.file_id;
+
+
+                        }
+
+                        if (item.MimeType.StartsWith("image"))
+                        {
+                            if (item.is_primary)
+                            {
+                                <div class="B">
+                                    <span class="ProductViewImageSpan">
+
+                                        <img class="@imgClass" src="@imgLink" alt="אלט" />
+
+
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="ProductViewImageSpan">
+
+                                    <img class="@imgClass" src="@imgLink" alt="אלט" />
+
+
+                                </span>
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+
+                    <span class="ProductViewImageSpan">
+
+                        <img class="ProductViewNoImage" src="~/Images/nopic.png" />
+
+
+                    </span>
+                }
+            </div>
+
+
+        </div>
+        <div style="overflow: auto;padding: 5px;margin: 5px;font-weight: bold;direction:rtl" id="catDiv_@Category.id">
+            @Categories.CatEditRow(Category.id, "", false)
+        </div>
+
+
+        <div style="overflow: auto;clear: both;">
+            @if (!is_subcat)
+            {
+                <div class="B">
+                    <div style="overflow: auto;padding: 5px;margin: 5px;">
+                        <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
+                            תתי קטגוריות
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSubCatAcc');">הוספה</button>
+                        </div>
+                        <div style="overflow: auto">
+                            <button class="Accordion" style="display: none;" id="AddSubCatAcc"></button>
+                            <div class="panel" style="padding: 0;margin: 0">
+                                <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
+                                    <form id="Add_Sub_Cat">
+                                        <input type="hidden" name="sub_cat_type" value="SUBCAT">
+                                        <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                                            הוספת תת קטגוריה
+                                        </div>
+                                        <div style="overflow: auto;">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
+                                        </div>
+                                        <div style="overflow: auto;text-align: center;padding: 5px;">
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddSubCatAcc');">ביטול</button>
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Sub_Cat', 'SUBCAT'); document.getElementById('Add_Sub_Cat').reset();">הוספת תת קטגוריה</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="overflow: auto;; direction: rtl" id="SUBCATLISTDIV">
+                            @Categories.SubCatList(cat_id, "SUBCAT")
+
+                        </div>
+
+                    </div>
+                    <div style="overflow: auto;padding: 5px;margin: 5px;">
+                        <div style="overflow: auto;color: #000;font-size: 20px;font-weight: bold">
+                            קטגוריות למוצרים במבצעים
+                            <button style="float: left;padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #b200ff;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">הוספה</button>
+                        </div>
+                        <div style="overflow: auto">
+                            <button class="Accordion" style="display: none;" id="AddSpOfferCatAcc"></button>
+                            <div class="panel" style="padding: 0;margin: 0">
+                                <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: center; direction: rtl">
+                                    <form id="Add_Sp_Offer_Cat">
+                                        <input type="hidden" name="sub_cat_type" value="SPOFFER">
+                                        <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                                            הוספת קטגורית מבצעים
+                                        </div>
+                                        <div style="overflow: auto;">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_title" id="sub_cat_title" placeholder="שם הקטגוריה">
+                                            <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" name="cat_e_title" id="sub_cat_e_title" placeholder="Title">
+                                        </div>
+                                        <div style="overflow: auto;text-align: center;padding: 5px;">
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddSpOfferCatAcc');">ביטול</button>
+                                            <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductsCat', @cat_id,'', 'Add_Sp_Offer_Cat', 'SPOFFER'); document.getElementById('Add_Sp_Offer_Cat').reset();">הוספת קטגורית מבצעים</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="overflow: auto;; direction: rtl" id="SPOFFERLISTDIV">
+                            @Categories.SubCatList(cat_id, "SPOFFER")
+                        </div>
+                    </div>
+
+
+                </div>
+            }
+
+
+            <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
+                <div class="B">
+                    <button type="button" class="ProdSettingsAddBtn" style="float:left" onclick="Accordionize('AddTagCatAcc_@cat_id');">➕</button>
+
+                    תגיות
+                </div>
+                <div class="B">
+                    <div class="A" style="color:#000;background-color:#fff;">
+
+                        <div style="overflow: auto">
+                            <button class="Accordion" style="display: none;" id="AddTagCatAcc_@cat_id"></button>
+                            <div class="panel" style="padding: 0;margin: 0">
+
+                                <div class="B">
+                                    <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
+                                        <form id="Add_Tag_@cat_id">
+                                            <input type="hidden" name="cat_id" id="cat_id" value="@cat_id">
+                                            <div class="B">
+
+                                                הוספת תגית לקטגוריית @Category.title
+                                            </div>
+                                            <div class="B">
+                                                <div class="B">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_title" id="custom_tag_title" placeholder="תגית">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_tag_e_title" id="custom_tag_e_title" placeholder="Tagit">
+                                                    <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="tagType" id="tagType" onchange="    if (this.value == 2) { showElement('Add_Tag_List_Div_@cat_id'); } else { hideElement('Add_Tag_List_Div_@cat_id'); } FixAccordion('AddTagCatAcc_@cat_id');">
+                                                        <option value="1">תגית רגילה</option>
+                                                        <option value="2">תגית בחירה</option>
+
+                                                    </select>
+                                                </div>
+                                                <div class="B" id="Add_Tag_List_Div_@cat_id" style="display:none;">
+                                                    <div class="B">
+
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title" id="0_add_tag_list_title_@cat_id" placeholder="עברית">
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_tag_list_title_e" id="0_add_tag_list_title_e_@cat_id" placeholder="אנגלית">
+                                                        <button class="A" type="button" style="float:right" onclick="    MiscActions('AddToCustomFieldSelectList', '0_add_tag_list_title_@cat_id', '0_add_tag_list_title_e_@cat_id', '0_tag_values_list_@cat_id')">הוספה</button>
+                                                        <button class="A" type="button" style="float:right" onclick="    MiscActions('ResetCustomFieldSelectList', '0_tag_values_list_@cat_id')">איפוס</button>
+                                                    </div>
+                                                    <div class="B">
+                                                        <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_tag_values_list_@cat_id" disabled></textarea>
+                                                        <textarea style="display:none;" name="values_list" id="0_tag_values_list_@cat_id"></textarea>
+                                                    </div>
+
+
+
+                                                </div>
+                                                <div class="B">
+
+                                                    <div class="B" style="float:left">
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddTagCatAcc_@cat_id'); document.getElementById('Add_Tag_@cat_id').reset();">ביטול</button>
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductTag', '@cat_id', 'MainLoader', 'Add_Tag_@cat_id','', 'CAT'); document.getElementById('Add_Tag_@cat_id').reset();">הוספת שדה</button>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+
+                                        </form>
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+                        </div>
+
+                        <div class="Spacer10"></div>
+                        <div class="B" id="ProductTagsProdType_@cat_id">
+                            @Products.LoadCustomTagList(cat_id, "CAT")
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+
+
+            <div class="B">
+
+
+                <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
+                    <div class="B">
+                        <button type="button" class="ProdSettingsAddBtn" onclick="Accordionize('AddProdFieldAcc_@cat_id');">➕</button>
+
+                        שדות מידע
+                    </div>
+
+
+                    <div class="B">
+
+                        <div class="A" style="color:#000;background-color:#fff;">
+
+                            <div style="overflow: auto">
+                                <button class="Accordion" style="display: none;" id="AddProdFieldAcc_@cat_id"></button>
+                                <div class="panel" style="padding: 0;margin: 0">
+                                    <div style="overflow: auto; font-size: 18px; color: #000; border: 1px dashed #000; text-align: right; direction: rtl">
+                                        <form id="Add_Field_@cat_id">
+
+                                            <div class="B">
+                                                הוספת שדה מידע לקטגוריה @Category.title
+                                            </div>
+                                            <div class="B">
+                                                <div class="B">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_title" id="custom_field_title" placeholder="שם השדה">
+                                                    <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="custom_field_e_title" id="custom_field_e_title" placeholder="Title">
+                                                    <select style="font-size: 16px; padding: 5px; margin: 5px; float: right" name="fieldType" id="fieldType" onchange="    if (this.value == 8) { showElement('Add_Select_List_Div_@cat_id'); } else { hideElement('Add_Select_List_Div_@cat_id'); } FixAccordion('AddProdFieldAcc_@cat_id');">
+                                                        <option value="">נא לבחור סוג שדה</option>
+                                                        @foreach (var item in customProductFieldTypes)
+                                                        {
+                                                            <option value="@item.id">@item.title</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                                <div class="B" id="Add_Select_List_Div_@cat_id" style="display:none;">
+                                                    <div class="B">
+
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title" id="0_add_to_select_list_title_@cat_id" placeholder="עברית">
+                                                        <input type="text" style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:150px;" name="add_to_select_list_title_e" id="0_add_to_select_list_title_e_@cat_id" placeholder="אנגלית">
+                                                        <button class="A" type="button" style="float:right" onclick=" MiscActions('AddToCustomFieldSelectList', '0_add_to_select_list_title_@cat_id', '0_add_to_select_list_title_e_@cat_id', '0_values_list_@cat_id')">הוספה</button>
+                                                        <button class="A" type="button" style="float:right" onclick="MiscActions('ResetCustomFieldSelectList', '0_values_list_@cat_id')">איפוס</button>
+                                                    </div>
+                                                    <div class="B">
+                                                        <textarea style="font-size: 16px;padding: 5px;margin: 5px;float:right;width:40%;resize:none;" rows="6" id="DISP_0_values_list_@cat_id" disabled></textarea>
+                                                        <textarea style="display:none;" name="values_list" id="0_values_list_@cat_id"></textarea>
+                                                    </div>
+
+
+
+                                                </div>
+                                                <div class="B">
+
+                                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
+                                                        @if (!is_subcat)
+                                                        {
+                                                            <select style="font-size: 16px;padding: 5px;" name="cat_id" id="cat_id">
+                                                                <option value="@cat_id">הוספה לקטגוריה ראשית</option>
+                                                                @foreach (var item in SubCats)
+                                                                {
+                                                                    <option value="@item.id">הוספת לתת הקטגוריה @item.title</option>
+                                                                }
+                                                            </select>
+                                                        }
+                                                        else
+                                                        {
+                                                            <input type="hidden" name="cat_id" value="@cat_id" />
+                                                        }
+                                                    </div>
+                                                    <div style="overflow: auto;font-size: 16px;padding: 5px;margin: 5px;float:right">
+                                                        <input type="checkbox" id="is_required" name="is_required"> שדה חובה
+                                                    </div>
+                                                    <div style="overflow: auto; font-size: 16px; padding: 5px; margin: 5px; float: right">
+                                                        <input type="checkbox" id="is_editable" name="is_editable"> ניתן לעריכה
+                                                    </div>
+                                                    <div class="B" style="float:left">
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="Accordionize('AddProdFieldAcc_@cat_id'); document.getElementById('Add_Field_@cat_id').reset();">ביטול</button>
+                                                        <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('AddProductField', '@cat_id', 'MainLoader', 'Add_Field_@cat_id', '','CAT'); document.getElementById('Add_Field_@cat_id').reset();">הוספת שדה</button>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="Spacer10"></div>
+                            <div class="B" id="CustomFieldsProdType_@cat_id">
+                                @Products.LoadCustomFieldsList(cat_id, "CAT")
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                </div>
+
+
+            </div>
+            <div class="B">
+
+
+                <div class="B" style="padding:5px;margin:5px;color:#000;background-color:#e3e3e3;font-size:18px;overflow:auto">
+                    <div class="B">
+
+                        @if (def_itemunit_type > 0)
+                        {
+                            <button type="button" class="ProdSettingsAddBtn" id="EditCategoryPricingBtn_@cat_id" onclick="    hideElement('EditCategoryPricingBtn_@cat_id'); hideElement('CategoryPricingOptionsDiv_@cat_id'); showElement('EditCategoryPricingOptionsDiv_@cat_id'); showElement('ViewCategoryPricingBtn_@cat_id');">⚙️</button>
+                            <button type="button" class="ProdSettingsAddBtn" style="display:none;" id="ViewCategoryPricingBtn_@cat_id" onclick="    hideElement('ViewCategoryPricingBtn_@cat_id');hideElement('EditCategoryPricingOptionsDiv_@cat_id'); showElement('CategoryPricingOptionsDiv_@cat_id'); showElement('EditCategoryPricingBtn_@cat_id');">❎</button>
+                        }
+                        else { 
+                            <span style="float:left;margin-left:5px;color:#f00;font-size:12px;"> לא פעיל - צריך להגדיר קודם יחידת מידה</span>
+                        }
+
+
+
+                        מחירון קטגוריה
+                    </div>
+
+
+                    <div class="B">
+
+                        <div class="A" style="color:#000;background-color:#fff;">
+
+
+
+                            <div class="Spacer10"></div>
+                            <div class="B" id="CategoryPricingOptionsDiv_@cat_id">
+
+                                @Categories.ViewCategoryPricingOptions(cat_id)
+                            </div>
+                            <div class="B" id="EditCategoryPricingOptionsDiv_@cat_id" style="display:none">
+                                @Categories.EditCategoryPricingOptions(cat_id)
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+            <div class="Spacer100"></div>
+            <div class="Spacer100"></div>
+
+        </div>
+        <div style="overflow: auto;height: 100px;">&nbsp;</div>
+    </div>
+
+
+
+    db.Close();
+}
+
+@helper CatEditRow(int cat_id, string SubCatType = "", bool is_actions = true)
+{
+    var db = Database.Open("op_data");
+    var sqlSelect = "select * from ItemUnitTypes";
+    var ItemUnitTypes = db.Query(sqlSelect);
+    sqlSelect = "select * from productTypes";
+    var productTypes = db.Query(sqlSelect);
+    sqlSelect = "SELECT id,title,e_title,def_product_type,def_itemunit_type,maincat_id,is_maincat,is_subcat FROM Categories WHERE id=@0 ORDER BY sort_order";
+    var cat = db.QuerySingle(sqlSelect, cat_id);
+    int def_product_type = 0; try { def_product_type = cat.def_product_type; } catch { }
+    int def_itemunit_type = 0; try { def_itemunit_type = cat.def_itemunit_type; } catch { }
+    int maincat_id = 0; try { maincat_id = cat.maincat_id; } catch { }
+    bool is_maincat = false;
+    bool is_subcat = false;
+    string e_title = "";
+    string title = "";
+    try { title = cat.title; } catch { }
+    try { e_title = cat.e_title; } catch { }
+    try { is_maincat = cat.is_maincat; } catch { }
+    try { is_subcat = cat.is_subcat; } catch { }
+    db.Close();
+    <div style="overflow: auto;font-size: 18px;color: #000" id="cat_info_@cat_id">
+        @if (is_actions)
+        {
+            <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent;" onclick="    AjaxActions('CatChangeOrder', '@cat_id','MainLoader',@maincat_id,'up','@SubCatType');">⬆️</button>
+            <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0;  background: transparent;" onclick="    AjaxActions('CatChangeOrder', '@cat_id', 'MainLoader', @maincat_id, 'down', '@SubCatType');">⬇️</button>
+        }
+
+
+        <button type="button" style="float: right; padding: 1px; margin: 1px; font-size: 14px; border: 0; background: transparent" onclick="showElement('cat_edit_@cat_id');hideElement('cat_info_@cat_id');">⚙️</button>
+
+        @title
+
+    </div>
+    <div style="overflow: auto; font-size: 18px; color: #000; display: none; border: 1px dashed #000; text-align: center; direction: rtl" id="cat_edit_@cat_id">
+        <form id="EditCat_@cat_id">
+
+            <div style="overflow: auto;font-weight: bold;font-size: 16px">
+                עריכת פרטים לקטגוריה @title
+            </div>
+            <div style="overflow: auto;">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" placeholder="שם הקטגוריה" name="cat_title" id="cat_title_@cat_id" value="@title">
+                <input type="text" style="font-size: 16px;padding: 5px;margin: 2px;width: 90%" placeholder="Title" name="cat_e_title" id="cat_e_title_@cat_id" value="@e_title">
+            </div>
+
+            @if (SubCatType != "SPOFFER")
+            {<div class="B" style="text-align:right">
+                    ברירות מחדל
+                </div>
+                <div class="B">
+                    <div class="B" style="float:right;width:45%;">
+                        סוג מוצר
+                        <select class="A" name="productType" id="productType">
+                            <option>ללא</option>
+                            @foreach (var pt in productTypes)
+                            {
+                                <option value="@pt.id" selected="@(pt.id == def_product_type)">@pt.title</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="B" style="float: right; width: 45%;">
+                        יחידת מידה
+                        <select class="A" name="ItemUnitType" id="ItemUnitType">
+                            <option>ללא</option>
+                            @foreach (var item in ItemUnitTypes)
+                            {
+                                <option value="@item.id" selected="@(item.id == def_itemunit_type)">@item.title</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+            }
+
+            <div style="overflow: auto;text-align: center;padding: 5px;">
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #000;color: #fff;font-weight: bold" onclick="hideElement('cat_edit_@cat_id');showElement('cat_info_@cat_id');">ביטול</button>
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #57d600;color: #fff;font-weight: bold" onclick="AjaxActions('UpdateCatInfo', @cat_id,'MainLoader', 'EditCat_@cat_id');">שמירת שינוים</button>
+
+                <button type="button" style="padding: 5px;margin: 5px;font-size: 12px;border: 0;background-color: #f00;color: #fff;font-weight: bold" onclick="AjaxActions('DeleteCat', @cat_id,'MainLoader','@is_maincat');">מחיקת קטגוריה</button>
+            </div>
+        </form>
+    </div>
+}
+
+@helper SubCatList(int main_cat_id, string SubCatType = "")
+{
+    int cat_id = 0;
+    string title = "";
+    string e_title = "";
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    string emptyTxt = "";
+    switch (SubCatType)
+    {
+        case "SUBCAT":
+            sqlSelect = "SELECT * FROM categories WHERE is_subcat=1 AND mainCat_id=@0 ORDER BY sort_order";
+            emptyTxt = "אין תתי קטגוריה";
+            break;
+        case "SPOFFER":
+            sqlSelect = "SELECT * FROM categories WHERE is_spOffersCat=1 AND mainCat_id=@0 ORDER BY sort_order";
+            emptyTxt = "אין קטגוריות מבצעים";
+            break;
+        case "TAG":
+            sqlSelect = "SELECT * FROM categories WHERE is_tag=1 AND mainCat_id=@0 ORDER BY sort_order";
+            emptyTxt = "אין תגיות";
+            break;
+    }
+
+    var catList = db.Query(sqlSelect, main_cat_id);
+    if (catList.Count() > 0)
+    {
+        <div>
+            @foreach (var Category in catList)
+            {
+                <div style="; direction: rtl" id="catDiv_@Category.id">@Categories.CatEditRow(Category.id, SubCatType)</div>
+            }
+
+        </div>
+    }
+    else
+    {
+        <div style="overflow: auto;font-size: 14px;color: #ff6a00;">@emptyTxt</div>
+    }
+
+
+}
+
+@helper ViewCategoryPricingOptions(int cat_id, int round_id = 0)
+{
+    var db = Database.Open("op_data");
+    var category = db.QuerySingle("SELECT title,def_itemunit_type FROM Categories WHERE id=@0", cat_id);
+    int itemunit_type = 0; try { itemunit_type = Convert.ToInt32(category.def_itemunit_type); } catch { }
+    string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type); } catch { }
+
+    var PricingOptions = db.Query("SELECT * FROM ProductPricingOptions WHERE cat_id=@0 AND ISNULL(p_id,0)=0 AND ISNULL(is_deleted,0)=0 ORDER BY round_id,quan,price", cat_id);
+
+    <div class="B">
+        @if (PricingOptions.Count() > 0)
+        {
+            foreach (var priceOption in PricingOptions)
+            {
+                bool is_activated = priceOption.is_activated == true;
+                bool is_fav = priceOption.is_fav == true;
+
+                <div class="ProdViewItem" style="text-align:center;padding:5px;" id="CATPPO_@priceOption.serial">
+                    <div class="PPOItem">
+                        @Convert.ToInt32(priceOption.quan) @itemunit
+                    </div>
+                    <div class="PPOValue">
+                        @Convert.ToInt32(priceOption.price) ₪
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="blankData">לא הוגדרו אפשרויות תמחור לקטגוריה</div>
+        }
+    </div>
+
+    db.Close();
+}
+
+@helper EditCategoryPricingOptions(int cat_id)
+{
+    var db = Database.Open("op_data");
+    var category = db.QuerySingle("SELECT title,def_itemunit_type FROM Categories WHERE id=@0", cat_id);
+    int itemunit_type = 0; try { itemunit_type = Convert.ToInt32(category.def_itemunit_type); } catch { }
+    string itemunit = ""; try { itemunit = NewAppFunctions.GetTitleById("ItemType", itemunit_type); } catch { }
+
+    var PricingOptions = db.Query("SELECT * FROM ProductPricingOptions WHERE cat_id=@0 AND ISNULL(p_id,0)=0 AND ISNULL(is_deleted,0)=0 ORDER BY quan,price", cat_id);
+
+    <div class="B">
+
+        @foreach (var priceOption in PricingOptions)
+        {
+            bool is_activated = priceOption.is_activated == true;
+            bool is_fav = priceOption.is_fav == true;
+
+            string ActiveDivClass = is_activated ? "PPOBtnItemSelected" : "PPOBtnItem";
+            string FavDivClass = is_fav ? "PPOBtnItemSelected" : "PPOBtnItem";
+
+            <form id="CATPPOFORM_@priceOption.serial">
+                <input type="hidden" name="optionQuan" value="@priceOption.quan" />
+                <input type="hidden" name="optionSerial" value="@priceOption.serial" />
+
+                <div class="ProdViewItem" style="text-align:center;">
+
+                    <div id="catppo_btns_@priceOption.serial">
+                   
+
+                        <div class="PPOBtnItem" onclick="hideElement('catppo_btns_@priceOption.serial');showElement('catppo_del_conf_@priceOption.serial');">
+                            🗑️
+                        </div>
+
+                    </div>
+
+                    <div id="catppo_del_conf_@priceOption.serial" style="display:none;">
+
+                        <div class="PPODelBtnItem">
+                            <input type="checkbox" style="margin:4px;" onclick="    AjaxActions('DeleteCategoryPriceOption',@priceOption.serial,'MainLoader',@cat_id);" /> בטוח למחוק?
+                        </div>
+
+                        <div class="PPODelBtnItem" onclick="hideElement('catppo_del_conf_@priceOption.serial');showElement('catppo_btns_@priceOption.serial');">
+                            ❎
+                        </div>
+
+                    </div>
+
+                    <div class="PPOPriceItem">
+                        @Convert.ToInt32(priceOption.quan) @itemunit
+                    </div>
+
+                    <div class="PPOEdit">
+                        <span class="GrayMiniTag">₪</span>
+                        <input type="text" name="optionPrice" class="PPOTB" style="width:40px;padding:5px;font-size:16px;" value="@Convert.ToInt32(priceOption.price)" />
+                        <button type="button" class="PPOBtn1" onclick="AjaxActions('UpdateCategoryPricingOption',@cat_id,'MainLoader','CATPPOFORM_@priceOption.serial',@cat_id);">💾</button>
+                    </div>
+
+                </div>
+            </form>
+        }
+
+        <div class="ProdViewItem" style="text-align:center;">
+
+            <form id="AddCategoryPricingOption_@cat_id">
+
+                <div class="PPOBtnItemSelected" id="IsActiveDiv_cat_0" onclick="MiscActions('CATPPOOPTTOGGLE','cat_0','ISACTIVE');">
+                    <input type="checkbox" style="margin:4px;" id="catppo_is_active_cat_0" name="is_activated" checked />
+                </div>
+
+        
+
+                <div class="PPOBtnItemStatic"></div>
+
+                <div class="PPOBtnItem">
+                    <input type="text" name="optionQuan" class="PPOTB" style="width:40px;background-color:#fff;" /> @itemunit
+                </div>
+
+                <div class="PPOEdit">
+                    <span class="GrayMiniTag">₪</span>
+                    <input type="text" name="optionPrice" class="PPOTB" style="width:40px;padding:5px;font-size:16px;" value="" />
+                    <button type="button" class="PPOBtn1" onclick="AjaxActions('AddCategoryPricingOption',@cat_id,'MainLoader','AddCategoryPricingOption_@cat_id',@cat_id);">💾</button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    db.Close();
+}
+
+
+
+@functions {
+    public static string AddCategoryPricingOption()
+    {
+        int rep_id = WebSecurity.CurrentUserId;
+        if (rep_id <= 0) return "!$!יש להתחבר למערכת";
+
+        int cat_id = 0; int.TryParse(Request["value"], out cat_id);
+        int round_id = 0; int.TryParse(Request["menu_id"], out round_id);
+        int optionQuan = 0; int.TryParse(Request["optionQuan"], out optionQuan);
+        decimal optionPrice = -1; decimal.TryParse(Request["optionPrice"], System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("he-IL"), out optionPrice);
+
+        bool is_activated = !Request["is_activated"].IsEmpty();
+        bool is_fav = !Request["is_fav"].IsEmpty();
+
+        if (cat_id <= 0) return "!$!מזהה קטגוריה לא תקין";
+        if (optionQuan <= 0) return "!$!חובה להזין כמות תקינה";
+        if (Request["optionPrice"].IsEmpty() || optionPrice < 0) return "!$!חובה להזין מחיר תקין";
+
+        var db = Database.Open("op_data");
+
+        try
+        {
+            var category = db.QuerySingle("SELECT id,def_itemunit_type,is_cat_pricing,is_active,is_deleted,is_spOffersCat,is_maincat,is_subcat FROM Categories WHERE id=@0", cat_id);
+
+            if (category == null) return "!$!הקטגוריה לא נמצאה";
+            if (Convert.ToInt32(category.def_itemunit_type ?? 0) <= 0) return "!$!יש להגדיר יחידת מידה לקטגוריה לפני יצירת מחירון";
+            if (category.is_active != true || category.is_deleted == true || category.is_spOffersCat == true) return "!$!הקטגוריה אינה זמינה לתמחור";
+            if (category.is_maincat != true && category.is_subcat != true) return "!$!סוג הקטגוריה אינו מתאים לתמחור";
+
+            var existing = db.QuerySingle("SELECT serial FROM ProductPricingOptions WHERE cat_id=@0 AND ISNULL(p_id,0)=0 AND round_id=@1 AND quan=@2 AND ISNULL(is_deleted,0)=0", cat_id, round_id, optionQuan);
+            if (existing != null) return "!$!כבר קיימת אפשרות מחירון לכמות זו בקטגוריה";
+
+            db.Execute("INSERT INTO ProductPricingOptions(p_id,cat_id,round_id,price,quan,ts,created_by,is_activated,is_spOffer,is_fav,is_deleted,is_update,last_update_ts) VALUES (0,@0,@1,@2,@3,@4,@5,@6,0,@7,0,1,SYSUTCDATETIME())", cat_id, round_id, optionPrice, optionQuan, AppFunctions.LocalTime(), rep_id, is_activated, is_fav);
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, 0, true);
+
+            return "👌 אפשרות המחירון נוספה לקטגוריה!";
+        }
+        catch (Exception ex)
+        {
+            return "!$!שגיאה בהוספת אפשרות מחירון: " + ex.Message;
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    public static string UpdateCategoryPricingOption()
+    {
+        int rep_id = WebSecurity.CurrentUserId;
+        if (rep_id <= 0) return "!$!יש להתחבר למערכת";
+
+        int cat_id = 0; int.TryParse(Request["value"], out cat_id);
+        int optionSerial = 0; int.TryParse(Request["optionSerial"], out optionSerial);
+        decimal optionPrice = -1; decimal.TryParse(Request["optionPrice"], System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("he-IL"), out optionPrice);
+
+        bool is_activated = !Request["is_activated"].IsEmpty();
+        bool is_fav = !Request["is_fav"].IsEmpty();
+
+        if (cat_id <= 0 || optionSerial <= 0) return "!$!נתוני מחירון לא תקינים";
+        if (Request["optionPrice"].IsEmpty() || optionPrice < 0) return "!$!חובה להזין מחיר תקין";
+
+        var db = Database.Open("op_data");
+
+        try
+        {
+            var option = db.QuerySingle("SELECT serial FROM ProductPricingOptions WHERE serial=@0 AND cat_id=@1 AND ISNULL(p_id,0)=0 AND ISNULL(is_deleted,0)=0", optionSerial, cat_id);
+            if (option == null) return "!$!אפשרות המחירון לא נמצאה";
+
+            db.Execute("UPDATE ProductPricingOptions SET price=@0,is_activated=@1,is_fav=@2,is_spOffer=0,is_update=1,last_update_ts=SYSUTCDATETIME() WHERE serial=@3 AND cat_id=@4 AND ISNULL(p_id,0)=0 AND ISNULL(is_deleted,0)=0", optionPrice, is_activated, is_fav, optionSerial, cat_id);
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, 0, true);
+
+            return "👌 אפשרות המחירון התעדכנה!";
+        }
+        catch (Exception ex)
+        {
+            return "!$!שגיאה בעדכון אפשרות מחירון: " + ex.Message;
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    public static string DeleteCategoryPriceOption()
+    {
+        int u_id = WebSecurity.CurrentUserId;
+        if (u_id <= 0) return "!$!יש להתחבר למערכת";
+
+        int pricingOptionId = 0; try { pricingOptionId = Convert.ToInt32(Request["value"]); } catch { }
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["param1"]); } catch { }
+
+        if (pricingOptionId <= 0 || cat_id <= 0) return "!$!נתוני מחירון לא תקינים";
+
+        var db = Database.Open("op_data");
+
+        try
+        {
+            string sqlSelect = "DELETE FROM ProductPricingOptions WHERE serial=@0 AND cat_id=@1 AND ISNULL(p_id,0)=0";
+            int affected = db.Execute(sqlSelect, pricingOptionId, cat_id);
+
+            if (affected == 0) return "!$!אפשרות המחירון לא נמצאה";
+          
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, 0, true);
+
+            return " 👌 אפשרות המחירון של הקטגוריה נמחקה ";
+        }
+        catch (Exception ex)
+        {
+            return "!$!שגיאה במחיקת אפשרות המחירון: " + ex.Message;
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+}
