@@ -765,8 +765,8 @@ bool is_cat_pricing = false; try { is_cat_pricing = Category.is_cat_pricing; } c
         int optionQuan = 0; int.TryParse(Request["optionQuan"], out optionQuan);
         decimal optionPrice = -1; decimal.TryParse(Request["optionPrice"], System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("he-IL"), out optionPrice);
 
-        bool is_activated = !Request["is_activated"].IsEmpty();
-        bool is_fav = !Request["is_fav"].IsEmpty();
+        bool is_activated = true;
+        bool is_fav = false;
 
         if (cat_id <= 0) return "!$!מזהה קטגוריה לא תקין";
         if (optionQuan <= 0) return "!$!חובה להזין כמות תקינה";
@@ -810,8 +810,8 @@ bool is_cat_pricing = false; try { is_cat_pricing = Category.is_cat_pricing; } c
         int optionSerial = 0; int.TryParse(Request["optionSerial"], out optionSerial);
         decimal optionPrice = -1; decimal.TryParse(Request["optionPrice"], System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("he-IL"), out optionPrice);
 
-        bool is_activated = !Request["is_activated"].IsEmpty();
-        bool is_fav = !Request["is_fav"].IsEmpty();
+        bool is_activated = true;
+        bool is_fav = false;
 
         if (cat_id <= 0 || optionSerial <= 0) return "!$!נתוני מחירון לא תקינים";
         if (Request["optionPrice"].IsEmpty() || optionPrice < 0) return "!$!חובה להזין מחיר תקין";
