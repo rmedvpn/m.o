@@ -1608,6 +1608,57 @@
 
     }
 
+    public static string UpdateProductPricingSource()
+    {
+        int u_id = WebSecurity.CurrentUserId;
+        if (u_id <= 0) return "!$!יש להתחבר למערכת";
+
+        int p_id = 0; int.TryParse(Request["value"], out p_id);
+        int pricing_source = -1; int.TryParse(Request["param1"], out pricing_source);
+
+        if (p_id <= 0 || pricing_source < 0 || pricing_source > 2) return "!$!נתוני תמחור לא תקינים";
+
+        var db = Database.Open("op_data");
+
+        try
+        {
+            var product = db.QuerySingle("SELECT p_id,maincat_id,sub_cat_id,itemunit_type FROM Products WHERE p_id=@0", p_id);
+            if (product == null) return "!$!המוצר לא נמצא";
+
+            int pricing_cat_id = 0;
+            string cat_pricing_options_json = "[]";
+
+            if (pricing_source > 0)
+            {
+                pricing_cat_id = pricing_source == 1 ? Convert.ToInt32(product.sub_cat_id) : Convert.ToInt32(product.maincat_id);
+
+                var category = db.QuerySingle("SELECT id,def_itemunit_type,is_cat_pricing,is_active,is_deleted,is_subcat,is_maincat,price_options_json FROM Categories WHERE id=@0", pricing_cat_id);
+
+                if (category == null) return "!$!הקטגוריה לא נמצאה";
+                if (category.is_cat_pricing != true || category.is_active != true || category.is_deleted == true) return "!$!מחירון הקטגוריה אינו פעיל";
+                if (pricing_source == 1 && category.is_subcat != true) return "!$!קטגוריית התמחור אינה תת קטגוריה";
+                if (pricing_source == 2 && category.is_maincat != true) return "!$!קטגוריית התמחור אינה קטגוריה ראשית";
+                if (Convert.ToInt32(category.def_itemunit_type) != Convert.ToInt32(product.itemunit_type)) return "!$!יחידת המידה של הקטגוריה אינה תואמת למוצר";
+
+                cat_pricing_options_json = Convert.ToString(category.price_options_json) ?? "[]";
+                if (string.IsNullOrWhiteSpace(cat_pricing_options_json) || cat_pricing_options_json.Trim() == "[]") return "!$!לא הוגדר מחירון לקטגוריה";
+            }
+
+            db.Execute("UPDATE Products SET pricing_source=@0,pricing_cat_id=@1,cat_pricing_options_json=@2 WHERE p_id=@3", pricing_source, pricing_cat_id, cat_pricing_options_json, p_id);
+            db.Execute("UPDATE roundmenuitems SET pricing_source=@0,pricing_cat_id=@1,cat_pricing_options_json=@2 WHERE p_id=@3", pricing_source, pricing_cat_id, cat_pricing_options_json, p_id);
+            ProductsFunctions.CalcProdLowestCost(p_id);
+
+            return "👌 מקור המחירון עודכן בהצלחה";
+        }
+        catch (Exception ex)
+        {
+            return "!$!שגיאה בעדכון מקור המחירון: " + ex.Message;
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
 
     public static string AddPricingOption()
     {
@@ -2312,8 +2363,8 @@
             }
             bool is_setup = true;
             bool init_complete = true;
-            sqlSelect = "INSERT INTO products(V_id, Title, Price, Cost, Description, itemunit, product_type, e_title, e_desc, max_quan_per_order, cat_id,  add_timestamp,  available_quan, itemunit_type, clerk_id, is_active, commision_type, maincat_id, sub_cat_id, last_change_ts, last_change_by, itemunit_e, spOfferCatId,   is_discountable, max_in_cart, catalog_p_id, is_catalog,commision_rate,is_generic,custom_fields_json,tags_json,price_options_json,product_options_json,is_setup,init_complete,itemUnitJson,img_file_id) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36)";
-            db.Execute(sqlSelect, vendor_id, title, rec.Price, rec.Cost, rec.Description, rec.itemunit, rec.product_type, e_title, rec.e_desc, rec.max_quan_per_order, rec.cat_id, local_time, rec.available_quan, rec.itemunit_type, u_id, is_active, rec.commision_type, rec.maincat_id, rec.sub_cat_id, local_time, u_id, rec.itemunit_e, rec.spOfferCatId, rec.is_discountable, rec.max_in_cart, catalog_p_id, is_catalog, rec.commision_rate, rec.is_generic, rec.custom_fields_json, rec.tags_json, rec.price_options_json, rec.product_options_json, is_setup, init_complete,rec.itemUnitJson,rec.img_file_id);
+            sqlSelect = "INSERT INTO products(V_id, Title, Price, Cost, Description, itemunit, product_type, e_title, e_desc, max_quan_per_order, cat_id,  add_timestamp,  available_quan, itemunit_type, clerk_id, is_active, commision_type, maincat_id, sub_cat_id, last_change_ts, last_change_by, itemunit_e, spOfferCatId,   is_discountable, max_in_cart, catalog_p_id, is_catalog,commision_rate,is_generic,custom_fields_json,tags_json,price_options_json,product_options_json,is_setup,init_complete,itemUnitJson,img_file_id,pricing_source,pricing_cat_id,cat_pricing_options_json) VALUES(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20,@21,@22,@23,@24,@25,@26,@27,@28,@29,@30,@31,@32,@33,@34,@35,@36,@37,@38,@39)";
+            db.Execute(sqlSelect, vendor_id, title, rec.Price, rec.Cost, rec.Description, rec.itemunit, rec.product_type, e_title, rec.e_desc, rec.max_quan_per_order, rec.cat_id, local_time, rec.available_quan, rec.itemunit_type, u_id, is_active, rec.commision_type, rec.maincat_id, rec.sub_cat_id, local_time, u_id, rec.itemunit_e, rec.spOfferCatId, rec.is_discountable, rec.max_in_cart, catalog_p_id, is_catalog, rec.commision_rate, rec.is_generic, rec.custom_fields_json, rec.tags_json, rec.price_options_json, rec.product_options_json, is_setup, init_complete,rec.itemUnitJson,rec.img_file_id, rec.pricing_source, rec.pricing_cat_id, rec.cat_pricing_options_json);
             sqlSelect = "SELECT p_id FROM products WHERE v_id=@0 AND add_timestamp=@1";
             var newProduct = db.QuerySingle(sqlSelect, vendor_id, local_time);
             try { new_p_id = newProduct.p_id; } catch { }
@@ -3097,32 +3148,58 @@
 
     public static void CalcProdLowestCost(int p_id, int round_id = 0)
     {
-        string theHtmlOutput = "";
         var db = Database.Open("op_data");
-        var sqlSelect = "";
 
-        sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0";
-        if (round_id > 0)
+        try
         {
-            sqlSelect = "SELECT MIN(price/quan) AS curLowestUnitPrice FROM ProductPricingOptions WHERE is_activated=1 AND p_id=@0 AND ( round_id=0 OR round_id=@1)";
-        }
-        var pricing = db.QuerySingle(sqlSelect, p_id, round_id);
-        decimal curLowestUnitPrice = 0; try { curLowestUnitPrice = pricing.curLowestUnitPrice; } catch { }
-        if (round_id == 0)
-        {
-            sqlSelect = "UPDATE products SET curLowestUnitPrice=@0 WHERE p_id=@1";
-        }
-        else
-        {
-            sqlSelect = "UPDATE roundMenuItems SET curLowestUnitPrice=@0 WHERE p_id=@1 AND round_id=@2";
-        }
-        db.Execute(sqlSelect, curLowestUnitPrice, p_id, round_id);
+            string sqlSelect = "SELECT pricing_source,pricing_cat_id FROM Products WHERE p_id=@0";
+            var product = db.QuerySingle(sqlSelect, p_id);
+            if (product == null) return;
 
-        db.Close();
-        //       DataFunctions.WriteDebugLine("curLowestUnitPrice " + curLowestUnitPrice + "p_id " + p_id);
+            int pricing_source = Convert.ToInt32(product.pricing_source);
+            int pricing_cat_id = Convert.ToInt32(product.pricing_cat_id);
 
+            decimal curLowestUnitPrice = 0;
+
+            if (pricing_source > 0 && pricing_cat_id > 0)
+            {
+                sqlSelect = "SELECT MIN(CAST(price AS DECIMAL(18,4))/NULLIF(quan,0)) FROM ProductPricingOptions WHERE cat_id=@0 AND ISNULL(p_id,0)=0 AND round_id=0 AND is_activated=1 AND ISNULL(is_deleted,0)=0";
+                curLowestUnitPrice = Math.Round(Convert.ToDecimal(db.QueryValue(sqlSelect, pricing_cat_id) ?? 0), 2);
+
+                if (round_id == 0)
+                {
+                    db.Execute("UPDATE Products SET curLowestUnitPrice=@0 WHERE p_id=@1", curLowestUnitPrice, p_id);
+                    db.Execute("UPDATE roundMenuItems SET curLowestUnitPrice=@0 WHERE p_id=@1", curLowestUnitPrice, p_id);
+                }
+                else
+                {
+                    db.Execute("UPDATE roundMenuItems SET curLowestUnitPrice=@0 WHERE p_id=@1 AND round_id=@2", curLowestUnitPrice, p_id, round_id);
+                }
+            }
+            else
+            {
+                sqlSelect = "SELECT MIN(CAST(price AS DECIMAL(18,4))/NULLIF(quan,0)) FROM ProductPricingOptions WHERE p_id=@0 AND round_id=0 AND is_activated=1 AND ISNULL(is_deleted,0)=0";
+                curLowestUnitPrice = Math.Round(Convert.ToDecimal(db.QueryValue(sqlSelect, p_id) ?? 0), 2);
+
+                if (round_id == 0)
+                {
+                    db.Execute("UPDATE Products SET curLowestUnitPrice=@0 WHERE p_id=@1", curLowestUnitPrice, p_id);
+
+                    sqlSelect = "UPDATE r SET curLowestUnitPrice=ISNULL((SELECT MIN(CAST(po.price AS DECIMAL(18,4))/NULLIF(po.quan,0)) FROM ProductPricingOptions po WHERE po.p_id=r.p_id AND po.round_id=r.round_id AND po.is_activated=1 AND ISNULL(po.is_deleted,0)=0),@1) FROM roundMenuItems r WHERE r.p_id=@0";
+                    db.Execute(sqlSelect, p_id, curLowestUnitPrice);
+                }
+                else
+                {
+                    sqlSelect = "UPDATE r SET curLowestUnitPrice=ISNULL((SELECT MIN(CAST(po.price AS DECIMAL(18,4))/NULLIF(po.quan,0)) FROM ProductPricingOptions po WHERE po.p_id=r.p_id AND po.round_id=r.round_id AND po.is_activated=1 AND ISNULL(po.is_deleted,0)=0),@2) FROM roundMenuItems r WHERE r.p_id=@0 AND r.round_id=@1";
+                    db.Execute(sqlSelect, p_id, round_id, curLowestUnitPrice);
+                }
+            }
+        }
+        finally
+        {
+            db.Close();
+        }
     }
-
     public static string CreatePriceOptionsJson(int p_id, int round_id = 0, bool update_product_json = false)
     {
         return AppJson.CreatePriceOptionsJson(p_id, round_id, update_product_json);
@@ -4517,6 +4594,8 @@
     {
         ProductsFunctions.CopyProduct(p_id, vendor_id);
     }
+
+
 
     public static string someFunction()
     {

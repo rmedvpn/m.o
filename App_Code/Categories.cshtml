@@ -96,7 +96,7 @@ if (is_subcat)
 }
 
 int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type; } catch { }
-
+bool is_cat_pricing = false; try { is_cat_pricing = Category.is_cat_pricing; } catch { }
     <div style="overflow: auto;background-color: #fff;min-height: 500px;">
         <div style="overflow: auto;padding: 5px;font-size: 20px;color: #000;font-weight: bold;background-color:#000;color:#fff;">
             @PageHdr
@@ -452,8 +452,14 @@ int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type;
                         }
 
 
-
+                    <span style="float:right">
                         מחירון קטגוריה
+                    </span>
+                        
+                    <span style="float:right;margin-right:10px;">
+                        <input type="checkbox" class="A" checked="@(is_cat_pricing ? "checked" : null)" onclick="AjaxActions('ToggleCategoryPricingActivation', @cat_id, 'MainLoader', this.checked);" /> פעיל
+                    </span>
+                        
                     </div>
 
 
@@ -781,7 +787,7 @@ int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type;
             if (existing != null) return "!$!כבר קיימת אפשרות מחירון לכמות זו בקטגוריה";
 
             db.Execute("INSERT INTO ProductPricingOptions(p_id,cat_id,round_id,price,quan,ts,created_by,is_activated,is_spOffer,is_fav,is_deleted,is_update,last_update_ts) VALUES (0,@0,@1,@2,@3,@4,@5,@6,0,@7,0,1,SYSUTCDATETIME())", cat_id, round_id, optionPrice, optionQuan, AppFunctions.LocalTime(), rep_id, is_activated, is_fav);
-            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, 0, true);
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, true);
 
             return "👌 אפשרות המחירון נוספה לקטגוריה!";
         }
@@ -818,7 +824,7 @@ int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type;
             if (option == null) return "!$!אפשרות המחירון לא נמצאה";
 
             db.Execute("UPDATE ProductPricingOptions SET price=@0,is_activated=@1,is_fav=@2,is_spOffer=0,is_update=1,last_update_ts=SYSUTCDATETIME() WHERE serial=@3 AND cat_id=@4 AND ISNULL(p_id,0)=0 AND ISNULL(is_deleted,0)=0", optionPrice, is_activated, is_fav, optionSerial, cat_id);
-            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, 0, true);
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id,  true);
 
             return "👌 אפשרות המחירון התעדכנה!";
         }
@@ -850,8 +856,8 @@ int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type;
             int affected = db.Execute(sqlSelect, pricingOptionId, cat_id);
 
             if (affected == 0) return "!$!אפשרות המחירון לא נמצאה";
-          
-            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id, 0, true);
+
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id,  true);
 
             return " 👌 אפשרות המחירון של הקטגוריה נמחקה ";
         }
@@ -864,4 +870,55 @@ int def_itemunit_type = 0; try { def_itemunit_type = Category.def_itemunit_type;
             db.Close();
         }
     }
+    public static string ToggleCategoryPricingActivation()
+    {
+        int u_id = WebSecurity.CurrentUserId;
+        if (u_id <= 0) return "!$!יש להתחבר למערכת";
+
+        int cat_id = 0; try { cat_id = Convert.ToInt32(Request["value"]); } catch { }
+        if (cat_id <= 0) return "!$!לא נמצאה קטגוריה";
+        bool is_cat_pricing = false; try { is_cat_pricing = Convert.ToBoolean(Request["param1"]); } catch { }
+
+        var db = Database.Open("op_data");
+
+        try
+        {
+            string sqlSelect = "UPDATE categories SET is_cat_pricing=@0 WHERE id=@1";
+            int affected = db.Execute(sqlSelect, is_cat_pricing, cat_id);
+            string json = AppJson.CreateCategoryPricingOptionsJson(cat_id,  true);
+            if (is_cat_pricing)            return " 👌 מחירון הקטגוריה הופעל! ";
+            else           return " 👌 מחירון הקטגוריה לא יהיה פעיל! ";
+        }
+        catch (Exception ex)
+        {
+            return "!$!שגיאה בהפעלת המחירון: " + ex.Message;
+        }
+        finally
+        {
+            db.Close();
+        }
+
+    }
+
+    public static void CalcCatProdLowestCost(int cat_id)
+    {
+        var db = Database.Open("op_data");
+
+        try
+        {
+            string sqlSelect = "SELECT MIN(CAST(price AS DECIMAL(18,4))/NULLIF(quan,0)) FROM ProductPricingOptions WHERE cat_id=@0 AND ISNULL(p_id,0)=0 AND round_id=0 AND is_activated=1 AND ISNULL(is_deleted,0)=0";
+            decimal curLowestUnitPrice = Math.Round(Convert.ToDecimal(db.QueryValue(sqlSelect, cat_id) ?? 0), 2);
+
+            sqlSelect = "UPDATE Products SET curLowestUnitPrice=@0 WHERE pricing_source IN (1,2) AND pricing_cat_id=@1";
+            db.Execute(sqlSelect, curLowestUnitPrice, cat_id);
+
+            sqlSelect = "UPDATE roundMenuItems SET curLowestUnitPrice=@0 WHERE pricing_source IN (1,2) AND pricing_cat_id=@1";
+            db.Execute(sqlSelect, curLowestUnitPrice, cat_id);
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
 }

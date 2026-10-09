@@ -4,95 +4,95 @@
 
 @helper AllProducts(string listType = "CATALOG", int vendor_id = 0, bool ActiveOnly = false)
 {
-System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
 
-var db = Database.Open("op_data");
-var sqlSelect = "";
-string listTitle = "";
-int itemsCnt = 0;
+    var db = Database.Open("op_data");
+    var sqlSelect = "";
+    string listTitle = "";
+    int itemsCnt = 0;
 
-int activeCnt = 0;
-int catalogCnt = 0;
-int deletedCnt = 0;
-int inActiveCnt = 0;
-int curCat = 0;
+    int activeCnt = 0;
+    int catalogCnt = 0;
+    int deletedCnt = 0;
+    int inActiveCnt = 0;
+    int curCat = 0;
 
-bool showAddBtn = true;
+    bool showAddBtn = true;
 
-sqlSelect = "SELECT vendor_id,vendor_name FROM vendors order by vendor_id";
-var vendors = db.Query(sqlSelect);
+    sqlSelect = "SELECT vendor_id,vendor_name FROM vendors order by vendor_id";
+    var vendors = db.Query(sqlSelect);
 
-sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0 AND is_catalog=0";
+    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0 AND is_catalog=0";
 
-if (vendor_id > 0)
-{
-    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0 AND  v_id=@0";
-}
-var cntRS = db.QuerySingle(sqlSelect, vendor_id);
-try { activeCnt = cntRS.the_cnt; } catch { }
+    if (vendor_id > 0)
+    {
+        sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0 AND  v_id=@0";
+    }
+    var cntRS = db.QuerySingle(sqlSelect, vendor_id);
+    try { activeCnt = cntRS.the_cnt; } catch { }
 
-sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0  AND is_catalog=1";
-cntRS = db.QuerySingle(sqlSelect);
-try { catalogCnt = cntRS.the_cnt; } catch { }
+    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_deleted=0  AND is_catalog=1";
+    cntRS = db.QuerySingle(sqlSelect);
+    try { catalogCnt = cntRS.the_cnt; } catch { }
 
-sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_active=0";
-cntRS = db.QuerySingle(sqlSelect);
-try { inActiveCnt = cntRS.the_cnt; } catch { }
+    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM products WHERE is_active=0";
+    cntRS = db.QuerySingle(sqlSelect);
+    try { inActiveCnt = cntRS.the_cnt; } catch { }
 
-string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
-string bodyClass = "VendorProductsDiv";
-string itemClass = "VendorProductEntry";
-string headerClass = "VendorProductsDiv";
+    string vendor_name = AppFunctions.GetVendorTitleById(vendor_id);
+    string bodyClass = "VendorProductsDiv";
+    string itemClass = "VendorProductEntry";
+    string headerClass = "VendorProductsDiv";
 
-sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM DeletedProducts";
-cntRS = db.QuerySingle(sqlSelect);
-try { deletedCnt = cntRS.the_cnt; } catch { }
+    sqlSelect = " SELECT COUNT(p_id) AS the_cnt FROM DeletedProducts";
+    cntRS = db.QuerySingle(sqlSelect);
+    try { deletedCnt = cntRS.the_cnt; } catch { }
 
-if (listType == "VENDOR" && vendor_id == 0)
-{
-    listType = "ACTIVE";
-}
+    if (listType == "VENDOR" && vendor_id == 0)
+    {
+        listType = "ACTIVE";
+    }
 
-switch (listType)
-{
-    case "ACTIVE":
-        sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND is_catalog=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
-        listTitle = "כל מוצרי הספקים הפעילים";
-        itemsCnt = activeCnt;
-        break;
-    case "VENDOR":
-        sqlSelect = "SELECT * FROM products WHERE is_deleted=0 AND v_id=@0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
-        listTitle = "תפריט מוצרים - " + vendor_name;
-        itemsCnt = activeCnt;
-        break;
-    case "CATALOG":
-        sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND is_catalog=1 ORDER BY maincat_id,sub_cat_id, is_setup,p_id DESC";
-        listTitle = "קטלוג תבניות";
-        itemsCnt = catalogCnt;
-        bodyClass = "CatalogProductsDiv";
-        break;
-    case "DELETED":
-        sqlSelect = "SELECT * FROM DeletedProducts ORDER BY p_id DESC";
-        listTitle = "מוצרים שנמחקו";
-        itemsCnt = deletedCnt;
-        showAddBtn = false;
-        break;
-}
-var Products = db.Query(sqlSelect, vendor_id);
-
-
-int cur_main_cat = -1;
-int cur_sub_cat = -1;
-string watermark = "קטלוג<br>Catalog";
-if (vendor_id > 0)
-{
-    watermark = vendor_name + "<br> " + vendor_name;
-}
+    switch (listType)
+    {
+        case "ACTIVE":
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND is_catalog=0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
+            listTitle = "כל מוצרי הספקים הפעילים";
+            itemsCnt = activeCnt;
+            break;
+        case "VENDOR":
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0 AND v_id=@0 ORDER BY  maincat_id,sub_cat_id, is_setup,p_id DESC";
+            listTitle = "תפריט מוצרים - " + vendor_name;
+            itemsCnt = activeCnt;
+            break;
+        case "CATALOG":
+            sqlSelect = "SELECT * FROM products WHERE is_deleted=0  AND is_catalog=1 ORDER BY maincat_id,sub_cat_id, is_setup,p_id DESC";
+            listTitle = "קטלוג תבניות";
+            itemsCnt = catalogCnt;
+            bodyClass = "CatalogProductsDiv";
+            break;
+        case "DELETED":
+            sqlSelect = "SELECT * FROM DeletedProducts ORDER BY p_id DESC";
+            listTitle = "מוצרים שנמחקו";
+            itemsCnt = deletedCnt;
+            showAddBtn = false;
+            break;
+    }
+    var Products = db.Query(sqlSelect, vendor_id);
 
 
+    int cur_main_cat = -1;
+    int cur_sub_cat = -1;
+    string watermark = "קטלוג<br>Catalog";
+    if (vendor_id > 0)
+    {
+        watermark = vendor_name + "<br> " + vendor_name;
+    }
 
-if (listType == "ACTIVE"){watermark = "";}
-if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
+
+
+    if (listType == "ACTIVE") { watermark = ""; }
+    if (listType == "DELETED") { watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
 
 
     <div class="page-watermark" style="text-align:center">@Html.Raw(watermark)</div>
@@ -916,14 +916,14 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
                             <button type="button" style="float:left" id="ShowPOOpt" onclick="hideElement('POPTVIEW');hideElement('ShowPOOpt');showElement('POPTEDIT');showElement('HidePOOpt');">⚙️</button>
                             <button type="button" style="float: left; display: none;" id="HidePOOpt" onclick="hideElement('POPTEDIT');hideElement('HidePOOpt');showElement('POPTVIEW');showElement('ShowPOOpt');">❎</button>
                             מחירון
+                            @Products.ProductPricingSource(product_id)
                         </div>
 
 
                         <div id="PricingOptionsContainer">
 
-
-
-                            <div class="B" id="POPTVIEW">
+                    
+                            <div class="B" id="POPTVIEW" >
                                 <div class="B">
                                     @Products.ViewProductPricingOptions(product_id)
                                 </div>
@@ -1709,77 +1709,77 @@ if (listType == "DELETED") {watermark = "❌ ❌ ❌ <br> ❌ ❌ ❌"; }
 
 @helper ViewMenuItem(int MenuItemId, string viewMode = "")
 {
-System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
-var db = Database.Open("op_data");
-var sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
-var product = db.QuerySingle(sqlSelect, MenuItemId);
+    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("he-IL");
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT * FROM roundMenuItems WHERE id=@0";
+    var product = db.QuerySingle(sqlSelect, MenuItemId);
 
-bool is_active = false; try { is_active = product.is_active; } catch { }
-bool is_featured = false; try { is_featured = product.is_featured; } catch { }
-bool is_available = false; try { is_available = product.is_available; } catch { }
+    bool is_active = false; try { is_active = product.is_active; } catch { }
+    bool is_featured = false; try { is_featured = product.is_featured; } catch { }
+    bool is_available = false; try { is_available = product.is_available; } catch { }
 
-int product_id = 0; try { product_id = product.p_id; } catch { }
-int round_id = 0; try { round_id = product.round_id; } catch { }
-int vendor_id = 0; try { vendor_id = product.vendor_id; } catch { }
-string vendor_name = ""; if (vendor_id > 0) { try { vendor_name = AppFunctions.GetVendorTitleById(vendor_id); } catch { } }
-string menu_name = ""; try { menu_name = AppFunctions.GetRoundTitleById(round_id); } catch { }
-int itemunit_type = 0; try { itemunit_type = product.itemunit_type; } catch { }
-string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+    int product_id = 0; try { product_id = product.p_id; } catch { }
+    int round_id = 0; try { round_id = product.round_id; } catch { }
+    int vendor_id = 0; try { vendor_id = product.vendor_id; } catch { }
+    string vendor_name = ""; if (vendor_id > 0) { try { vendor_name = AppFunctions.GetVendorTitleById(vendor_id); } catch { } }
+    string menu_name = ""; try { menu_name = AppFunctions.GetRoundTitleById(round_id); } catch { }
+    int itemunit_type = 0; try { itemunit_type = product.itemunit_type; } catch { }
+    string itemunit = ""; try { itemunit = product.itemunit; } catch { }
 
-int maincat_id = 0; try { maincat_id = product.maincat_id; } catch { }
-int sub_cat_id = 0; try { sub_cat_id = product.sub_cat_id; } catch { }
-int spOfferCatId = 0; try { spOfferCatId = product.spOfferCatId; } catch { }
-int product_type = 0; try { product_type = product.product_type; } catch { }
+    int maincat_id = 0; try { maincat_id = product.maincat_id; } catch { }
+    int sub_cat_id = 0; try { sub_cat_id = product.sub_cat_id; } catch { }
+    int spOfferCatId = 0; try { spOfferCatId = product.spOfferCatId; } catch { }
+    int product_type = 0; try { product_type = product.product_type; } catch { }
 
-string main_cat_title = ""; try { main_cat_title = NewAppFunctions.GetTitleById("Cat", maincat_id); } catch { }
-string sub_cat_title = ""; try { sub_cat_title = NewAppFunctions.GetTitleById("Cat", sub_cat_id); } catch { }
-string spOffer_cat_title = ""; try { spOffer_cat_title = NewAppFunctions.GetTitleById("Cat", spOfferCatId); } catch { }
+    string main_cat_title = ""; try { main_cat_title = NewAppFunctions.GetTitleById("Cat", maincat_id); } catch { }
+    string sub_cat_title = ""; try { sub_cat_title = NewAppFunctions.GetTitleById("Cat", sub_cat_id); } catch { }
+    string spOffer_cat_title = ""; try { spOffer_cat_title = NewAppFunctions.GetTitleById("Cat", spOfferCatId); } catch { }
 
-string prod_title = product.title;
+    string prod_title = product.title;
 
-string is_featured_favRes = is_featured ? "true" : "false";
-string is_active_favRes = is_active ? "true" : "false";
-string is_available_favRes = is_available ? "true" : "false";
+    string is_featured_favRes = is_featured ? "true" : "false";
+    string is_active_favRes = is_active ? "true" : "false";
+    string is_available_favRes = is_available ? "true" : "false";
 
 
-string edit_disabler = "";
+    string edit_disabler = "";
 
-sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND product_id = @0 ORDER BY is_primary DESC,timestamp DESC";
-var files = db.Query(sqlSelect, product_id);
+    sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND product_id = @0 ORDER BY is_primary DESC,timestamp DESC";
+    var files = db.Query(sqlSelect, product_id);
 
-//var CustomFields = db.Query("SELECT * FROM customFields WHERE is_active=1 AND (cat_id=@0 OR cat_id=@1 OR p_t_id=@2) ORDER BY is_required DESC, sort_order", maincat_id, sub_cat_id, product_type);
-string customFieldsJson = product.custom_fields_json;
+    //var CustomFields = db.Query("SELECT * FROM customFields WHERE is_active=1 AND (cat_id=@0 OR cat_id=@1 OR p_t_id=@2) ORDER BY is_required DESC, sort_order", maincat_id, sub_cat_id, product_type);
+    string customFieldsJson = product.custom_fields_json;
 
-string CustomFieldsStr = "";
-var savedCustomFields = new List<Dictionary<string, object>>();
+    string CustomFieldsStr = "";
+    var savedCustomFields = new List<Dictionary<string, object>>();
 
-if (!String.IsNullOrWhiteSpace(customFieldsJson))
-{
-    try
+    if (!String.IsNullOrWhiteSpace(customFieldsJson))
     {
-        var serializer = new JavaScriptSerializer();
-        savedCustomFields = serializer.Deserialize<List<Dictionary<string, object>>>(customFieldsJson);
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            savedCustomFields = serializer.Deserialize<List<Dictionary<string, object>>>(customFieldsJson);
+        }
+        catch
+        {
+            savedCustomFields = new List<Dictionary<string, object>>();
+        }
     }
-    catch
+
+    string tags_json = ""; try { tags_json = Convert.ToString(product.tags_json); } catch { }
+
+    var productTags = new List<Dictionary<string, object>>();
+
+    if (!String.IsNullOrWhiteSpace(tags_json))
     {
-        savedCustomFields = new List<Dictionary<string, object>>();
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            productTags = serializer.Deserialize<List<Dictionary<string, object>>>(tags_json);
+            productTags = productTags.OrderBy(x => x.ContainsKey("sort") && x["sort"] != null ? Convert.ToInt32(x["sort"]) : 0).ToList();
+        }
+        catch { productTags = new List<Dictionary<string, object>>(); }
     }
-}
-
-string tags_json = ""; try { tags_json = Convert.ToString(product.tags_json); } catch { }
-
-var productTags = new List<Dictionary<string, object>>();
-
-if (!String.IsNullOrWhiteSpace(tags_json))
-{
-    try
-    {
-        var serializer = new JavaScriptSerializer();
-        productTags = serializer.Deserialize<List<Dictionary<string, object>>>(tags_json);
-        productTags = productTags.OrderBy(x => x.ContainsKey("sort") && x["sort"] != null ? Convert.ToInt32(x["sort"]) : 0).ToList();
-    }
-    catch { productTags = new List<Dictionary<string, object>>(); }
-}
 
 
 
@@ -1875,7 +1875,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                                 </button>
                             </div>
                             <div style="float:left;display:none;color:#f00;font-weight:bold;" id="RmiSettingsDelConfirm">
-                                <input type="checkbox"  onclick="    AjaxActions('RemoveMenuItemFromRound', @round_id,'MainLoader',@MenuItemId); this.checked = false;" /> <span> בטוח להסיר מהתפריט?</span>
+                                <input type="checkbox" onclick="    AjaxActions('RemoveMenuItemFromRound', @round_id,'MainLoader',@MenuItemId); this.checked = false;" /> <span> בטוח להסיר מהתפריט?</span>
                                 <button type="button" onclick="    hideElement('RmiSettingsDelConfirm'); showElement('RmiSettingsEditBtn');">
                                     ❎
                                 </button>
@@ -1894,7 +1894,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                         <div class="ProdViewItem">
                             המוצר פעיל
                             <span class="PPOInfoSpan">
-                                <input type="checkbox" checked="@(is_active ? "checked" : null)"  onclick="AjaxActions('MenuItemFeaturesToggle',this.checked,'MainLoader',@MenuItemId,@round_id,'ac');"/>
+                                <input type="checkbox" checked="@(is_active ? "checked" : null)" onclick="AjaxActions('MenuItemFeaturesToggle',this.checked,'MainLoader',@MenuItemId,@round_id,'ac');" />
                             </span>
                         </div>
 
@@ -2246,7 +2246,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
                             <div class="B" id="POPTVIEW">
                                 <div class="B">
-                                    @Products.ViewProductPricingOptions(product_id,round_id)
+                                    @Products.ViewProductPricingOptions(product_id, round_id)
                                 </div>
                             </div>
 
@@ -3032,7 +3032,7 @@ if (!String.IsNullOrWhiteSpace(tags_json))
                 <input type="password" class="A" id="VCRCRPW" style="float:right;width:120px" placeholder="🔒 BOSS" />
             </div>
             <div class="B" style="color:#000;font-size:18px;padding:5px;border-bottom:1px dotted #808080">
-            
+
                 <button type="button" class="A" style="float:left" onclick="    AjaxActions('CatalogJsonRecreate', '' ,'MainLoader', document.getElementById('JSONRCPW').value); document.getElementById('JSONRCPW').value = ''; ">יצירה מחדש של נתוני JSON</button>
                 <input type="password" class="A" id="JSONRCPW" style="float:right;width:120px" placeholder="🔒 BOSS" />
             </div>
@@ -3305,21 +3305,28 @@ if (!String.IsNullOrWhiteSpace(tags_json))
 
 
 
-@helper ViewProductPricingOptions(int product_id,int round_id=0)
+@helper ViewProductPricingOptions(int product_id, int round_id = 0)
 {
-var db = Database.Open("op_data");
-var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
-var product = db.QuerySingle(sqlSelect, product_id);
-string itemunit = ""; try { itemunit = product.itemunit; } catch { }
-sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY round_id,quan,price";
-var PricingOptions = db.Query(sqlSelect, product_id,round_id);
+    var db = Database.Open("op_data");
+    var sqlSelect = "SELECT itemunit,pricing_source,pricing_cat_id,cat_pricing_options_json FROM Products WHERE p_id=@0";
+    var product = db.QuerySingle(sqlSelect, product_id);
+    string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+    int pricing_source = 0; try { pricing_source = Convert.ToInt32(product.pricing_source); } catch { }
+    int pricing_cat_id = 0; try { pricing_cat_id = Convert.ToInt32(product.pricing_cat_id); } catch { }
+    sqlSelect = pricing_source == 0
+        ? "SELECT * FROM ProductPricingOptions WHERE p_id=@0 AND ISNULL(cat_id,0)=0 AND ISNULL(is_deleted,0)=0 ORDER BY round_id,quan,price"
+        : "SELECT * FROM ProductPricingOptions WHERE cat_id=@0 AND ISNULL(p_id,0)=0 AND ISNULL(is_deleted,0)=0 ORDER BY round_id,quan,price";
 
+    var PricingOptions = db.Query(sqlSelect, pricing_source == 0 ? product_id : pricing_cat_id);
 
 
     <div class="B">
 
         @if (PricingOptions.Count() > 0)
         {
+            <div class="B" style="font-weight:bold;">
+                @(pricing_source == 0 ? "מחירון מוצר" : pricing_source == 1 ? "מחירון תת קטגוריה" : "מחירון קטגוריה ראשית")
+            </div>
             foreach (var priceOption in PricingOptions)
             {
                 bool is_activated = false; is_activated = priceOption.is_activated;
@@ -3328,26 +3335,26 @@ var PricingOptions = db.Query(sqlSelect, product_id,round_id);
                 bool is_fav = false; is_fav = priceOption.is_fav;
                 string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
 
-    <div class="ProdViewItem" style="text-align:center;padding:5px;" id="RMIPPO_@priceOption.serial">
+                <div class="ProdViewItem" style="text-align:center;padding:5px;" id="RMIPPO_@priceOption.serial">
 
-        <div class="PPOItem">
-            @Convert.ToInt32(priceOption.quan) @itemunit
+                    <div class="PPOItem">
+                        @Convert.ToInt32(priceOption.quan) @itemunit
 
-            @if (is_spOffer)
-            {
-                <span style="margin-right:10px;">מבצע</span>
-            }
+                        @if (is_spOffer)
+                        {
+                            <span style="margin-right:10px;">מבצע</span>
+                        }
 
-        </div>
+                    </div>
 
-        <div class="PPOValue">
-            @Convert.ToInt32(priceOption.price) ₪
-        </div>
-
-
+                    <div class="PPOValue">
+                        @Convert.ToInt32(priceOption.price) ₪
+                    </div>
 
 
-    </div>
+
+
+                </div>
 
 
 
@@ -3365,8 +3372,151 @@ var PricingOptions = db.Query(sqlSelect, product_id,round_id);
     db.Close();
 }
 
-
 @helper EditProductPricingOptions(int product_id)
+{
+var db = Database.Open("op_data");
+var product = db.QuerySingle("SELECT itemunit,pricing_source,pricing_cat_id FROM Products WHERE p_id=@0", product_id);
+string itemunit = ""; try { itemunit = product.itemunit; } catch { }
+
+
+int pricing_source = 0; try { pricing_source = Convert.ToInt32(product.pricing_source); } catch { }
+
+if (pricing_source == 0)
+{
+    var sqlSelect = "SELECT * FROM ProductPricingOptions WHERE p_id=@0  ORDER BY quan,price";
+    var PricingOptions = db.Query(sqlSelect, product_id);
+
+        <div class="B">
+            @foreach (var priceOption in PricingOptions)
+            {
+                bool is_activated = false; is_activated = priceOption.is_activated;
+                bool is_spOffer = priceOption.is_spOffer;
+                bool is_catalog_option = priceOption.is_catalog;
+                bool is_fav = false; is_fav = priceOption.is_fav;
+                string divName = "priceOptionInfoDiv_" + priceOption.serial + "_" + product_id;
+                string ActiveDivClass = "PPOBtnItem";
+                string FavDivClass = "PPOBtnItem";
+                string spOfferDivClass = "PPOBtnItem";
+                if (is_activated)
+                {
+                    ActiveDivClass = "PPOBtnItemSelected";
+                }
+                if (is_fav)
+                {
+                    FavDivClass = "PPOBtnItemSelected";
+                }
+                if (is_spOffer)
+                {
+                    spOfferDivClass = "PPOBtnItemSelected";
+                }
+
+
+
+                <form id="PPOFORM_@priceOption.serial">
+                    <input type="hidden" name="optionQuan" value="@priceOption.quan" />
+                    <input type="hidden" name="optionSerial" value="@priceOption.serial" />
+                    <div class="ProdViewItem" style="text-align:center;">
+                        <div id="ppo_btns_@priceOption.serial">
+                            <div class="@ActiveDivClass" id="IsActiveDiv_@priceOption.serial" onclick="MiscActions('PPOOPTTOGGLE',@priceOption.serial,'ISACTIVE');">
+                                <input type="checkbox" style="margin:4px;" id="ppo_is_active_@priceOption.serial" name="is_activated" checked="@(priceOption.is_activated ? "checked" : null)" />
+                            </div>
+                            <div class="@FavDivClass" id="FavDiv_@priceOption.serial" onclick="MiscActions('PPOOPTTOGGLE',@priceOption.serial,'FAV');">
+                                <input type="checkbox" id="ppo_is_fav_@priceOption.serial" value="true" name="is_fav" style="display:none" checked="@(is_fav ? "checked" : null)" />
+                                ❤️
+                            </div>
+                            <div class="@spOfferDivClass" id="SPODiv_@priceOption.serial" onclick="MiscActions('PPOOPTTOGGLE',@priceOption.serial,'SPO');">
+                                <input type="checkbox" id="ppo_is_spo_@priceOption.serial" value="true" name="is_spOffer" style="display:none" checked="@(is_spOffer ? "checked" : null)" />
+                                🎁
+                            </div>
+                            <div class="PPOBtnItem" onclick="hideElement('ppo_btns_@priceOption.serial'); showElement('ppo_del_conf_@priceOption.serial');">
+                                🗑️
+                            </div>
+                        </div>
+                        <div id="ppo_del_conf_@priceOption.serial" style="display:none;">
+                            <div class="PPODelBtnItem">
+                                <input type="checkbox" style="margin:4px;" onclick="AjaxActions('DeletePricingOption', '@priceOption.serial', 'MainLoader', @priceOption.p_id);" /> בטוח למחוק?
+                            </div>
+                            <div class="PPODelBtnItem" onclick="hideElement('ppo_del_conf_@priceOption.serial'); showElement('ppo_btns_@priceOption.serial');">
+                                ❎
+                            </div>
+                        </div>
+
+
+                        <div class="PPOPriceItem">
+
+                            @Convert.ToInt32(priceOption.quan) @itemunit
+                        </div>
+
+
+
+                        <div class="PPOEdit">
+                            <span class="GrayMiniTag">₪</span>
+                            <input type="text" name="optionPrice" class="PPOTB" style="width: 40px;padding: 5px;font-size: 16px;" value="@Convert.ToInt32(priceOption.price)">
+                            <button type="button" class="PPOBtn1" onclick="    AjaxActions('UpdateProductPricingOption', @product_id,'MainLoader', 'PPOFORM_@priceOption.serial',@product_id);">💾</button>
+
+                        </div>
+
+
+                    </div>
+
+                </form>
+
+
+
+
+
+            }
+
+            <div class="ProdViewItem" style="text-align:center;">
+
+
+                <form id="AddPricingOption">
+                    <div class="PPOBtnItemSelected" id="IsActiveDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','ISACTIVE');">
+                        <input type="checkbox" style="margin:4px;" id="ppo_is_active_0" name="is_activated" checked />
+                    </div>
+                    <div class="PPOBtnItem" id="FavDiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','FAV');">
+                        <input type="checkbox" id="ppo_is_fav_0" value="true" name="is_fav" style="display:none" />
+                        ❤️
+                    </div>
+                    <div class="PPOBtnItem" id="SPODiv_0" onclick="MiscActions('PPOOPTTOGGLE','0','SPO');">
+                        <input type="checkbox" id="ppo_is_spo_0" value="true" name="is_spOffer" style="display:none" />
+                        🎁
+                    </div>
+                    <div class="PPOBtnItemStatic">
+
+                    </div>
+                    <div class="PPOBtnItem">
+                        <input type="text" name="optionQuan" class="PPOTB" style="width: 40px; background-color: #fff; "> @itemunit
+                    </div>
+
+
+
+
+                    <div class="PPOEdit">
+                        <span class="GrayMiniTag">₪</span>
+                        <input type="text" name="optionPrice" class="PPOTB" style="width: 40px; padding: 5px; font-size: 16px;" value="">
+                        <button type="button" class="PPOBtn1" onclick="AjaxActions('AddProductTemplatePricingOption', '@product_id','MainLoader', 'AddPricingOption',@product_id,'TEMPLATE');">💾</button>
+
+                    </div>
+
+                </form>
+            </div>
+
+
+        </div>
+    }
+    else
+    {
+        <div class="B" style="padding:10px;color:#555;">
+            המוצר משתמש במחירון קטגוריה משותף.
+            ניתן לערוך את המחירון דרך ניהול הקטגוריות.
+        </div>
+    }
+
+    db.Close();
+}
+
+@helper EditProductPricingOptionsOLD(int product_id)
 {
     var db = Database.Open("op_data");
     var sqlSelect = "SELECT itemunit FROM Products WHERE p_id=@0";
@@ -4702,20 +4852,20 @@ var PricingOptions = db.Query(sqlSelect, product_id,round_id);
     </div>
     db.Close();
 }
-@helper ProductImages(int rec_id,int rec_type, bool is_actions = true)
+@helper ProductImages(int rec_id, int rec_type, bool is_actions = true)
 {
 
-var db = Database.Open("op_data");
-var sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND rec_type = @0 AND rec_id=@1 ORDER BY is_primary DESC,timestamp DESC";
-var files = db.Query(sqlSelect, rec_type,rec_id);
-int product_id = 0;
-int cat_id = 0;
-int spOfferId = 0;
-if (rec_type == 1) {product_id = rec_id; }
-if (rec_type == 2) { cat_id = rec_id; }
-if (rec_type == 3) { spOfferId = rec_id; }
+    var db = Database.Open("op_data");
+    var sqlSelect = "Select mimeType,File_id,is_primary From ProductImages Where is_deleted=0 AND rec_type = @0 AND rec_id=@1 ORDER BY is_primary DESC,timestamp DESC";
+    var files = db.Query(sqlSelect, rec_type, rec_id);
+    int product_id = 0;
+    int cat_id = 0;
+    int spOfferId = 0;
+    if (rec_type == 1) { product_id = rec_id; }
+    if (rec_type == 2) { cat_id = rec_id; }
+    if (rec_type == 3) { spOfferId = rec_id; }
 
-db.Close();
+    db.Close();
 
 
     <div style="background-color: #fff;color: #808080;padding: 5px;">
@@ -4999,6 +5149,53 @@ db.Close();
     </div>
     db.Close();
 }
+
+
+@helper ProductPricingSource(int product_id)
+{
+    var db = Database.Open("op_data");
+
+    var product = db.QuerySingle("SELECT p_id,maincat_id,sub_cat_id,itemunit_type,pricing_source,pricing_cat_id FROM Products WHERE p_id=@0", product_id);
+
+    if (product != null)
+    {
+        int pricing_source = Convert.ToInt32(product.pricing_source);
+        int itemunit_type = Convert.ToInt32(product.itemunit_type);
+        int maincat_id = Convert.ToInt32(product.maincat_id);
+        int sub_cat_id = Convert.ToInt32(product.sub_cat_id);
+
+        var maincat = db.QuerySingle("SELECT id,title,def_itemunit_type,is_cat_pricing FROM Categories WHERE id=@0 AND is_maincat=1 AND is_active=1 AND is_deleted=0", maincat_id);
+        var subcat = db.QuerySingle("SELECT id,title,def_itemunit_type,is_cat_pricing FROM Categories WHERE id=@0 AND is_subcat=1 AND is_active=1 AND is_deleted=0", sub_cat_id);
+
+        bool maincat_available = maincat != null && maincat.is_cat_pricing == true && Convert.ToInt32(maincat.def_itemunit_type) == itemunit_type;
+        bool subcat_available = subcat != null && subcat.is_cat_pricing == true && Convert.ToInt32(subcat.def_itemunit_type) == itemunit_type;
+
+        <div class="B" style="float:left;">
+        <select name="pricing_source"
+                style="font-size:16px;padding:5px;margin-left:10px;max-width:200px;"
+                class="pricing_source_select"
+                onchange="AjaxActions('UpdateProductPricingSource',@product_id,'MainLoader',this.value,@product_id);">
+
+            <option value="0" selected="@(pricing_source == 0)">מחירון עצמאי</option>
+
+            @if (subcat_available)
+            {
+                <option value="1" selected="@(pricing_source == 1)">מחירון תת קטגוריה - @subcat.title</option>
+            }
+
+            @if (maincat_available)
+            {
+                <option value="2" selected="@(pricing_source == 2)">מחירון קטגוריה ראשית - @maincat.title</option>
+            }
+
+        </select>
+
+        </div>
+    }
+
+    db.Close();
+}
+
 
 
 @helper ViewProductOptions(int p_id, bool is_rc = false)

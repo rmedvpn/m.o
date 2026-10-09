@@ -1397,51 +1397,49 @@
         return json;
     }
 
-    public static string CreateCategoryPricingOptionsJson(int cat_id, int round_id = 0, bool update_record = false)
+    public static string CreateCategoryPricingOptionsJson(int cat_id, bool update_record = false)
     {
         var db = Database.Open("op_data");
-        var priceOptionsList = new List<Dictionary<string, object>>();
 
-        string sqlSelect = "SELECT * FROM ProductPricingOptions WHERE ISNULL(is_deleted,0)=0 AND is_activated=1 AND cat_id=@0 AND ISNULL(p_id,0)=0";
-
-        if (round_id > 0)
-            sqlSelect += " AND round_id=@1 ORDER BY quan,price";
-        else
-            sqlSelect += " ORDER BY quan,price";
-
-        var PricingOptions = round_id > 0 ? db.Query(sqlSelect, cat_id, round_id) : db.Query(sqlSelect, cat_id);
-
-        foreach (var po in PricingOptions)
+        try
         {
-            decimal unit = 0;
-            try { if (po.quan > 0) unit = Math.Round((decimal)po.price / (decimal)po.quan, 2); } catch { }
+            var priceOptionsList = new List<Dictionary<string, object>>();
 
-            var priceOption = new Dictionary<string, object>();
+            string sqlSelect = "SELECT quan,price FROM ProductPricingOptions WHERE ISNULL(is_deleted,0)=0 AND is_activated=1 AND cat_id=@0 AND ISNULL(p_id,0)=0 AND round_id=0 ORDER BY quan,price";
+            var PricingOptions = db.Query(sqlSelect, cat_id);
 
-            priceOption.Add("round", po.round_id);
-            priceOption.Add("quan", po.quan);
-            priceOption.Add("price", po.price);
-            priceOption.Add("unit", unit);
-            priceOption.Add("fav", po.is_fav);
-            priceOption.Add("spOffer", false);
+            foreach (var po in PricingOptions)
+            {
+                var priceOption = new Dictionary<string, object>();
 
-            priceOptionsList.Add(priceOption);
+                priceOption.Add("quan", Convert.ToInt32(po.quan));
+                priceOption.Add("price", Math.Round(Convert.ToDecimal(po.price), 2));
+
+                priceOptionsList.Add(priceOption);
+            }
+
+            string json = new JavaScriptSerializer().Serialize(priceOptionsList);
+            if (update_record)
+            {
+                sqlSelect = "UPDATE Categories SET price_options_json=@0 WHERE id=@1";
+                db.Execute(sqlSelect, json, cat_id);
+
+                sqlSelect = "UPDATE Products SET cat_pricing_options_json=@0 WHERE pricing_source IN (1,2) AND pricing_cat_id=@1";
+                db.Execute(sqlSelect, json, cat_id);
+
+                sqlSelect = "UPDATE roundMenuItems SET cat_pricing_options_json=@0 WHERE pricing_source IN (1,2) AND pricing_cat_id=@1";
+                db.Execute(sqlSelect, json, cat_id);
+
+                Categories.CalcCatProdLowestCost(cat_id);
+            }
+
+            return json;
         }
-
-        var serializer = new JavaScriptSerializer();
-        string json = serializer.Serialize(priceOptionsList);
-
-        if (update_record)
+        finally
         {
-            sqlSelect = "UPDATE Categories SET price_options_json=@0 WHERE id=@1";
-            db.Execute(sqlSelect, json, cat_id);
+            db.Close();
         }
-
-        db.Close();
-
-        return json;
     }
-
 
 
     public static int func()

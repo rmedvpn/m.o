@@ -1713,6 +1713,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                         break;
                     case "AddProductTemplatePricingOption":
                     case "UpdateProductPricingOption":
+                    case "UpdateProductPricingSource":
                         if (!theRes.startsWith("!$!")) {
                             //console.log("afsdfasdfasdfavzxcvzxcv123123");
                            // RepAjaxUpdate('AddPricingOption', 'AddPricingOptionsContainer', 'AddProductLoader', param2, param3);

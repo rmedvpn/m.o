@@ -133,7 +133,7 @@
                 dest_db.Execute("SET IDENTITY_INSERT roundMenuItems OFF");
             }
 
-            sqlSelect = "UPDATE roundMenuItems SET p_id=@1,timestamp=@2,round_id=@3,vendor_id=@4,Available_quan=@5,price=@6,cost=@7,itemunit=@8,product_type=@9,item_user_comment=@10,staff_comment=@11,max_quan_per_order=@12,moq=@13,bulk_price=@14,bulk_price_quan_marker=@15,sell_1s=@16,sell_3s=@17,sell_5s=@18,sell_inXs=@19,is_active=@20,item_commision=@21,inventory_id=@22,itemunit_type=@23,cat_id=@24,clerk_id=@25,notes=@26,notes_e=@27,strain=@28,strain_e=@29,is_delivery=@30,is_pickup=@31,is_express=@32,is_strain_ok=@33,primary_pic_file_id=@34,cbd=@35,thc=@36,maincat_id=@37,sub_cat_id=@38,last_change_ts=@39,last_change_by=@40,itemunit_e=@41,spOfferCatId=@42,SpOffersOk=@43,is_quan_limit=@44,is_in_stock=@45,curLowestUnitPrice=@46,CharityOffersOk=@47,is_discountable=@48,max_in_cart=@49,is_deleted=@50,deleted_by=@51,delete_ts=@52,ordered_quan=@53,sold_quan=@54,returns_quan=@55,returning_quan=@56,cancelled_quan=@57,cancelations_quan=@58,reserved_quan=@59,reservations_quan=@60,catalog_p_id=@61,Title=@62,Description=@63,prod_code=@64,title_e=@65,desc_e=@66,strain_type=@67,strain_type_title=@68,strain_type_title_e=@69,is_generic=@70,is_featured=@71,PricingOptionsString=@72,custom_fields_json=@73,tags_json=@74,price_options_json=@75,product_options_json=@76,is_available=@77,itemUnitJson=@78,sort_order=@79,cat_sort_order=@80,img_file_id=@81 WHERE id=@0";
+            sqlSelect = "UPDATE roundMenuItems SET p_id=@1,timestamp=@2,round_id=@3,vendor_id=@4,Available_quan=@5,price=@6,cost=@7,itemunit=@8,product_type=@9,item_user_comment=@10,staff_comment=@11,max_quan_per_order=@12,moq=@13,bulk_price=@14,bulk_price_quan_marker=@15,sell_1s=@16,sell_3s=@17,sell_5s=@18,sell_inXs=@19,is_active=@20,item_commision=@21,inventory_id=@22,itemunit_type=@23,cat_id=@24,clerk_id=@25,notes=@26,notes_e=@27,strain=@28,strain_e=@29,is_delivery=@30,is_pickup=@31,is_express=@32,is_strain_ok=@33,primary_pic_file_id=@34,cbd=@35,thc=@36,maincat_id=@37,sub_cat_id=@38,last_change_ts=@39,last_change_by=@40,itemunit_e=@41,spOfferCatId=@42,SpOffersOk=@43,is_quan_limit=@44,is_in_stock=@45,curLowestUnitPrice=@46,CharityOffersOk=@47,is_discountable=@48,max_in_cart=@49,is_deleted=@50,deleted_by=@51,delete_ts=@52,ordered_quan=@53,sold_quan=@54,returns_quan=@55,returning_quan=@56,cancelled_quan=@57,cancelations_quan=@58,reserved_quan=@59,reservations_quan=@60,catalog_p_id=@61,Title=@62,Description=@63,prod_code=@64,title_e=@65,desc_e=@66,strain_type=@67,strain_type_title=@68,strain_type_title_e=@69,is_generic=@70,is_featured=@71,PricingOptionsString=@72,custom_fields_json=@73,tags_json=@74,price_options_json=@75,product_options_json=@76,is_available=@77,itemUnitJson=@78,sort_order=@79,cat_sort_order=@80,img_file_id=@81,pricing_source=@82,pricing_cat_id=@83,cat_pricing_options_json=@84 WHERE id=@0";
 
             dest_db.Execute(sqlSelect,
                 item.id,
@@ -217,7 +217,10 @@
                 item.itemUnitJson,
                 item.sort_order,
                 item.cat_sort_order,
-                item.img_file_id
+                item.img_file_id,
+                item.pricing_source, 
+                item.pricing_cat_id, 
+                item.cat_pricing_options_json
             );
 
             ClientExport.ClearRowUpdateFlag(src_db_name, "roundMenuItems", "id", item.id, item.last_update_ts);
