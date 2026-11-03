@@ -3206,3 +3206,4 @@ function ProductImageUpload(theBlob,upd_type="PROD") {
     xmlhttp.send(formData);
 
 }
+
