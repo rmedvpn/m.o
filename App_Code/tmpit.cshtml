@@ -4569,110 +4569,100 @@ bool is_multi_select_mode = false;
 
     public static void tmpAction()
     {
-        if (true)
+        if (false)
         {
-            var db = WebMatrix.Data.Database.Open("op_data");
-            var sqlSelect = "";
-
-            sqlSelect = "SELECT id FROM rounds order by id ";
-            var rounds = db.Query(sqlSelect);
-            foreach (var round in rounds)
-            {
-                var json = AppJson.CreateMenuSpecialOffersJson(round.id, true);
-                //var json = AppJson.CreateMenuItemsJson(round.id, true);
-            }
-            db.Close();
-            // ProductsFunctions.CleanUpOfDeletedProducts();
-
-            /*product table cleanup
-
-            get all deleted products
-            delete product
-
-
-
-            var db = WebMatrix.Data.Database.Open("op_data");
-            var sqlSelect = "";
-
-            sqlSelect = "SELECT p_id FROM products WHERE is_deleted=1 OR is_catalog=0 ORDER BY p_id";
-            var products = db.Query(sqlSelect);
-
-            foreach (var p in products)
-            {
-
-                sqlSelect = "DELETE FROM products WHERE p_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-                sqlSelect = "DELETE FROM SpecialOffersItems WHERE p_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-                sqlSelect = "DELETE FROM RoundMenuItems WHERE p_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-
-                sqlSelect = "DELETE FROM ProductImages  WHERE product_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-                sqlSelect = "DELETE FROM productTags WHERE p_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-
-                sqlSelect = "DELETE FROM ProductsCustomFields  WHERE p_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-                sqlSelect = "DELETE FROM ProductPricingOptions  WHERE p_id=@0";
-                db.Execute(sqlSelect, p.p_id);
-
-
-            }
-
-            db.Close();
-            //rebuildZreports();
-
-            /*
-            DateTime local_time = AppFunctions.LocalTime();
-            DateTime defTime = Convert.ToDateTime("1/1/1900");
-            int rep_id = WebMatrix.WebData.WebSecurity.CurrentUserId;
-
-            var db = WebMatrix.Data.Database.Open("op_data");
-            var sqlSelect = "select distinct(cast(timestamp as date)) AS the_date from mainorders order by cast(timestamp as date)";
-            var orders = db.Query(sqlSelect);
-            int main_z_id = 0;
-            foreach (var order in orders)
-            {
-                main_z_id = CreateMainZReport(order.the_date, true);
-            }
-
-            sqlSelect = "UPDATE zReports set is_active=0";
-            db.Execute(sqlSelect);
-
-
-
-
-            sqlSelect = "SELECT top(1) serial,z_id,z_date FROM ZREPORTS WHERE is_main_z=1 ORDER BY z_date DESC";
-            var last_z = db.QuerySingle(sqlSelect);
-            int last_z_serial = 0;
-            DateTime main_z_date = defTime;
-
-            try { last_z_serial = last_z.serial; } catch { }
-            try { main_z_date = last_z.z_date; } catch { }
-            try { main_z_id = last_z.z_id; } catch { }
-
-            sqlSelect = "UPDATE zReports set is_active=1 WHERE main_z_serial=@0";
-            db.Execute(sqlSelect, last_z_serial);
-
-
-
-            AppFunctions.SetAppProperty("ActiveZSerial", last_z_serial.ToString());
-            AppFunctions.SetAppProperty("ActiveZId", main_z_id.ToString());
-            AppFunctions.SetAppProperty("ActiveZDate", main_z_date.ToShortDateString());
-
-
-            db.Close();
-            */
+            string a = TmpFixFeaturedJson();
         }
     }
+    public static string TmpFixFeaturedJson()
+    {
+        int productsChecked = 0;
+        int offersChecked = 0;
+        int roundsRebuilt = 0;
 
+        var failures = new List<string>();
+
+        using (var db = Database.Open("op_data"))
+        {
+            var items = db.Query(@"
+            SELECT 'product' AS item_type, round_id, id AS item_id
+            FROM dbo.RoundMenuItems
+            WHERE is_featured = 1
+              AND is_deleted = 0
+              AND p_id > 0
+
+            UNION ALL
+
+            SELECT 'offer', ra.round_id, ra.specialOfferId
+            FROM dbo.SpOfferRoundsAvailability ra
+            INNER JOIN dbo.SpecialOffers s ON s.id = ra.specialOfferId
+            WHERE ra.is_featured = 1
+              AND ISNULL(s.is_deleted, 0) = 0
+
+            ORDER BY round_id, item_type, item_id
+        ").ToList();
+
+            foreach (var item in items)
+            {
+                int roundId = Convert.ToInt32((object)item.round_id);
+                int itemId = Convert.ToInt32((object)item.item_id);
+                bool isOffer = (string)item.item_type == "offer";
+                string label = (isOffer ? "Offer " : "Menu item ") + itemId
+                    + " (round " + roundId + ")";
+
+                try
+                {
+                    bool ready = isOffer
+                        ? AppJson.CreateFeaturedSpOfferJson(roundId, itemId)
+                        : AppJson.CreateFeaturedItemJson(roundId, itemId);
+
+                    if (!ready)
+                    {
+                        failures.Add(label + " could not be initialized.");
+                        continue;
+                    }
+
+                    if (isOffer)
+                        offersChecked++;
+                    else
+                        productsChecked++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add(label + " failed.");
+                    System.Diagnostics.Trace.TraceError("{0}: {1}", label, ex);
+                }
+            }
+
+            var rounds = db.Query("SELECT id FROM dbo.Rounds ORDER BY id").ToList();
+
+            foreach (var round in rounds)
+            {
+                int roundId = Convert.ToInt32((object)round.id);
+
+                try
+                {
+                    AppJson.CreateFeaturedItemsJson(roundId, true);
+                    roundsRebuilt++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add("Round " + roundId + " could not be rebuilt.");
+                    System.Diagnostics.Trace.TraceError("Round {0}: {1}", roundId, ex);
+                }
+            }
+        }
+
+        string result = "Featured product rows checked: " + productsChecked
+            + "<br>Featured offer rows checked: " + offersChecked
+            + "<br>Round JSON lists rebuilt: " + roundsRebuilt
+            + "<br>Failures: " + failures.Count;
+
+        if (failures.Count > 0)
+            result += "<br>" + string.Join("<br>", failures);
+
+        return result;
+    }
 
     public static void tmpAction2()
     {

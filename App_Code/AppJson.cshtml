@@ -659,7 +659,10 @@
             if (returns) item["returns"] = true;
 
             item["min_order"] = minOrder;
+            int orderCutoffMin = 0;
+            try { orderCutoffMin = Convert.ToInt32(opt.order_cutoff_min); } catch { }
 
+            item["cutOffMin"] = orderCutoffMin;
             /*
              * Fulfillment-option defaults.
              */
@@ -1298,66 +1301,6 @@
 
         return json;
     }
-    public static string CreateFeaturedItemsJson(int round_id,bool update_record=false)
-    {
-        var db = Database.Open("op_data");
-
-        var sqlSelect = @"SELECT p_id,title,title_e,curLowestUnitPrice,itemunit,itemunit_e
-                  FROM roundMenuItems
-                  WHERE round_id=@0 AND is_active=1 AND is_featured=1
-                  ORDER BY id";
-
-        var products = db.Query(sqlSelect, round_id);
-
-        var items = new List<object>();
-
-        foreach (var product in products)
-        {
-            var item = new Dictionary<string, object>();
-
-            int p_id = 0;
-            try { p_id = Convert.ToInt32(product.p_id); } catch { }
-
-            if (p_id <= 0)
-                continue;
-
-            item["id"] = p_id;
-
-            string title_h = ""; try { title_h = (product.title ?? "").ToString(); } catch { }
-            string title_e = ""; try { title_e = (product.title_e ?? "").ToString(); } catch { }
-
-            if (!string.IsNullOrWhiteSpace(title_h)) item["title_h"] = title_h;
-            if (!string.IsNullOrWhiteSpace(title_e)) item["title_e"] = title_e;
-
-            decimal price = 0;
-            try { price = Convert.ToDecimal(product.curLowestUnitPrice); } catch { }
-
-            if (price > 0)
-                item["price"] = price;
-
-            string unit_h = ""; try { unit_h = (product.itemunit ?? "").ToString(); } catch { }
-            string unit_e = ""; try { unit_e = (product.itemunit_e ?? "").ToString(); } catch { }
-
-            if (!string.IsNullOrWhiteSpace(unit_h)) item["unit_h"] = unit_h;
-            if (!string.IsNullOrWhiteSpace(unit_e)) item["unit_e"] = unit_e;
-
-            items.Add(item);
-        }
-        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-
-        string json = serializer.Serialize(items);
-        if (update_record)
-        {
-            sqlSelect = "UPDATE rounds SET FeaturedItemsJson=@0 WHERE id=@1";
-            db.Execute(sqlSelect, json, round_id);
-
-        }
-
-        db.Close();
-
-        return json;
-    }
-
     public static string CreatePriceOptionsJson(int p_id, int round_id = 0, bool update_record = false)
     {
         var db = Database.Open("op_data");
@@ -1447,6 +1390,304 @@
         }
     }
 
+    public static string CreateFeaturedItemsJson(int round_id, bool update_record = false)
+    {
+        using (var db = Database.Open("op_data"))
+        {
+            var rows = db.Query(@"
+            SELECT
+                'product' AS item_type,
+                m.p_id AS item_id,
+                m.id AS row_id,
+                m.Title AS title_h,
+                m.title_e,
+                m.curLowestUnitPrice AS price,
+                m.itemunit AS unit_h,
+                m.itemunit_e AS unit_e,
+                m.img_file_id AS img_file_id,
+                m.FeaturedItemJson AS featured_json,
+                m.featured_sort_order,
+                m.cat_sort_order,
+                m.sort_order
+            FROM dbo.RoundMenuItems m
+            WHERE m.round_id = @0
+              AND m.is_featured = 1
+              AND m.is_active = 1
+              AND m.is_deleted = 0
+              AND m.p_id > 0
+
+            UNION ALL
+
+            SELECT
+                'offer',
+                s.id,
+                ra.id,
+                s.title,
+                s.title_e,
+                s.price,
+                NULL AS unit_h,
+                NULL AS unit_e,
+                s.img_file_id,
+                ra.FeaturedItemJson,
+                ra.featured_sort_order,
+                ra.cat_sort_order,
+                ra.sort_order
+            FROM dbo.SpOfferRoundsAvailability ra
+            INNER JOIN dbo.SpecialOffers s ON s.id = ra.specialOfferId
+            WHERE ra.round_id = @0
+              AND ra.is_featured = 1
+              AND ra.is_active = 1
+              AND s.is_active = 1
+              AND ISNULL(s.is_deleted, 0) = 0
+
+            UNION ALL
+
+            SELECT
+                'announcement',
+                a.id,
+                a.id,
+                NULL AS title_h,
+                NULL AS title_e,
+                NULL AS price,
+                NULL AS unit_h,
+                NULL AS unit_e,
+                NULL AS img_file_id,
+                a.FeaturedItemJson,
+                a.featured_sort_order,
+                NULL AS cat_sort_order,
+                NULL AS sort_order
+            FROM dbo.RoundFeaturedAnnouncements a
+            WHERE a.round_id = @0
+              AND a.is_active = 1
+
+            ORDER BY featured_sort_order, cat_sort_order, sort_order, item_type, row_id
+        ", round_id);
+
+            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+            var items = new List<Dictionary<string, object>>();
+            string[] copyFields = { "title_h", "title_e", "text_h", "text_e" };
+
+            foreach (var row in rows)
+            {
+                string itemType = row.item_type;
+                var item = new Dictionary<string, object>
+            {
+                { "type", itemType },
+                { "id", Convert.ToInt32((object)row.item_id) }
+            };
+
+                string titleH = Convert.ToString((object)row.title_h);
+                string titleE = Convert.ToString((object)row.title_e);
+                string unitH = Convert.ToString((object)row.unit_h);
+                string unitE = Convert.ToString((object)row.unit_e);
+                decimal price = Convert.ToDecimal((object)row.price);
+                int imageId = Convert.ToInt32((object)row.img_file_id);
+
+                if (!string.IsNullOrWhiteSpace(titleH)) item["title_h"] = titleH;
+                if (!string.IsNullOrWhiteSpace(titleE)) item["title_e"] = titleE;
+                if (!string.IsNullOrWhiteSpace(unitH)) item["unit_h"] = unitH;
+                if (!string.IsNullOrWhiteSpace(unitE)) item["unit_e"] = unitE;
+                if (price > 0) item["price"] = price;
+                if (imageId > 0) item["img_id"] = imageId;
+
+                string savedJson = Convert.ToString((object)row.featured_json);
+
+                if (!string.IsNullOrWhiteSpace(savedJson))
+                {
+                    Dictionary<string, object> copy = null;
+
+                    try
+                    {
+                        copy = serializer.Deserialize<Dictionary<string, object>>(savedJson);
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Keep the source values if the saved overrides are invalid.
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Keep the source values if the saved overrides are invalid.
+                    }
+
+                    if (copy != null)
+                    {
+                        foreach (string field in copyFields)
+                        {
+                            object value;
+                            if (copy.TryGetValue(field, out value))
+                            {
+                                string text = value as string;
+                                if (!string.IsNullOrWhiteSpace(text))
+                                    item[field] = text;
+                            }
+                        }
+                    }
+                }
+
+                if (itemType == "announcement" &&
+                    !item.ContainsKey("title_h") && !item.ContainsKey("title_e") &&
+                    !item.ContainsKey("text_h") && !item.ContainsKey("text_e"))
+                {
+                    continue;
+                }
+
+                items.Add(item);
+            }
+
+            string json = serializer.Serialize(items);
+
+            if (update_record)
+            {
+                db.Execute(
+                    "UPDATE dbo.Rounds SET FeaturedItemsJson=@0 WHERE id=@1",
+                    json, round_id);
+            }
+
+            return json;
+        }
+    }
+
+    public static bool CreateFeaturedItemJson(int round_id, int menu_item_id)
+    {
+        return InitializeFeaturedItemJson(round_id, menu_item_id, false);
+    }
+
+    public static bool CreateFeaturedSpOfferJson(int round_id, int special_offer_id)
+    {
+        return InitializeFeaturedItemJson(round_id, special_offer_id, true);
+    }
+
+    private static bool InitializeFeaturedItemJson(int round_id, int item_id, bool isOffer)
+    {
+        string source = isOffer
+            ? @"FROM dbo.SpOfferRoundsAvailability r
+            INNER JOIN dbo.SpecialOffers s ON s.id = r.specialOfferId
+            WHERE r.round_id = @0
+              AND r.specialOfferId = @1
+              AND r.is_featured = 1
+              AND ISNULL(s.is_deleted, 0) = 0"
+            : @"FROM dbo.RoundMenuItems r
+            WHERE r.round_id = @0
+              AND r.id = @1
+              AND r.is_featured = 1
+              AND r.is_deleted = 0";
+
+        string select = isOffer
+            ? @"SELECT s.id AS source_id, s.title AS title_h, s.title_e,
+                   ISNULL(s.price, 0) AS price, NULL AS unit_h, NULL AS unit_e,
+                   ISNULL(s.img_file_id, 0) AS img_file_id,
+                   r.FeaturedItemJson AS featured_json "
+            : @"SELECT r.p_id AS source_id, r.Title AS title_h, r.title_e,
+                   ISNULL(r.curLowestUnitPrice, 0) AS price,
+                   r.itemunit AS unit_h, r.itemunit_e AS unit_e,
+                   ISNULL(r.img_file_id, 0) AS img_file_id,
+                   r.FeaturedItemJson AS featured_json ";
+
+        const string emptyJson = "NULLIF(LTRIM(RTRIM(r.FeaturedItemJson)), N'') IS NULL";
+        const string sameJson =
+            "CONVERT(varbinary(max), r.FeaturedItemJson) = " +
+            "CONVERT(varbinary(max), CONVERT(nvarchar(max), @3))";
+
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+
+        using (var db = Database.Open("op_data"))
+        {
+            // Re-read the row if another request changes the JSON before the UPDATE.
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                var row = db.QuerySingle(select + source, round_id, item_id);
+                if (row == null)
+                    return false;
+
+                int imageId = Convert.ToInt32((object)row.img_file_id);
+                string existingJson = Convert.ToString((object)row.featured_json);
+
+                if (existingJson.Trim(' ').Length == 0)
+                {
+                    var defaults = new Dictionary<string, object>
+                {
+                    { "type", isOffer ? "offer" : "product" },
+                    { "id", Convert.ToInt32((object)row.source_id) },
+                    { "title_h", Convert.ToString((object)row.title_h) },
+                    { "title_e", Convert.ToString((object)row.title_e) }
+                };
+
+                    decimal price = Convert.ToDecimal((object)row.price);
+                    string unitH = Convert.ToString((object)row.unit_h);
+                    string unitE = Convert.ToString((object)row.unit_e);
+
+                    if (price > 0) defaults["price"] = price;
+                    if (imageId > 0) defaults["img_id"] = imageId;
+                    if (!string.IsNullOrWhiteSpace(unitH)) defaults["unit_h"] = unitH;
+                    if (!string.IsNullOrWhiteSpace(unitE)) defaults["unit_e"] = unitE;
+
+                    var item = new Dictionary<string, object>
+                {
+                    { "defaults", defaults }
+                };
+
+                    int affected = db.Execute(
+                        "UPDATE r SET FeaturedItemJson = @2 " + source + " AND " + emptyJson,
+                        round_id, item_id, serializer.Serialize(item));
+
+                    if (affected > 0)
+                        return true;
+
+                    continue;
+                }
+
+                if (imageId <= 0)
+                    return true;
+
+                Dictionary<string, object> existingItem;
+                try
+                {
+                    existingItem = serializer
+                        .Deserialize<Dictionary<string, object>>(existingJson);
+                }
+                catch (ArgumentException)
+                {
+                    return false;
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+
+                if (existingItem == null)
+                    return false;
+
+                object savedDefaults;
+                Dictionary<string, object> existingDefaults;
+
+                if (existingItem.TryGetValue("defaults", out savedDefaults))
+                {
+                    existingDefaults = savedDefaults as Dictionary<string, object>;
+                    if (existingDefaults == null)
+                        return false;
+                }
+                else
+                {
+                    existingDefaults = new Dictionary<string, object>();
+                    existingItem["defaults"] = existingDefaults;
+                }
+
+                if (existingDefaults.ContainsKey("img_id"))
+                    return true;
+
+                existingDefaults["img_id"] = imageId;
+
+                int updated = db.Execute(
+                    "UPDATE r SET FeaturedItemJson = @2 " + source + " AND " + sameJson,
+                    round_id, item_id, serializer.Serialize(existingItem), existingJson);
+
+                if (updated > 0)
+                    return true;
+            }
+
+            return false;
+        }
+    }
 
     public static int func()
     {

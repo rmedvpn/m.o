@@ -134,9 +134,18 @@
             <input type="hidden" name="RoundToUpdate" id="RoundToUpdate" value="@round_id">
             <div class="RoundMenuItemsEditorTitle">
                 ספק: @vendor_name
-                <button type="button" class="RoundMenuItemsEditorTitleBtn" onclick="    hideElement('RoundMenuDiv');showElement('RoundSpecialsDiv');">מבצעים</button>
-                <button type="button" class="RoundMenuItemsEditorTitleBtn" onclick="showElement('RoundMenuDiv');hideElement('RoundSpecialsDiv');">מוצרים</button>
-
+                <button type="button" class="RoundMenuItemsEditorTitleBtn"
+                        onclick="hideElement('RoundMenuDiv');hideElement('RoundSpecialsDiv');showElement('RoundFeaturedDiv');">
+                    דף הבית
+                </button>
+                <button type="button" class="RoundMenuItemsEditorTitleBtn"
+                        onclick="hideElement('RoundMenuDiv');hideElement('RoundFeaturedDiv');showElement('RoundSpecialsDiv');">
+                    מבצעים
+                </button>
+                <button type="button" class="RoundMenuItemsEditorTitleBtn"
+                        onclick="hideElement('RoundSpecialsDiv');hideElement('RoundFeaturedDiv');showElement('RoundMenuDiv');">
+                    מוצרים
+                </button>
                 <div class="spinner" style="text-align: center;display: none;float: left" id="RoundMenuLoader">
                     <div class="bounce1"></div>
                     <div class="bounce2"></div>
@@ -151,6 +160,9 @@
                 <div class="B" style="overflow: auto; color: #000;display:none" id="RoundSpecialsDiv">
                     @Menus.RoundSpecials(round_id)
 
+                </div>
+                <div class="B" id="RoundFeaturedDiv" style="overflow:auto;color:#000;display:none;">
+                    @Menus.FeaturedMenuItems(round_id)
                 </div>
             </div>
 
@@ -550,6 +562,241 @@
     db.Close();
 }
 
+@helper FeaturedMenuItems(int round_id)
+{
+    using (var db = Database.Open("op_data"))
+    {
+        var items = db.Query(@"
+SELECT
+    'ITEM' AS item_kind,
+    m.id AS item_id,
+    m.Title AS title,
+    m.p_id AS image_id,
+    m.FeaturedItemJson AS featured_json,
+    m.featured_sort_order,
+    m.cat_sort_order,
+    m.sort_order
+FROM dbo.RoundMenuItems m
+WHERE m.round_id = @0
+  AND m.is_featured = 1
+  AND m.is_deleted = 0
+
+UNION ALL
+
+SELECT
+    'OFFER',
+    s.id,
+    s.title,
+    s.img_file_id,
+    ra.FeaturedItemJson,
+    ra.featured_sort_order,
+    ra.cat_sort_order,
+    ra.sort_order
+FROM dbo.SpOfferRoundsAvailability ra
+INNER JOIN dbo.SpecialOffers s ON s.id = ra.specialOfferId
+WHERE ra.round_id = @0
+  AND ra.is_featured = 1
+  AND ISNULL(s.is_deleted, 0) = 0
+
+ORDER BY featured_sort_order, cat_sort_order, sort_order, item_kind, item_id
+", round_id).ToList();
+
+        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+
+        <div dir="rtl" style="padding:12px;background:#f5f7f6;color:#18251e;">
+            <h2 style="margin:0 0 12px;font-size:22px;">מוצרי דף הבית</h2>
+
+            @if (items.Count == 0)
+            {
+                <div style="padding:16px;background:#fff;border:1px solid #dce5df;border-radius:10px;">
+                    אין מוצרים או מבצעים המסומנים להצגה בדף הבית.
+                </div>
+            }
+
+            @for (int index = 0; index < items.Count; index++)
+            {
+                var item = items[index];
+                string itemKind = item.item_kind;
+                int itemId = Convert.ToInt32((object)item.item_id);
+                int imageId = Convert.ToInt32((object)item.image_id);
+                string sourceTitle = Convert.ToString((object)item.title);
+                string featuredJson = Convert.ToString((object)item.featured_json);
+
+                bool isOffer = itemKind == "OFFER";
+                string typeLabel = isOffer ? "מבצע" : "מוצר";
+                string removeAction = isOffer ? "SpOfferMenuItemFeaturesToggle" : "MenuItemFeaturesToggle";
+                string removeFeature = isOffer ? "SPhp" : "hp";
+                string imageUrl = isOffer
+                    ? "ImgViewer?size=tn&id=" + imageId
+                    : "ImgViewer?size=tn&p_id=" + imageId;
+
+                string formId = "FeaturedItemForm_" + round_id + "_" + itemKind + "_" + itemId;
+                string editorId = formId + "_Editor";
+                string titleH = "";
+                string titleE = "";
+                string textH = "";
+                string textE = "";
+                bool invalidJson = false;
+
+                if (!string.IsNullOrWhiteSpace(featuredJson))
+                {
+                    try
+                    {
+                        var copy = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(featuredJson);
+                        if (copy != null)
+                        {
+                            object value;
+
+                            if (copy.TryGetValue("title_h", out value))
+                            {
+                                titleH = Convert.ToString(value);
+                            }
+
+                            if (copy.TryGetValue("title_e", out value))
+                            {
+                                titleE = Convert.ToString(value);
+                            }
+
+                            if (copy.TryGetValue("text_h", out value))
+                            {
+                                textH = Convert.ToString(value);
+                            }
+
+                            if (copy.TryGetValue("text_e", out value))
+                            {
+                                textE = Convert.ToString(value);
+                            }
+                        }
+                    }
+                    catch (ArgumentException)
+                    {
+                        invalidJson = true;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        invalidJson = true;
+                    }
+                }
+
+                string previewTitle = string.IsNullOrWhiteSpace(titleH) ? sourceTitle : titleH;
+
+                <div data-item-kind="@itemKind" data-item-id="@itemId"
+                     style="margin-bottom:8px;padding:10px;background:#fff;border:1px solid #dce5df;border-radius:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+                            <button type="button" class="UpDownBtn"
+                                    aria-label="העברה למעלה" title="העברה למעלה"
+                                    disabled="@(index == 0 ? "disabled" : null)"
+                                    onclick="AjaxActions('FeaturedItemChangeOrder', '@itemId', 'MainLoader', '@round_id', 'up', '@itemKind');">
+                                ⬆️
+                            </button>
+
+                            <button type="button" class="UpDownBtn"
+                                    aria-label="העברה למטה" title="העברה למטה"
+                                    disabled="@(index == items.Count - 1 ? "disabled" : null)"
+                                    onclick="AjaxActions('FeaturedItemChangeOrder', '@itemId', 'MainLoader', '@round_id', 'down', '@itemKind');">
+                                ⬇️
+                            </button>
+
+                            <button type="button" class="UpDownBtn"
+                                    style="font-size:12px;"
+                                    aria-label="עריכת תוכן בדף הבית"
+                                    title="עריכת תוכן בדף הבית"
+                                    aria-controls="@editorId"
+                                    aria-expanded="false"
+                                    onclick="var editor = document.getElementById('@editorId'); editor.hidden = !editor.hidden; this.setAttribute('aria-expanded', String(!editor.hidden));">
+                                ⚙️
+                            </button>
+
+                            <button type="button" class="UpDownBtn"
+                                    style="font-size:12px;"
+                                    aria-label="הסרה מדף הבית"
+                                    title="הסרה מדף הבית"
+                                    onclick="AjaxActions('@removeAction', false, 'MainLoader', '@itemId', '@round_id', '@removeFeature');">
+                                🗑️
+                            </button>
+                        </div>
+
+                        @if (imageId > 0)
+                        {
+                            <img src="@imageUrl" alt=""
+                                 style="width:54px;height:44px;object-fit:cover;border-radius:7px;flex-shrink:0;" />
+                        }
+
+                        <div style="flex:1;min-width:0;overflow-wrap:break-word;">
+                            <div style="font-size:17px;font-weight:bold;">@previewTitle</div>
+                            <div style="font-size:13px;color:#52635a;">
+                                @typeLabel
+                                @if (previewTitle != sourceTitle)
+                                {
+                                    <span> · @sourceTitle</span>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(textH))
+                            {
+                                <div style="margin-top:4px;font-size:14px;white-space:pre-wrap;">@textH</div>
+                            }
+                        </div>
+                    </div>
+
+                    <div id="@editorId" hidden="hidden" style="margin-top:8px;">
+                        @if (invalidJson)
+                        {
+                            <p style="margin:8px 0;color:#9b2c21;">לא ניתן לקרוא את תוכן דף הבית השמור.</p>
+                        }
+                        else
+                        {
+                            <form id="@formId" style="margin-top:10px;padding-top:10px;border-top:1px solid #e5ebe7;"
+                                  onsubmit="event.preventDefault(); AjaxActions('SaveFeaturedItemCopy', '', 'MainLoader', '@formId', '@round_id');">
+                                <input type="hidden" name="round_id" value="@round_id" />
+                                <input type="hidden" name="item_kind" value="@itemKind" />
+                                <input type="hidden" name="item_id" value="@itemId" />
+
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+                                    <div>
+                                        <label style="display:block;margin-bottom:8px;">
+                                            כותרת בעברית
+                                            <input type="text" name="title_h" value="@titleH" placeholder="@sourceTitle"
+                                                   style="display:block;width:100%;box-sizing:border-box;padding:7px;font-size:16px;" />
+                                        </label>
+
+                                        <label style="display:block;">
+                                            תיאור בעברית
+                                            <textarea name="text_h" rows="3"
+                                                      style="display:block;width:100%;box-sizing:border-box;padding:7px;font-size:16px;resize:none;">@textH</textarea>
+                                        </label>
+                                    </div>
+
+                                    <div dir="ltr">
+                                        <label style="display:block;margin-bottom:8px;">
+                                            English title
+                                            <input type="text" name="title_e" value="@titleE"
+                                                   style="display:block;width:100%;box-sizing:border-box;padding:7px;font-size:16px;" />
+                                        </label>
+
+                                        <label style="display:block;">
+                                            English description
+                                            <textarea name="text_e" rows="3"
+                                                      style="display:block;width:100%;box-sizing:border-box;padding:7px;font-size:16px;resize:none;">@textE</textarea>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:10px;text-align:left;">
+                                    <button type="submit"
+                                            style="padding:7px 14px;border:0;border-radius:6px;background:#24583e;color:#fff;cursor:pointer;">
+                                        שמירה
+                                    </button>
+                                </div>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
 @helper VendorMenuControlPanel(int round_id, string viewMode = "GENERAL")
 {
     var db = Database.Open("op_data");
@@ -988,11 +1235,25 @@
 
                         </div>
 
+                        <div class="PropRow">
+                            <span class="PropTitle">
+                                כמה דקות לפני שעת היציאה למשלוח / שעת הסגירה ההזמנות נסגרות?
+                            </span>
+
+                            <span class="PropValue">
+                                דק<input type="text" class="PropTextBox" style="width:50px;" name="order_cutoff_min" id="order_cutoff_min">
+
+                            </span>
+                        </div>
                         <div class="Spacer20"></div>
                         <div class="B" style="background-color:#e3e3e3;padding:5px;">
                             <div class="B" id="RoundTimelineHeaderDiv">
                                 <span class="PropTitle">לוח זמנים - שעות סבב חלוקה</span>
+
+
+
                             </div>
+
                             <div class="B" id="ExpressTimelineHeaderDiv" style="display:none">
                                 <span class="PropTitle">לוח זמנים לשירות אקספרס - שעות פתיחת השירות</span>
                             </div>
@@ -1337,6 +1598,7 @@
     decimal min_shipping_marker = 0; try { min_shipping_marker = serviceOption.min_shipping_marker; } catch { }
     decimal free_shipping_marker = 0; try { free_shipping_marker = serviceOption.free_shipping_marker; } catch { }
     int express_eta_min = 0; try { express_eta_min = serviceOption.express_eta_min; } catch { }
+    int order_cutoff_min = 0; try { order_cutoff_min = serviceOption.order_cutoff_min; } catch { }
     string ServiceSelectedAreas = ""; try { ServiceSelectedAreas = serviceOption.ServiceSelectedAreas; } catch { }
 
     bool is_sun = false; try { is_sun = serviceOption.is_sun; } catch { }
@@ -1457,6 +1719,7 @@
                                 <span class="PropTitle">זמן הגעה</span>
                                 <span class="PropValue">דק<input type="text" class="PropTextBox" style="width: 40px;" name="express_eta_min" id="express_eta_min" value="@express_eta_min.ToString()"></span>
                             </div>
+
                         </div>
 
                         <div class="B" id="PickupInfoDiv" style="display:@puInfoDisplayState">
@@ -1536,10 +1799,41 @@
 
                         </div>
 
+                        @switch (service_type)
+                        {
+                            case 1:
+                                <div class="PropRow">
+                                    <span class="PropTitle">
+                                        כמה דקות לפני שעת היציאה למשלוח ההזמנות נסגרות?
+                                    </span>
+
+                                    <span class="PropValue">
+                                        דק<input type="text" class="PropTextBox" style="width:50px;" value="@order_cutoff_min" name="order_cutoff_min" id="order_cutoff_min">
+
+                                    </span>
+                                </div>
+                                break;
+                            case 2:
+                            case 3:
+                                <div class="PropRow">
+                                    <span class="PropTitle">
+                                        כמה דקות לפני שעת הסגירה ההזמנות נסגרות?
+                                    </span>
+
+                                    <span class="PropValue">
+                                        דק<input type="text" class="PropTextBox" style="width:50px;" value="@order_cutoff_min" name="order_cutoff_min" id="order_cutoff_min">
+
+                                    </span>
+                                </div>
+                                break;
+
+                        }
+
                         <div class="Spacer20"></div>
                         <div class="B" style="background-color:#e3e3e3;padding:5px;">
                             <div class="B" id="RoundTimelineHeaderDiv">
                                 <span class="PropTitle">לוח זמנים - שעות סבב חלוקה</span>
+
                             </div>
                             <div class="B" id="ExpressTimelineHeaderDiv" style="display:none">
                                 <span class="PropTitle">לוח זמנים לשירות אקספרס - שעות פתיחת השירות</span>
@@ -2315,6 +2609,7 @@
         DateTime sat_end_time = defDate; try { sat_end_time = Convert.ToDateTime(Request["sat_end_time"]); } catch { }
 
         int min_to_dispatch = 0; try { min_to_dispatch = Convert.ToInt32(Request["min_to_dispatch"]); } catch { }
+        int order_cutoff_min = 0; try { order_cutoff_min = Convert.ToInt32(Request["order_cutoff_min"]); } catch { }
         DateTime expected_end_ts = Convert.ToDateTime("1/1/1970");
 
 
@@ -2474,8 +2769,8 @@
 
             if (shipping_charge > 0) { is_free_shipping = false; } else { is_free_shipping = true; }
 
-            sqlSelect = "UPDATE RoundFullfilmentOptions SET ts=@1, service_type=@2, is_active=@3, title_h=@4, desc_h=@5, title_e=@6, desc_e=@7, short_title=@8, vendor_id=@9, round_id=@10, is_route=@11, is_express=@12, is_pickup=@13, is_open_for_orders=@14, shipping_charge=@15, free_shipping_marker=@16, min_order=@17, start_time=@18, end_time=@19, express_eta_min=@20, rep_id=@21, pu_loc_address=@22, pu_loc_address_e=@23, gen_pu_loc=@24, gen_pu_loc_e=@25, min_to_dispatch=@26, pu_lead_time=@27, last_settings_change=@28, last_settings_change_clerk=@29, shipping_instructions=@30, shipping_instructions_e=@31, main_pickup_area=@32, pickup_area=@33, pickup_city=@34, pickup_city_e=@35, min_shipping_marker=@36, is_free_shipping=@37, is_update=@38, last_update_ts=@39, is_sun=@40, is_mon=@41, is_tue=@42, is_wed=@43, is_thu=@44, is_fri=@45, is_sat=@46, sun_start_time=@47, mon_start_time=@48, tue_start_time=@49, wed_start_time=@50, thu_start_time=@51, fri_start_time=@52, sat_start_time=@53, sun_end_time=@54, mon_end_time=@55, tue_end_time=@56, wed_end_time=@57, thu_end_time=@58, fri_end_time=@59, sat_end_time=@60,ServiceSelectedAreas=@61 WHERE id=@0";
-            db.Execute(sqlSelect, opt_id, ts, service_type, is_active, title_h, desc_h, title_e, desc_e, short_title, vendor_id, round_id, is_route, is_express, is_pickup, is_open_for_orders, shipping_charge, free_shipping_marker, min_shipping_marker, start_time, end_time, express_eta_min, rep_id, pu_loc_address, pu_loc_address_e, gen_pu_loc, gen_pu_loc_e, min_to_dispatch, pu_lead_time, ts, rep_id, shipping_instructions, shipping_instructions_e, main_pickup_area, pickup_area, pickup_city, pickup_city_e, min_shipping_marker, is_free_shipping, 1, ts, is_sun, is_mon, is_tue, is_wed, is_thu, is_fri, is_sat, sun_start_time, mon_start_time, tue_start_time, wed_start_time, thu_start_time, fri_start_time, sat_start_time, sun_end_time, mon_end_time, tue_end_time, wed_end_time, thu_end_time, fri_end_time, sat_end_time, ServiceSelectedAreas);
+            sqlSelect = "UPDATE RoundFullfilmentOptions SET ts=@1, service_type=@2, is_active=@3, title_h=@4, desc_h=@5, title_e=@6, desc_e=@7, short_title=@8, vendor_id=@9, round_id=@10, is_route=@11, is_express=@12, is_pickup=@13, is_open_for_orders=@14, shipping_charge=@15, free_shipping_marker=@16, min_order=@17, start_time=@18, end_time=@19, express_eta_min=@20, rep_id=@21, pu_loc_address=@22, pu_loc_address_e=@23, gen_pu_loc=@24, gen_pu_loc_e=@25, min_to_dispatch=@26, pu_lead_time=@27, last_settings_change=@28, last_settings_change_clerk=@29, shipping_instructions=@30, shipping_instructions_e=@31, main_pickup_area=@32, pickup_area=@33, pickup_city=@34, pickup_city_e=@35, min_shipping_marker=@36, is_free_shipping=@37, is_update=@38, last_update_ts=@39, is_sun=@40, is_mon=@41, is_tue=@42, is_wed=@43, is_thu=@44, is_fri=@45, is_sat=@46, sun_start_time=@47, mon_start_time=@48, tue_start_time=@49, wed_start_time=@50, thu_start_time=@51, fri_start_time=@52, sat_start_time=@53, sun_end_time=@54, mon_end_time=@55, tue_end_time=@56, wed_end_time=@57, thu_end_time=@58, fri_end_time=@59, sat_end_time=@60,ServiceSelectedAreas=@61,order_cutoff_min=@62 WHERE id=@0";
+            db.Execute(sqlSelect, opt_id, ts, service_type, is_active, title_h, desc_h, title_e, desc_e, short_title, vendor_id, round_id, is_route, is_express, is_pickup, is_open_for_orders, shipping_charge, free_shipping_marker, min_shipping_marker, start_time, end_time, express_eta_min, rep_id, pu_loc_address, pu_loc_address_e, gen_pu_loc, gen_pu_loc_e, min_to_dispatch, pu_lead_time, ts, rep_id, shipping_instructions, shipping_instructions_e, main_pickup_area, pickup_area, pickup_city, pickup_city_e, min_shipping_marker, is_free_shipping, 1, ts, is_sun, is_mon, is_tue, is_wed, is_thu, is_fri, is_sat, sun_start_time, mon_start_time, tue_start_time, wed_start_time, thu_start_time, fri_start_time, sat_start_time, sun_end_time, mon_end_time, tue_end_time, wed_end_time, thu_end_time, fri_end_time, sat_end_time, ServiceSelectedAreas, order_cutoff_min);
 
 
 
@@ -2653,105 +2948,271 @@
 
     public static string MenuItemFeaturesToggle()
     {
-        string theHtmlOutput = "";
-        int u_id = WebSecurity.CurrentUserId;
-        string theValue = Request["value"];
-        var db = Database.Open("op_data");
-        var sqlSelect = "";
+        int item_id;
+        int round_id;
+        bool set_to;
 
-        int MenuItemId = 0;
-        int round_id = 0;
-        bool set_to = false;
-
-
-        try { set_to = Convert.ToBoolean(theValue); } catch { }
-
-        //  set_to = !set_to;
-        try { MenuItemId = Convert.ToInt32(Request["param1"]); } catch { }
-        try { round_id = Convert.ToInt32(Request["param2"]); } catch { }
-        string feature = Request["param3"];
-        string json = "";
-        switch (feature)
+        if (!bool.TryParse(Request["value"], out set_to) ||
+            !int.TryParse(Request["param1"], out item_id) || item_id <= 0 ||
+            !int.TryParse(Request["param2"], out round_id) || round_id <= 0)
         {
-            case "hp":
-                sqlSelect = "UPDATE RoundMenuItems SET is_featured=@0 WHERE id=@1";
-                db.Execute(sqlSelect, set_to, MenuItemId);
-
-                if (set_to)
-                {
-                    theHtmlOutput = " 👌 המוצר יוצג בדף הראשי ";
-                }
-                else
-                {
-                    theHtmlOutput = " 👌 המוצר לא יוצג בדף הראשי ";
-                }
-                json = AppJson.CreateFeaturedItemsJson(round_id, true);
-                break;
-
-            case "av":
-                sqlSelect = "UPDATE RoundMenuItems SET is_available=@0 WHERE id=@1";
-                db.Execute(sqlSelect, set_to, MenuItemId);
-
-                if (set_to)
-                {
-                    theHtmlOutput = " 👌 המוצר יהיה זמין לרכישה ";
-                }
-                else
-                {
-                    theHtmlOutput = " 👌 המוצר לא יהיה זמין לרכישה ";
-                }
-
-                break;
-
-            case "ac":
-                sqlSelect = "UPDATE RoundMenuItems SET is_active=@0 WHERE id=@1";
-                db.Execute(sqlSelect, set_to, MenuItemId);
-
-                if (set_to)
-                {
-                    theHtmlOutput = " 👌 המוצר סומן כפעיל ";
-                }
-                else
-                {
-                    theHtmlOutput = " 👌 המוצר סומן כלא פעיל ";
-                }
-
-                break;
-
-            case "SPav":
-                sqlSelect = "UPDATE SpOfferRoundsAvailability SET is_active=@0 WHERE specialOfferId=@1 AND round_id=@2";
-                db.Execute(sqlSelect, set_to, MenuItemId, round_id);
-
-                if (set_to)
-                {
-                    theHtmlOutput = " 👌 המבצע יהיה זמין לרכישה ";
-                }
-                else
-                {
-                    theHtmlOutput = " 👌 המבצע לא יהיה זמין לרכישה ";
-                }
-
-                break;
-            case "SPhp":
-                sqlSelect = "UPDATE SpOfferRoundsAvailability SET is_featured=@0 WHERE specialOfferId=@1 AND round_id=@2";
-                db.Execute(sqlSelect, set_to, MenuItemId, round_id);
-
-                if (set_to)
-                {
-                    theHtmlOutput = " 👌 המבצע יוצג בדף הראשי ";
-                }
-                else
-                {
-                    theHtmlOutput = " 👌 המבצע לא יוצג בדף הראשי ";
-                }
-                json = AppJson.CreateFeaturedItemsJson(round_id, true);
-                break;
+            return "!$!פרטי הפריט אינם תקינים.";
         }
 
-        db.Close();
+        string feature = Request["param3"];
 
-        //   theHtmlOutput = " 👌 אפשרות המחיר נמחקה " + set_to;
-        return theHtmlOutput;
+        using (var db = Database.Open("op_data"))
+        {
+            switch (feature)
+            {
+                case "hp":
+                case "SPhp":
+                    {
+                        bool isOffer = feature == "SPhp";
+
+                        string source = isOffer
+                            ? @"FROM dbo.SpOfferRoundsAvailability r
+                        JOIN dbo.SpecialOffers s ON s.id = r.specialOfferId
+                        WHERE r.round_id = @2
+                          AND r.specialOfferId = @1
+                          AND ISNULL(s.is_deleted, 0) = 0"
+                            : @"FROM dbo.RoundMenuItems r
+                        WHERE r.round_id = @2
+                          AND r.id = @1
+                          AND r.is_deleted = 0";
+
+                        string hasImage = isOffer
+                            ? "ISNULL(s.img_file_id, 0) > 0"
+                            : @"ISNULL(r.img_file_id, 0) > 0
+                        OR EXISTS (
+                            SELECT 1
+                            FROM dbo.Products p
+                            WHERE p.p_id = r.p_id
+                              AND ISNULL(p.img_file_id, 0) > 0
+                        )";
+
+                        int result = Convert.ToInt32(db.QueryValue(@"
+                    SET NOCOUNT ON;
+                    SET XACT_ABORT ON;
+                    BEGIN TRANSACTION;
+
+                    DECLARE @locked_round_id int;
+                    DECLARE @next_sort_order int;
+                    DECLARE @result int = 0;
+
+                    SELECT @locked_round_id = id
+                    FROM dbo.Rounds WITH (UPDLOCK, HOLDLOCK)
+                    WHERE id = @2;
+
+                    IF @locked_round_id IS NOT NULL
+                    BEGIN
+                        IF @0 = 1
+                        BEGIN
+                            SELECT @next_sort_order = ISNULL(MAX(sort_position), 0) + 100
+                            FROM
+                            (
+                                SELECT featured_sort_order AS sort_position
+                                FROM dbo.RoundMenuItems
+                                WHERE round_id = @2
+                                  AND is_featured = 1
+                                  AND is_deleted = 0
+
+                                UNION ALL
+
+                                SELECT ra.featured_sort_order
+                                FROM dbo.SpOfferRoundsAvailability ra
+                                JOIN dbo.SpecialOffers s ON s.id = ra.specialOfferId
+                                WHERE ra.round_id = @2
+                                  AND ra.is_featured = 1
+                                  AND ISNULL(s.is_deleted, 0) = 0
+
+                                UNION ALL
+
+                                SELECT featured_sort_order
+                                FROM dbo.RoundFeaturedAnnouncements
+                                WHERE round_id = @2
+                            ) AS FeaturedPositions;
+                        END;
+
+                        UPDATE r
+                        SET is_featured = @0,
+                            featured_sort_order = CASE
+                                WHEN @0 = 0 THEN NULL
+                                WHEN r.is_featured = 1
+                                     AND r.featured_sort_order IS NOT NULL
+                                    THEN r.featured_sort_order
+                                ELSE @next_sort_order
+                            END
+                        " + source + @"
+                          AND (@0 = 0 OR (" + hasImage + @"));
+
+                        SET @result = @@ROWCOUNT;
+
+                        IF @result = 0 AND @0 = 1
+                           AND EXISTS (SELECT 1 " + source + @")
+                        BEGIN
+                            SET @result = -1;
+                        END;
+                    END;
+
+                    COMMIT TRANSACTION;
+                    SELECT @result;
+                ", set_to, item_id, round_id));
+
+                        if (result == -1)
+                        {
+                            return "!$!יש להוסיף תמונה לפני הצגה בדף הבית.";
+                        }
+
+                        if (result == 0)
+                        {
+                            return "!$!הפריט לא נמצא בתפריט.";
+                        }
+
+                        if (set_to)
+                        {
+                            bool jsonReady = isOffer
+                                ? AppJson.CreateFeaturedSpOfferJson(round_id, item_id)
+                                : AppJson.CreateFeaturedItemJson(round_id, item_id);
+
+                            if (!jsonReady)
+                            {
+                                return "!$!סימון הפריט נשמר, אך לא ניתן היה ליצור את נתוני דף הבית.";
+                            }
+                        }
+
+                        AppJson.CreateFeaturedItemsJson(round_id, true);
+
+                        if (isOffer)
+                        {
+                            return set_to
+                                ? "👌 המבצע סומן להצגה בדף הבית"
+                                : "👌 המבצע הוסר מדף הבית";
+                        }
+
+                        return set_to
+                            ? "👌 המוצר סומן להצגה בדף הבית"
+                            : "👌 המוצר הוסר מדף הבית";
+                    }
+
+                case "av":
+                    db.Execute(
+                        "UPDATE dbo.RoundMenuItems SET is_available=@0 WHERE id=@1 AND round_id=@2",
+                        set_to, item_id, round_id);
+
+                    return set_to
+                        ? "👌 המוצר יהיה זמין לרכישה"
+                        : "👌 המוצר לא יהיה זמין לרכישה";
+
+                case "ac":
+                    db.Execute(
+                        "UPDATE dbo.RoundMenuItems SET is_active=@0 WHERE id=@1 AND round_id=@2",
+                        set_to, item_id, round_id);
+
+                    AppJson.CreateFeaturedItemsJson(round_id, true);
+
+                    return set_to
+                        ? "👌 המוצר סומן כפעיל"
+                        : "👌 המוצר סומן כלא פעיל";
+
+                case "SPav":
+                    db.Execute(
+                        "UPDATE dbo.SpOfferRoundsAvailability SET is_active=@0 WHERE specialOfferId=@1 AND round_id=@2",
+                        set_to, item_id, round_id);
+
+                    AppJson.CreateFeaturedItemsJson(round_id, true);
+
+                    return set_to
+                        ? "👌 המבצע יהיה זמין לרכישה"
+                        : "👌 המבצע לא יהיה זמין לרכישה";
+
+                default:
+                    return "!$!פעולה לא מוכרת.";
+            }
+        }
+    }
+    public static string SaveFeaturedItemCopy()
+    {
+        if (WebMatrix.WebData.WebSecurity.CurrentUserId <= 0)
+            return "!$!יש להתחבר למערכת.";
+
+        var form = Request.Form;
+        int round_id;
+        int item_id;
+        string item_kind = form["item_kind"];
+
+        if (!int.TryParse(form["round_id"], out round_id) || round_id <= 0 ||
+            !int.TryParse(form["item_id"], out item_id) || item_id <= 0 ||
+            (item_kind != "ITEM" && item_kind != "OFFER"))
+        {
+            return "!$!פרטי הפריט אינם תקינים.";
+        }
+
+        string[] fields = { "title_h", "title_e", "text_h", "text_e" };
+        foreach (string field in fields)
+        {
+            if (form[field] == null)
+                return "!$!טופס העריכה לא נשלח במלואו.";
+        }
+
+        bool isOffer = item_kind == "OFFER";
+        string source = isOffer
+            ? @"FROM dbo.SpOfferRoundsAvailability r
+JOIN dbo.SpecialOffers s ON s.id = r.specialOfferId
+WHERE r.round_id=@0 AND r.specialOfferId=@1
+  AND r.is_featured=1 AND ISNULL(s.is_deleted, 0)=0"
+            : @"FROM dbo.RoundMenuItems r
+WHERE r.round_id=@0 AND r.id=@1
+  AND r.is_featured=1 AND r.is_deleted=0";
+
+        using (var db = Database.Open("op_data"))
+        {
+            var row = db.QuerySingle("SELECT r.FeaturedItemJson " + source, round_id, item_id);
+            if (row == null)
+                return "!$!הפריט לא נמצא ברשימת דף הבית.";
+
+            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+            var copy = new Dictionary<string, object>();
+            string savedJson = Convert.ToString(row.FeaturedItemJson);
+
+            if (!string.IsNullOrWhiteSpace(savedJson))
+            {
+                try
+                {
+                    copy = serializer.Deserialize<Dictionary<string, object>>(savedJson)
+                        ?? new Dictionary<string, object>();
+                }
+                catch (ArgumentException)
+                {
+                    return "!$!תוכן דף הבית השמור אינו תקין.";
+                }
+                catch (InvalidOperationException)
+                {
+                    return "!$!תוכן דף הבית השמור אינו תקין.";
+                }
+            }
+
+            foreach (string field in fields)
+            {
+                string value = form[field].Trim();
+
+                if (value.Length == 0)
+                    copy.Remove(field);
+                else
+                    copy[field] = value;
+            }
+
+            string json = serializer.Serialize(copy);
+            int affected = db.Execute(
+                "UPDATE r SET FeaturedItemJson=@2 " + source,
+                round_id, item_id, json);
+
+            if (affected == 0)
+                return "!$!הפריט כבר אינו ברשימת דף הבית.";
+        }
+
+        AppJson.CreateFeaturedItemsJson(round_id, true);
+        return "תוכן דף הבית נשמר.";
     }
 
     public static string SyncRoundItemWithProduct(int p_id, int round_id)
@@ -3014,7 +3475,77 @@
 
         return theHtmlOutput;
     }
+    public static string FeaturedItemChangeOrder()
+    {
+        int item_id;
+        int round_id;
+        string direction = Request["param2"];
+        string item_kind = Request["param3"];
 
+        if (!int.TryParse(Request["value"], out item_id) || item_id <= 0 ||
+            !int.TryParse(Request["param1"], out round_id) || round_id <= 0 ||
+            (direction != "up" && direction != "down") ||
+            (item_kind != "ITEM" && item_kind != "OFFER"))
+        {
+            return "!$!פרטי הפעולה אינם תקינים.";
+        }
+
+        using (var db = Database.Open("op_data"))
+        {
+            var items = db.Query(@"
+SELECT 'ITEM' AS item_kind, id AS item_id, id AS row_id,
+       featured_sort_order, cat_sort_order, sort_order
+FROM dbo.RoundMenuItems
+WHERE round_id=@0 AND is_featured=1 AND is_deleted=0
+
+UNION ALL
+
+SELECT 'OFFER', ra.specialOfferId, ra.id,
+       ra.featured_sort_order, ra.cat_sort_order, ra.sort_order
+FROM dbo.SpOfferRoundsAvailability ra
+JOIN dbo.SpecialOffers s ON s.id=ra.specialOfferId
+WHERE ra.round_id=@0 AND ra.is_featured=1
+  AND ISNULL(s.is_deleted, 0)=0
+
+ORDER BY featured_sort_order, cat_sort_order, sort_order, item_kind, item_id
+", round_id).ToList();
+
+            int index = items.FindIndex(item =>
+                (string)item.item_kind == item_kind &&
+                (int)item.item_id == item_id);
+
+            if (index < 0)
+                return "!$!הפריט לא נמצא ברשימת דף הבית.";
+
+            int target = index + (direction == "up" ? -1 : 1);
+            if (target < 0 || target >= items.Count)
+                return "!$!הפריט כבר נמצא בקצה הרשימה.";
+
+            var movingItem = items[index];
+            items[index] = items[target];
+            items[target] = movingItem;
+
+            int position = 0;
+            foreach (var item in items)
+            {
+                position += 100;
+
+                int? currentPosition = item.featured_sort_order;
+                if (currentPosition == position)
+                    continue;
+
+                int row_id = item.row_id;
+                string sql = (string)item.item_kind == "ITEM"
+                    ? "UPDATE dbo.RoundMenuItems SET featured_sort_order=@0 WHERE id=@1 AND round_id=@2 AND is_featured=1"
+                    : "UPDATE dbo.SpOfferRoundsAvailability SET featured_sort_order=@0 WHERE id=@1 AND round_id=@2 AND is_featured=1";
+
+                db.Execute(sql, position, row_id, round_id);
+            }
+        }
+
+        AppJson.CreateFeaturedItemsJson(round_id, true);
+        return "הפעולה בוצעה!";
+    }
     public static void DoMenuItemOrderSequence(int spOfferId)
     {
         var db = Database.Open("op_data");

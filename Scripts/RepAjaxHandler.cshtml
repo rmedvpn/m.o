@@ -682,10 +682,10 @@
                     <div>@NewAppHelpers.SubCatList(cat_id, sub_cat_type)</div>
 
                 }
-            else
-                        {
-                            <div></div>
-                        }
+                else
+                {
+                    <div></div>
+                }
             }
             break;
 
@@ -1442,7 +1442,16 @@
             }
 
             break;
-
+        case "FeaturedMenuItems":
+            {
+                int featured_round_id;
+                if (int.TryParse(Request["param1"], out featured_round_id) &&
+                    featured_round_id > 0)
+                {
+                    @Menus.FeaturedMenuItems(featured_round_id)
+                }
+                break;
+            }
         ////////////////////////////////////
 
         default:

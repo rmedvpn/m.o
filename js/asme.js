@@ -705,6 +705,7 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
             case "UpdateCategoryPricingOption":
             case "UpdateCategoryPricingOption":
             case "AddCategoryPricingOption":
+            case "SaveFeaturedItemCopy":
                 if (document.getElementById(param1)) {
                     var form = document.getElementById(param1);
                     formData = new FormData(form);
@@ -1458,17 +1459,42 @@ function AjaxActions(field, value,loaderElement,param1,param2,param3,param4,para
                     case "MenuItemChangeOrder":
                          RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param1);
                         break;
+                    case "FeaturedItemChangeOrder":
+                        if (!theRes.startsWith("!$!") && document.getElementById("RoundFeaturedDiv")) {
+                            RepAjaxUpdate("FeaturedMenuItems", "RoundFeaturedDiv", "", param1);
+                        }
+                        break;
+                    case "SaveFeaturedItemCopy":
+                        if (!theRes.startsWith("!$!") && document.getElementById("RoundFeaturedDiv")) {
+                            RepAjaxUpdate("FeaturedMenuItems", "RoundFeaturedDiv", "", param2);
+                        }
+                        break;
                     case "MenuItemFeaturesToggle":
                     case "SetMenuItemMaxInCart":
-                        RepAjaxUpdate('EditMenuItems', 'RoundMenuDiv', 'MainLoader', param2);
-                        RepAjaxUpdate('RoundSpecials', 'RoundSpecialsDiv', 'MainLoader', param2);
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate("EditMenuItems", "RoundMenuDiv", "MainLoader", param2);
+                            RepAjaxUpdate("RoundSpecials", "RoundSpecialsDiv", "MainLoader", param2);
+
+                            if (field === "MenuItemFeaturesToggle" && param3 === "hp" &&
+                                document.getElementById("RoundFeaturedDiv")) {
+                                RepAjaxUpdate("FeaturedMenuItems", "RoundFeaturedDiv", "", param2);
+                            }
+                        }
                         break;
+
                     case "SpOfferMenuItemFeaturesToggle":
                     case "RemoveSpOfferMenuItemFromRound":
                     case "SetSpOfferMenuItemMaxInCart":
-                        RepAjaxUpdate('RoundSpecials', 'RoundSpecialsDiv', 'MainLoader', param2);
+                        if (!theRes.startsWith("!$!")) {
+                            RepAjaxUpdate("RoundSpecials", "RoundSpecialsDiv", "MainLoader", param2);
 
+                            if (field === "SpOfferMenuItemFeaturesToggle" && param3 === "SPhp" &&
+                                document.getElementById("RoundFeaturedDiv")) {
+                                RepAjaxUpdate("FeaturedMenuItems", "RoundFeaturedDiv", "", param2);
+                            }
+                        }
                         break;
+
                     case "AddOfferToRound":
                     case "MenuSpOfferChangeOrder":
                     case "MenuSpOfferCategoryChangeOrder":
